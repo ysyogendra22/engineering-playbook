@@ -76,7 +76,7 @@ Good:  "set payment 123 to PAID" / check the message ID was already processed
 
 ---
 
-#### 5b. Fan-out on Write vs Read (News Feed) — 🟢 Must Know
+#### 6. Fan-out on Write vs Read (News Feed) — 🟢 Must Know
 
 *How does a post reach the followers' feeds?*
 
@@ -91,7 +91,7 @@ Good:  "set payment 123 to PAID" / check the message ID was already processed
 
 ---
 
-#### 6. Event Streams (Kafka) — 🟡 Good to Know
+#### 7. Event Streams (Kafka) — 🟡 Good to Know
 
 *A queue that keeps a log of events, so many consumers can read and re-read them.*
 
@@ -103,7 +103,7 @@ Good:  "set payment 123 to PAID" / check the message ID was already processed
 
 ---
 
-#### 7. Scheduled and Delayed Jobs — 🟡 Good to Know
+#### 8. Scheduled and Delayed Jobs — 🟡 Good to Know
 
 1. **Scheduled** — run at a time or interval (nightly cleanup, daily report).
 2. **Delayed** — run after N minutes (release an unpaid ticket hold after 10 minutes).
@@ -111,7 +111,7 @@ Good:  "set payment 123 to PAID" / check the message ID was already processed
 
 ---
 
-#### 8. Common Interview Questions
+#### 9. Common Interview Questions
 
 1. **Sending a notification is slow. How do you keep the API fast?**
    The API saves the request and puts a job on a queue, then returns. Workers send the notification with retries and a dead-letter queue.
@@ -130,7 +130,7 @@ Good:  "set payment 123 to PAID" / check the message ID was already processed
 
 ---
 
-#### 9. Common Mistakes
+#### 10. Common Mistakes
 
 1. Non-idempotent handlers with at-least-once delivery.
 2. No dead-letter queue, so one bad message blocks everything.
@@ -141,7 +141,7 @@ Good:  "set payment 123 to PAID" / check the message ID was already processed
 
 ---
 
-#### 10. Related Topics
+#### 11. Related Topics
 
 1. `22` Reliable Requests & External Services
 2. `25` Overload & Failure Handling (backpressure)
@@ -150,7 +150,7 @@ Good:  "set payment 123 to PAID" / check the message ID was already processed
 
 ---
 
-#### 11. Interview Must Remember
+#### 12. Interview Must Remember
 
 1. **Producer → queue → worker.** Fast response, spike protection, retries.
 2. **Ack, retry with backoff, DLQ.**
