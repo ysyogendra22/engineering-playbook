@@ -10,6 +10,8 @@ Roadmap topic 9 · Stage 3: Data
 
 #### 1. The Path of a Request to the Database — 🟢 Must Know
 
+*Follow one request from the controller to the database and back.*
+
 ```text
 Controller → Service → Repository → Connection Pool → Database
 ```
@@ -97,6 +99,8 @@ SELECT * FROM users WHERE id IN (1, 2, 3, ...);
 ---
 
 #### 6. Connection Limits with Many Servers — 🟡 Good to Know
+
+*Many servers each opening connections can overload the database.*
 
 1. The database has a **maximum number of connections** (for example, PostgreSQL defaults to 100).
 2. `servers × pool size` must stay below that limit.

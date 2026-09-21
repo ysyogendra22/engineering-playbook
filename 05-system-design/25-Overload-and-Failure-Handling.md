@@ -96,6 +96,8 @@ HALF-OPEN  → allow a few test calls
 
 #### 7. Bulkheads — 🟡 Good to Know
 
+*Keep one failing part from using up everything.*
+
 1. Separate resources (thread pools, connection pools) per dependency or feature.
 2. One slow dependency can't use up all resources and take down everything.
 3. Like watertight compartments in a ship.

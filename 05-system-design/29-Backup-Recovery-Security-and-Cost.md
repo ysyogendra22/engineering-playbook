@@ -10,6 +10,8 @@ Roadmap topic 29 · Stage 6: Architecture & Production
 
 #### 1. Backups and Tested Restores — 🟢 Must Know
 
+*A backup only counts if you can restore it.*
+
 1. Take **regular backups** of the database and important files, and store them **separately** (another location or account).
 2. **Test restoring.** A backup you have never restored is only a guess.
 3. **Point-in-time recovery** — restore the database to a specific moment (for example, just before a bad deploy).
@@ -37,6 +39,8 @@ Roadmap topic 29 · Stage 6: Architecture & Production
 
 #### 3. Multi-AZ vs Multi-Region — 🟡 Good to Know
 
+*Survive one data center failing, or a whole region.*
+
 | | Multi-AZ | Multi-region |
 |---|---|---|
 | Protects from | One data center failing | A whole region failing |
@@ -49,6 +53,8 @@ Multi-region options: **active–passive** (a standby region takes over) or **ac
 
 #### 4. Security Basics for Production — 🟡 Good to Know
 
+*The minimum safety rules for production.*
+
 1. **Encryption** in transit (HTTPS/TLS) and at rest (disks, backups).
 2. **Least privilege** — each service and person gets only the access they need.
 3. **Secrets manager** for keys and passwords. Rotate them.
@@ -58,6 +64,8 @@ Multi-region options: **active–passive** (a standby region takes over) or **ac
 ---
 
 #### 5. Cost Trade-Offs — 🟡 Good to Know
+
+*Every design choice has a price. Mention it.*
 
 1. **Compute** — right-size servers, use auto-scaling, don't overprovision.
 2. **Storage** — set retention rules, and move old data to cheaper storage.

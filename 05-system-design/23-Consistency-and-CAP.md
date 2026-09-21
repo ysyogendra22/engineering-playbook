@@ -10,6 +10,8 @@ Roadmap topic 23 · Stage 5: Async & Reliability
 
 #### 1. Strong vs Eventual Consistency — 🟢 Must Know
 
+*Do all users see the latest write right away, or only after a short delay?*
+
 | | Strong | Eventual |
 |---|---|---|
 | Meaning | Every read sees the latest write | Reads may be stale for a short time, then all copies agree |
@@ -20,6 +22,8 @@ Roadmap topic 23 · Stage 5: Async & Reliability
 Strong:    write → everyone reads the new value
 Eventual:  write → some read old value → soon all read the new value
 ```
+
+**Mobile view:** an app that shows a new post instantly (optimistic UI) before the server confirms it is a small taste of eventual consistency.
 
 ---
 

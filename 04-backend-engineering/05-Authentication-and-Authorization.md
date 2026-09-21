@@ -96,6 +96,8 @@ GET /notes/99
 
 #### 6. Roles and Permissions — 🟢 Must Know
 
+*Authentication says who you are. This decides what you may do.*
+
 1. **Role-based access control (RBAC):** users have roles (`user`, `admin`), and roles have permissions.
 2. Check permissions on the server for each action, not only by hiding a button in the app.
 3. Give the **least** access needed.
@@ -116,6 +118,8 @@ GET /notes/99
 
 #### 8. OAuth 2.0, OpenID Connect, PKCE — 🟡 Good to Know
 
+*"Sign in with Google" style login, and how apps get limited access safely.*
+
 1. **OAuth 2.0** — lets an app get limited access to your data at another service without your password ("allow this app to read my calendar").
 2. **OpenID Connect (OIDC)** — adds **login** (identity) on top of OAuth. This is "Sign in with Google/Apple".
 3. **PKCE** — extra protection for mobile apps, which can't keep a client secret safe. Always use it for OAuth in apps.
@@ -124,6 +128,8 @@ GET /notes/99
 ---
 
 #### 9. JWT Pitfalls, MFA, API Keys — 🟡 Good to Know
+
+*Common ways token login goes wrong, and extra layers of protection.*
 
 1. **JWT pitfalls:** hard to revoke before expiry; don't put secrets in the payload; always verify signature, expiry, and algorithm.
 2. **MFA** — a second proof (code, authenticator app). Protects against stolen passwords.

@@ -10,6 +10,8 @@ Roadmap topic 19 · Stage 4: Scale
 
 #### 1. Why and When to Shard — 🟢 Must Know
 
+*Split data only when one machine cannot cope.*
+
 1. One database has limits: storage, write throughput, memory.
 2. Replication scales reads, not writes and not total data size.
 3. **Sharding is complex. Try these first:** indexes, caching, read replicas, a bigger machine, archiving old data.
@@ -24,6 +26,8 @@ Users Q–Z → Shard 3
 ---
 
 #### 2. Hash vs Range Partitioning — 🟢 Must Know
+
+*Two ways to decide which shard holds a row.*
 
 | | Hash | Range |
 |---|---|---|
@@ -59,6 +63,8 @@ Bad choice:     created_date     → all new writes hit one shard (hotspot)
 
 #### 4. Hotspots and Rebalancing — 🟢 Must Know
 
+*Uneven load on shards, and moving data when you add shards.*
+
 1. **Hotspot** — one shard gets far more traffic (a celebrity account, all today's writes).
 2. **Uneven data** — some shards are much bigger.
 3. **Rebalancing** — moving data when adding shards. Slow and risky, so plan for it (many small partitions, consistent hashing).
@@ -80,6 +86,8 @@ Used in caches, distributed databases, and load balancing.
 
 #### 6. The Costs — 🟢 Must Know
 
+*What you pay for sharding.*
+
 1. **Cross-shard queries** are slow and complex (joins across shards).
 2. **Cross-shard transactions** are hard. Avoid them by keeping related data on one shard.
 3. More operations: backups, schema changes, monitoring per shard.
@@ -88,6 +96,8 @@ Used in caches, distributed databases, and load balancing.
 ---
 
 #### 7. Resharding, Directory-Based Sharding — 🟡 Good to Know
+
+*Advanced options. Know the names.*
 
 1. **Resharding** — splitting or merging shards as data grows. Do it gradually, with double-writing and validation.
 2. **Directory-based** — a lookup table says which shard holds which key. Flexible, but the directory is a critical component to protect.

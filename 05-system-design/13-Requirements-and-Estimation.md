@@ -35,6 +35,8 @@ Common non-functional needs: **latency, availability, durability, scalability, c
 
 #### 3. Users and Traffic — 🟢 Must Know
 
+*Turn users into requests per second.*
+
 1. **DAU** — daily active users. **Concurrent users** — online at the same moment (much smaller than DAU).
 2. **QPS** (queries per second) = requests per day ÷ 86,400.
 3. **Peak traffic** is usually 2–10× the average. Design for the peak.
@@ -59,6 +61,8 @@ Peak ×5 ≈ 6,000 QPS
 
 #### 5. Storage and Bandwidth — 🟢 Must Know
 
+*Estimate how much data you store and how much you send.*
+
 ```text
 Storage   = records × size per record × retention
 Bandwidth = requests per second × size per response
@@ -78,6 +82,8 @@ Bandwidth = requests per second × size per response
 
 #### 6. Latency vs Throughput, Percentiles — 🟢 Must Know
 
+*Speed of one request versus how many you can handle. Use percentiles, not averages.*
+
 1. **Latency** — time for one request (ms). **Throughput** — requests handled per second.
 2. **p50** — half of the requests are faster than this. **p95 / p99** — the slowest 5% / 1%.
 3. **Averages hide slow users.** Set targets on p95 or p99.
@@ -85,6 +91,8 @@ Bandwidth = requests per second × size per response
 ---
 
 #### 7. Availability vs Durability — 🟢 Must Know
+
+*Up and answering versus never losing data. They are not the same.*
 
 1. **Availability** — the system is up and answering.
 2. **Durability** — saved data is not lost.
@@ -100,6 +108,8 @@ Bandwidth = requests per second × size per response
 ---
 
 #### 8. Numbers to Remember — 🟡 Good to Know (New)
+
+*A few round numbers help you estimate fast.*
 
 ```text
 1 day ≈ 86,400 s ≈ 100K s        1M requests/day ≈ 12 QPS

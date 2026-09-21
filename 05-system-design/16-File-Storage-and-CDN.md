@@ -46,9 +46,13 @@ Why:
 
 #### 3. Download Flow and Signed URLs — 🟢 Must Know
 
+*Serve public files through the CDN and private files with a temporary link.*
+
 1. **Public files** (profile pictures): serve through the CDN.
 2. **Private files** (documents): the server checks permission, then returns a **signed download URL** that expires.
 3. Signed URLs let you control access without proxying the file.
+
+**Mobile view:** image libraries (Coil, Glide, SDWebImage) cache downloads, so stable CDN URLs give the best cache hits on the phone.
 
 ---
 
@@ -80,6 +84,8 @@ User in India → nearby CDN edge → (hit) file returned fast
 ---
 
 #### 6. Thumbnails and Cleanup — 🟡 Good to Know
+
+*Different sizes for different screens, and delete what you no longer need.*
 
 1. Create **multiple sizes** (thumbnail, medium, full) in a background job, so the app loads small images first.
 2. Validate file **size and type**. Consider virus scanning.

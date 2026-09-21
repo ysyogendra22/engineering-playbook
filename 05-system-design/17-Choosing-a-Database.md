@@ -22,6 +22,8 @@ Roadmap topic 17 · Stage 4: Scale
 
 #### 2. Non-Relational (NoSQL) Types — 🟢 Must Know
 
+*Non-relational databases, grouped by how they store data.*
+
 | Type | Idea | Examples | Good for |
 |---|---|---|---|
 | **Key-value** | Look up a value by key | Redis, DynamoDB | Sessions, cache, simple lookups |
@@ -33,6 +35,8 @@ Trade-off: NoSQL often gives easier scaling and flexible data, but with **weaker
 ---
 
 #### 3. How to Choose — 🟢 Must Know
+
+*Pick by data shape, query pattern, and consistency need, not by trend.*
 
 Ask:
 
@@ -66,6 +70,8 @@ Search engine     → full-text search
 ---
 
 #### 5. Graph, Search, Time-Series — 🟡 Good to Know
+
+*Special databases for special jobs.*
 
 1. **Graph database** — relationships are the main data (social graph, recommendations).
 2. **Search engine** (Elasticsearch, OpenSearch) — full-text search and ranking.

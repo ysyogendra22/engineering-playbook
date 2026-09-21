@@ -43,6 +43,8 @@ SELECT * FROM users WHERE email = $1;   -- value passed separately
 
 #### 3. HTTPS & Secret Handling — 🟢 Must Know
 
+*Protect data on the wire and keep keys out of code.*
+
 1. HTTPS everywhere. Never send tokens over plain HTTP.
 2. Secrets (database password, API keys) go in **environment variables or a secrets manager**, not in code or Git.
 3. Never put secrets inside the mobile app. Anyone can extract them.
@@ -51,6 +53,8 @@ SELECT * FROM users WHERE email = $1;   -- value passed separately
 ---
 
 #### 4. No Sensitive Data in Logs or Errors — 🟢 Must Know
+
+*Logs are read by many people and tools, so keep secrets out of them.*
 
 1. Never log passwords, tokens, full card numbers, or personal data.
 2. Don't send stack traces or SQL errors to the client. Return a safe message and log the details on the server.
@@ -81,6 +85,8 @@ SELECT * FROM users WHERE email = $1;   -- value passed separately
 
 #### 7. SSRF — 🟡 Good to Know
 
+*Tricking your server into calling addresses it should not reach.*
+
 1. Server-side request forgery: your server fetches a URL that a user gave you (for example, "import image from URL").
 2. An attacker gives an internal address (`http://localhost/admin`) and your server fetches it.
 3. Fix: allow only expected hosts, block internal addresses, set timeouts.
@@ -89,6 +95,8 @@ SELECT * FROM users WHERE email = $1;   -- value passed separately
 
 #### 8. Encryption at Rest & Privacy — 🟡 Good to Know
 
+*Protect stored data, and store only what you need.*
+
 1. **In transit** = HTTPS. **At rest** = encrypted disks and backups.
 2. Collect only the personal data you need. Protect it and allow deletion on request.
 3. Mask sensitive data in the app and in logs.
@@ -96,6 +104,8 @@ SELECT * FROM users WHERE email = $1;   -- value passed separately
 ---
 
 #### 9. OWASP API Top 10 — 🟡 Good to Know
+
+*A well-known list of the most common API security problems.*
 
 Know the names of the top risks. The first ones show up most:
 

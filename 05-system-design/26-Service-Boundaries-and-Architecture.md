@@ -10,6 +10,8 @@ Roadmap topic 26 · Stage 6: Architecture & Production
 
 #### 1. Monolith vs Microservices — 🟢 Must Know
 
+*One deployable unit, or many small ones.*
+
 | | Monolith | Microservices |
 |---|---|---|
 | Shape | One deployable application | Many small services, each owns a feature and its data |
@@ -21,6 +23,8 @@ Roadmap topic 26 · Stage 6: Architecture & Production
 ---
 
 #### 2. Sync vs Async Communication — 🟢 Must Know
+
+*Wait for the answer, or send an event and move on.*
 
 | | Synchronous (REST / gRPC) | Asynchronous (events / queue) |
 |---|---|---|
@@ -34,6 +38,8 @@ Rule: use **sync** when the caller needs the answer now (get price). Use **async
 
 #### 3. API Gateway and BFF — 🟢 Must Know
 
+*One front door for clients, and a backend shaped for each client type.*
+
 1. **API gateway** — the single entry point for clients: authentication, rate limiting, routing to services, logging.
 2. **BFF (Backend for Frontend)** — a backend shaped for one client type (for example, the mobile app). It combines calls to several services into one response, so the app makes **fewer requests** and gets exactly the data it needs.
 
@@ -42,6 +48,8 @@ Mobile App → API Gateway / BFF → User Service
                                 → Order Service
                                 → Payment Service
 ```
+
+**Mobile view:** a BFF exists mostly for mobile: one response shaped for the phone screen instead of several separate calls.
 
 ---
 
@@ -84,6 +92,8 @@ Example: place an order.
 
 #### 6. Business States and Valid Transitions — 🟡 Good to Know
 
+*Give important things clear states, and allow only valid moves between them.*
+
 1. Model important entities as **state machines**.
 2. Allow only valid transitions, and enforce them in code and the database.
 
@@ -99,12 +109,16 @@ Order:  CREATED → PAID → SHIPPED → DELIVERED
 
 #### 7. Service Discovery and Data Ownership — 🟡 Good to Know
 
+*How services find each other, and who owns which data.*
+
 1. **Service discovery** — how services find each other's addresses (DNS, or a service registry).
 2. **Each service owns its data.** Other services use its API, not its database. Sharing a database couples services together.
 
 ---
 
 #### 8. Code Structure and Low-Level Design Basics — 🟡 Good to Know
+
+*Keep code in small parts with clear jobs.*
 
 1. Small modules with clear responsibilities, explicit dependencies, and interfaces.
 2. Composition over inheritance. Design patterns only when they solve a real problem.

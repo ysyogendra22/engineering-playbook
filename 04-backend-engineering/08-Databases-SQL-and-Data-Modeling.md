@@ -54,6 +54,8 @@ CREATE TABLE posts (
 
 #### 3. CRUD in SQL — 🟢 Must Know
 
+*The four basic operations: create, read, update, delete.*
+
 ```sql
 INSERT INTO posts (user_id, title) VALUES (1, 'Hello');      -- Create
 
@@ -109,6 +111,8 @@ GROUP BY u.id, u.name;
 
 #### 6. Relationships — 🟢 Must Know
 
+*How tables connect: one-to-one, one-to-many, many-to-many.*
+
 | Type | Example | How |
 |---|---|---|
 | One-to-one | user ↔ profile | FK with `UNIQUE` |
@@ -137,6 +141,8 @@ CREATE TABLE likes (
 
 #### 8. Normalization vs Denormalization — 🟢 Must Know
 
+*Store each fact once to avoid conflicts, or copy data on purpose for speed.*
+
 1. **Normalization** — store each fact once (the author's name lives only in `users`). Less duplication, easy updates, more joins.
 2. **Denormalization** — deliberately copy data for faster reads (for example, store `like_count` on `posts`). Faster reads, but you must keep the copies in sync.
 3. Start normalized. Denormalize only for a measured, real need.
@@ -144,6 +150,8 @@ CREATE TABLE likes (
 ---
 
 #### 9. Money and Time Zones — 🟢 Must Know
+
+*Two classic sources of bugs. Get them right from the start.*
 
 1. **Money:** store integer **cents** (`1999`) or `DECIMAL`. **Never** `FLOAT` (rounding errors). Store the currency too.
 2. **Time:** store timestamps in **UTC**. The app converts to local time.
@@ -173,6 +181,8 @@ SELECT user_id, title FROM ranked WHERE rn = 1;
 
 #### 11. Schema Migrations — 🟡 Good to Know
 
+*Change the database structure safely, step by step, with a version history.*
+
 1. A **migration** is a versioned script that changes the schema (`001_create_users.sql`).
 2. Keep them in Git and run them automatically on deploy.
 3. Never edit the database by hand in production.
@@ -181,6 +191,8 @@ SELECT user_id, title FROM ranked WHERE rn = 1;
 ---
 
 #### 12. Soft Delete — 🟡 Good to Know
+
+*Mark a row as deleted instead of removing it.*
 
 1. Instead of deleting the row, set `deleted_at`.
 2. Good for undo and audit.

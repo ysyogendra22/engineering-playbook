@@ -25,6 +25,8 @@ Index:     ~ a few steps  → find the row
 
 #### 2. The Trade-Off — 🟢 Must Know
 
+*Faster reads are paid for with slower writes and more storage.*
+
 | Benefit | Cost |
 |---|---|
 | Faster reads (`WHERE`, `JOIN`, `ORDER BY`) | Slower writes (index must be updated) |
@@ -36,6 +38,8 @@ Index:     ~ a few steps  → find the row
 ---
 
 #### 3. What to Index — 🟢 Must Know
+
+*Index what your queries actually use.*
 
 1. Columns in `WHERE` filters.
 2. Columns used in `JOIN` (foreign keys). Some databases (for example, PostgreSQL) do **not** index FK columns automatically.
@@ -88,6 +92,8 @@ Look for:
 
 #### 6. Common Causes of Slow Queries — 🟢 Must Know
 
+*Check these first when an endpoint is slow.*
+
 1. **Missing index** on the filter or join column.
 2. **N+1 queries** (topic `09`).
 3. **`SELECT *`** and returning too much data.
@@ -100,12 +106,16 @@ Look for:
 
 #### 7. Covering Index — 🟡 Good to Know
 
+*An index that holds everything the query needs.*
+
 1. An index that contains **all** columns the query needs, so the database doesn't read the table at all (an "index-only scan").
 2. Faster reads, bigger index.
 
 ---
 
 #### 8. Measure Before Optimizing — 🟡 Good to Know
+
+*Find the real slow query first, then fix it.*
 
 1. Find slow queries first (slow query log, monitoring, p95 latency).
 2. Use `EXPLAIN`. Change one thing. Measure again.

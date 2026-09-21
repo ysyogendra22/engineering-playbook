@@ -10,6 +10,8 @@ Roadmap topic 28 · Stage 6: Architecture & Production
 
 #### 1. CI/CD — 🟢 Must Know
 
+*Every change is built, tested, and deployed by a pipeline.*
+
 1. **CI (continuous integration)** — on every change, automatically **build and test**. Bad code is caught early.
 2. **CD (continuous delivery/deployment)** — automatically deliver passing builds to staging and production.
 3. Use separate **environments**: development, staging (a production copy for testing), production.
@@ -23,6 +25,8 @@ Commit → Build → Tests → Deploy to staging → Checks → Deploy to produc
 
 #### 2. Safe Release Strategies — 🟢 Must Know
 
+*Ways to ship new code with less risk.*
+
 | Strategy | How | Good | Bad |
 |---|---|---|---|
 | **Rolling** | Replace servers a few at a time | No downtime, simple | Old and new versions run together for a while |
@@ -32,9 +36,13 @@ Commit → Build → Tests → Deploy to staging → Checks → Deploy to produc
 1. Always have a **rollback plan** (redeploy the previous version quickly).
 2. Watch error rate and latency right after a release.
 
+**Mobile view:** app releases use the same ideas: staged rollout on Google Play, phased release on the App Store, and feature flags to switch a feature off without a new build.
+
 ---
 
 #### 3. Backward Compatibility and Safe Migrations — 🟢 Must Know
+
+*Old and new versions run together, so changes must work with both.*
 
 1. **During a rollout, old and new server versions run together**, and **old app versions** still call your API. Never break the contract (topic `03`).
 2. **Database changes: expand → migrate → contract.**
@@ -50,6 +58,8 @@ Commit → Build → Tests → Deploy to staging → Checks → Deploy to produc
 ---
 
 #### 4. Docker Basics — 🟡 Good to Know
+
+*Package the app so it runs the same everywhere.*
 
 1. **Image** — a packaged app with everything it needs. **Container** — a running image.
 2. Same package runs the same way everywhere (laptop, staging, production).
@@ -69,6 +79,8 @@ Commit → Build → Tests → Deploy to staging → Checks → Deploy to produc
 ---
 
 #### 6. Graceful Shutdown — 🟡 Good to Know
+
+*Finish current work before the server stops.*
 
 1. When a server is stopped (during a deploy), finish the requests in progress instead of cutting them.
 2. Stop accepting new requests, wait for current ones to finish (with a time limit), close connections, then exit.

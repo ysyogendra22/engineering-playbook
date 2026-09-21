@@ -10,6 +10,8 @@ Roadmap topic 21 · Stage 5: Async & Reliability
 
 #### 1. Producers, Consumers, Workers — 🟢 Must Know
 
+*The basic picture: one side adds jobs, another side does them.*
+
 ```text
 API (producer) → [ Queue ] → Worker (consumer)
    returns fast                 does the slow job
@@ -28,9 +30,13 @@ Why use a queue:
 
 Examples: send email or push notification, resize an image, generate a report, update a search index.
 
+**Mobile view:** WorkManager (Android) and BGTaskScheduler (iOS) are the same idea on the phone: hand the work to a system that runs and retries it later.
+
 ---
 
 #### 2. Queue vs Publish–Subscribe — 🟢 Must Know
+
+*One worker per message, or a copy for every subscriber.*
 
 | | Queue | Pub/Sub |
 |---|---|---|
@@ -41,6 +47,8 @@ Examples: send email or push notification, resize an image, generate a report, u
 ---
 
 #### 3. Ack, Retry, Dead-Letter Queue — 🟢 Must Know
+
+*How a queue handles failure without losing messages.*
 
 1. **Ack (acknowledge)** — the worker confirms success. Only then is the message removed.
 2. If the worker crashes or fails, no ack → the message is **redelivered**.
@@ -55,6 +63,8 @@ Queue → Worker → fails → retry → retry → retry → Dead-Letter Queue
 
 #### 4. At-Least-Once Delivery and Idempotent Handlers — 🟢 Must Know
 
+*A message can arrive twice, so processing it twice must be safe.*
+
 1. Most queues guarantee **at-least-once**: a message may be delivered **more than once**.
 2. So handlers must be **idempotent**: processing twice gives the same result as once.
 
@@ -68,6 +78,8 @@ Good:  "set payment 123 to PAID" / check the message ID was already processed
 ---
 
 #### 5. Ordering Guarantees — 🟢 Must Know
+
+*When order matters, and where the queue keeps it.*
 
 1. A simple queue does not always keep global order, especially with several workers.
 2. Ordering is usually guaranteed **only within one queue or partition**.
@@ -104,6 +116,8 @@ Good:  "set payment 123 to PAID" / check the message ID was already processed
 ---
 
 #### 8. Scheduled and Delayed Jobs — 🟡 Good to Know
+
+*Jobs that run at a set time, or after a delay.*
 
 1. **Scheduled** — run at a time or interval (nightly cleanup, daily report).
 2. **Delayed** — run after N minutes (release an unpaid ticket hold after 10 minutes).

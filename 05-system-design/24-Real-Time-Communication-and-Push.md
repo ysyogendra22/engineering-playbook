@@ -10,6 +10,8 @@ Roadmap topic 24 · Stage 5: Async & Reliability
 
 #### 1. Polling, WebSockets, SSE — 🟢 Must Know
 
+*Three ways to get fresh data from the server to the app.*
+
 | Method | How | Good | Bad |
 |---|---|---|---|
 | **Short polling** | App asks every N seconds | Simplest | Wasteful, delayed, drains battery |
@@ -20,6 +22,8 @@ Roadmap topic 24 · Stage 5: Async & Reliability
 ---
 
 #### 2. Choosing a Method — 🟢 Must Know
+
+*Pick by direction, speed, and number of users.*
 
 Ask: **which direction? how fast? how many users?**
 
@@ -65,6 +69,8 @@ Server event → your server → FCM/APNs → device → notification
 ---
 
 #### 5. Scaling WebSockets and Presence — 🟡 Good to Know
+
+*Connections stay open, so servers need extra care.*
 
 1. Each connection holds server memory, so one server handles a limited number (tens of thousands).
 2. Users are connected to **different servers**. To send a message to user B on server 2, use a **pub/sub** channel (for example, Redis) between servers.

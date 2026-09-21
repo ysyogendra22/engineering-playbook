@@ -10,6 +10,8 @@ Roadmap topic 20 · Stage 4: Scale (New topic)
 
 #### 1. Options — 🟢 Must Know
 
+*Three common ways to create unique IDs.*
+
 | | Auto-increment | UUID | Snowflake-style |
 |---|---|---|---|
 | Example | `1, 2, 3...` | `550e8400-e29b-...` | `1789234567890123` |
@@ -22,6 +24,8 @@ Roadmap topic 20 · Stage 4: Scale (New topic)
 
 #### 2. Auto-Increment — 🟢 Must Know
 
+*The database counts up: 1, 2, 3.*
+
 1. The database gives `1, 2, 3...`.
 2. Simple and small. Great for a single database.
 3. Problems at scale: one database is the bottleneck; with several shards you get **duplicate IDs**; IDs are **guessable** (`/users/101`, `/users/102`).
@@ -30,10 +34,14 @@ Roadmap topic 20 · Stage 4: Scale (New topic)
 
 #### 3. UUID — 🟢 Must Know
 
+*A random 128-bit ID that any server or app can create on its own.*
+
 1. 128-bit random value. **Any server or client can generate one** without coordination.
 2. Collisions are practically impossible.
 3. Downsides: larger, and random values scatter inserts across the index (slower writes on big tables).
 4. **UUIDv7** is time-ordered, which fixes the index problem.
+
+**Mobile view:** an offline app can create a UUID on the phone, so a record has an ID before the server has ever seen it.
 
 ---
 

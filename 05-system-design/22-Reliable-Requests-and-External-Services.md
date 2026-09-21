@@ -20,6 +20,8 @@ Roadmap topic 22 · Stage 5: Async & Reliability
 
 #### 2. Retries with Backoff and Jitter — 🟢 Must Know
 
+*Retry the right errors, wait longer each time, and add randomness.*
+
 1. Retry only **transient** failures (timeouts, `503`, connection reset). Not `400` or `404`.
 2. Retry only if the operation is **safe to repeat** (idempotent).
 3. **Exponential backoff** — wait longer each time: 1 s, 2 s, 4 s, 8 s.
@@ -29,6 +31,8 @@ Roadmap topic 22 · Stage 5: Async & Reliability
 ```text
 wait = random(0, base × 2^attempt)   (capped at a maximum)
 ```
+
+**Mobile view:** the app follows the same rule: exponential backoff with jitter, and the same idempotency key on every retry of a payment.
 
 ---
 
@@ -53,6 +57,8 @@ Problem: the app sends a payment, the network times out, the app retries. Was th
 
 #### 4. Delivery Guarantees — 🟢 Must Know
 
+*At-most-once, at-least-once, exactly-once: what each one means.*
+
 | | Meaning | Risk |
 |---|---|---|
 | **At-most-once** | Sent once, never retried | May be **lost** |
@@ -65,6 +71,8 @@ In practice: **at-least-once delivery + idempotent processing = exactly-once eff
 
 #### 5. Third-Party APIs and Webhooks — 🟡 Good to Know
 
+*External services fail and set limits. Plan for both.*
+
 1. Respect the provider's **rate limits**, and handle their downtime (queue and retry later).
 2. **Webhook** — the provider calls your endpoint when something happens (a payment succeeded).
    - **Verify the signature** so you know it's real.
@@ -75,6 +83,8 @@ In practice: **at-least-once delivery + idempotent processing = exactly-once eff
 ---
 
 #### 6. Reconciliation — 🟡 Good to Know
+
+*Compare your records with theirs to catch what went wrong.*
 
 1. Periodically compare **your records** with the provider's (for example, every payment).
 2. It catches missed webhooks and mismatches.

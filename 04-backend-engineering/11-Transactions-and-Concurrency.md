@@ -28,6 +28,8 @@ Without a transaction, a crash between the two updates loses money.
 
 #### 2. ACID — 🟢 Must Know
 
+*Four promises a database transaction makes.*
+
 | Letter | Meaning | Simple example |
 |---|---|---|
 | **A**tomicity | All or nothing | Both transfer steps happen, or neither |
@@ -140,6 +142,8 @@ For most cases: atomic updates and constraints are simpler than raising the isol
 ---
 
 #### 8. Deadlocks & Retries — 🟡 Good to Know
+
+*Two transactions wait for each other. The database stops one, and you retry.*
 
 1. **Deadlock** — A waits for B and B waits for A. The database stops one of them with an error.
 2. **Retry** the failed transaction a **limited** number of times.

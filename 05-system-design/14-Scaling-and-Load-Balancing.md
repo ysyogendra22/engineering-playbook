@@ -66,6 +66,8 @@ Users → Load Balancer → Server A ─┐
 
 #### 5. Finding the Bottleneck — 🟢 Must Know
 
+*Find what breaks first, and fix that.*
+
 1. Ask: **what breaks first when traffic grows?**
 2. It is usually the **database**, before the app servers (app servers are easy to add).
 3. Typical order of improvement: **index → cache → read replicas → sharding**.
@@ -75,6 +77,8 @@ Users → Load Balancer → Server A ─┐
 
 #### 6. Load Balancing Algorithms, Sticky Sessions, L4 vs L7 — 🟡 Good to Know
 
+*How a load balancer picks a server.*
+
 1. **Round robin** — servers take turns. **Least connections** — the least busy server gets the next request. **Hashing** — the same client goes to the same server.
 2. **Sticky sessions** — the same user always goes to the same server. Simple but uneven, and a failure loses the session. Prefer stateless.
 3. **L4** — routes by IP and port (fast, simple). **L7** — routes by URL, headers, or cookies (smarter, can do `/api` vs `/images`).
@@ -82,6 +86,8 @@ Users → Load Balancer → Server A ─┐
 ---
 
 #### 7. Reverse Proxy, API Gateway, Auto-scaling — 🟡 Good to Know
+
+*Extra layers in front of your servers.*
 
 1. **Reverse proxy** — sits in front of servers (Nginx). Handles TLS, compression, caching.
 2. **API gateway** — one entry point for auth, rate limiting, and routing to services (topic `26`).

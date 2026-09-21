@@ -147,6 +147,8 @@ Idempotency-Key: 7c9e-4f2a-91b0
 
 #### 8. PUT vs PATCH — 🟡 Good to Know
 
+*Two ways to update: replace everything, or change only some fields.*
+
 1. **PUT** — replace the whole resource. Send all fields.
 2. **PATCH** — change only some fields. Send only what changed.
 3. Mobile apps mostly use PATCH to save bandwidth.
@@ -168,12 +170,16 @@ The app polls the status endpoint, or receives a push notification when it is do
 
 #### 10. OpenAPI Docs — 🟡 Good to Know
 
+*A machine-readable description of your API, so app and backend teams agree.*
+
 1. **OpenAPI** (Swagger) is a file that describes all endpoints, inputs, outputs, and errors.
 2. Used for docs, testing, and generating client code (Kotlin/Swift).
 
 ---
 
 #### 11. REST vs GraphQL vs gRPC — 🟡 Good to Know
+
+*Three API styles. REST is the default; know when the others fit.*
 
 | | REST | GraphQL | gRPC |
 |---|---|---|---|
@@ -184,6 +190,8 @@ The app polls the status endpoint, or receives a push notification when it is do
 ---
 
 #### 12. ETag & Conditional Requests — 🟡 Good to Know
+
+*Ask the server "has this changed?" and skip downloading the same data again.*
 
 1. Server sends `ETag: "v7"` with the data.
 2. Next time the app sends `If-None-Match: "v7"`.

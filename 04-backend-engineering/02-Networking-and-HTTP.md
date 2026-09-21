@@ -141,6 +141,8 @@ Reused connection:                  request
 
 #### 7. Full Trace: App Calls `https://api.example.com/notes` — 🟢 Must Know
 
+*One API call from tap to response, with DNS, TLS, and HTTP put together.*
+
 ```text
 1. DNS        api.example.com → IP
 2. TCP        connect to IP : 443
@@ -155,6 +157,8 @@ Reused connection:                  request
 
 #### 8. HTTP/2 and HTTP/3 — 🟡 Good to Know
 
+*Newer HTTP versions that send many requests over one connection.*
+
 1. **HTTP/1.1** — one request at a time per connection.
 2. **HTTP/2** — many requests at the same time on one connection; smaller headers.
 3. **HTTP/3** — runs on UDP (QUIC). Faster to connect and handles switching between Wi-Fi and mobile data better. Good for mobile.
@@ -163,6 +167,8 @@ Reused connection:                  request
 
 #### 9. Cookies, Content Types, Compression — 🟡 Good to Know
 
+*Small details that show up in real APIs and in debugging.*
+
 1. **Cookie** — small data the server sets; the browser sends it back automatically. Mostly for web. Mobile apps usually send a token in the `Authorization` header.
 2. **Content-Type** — format of the body (`application/json`). **Accept** — the format the client wants.
 3. **Compression** — `gzip`. Client sends `Accept-Encoding: gzip`, server replies with `Content-Encoding: gzip`. Saves mobile data.
@@ -170,6 +176,8 @@ Reused connection:                  request
 ---
 
 #### 10. Reverse Proxy — 🟡 Good to Know
+
+*A middleman in front of your servers that receives requests first.*
 
 1. Sits in front of your servers (for example, Nginx).
 2. Handles TLS, routing, compression, load balancing, and caching.

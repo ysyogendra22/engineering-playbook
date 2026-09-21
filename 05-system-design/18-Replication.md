@@ -29,6 +29,8 @@ Limit: **writes still go to one leader.** Replication does not scale writes (tha
 
 #### 2. Synchronous vs Asynchronous — 🟢 Must Know
 
+*Does the leader wait for the copy before saying "done"?*
+
 | | Synchronous | Asynchronous |
 |---|---|---|
 | Leader waits for follower? | Yes | No |
@@ -77,12 +79,16 @@ Risks:
 
 #### 5. Replication Is Not a Backup — 🟢 Must Know
 
+*Replicas copy mistakes too. You still need backups.*
+
 1. A mistake (a bad `DELETE`, corrupted data) is **copied to all replicas** within seconds.
 2. You still need **separate backups** and tested restores (topic `29`).
 
 ---
 
 #### 6. Multi-Leader and Leaderless — 🟡 Good to Know (names only)
+
+*Other ways to arrange copies. Know the names.*
 
 1. **Multi-leader** — several nodes accept writes (for example, one per region). Needs conflict resolution.
 2. **Leaderless** — any node accepts writes, and reads and writes use quorums (Cassandra, DynamoDB style). See topic `23`.

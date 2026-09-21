@@ -28,6 +28,8 @@ Roadmap topic 7 · Stage 2: Build a Backend
 
 #### 2. Unit Tests — 🟢 Must Know
 
+*Fast tests for one piece of logic, with no database or network.*
+
 1. Test **business rules** (for example, "a user can't book a seat that is taken").
 2. Fast, no database, no network.
 3. Test the normal case **and** edge cases (empty, null, limits, invalid).
@@ -36,6 +38,8 @@ Roadmap topic 7 · Stage 2: Build a Backend
 ---
 
 #### 3. Integration Tests — 🟢 Must Know
+
+*Tests that check your code works together with a real database.*
 
 1. Test that your code works with a **real database**: queries, constraints, transactions.
 2. Use a separate test database (often a temporary container).
@@ -65,6 +69,8 @@ The list above (especially permissions) is what interviewers like to hear.
 
 #### 5. Good Test Habits — 🟢 Must Know
 
+*Simple rules that keep tests useful instead of flaky.*
+
 1. Tests are **independent**: they don't depend on order.
 2. Tests are **repeatable**: same result every time (no random data, no real clock, no internet).
 3. One clear reason to fail. Descriptive names (`rejects_booking_when_seat_taken`).
@@ -73,6 +79,8 @@ The list above (especially permissions) is what interviewers like to hear.
 ---
 
 #### 6. Debugging Process — 🟢 Must Know
+
+*A calm, repeatable way to find a bug instead of guessing.*
 
 ```text
 1. Reproduce   → make it fail on demand
@@ -91,6 +99,8 @@ The list above (especially permissions) is what interviewers like to hear.
 
 #### 7. Mocking External Services — 🟡 Good to Know
 
+*Fake the things you do not control, so tests are fast and repeatable.*
+
 1. Replace things you don't control (payment API, email, SMS) with a fake or mock.
 2. Don't mock everything. Too many mocks make tests pass while real code is broken.
 3. Prefer a real database in integration tests.
@@ -98,6 +108,8 @@ The list above (especially permissions) is what interviewers like to hear.
 ---
 
 #### 8. Load Testing & Profiling — 🟡 Good to Know
+
+*See how the system behaves under many users before real users do.*
 
 1. **Load test** — send many requests (tools: k6, JMeter) and watch p95 latency and errors.
 2. **Profiler** — shows which code or query uses the most time.

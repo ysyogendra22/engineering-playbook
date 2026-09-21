@@ -21,6 +21,8 @@ Roadmap topic 30 · Stage 7: Mobile (New topic)
 
 #### 2. Old App Versions and Backward Compatibility — 🟢 Must Know
 
+*Old app versions keep calling your backend.*
+
 1. Users don't update. Old versions can stay in use for years.
 2. The API must not break them: **add fields, never remove or rename** (topic `03`).
 3. The app should ignore unknown fields.
@@ -48,6 +50,8 @@ UI  ⇄  Local database (source of truth for the UI)  ⇄  Sync engine  ⇄  Ser
 
 #### 4. Infinite Scroll and Image Loading — 🟢 Must Know
 
+*Load pages of content and images smoothly.*
+
 1. **Cursor pagination** for feeds (topic `03`), and prefetch the next page before the user reaches the end.
 2. Serve images through a **CDN**, in the **right size** for the screen (thumbnails in lists).
 3. Cache images on the device (memory and disk).
@@ -57,6 +61,8 @@ UI  ⇄  Local database (source of truth for the UI)  ⇄  Sync engine  ⇄  Ser
 
 #### 5. Push Notifications and Token Refresh — 🟢 Must Know
 
+*Reach closed apps, and keep device tokens fresh.*
+
 1. **Push (FCM/APNs)** reaches closed apps. It's best effort (topic `24`).
 2. Send small payloads and let the app fetch details.
 3. **Token refresh** — when the access token expires (`401`), refresh once, retry the request, and don't refresh in parallel from many requests (topic `05`).
@@ -64,6 +70,8 @@ UI  ⇄  Local database (source of truth for the UI)  ⇄  Sync engine  ⇄  Ser
 ---
 
 #### 6. Battery and Data Saving — 🟡 Good to Know
+
+*Use less battery and mobile data.*
 
 1. **Batch** requests instead of many small ones. Avoid constant polling.
 2. **Compress** responses (`gzip`) and send smaller payloads (only needed fields).
@@ -74,6 +82,8 @@ UI  ⇄  Local database (source of truth for the UI)  ⇄  Sync engine  ⇄  Ser
 
 #### 7. Adaptive Video Streaming — 🟡 Good to Know
 
+*Play video at the best quality the network allows.*
+
 1. Video is split into small segments in **several quality levels** (HLS or DASH).
 2. The player switches quality based on the current network speed.
 3. Segments are served from a CDN.
@@ -81,6 +91,8 @@ UI  ⇄  Local database (source of truth for the UI)  ⇄  Sync engine  ⇄  Ser
 ---
 
 #### 8. Certificate Pinning and App Attestation — 🟡 Good to Know
+
+*Make it harder to fake or intercept your app traffic.*
 
 1. **Certificate pinning** — the app trusts only your server's certificate, blocking man-in-the-middle attacks. Plan certificate rotation carefully.
 2. **App attestation** (Play Integrity on Android, App Attest on iOS) — proves the request comes from your genuine app.

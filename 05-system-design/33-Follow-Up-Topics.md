@@ -10,6 +10,8 @@ Roadmap topic 33 · Stage 8: Interview
 
 #### 1. Leader Election and Consensus — 🟡 Good to Know
 
+*How machines agree on one leader when some fail.*
+
 1. Many machines must agree on **one leader** or one value, even when some fail.
 2. **Consensus algorithms** (Raft, Paxos) do this. Know the **purpose only**.
 3. Used in tools like ZooKeeper and etcd, and in databases for failover.
@@ -18,6 +20,8 @@ Roadmap topic 33 · Stage 8: Interview
 ---
 
 #### 2. Distributed Locks, Leases, Fencing Tokens — 🟡 Good to Know
+
+*Make sure only one machine does a job at a time.*
 
 1. **Distributed lock** — only one machine works on a resource at a time (for example, run a job on one server).
 2. **Lease** — a lock that **expires automatically**, so a crashed holder doesn't block forever.
@@ -28,6 +32,8 @@ Roadmap topic 33 · Stage 8: Interview
 
 #### 3. Multi-Region Design — 🟡 Good to Know
 
+*Run in more than one region.*
+
 1. **Active–passive** — one region serves traffic; another is a standby for disaster recovery. Simpler.
 2. **Active–active** — several regions serve traffic. Lower latency and better availability, but data conflicts and consistency are hard.
 3. Route users to the nearest region (DNS/geo routing).
@@ -35,6 +41,8 @@ Roadmap topic 33 · Stage 8: Interview
 ---
 
 #### 4. Large Data Migrations — 🟡 Good to Know
+
+*Move data without stopping the service.*
 
 Moving to a new database or schema without downtime:
 
@@ -51,6 +59,8 @@ Always keep a way to roll back.
 ---
 
 #### 5. Search Basics — 🟡 Good to Know (New)
+
+*How search finds text fast.*
 
 1. **Inverted index** — maps each word to the documents that contain it (like a book index).
 2. Search engines (Elasticsearch, OpenSearch) add ranking and text processing (stemming, typo tolerance).
@@ -70,6 +80,8 @@ Always keep a way to roll back.
 
 #### 7. Bloom Filter, HyperLogLog, Trie — 🟡 Good to Know (New)
 
+*Small structures that answer questions with little memory.*
+
 | Structure | What it does | Trade-off |
 |---|---|---|
 | **Bloom filter** | Says "definitely not in the set" or "maybe in the set" | Small memory, false positives possible. Used to avoid useless lookups (cache penetration) |
@@ -80,6 +92,8 @@ Always keep a way to roll back.
 
 #### 8. Batch vs Stream Processing — 🟡 Good to Know (New)
 
+*Process data in big chunks, or as it arrives.*
+
 1. **Batch** — process a large set of data at intervals (nightly reports).
 2. **Stream** — process events continuously as they arrive (live fraud detection).
 3. Names only: Kafka for the event stream, Spark/Flink for processing.
@@ -88,6 +102,8 @@ Always keep a way to roll back.
 
 #### 9. Clocks and Ordering — 🟡 Good to Know
 
+*Machine clocks differ, so time is a weak way to order events.*
+
 1. Clocks on different machines **differ** (clock skew), so timestamps can't fully order events.
 2. **Logical clocks** and sequence numbers give a consistent order without relying on time.
 3. Be careful with "last write wins" based on client timestamps.
@@ -95,6 +111,8 @@ Always keep a way to roll back.
 ---
 
 #### 10. CQRS — 🟡 Good to Know
+
+*Use different models for writing and for reading.*
 
 1. **Command Query Responsibility Segregation:** separate the model for **writes** from the model for **reads**.
 2. Example: write to the main database, and update a read-optimized copy (a search index or feed cache) through events.

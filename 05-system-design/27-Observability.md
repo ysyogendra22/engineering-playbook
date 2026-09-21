@@ -10,6 +10,8 @@ Roadmap topic 27 · Stage 6: Architecture & Production
 
 #### 1. Logs, Metrics, Traces — 🟢 Must Know
 
+*Three kinds of data that tell you what the system is doing.*
+
 | | What it is | Answers |
 |---|---|---|
 | **Logs** | Text records of events | "What happened in this request?" |
@@ -24,6 +26,8 @@ Roadmap topic 27 · Stage 6: Architecture & Production
 
 #### 2. What to Measure — 🟢 Must Know
 
+*The few numbers to watch on every service.*
+
 The three signals for any service (**RED**):
 
 1. **R**ate — requests per second.
@@ -36,6 +40,8 @@ Also: CPU, memory, DB connections, queue length, cache hit rate.
 
 #### 3. Health and Readiness Checks — 🟢 Must Know
 
+*Tell the platform whether your process is alive and ready for traffic.*
+
 1. **Health (liveness)** — is the process alive? If not, restart it.
 2. **Readiness** — can it serve traffic now (database connected, cache warm)? If not, the load balancer stops sending requests.
 3. Load balancers and orchestrators use these to remove bad servers automatically.
@@ -43,6 +49,8 @@ Also: CPU, memory, DB connections, queue length, cache hit rate.
 ---
 
 #### 4. Actionable Alerts — 🟢 Must Know
+
+*Alert on what users feel, and only when someone must act.*
 
 1. Alert on **symptoms users feel** (error rate, latency), not every small metric.
 2. Every alert must have a clear **action**. Too many alerts = people ignore them (alert fatigue).
@@ -52,6 +60,8 @@ Also: CPU, memory, DB connections, queue length, cache hit rate.
 
 #### 5. SLI, SLO — 🟢 Must Know
 
+*A number you track, and the target you promise.*
+
 1. **SLI** (indicator) — what you measure: percentage of successful requests, p95 latency.
 2. **SLO** (objective) — the target: "99.9% of requests succeed", "p95 < 300 ms".
 3. **SLA** — a contract with customers, with penalties.
@@ -60,6 +70,8 @@ Also: CPU, memory, DB connections, queue length, cache hit rate.
 ---
 
 #### 6. Incident Debugging — 🟡 Good to Know
+
+*A calm order of steps when something breaks in production.*
 
 ```text
 1. Symptom     → alert: error rate up, latency doubled
@@ -75,6 +87,8 @@ Mitigate first (stop the pain), investigate after.
 ---
 
 #### 7. Mobile Crash Reporting — 🟡 Good to Know
+
+*The same job as backend monitoring, but inside the app.*
 
 1. Use crash reporting and analytics in the app (Crashlytics or similar).
 2. Send the request ID or app version with errors to connect app problems with backend logs.

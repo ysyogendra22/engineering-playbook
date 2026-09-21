@@ -10,6 +10,8 @@ Roadmap topic 31 · Stage 8: Interview
 
 #### 1. The Steps — 🟢 Must Know
 
+*Follow the same steps every time.*
+
 ```text
 1. Clarify requirements and scope
 2. Estimate (only what changes the design)
@@ -24,6 +26,8 @@ Roadmap topic 31 · Stage 8: Interview
 
 #### 2. Time Split for a 45-Minute Round — 🟢 Must Know (New)
 
+*Split the time so you reach the deep dive.*
+
 | Step | Time | What to do |
 |---|---|---|
 | Clarify | 5 min | Users, main flows, scale, what is out of scope |
@@ -36,6 +40,8 @@ Roadmap topic 31 · Stage 8: Interview
 ---
 
 #### 3. Step Details — 🟢 Must Know
+
+*What to do in each step.*
 
 **1. Clarify:** ask about users, features, scale, platforms. State what is **out of scope**. (Topic `13`)
 
@@ -62,6 +68,8 @@ Client → Load Balancer → App Servers → Cache
 
 #### 4. Habits That Work — 🟢 Must Know
 
+*Small habits that make answers stronger.*
+
 1. **Start simple, then scale** where the numbers demand it.
 2. **Say every trade-off out loud:** "I choose X because …; the downside is …".
 3. For **every component** ask three questions:
@@ -75,6 +83,8 @@ Client → Load Balancer → App Servers → Cache
 ---
 
 #### 5. Ready-Made Answer Points — 🟡 Good to Know
+
+*Match the problem you notice with a standard tool.*
 
 Common building blocks and when to bring them up:
 
@@ -90,7 +100,20 @@ Common building blocks and when to bring them up:
 
 ---
 
-#### 6. Common Mistakes
+#### 6. Common Interview Questions
+
+1. **How do you start a system design question?**
+   Ask about users, main features, and scale. State what is out of scope. Estimate only what changes the design.
+2. **How do you decide what to go deep on?**
+   Pick the hardest part of that system (hot key, fan-out, double booking, consistency) and check in with the interviewer.
+3. **What if you have never built this kind of system?**
+   Use the same steps. Start simple, say what you need (a queue, a cache), then name an example and explain the trade-offs.
+4. **What if the interviewer changes a requirement halfway?**
+   Say which parts it affects, change only those, and explain the new trade-off. This is normal, not a failure.
+
+---
+
+#### 7. Common Mistakes
 
 1. Jumping straight to the design without questions.
 2. Starting with a complicated design.
@@ -102,7 +125,7 @@ Common building blocks and when to bring them up:
 
 ---
 
-#### 7. Related Topics
+#### 8. Related Topics
 
 1. `13` Requirements & Estimation
 2. `14`–`26` The building blocks you choose from
@@ -111,7 +134,7 @@ Common building blocks and when to bring them up:
 
 ---
 
-#### 8. Interview Must Remember
+#### 9. Interview Must Remember
 
 1. **Clarify → Estimate → API + data → High-level → Flows → Deep dive → Trade-offs.**
 2. **Start simple, scale where needed.**

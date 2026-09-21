@@ -127,6 +127,8 @@ Unknown error:      → log the details, return a safe 500
 
 #### 9. Terminal, Git, curl, Local Debugging — 🟢 Must Know
 
+*Everyday tools of a backend engineer. Know the basics.*
+
 1. **Terminal:** `cd`, `ls`, `cat`, `grep`, `ps`, `kill`, file permissions.
 2. **Git:** branch, commit, pull request, resolve conflicts.
 3. **Call your API without the app:**
@@ -145,6 +147,8 @@ curl -X POST http://localhost:8080/notes \
 
 #### 10. Dependency Injection — 🟡 Good to Know
 
+*Give a class what it needs instead of letting it create things itself. Same idea as Hilt or Koin.*
+
 1. A class receives what it needs (repository, clients) from outside instead of creating them itself.
 2. Makes testing easy: give it a fake repository.
 3. Same idea as Hilt/Koin (Android) or protocol-based injection (iOS).
@@ -152,6 +156,8 @@ curl -X POST http://localhost:8080/notes \
 ---
 
 #### 11. Memory, Garbage Collection, Thread Safety — 🟡 Good to Know
+
+*Many requests run at the same time in one server, so shared data needs care.*
 
 1. Shared **mutable** data used by many requests causes race conditions. Prefer stateless services and immutable data.
 2. If you must share state, protect it (locks, concurrent collections).
@@ -162,6 +168,8 @@ curl -X POST http://localhost:8080/notes \
 
 #### 12. Serialization, Null Handling, Date/Time — 🟡 Good to Know
 
+*Small details that cause real bugs: JSON conversion, null values, and dates.*
+
 1. **Serialization** — turning objects into JSON and back.
 2. Decide how to treat **missing vs null** fields.
 3. Send dates in **ISO 8601, UTC**: `2025-01-10T09:30:00Z`. The app converts to local time.
@@ -169,6 +177,8 @@ curl -X POST http://localhost:8080/notes \
 ---
 
 #### 13. Timeouts, Cancellation, Cleanup — 🟡 Good to Know
+
+*Never wait forever. Stop work nobody is waiting for, and clean up.*
 
 1. Set a **timeout** on every call to another service or database.
 2. If the client disconnects, stop the work if you can.

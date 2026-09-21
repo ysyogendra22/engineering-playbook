@@ -47,6 +47,8 @@ Write:
 
 #### 3. TTL, Eviction, Invalidation — 🟢 Must Know
 
+*How long data lives, what is removed when the cache is full, and how it is refreshed.*
+
 1. **TTL (time to live)** — the entry expires after N seconds. A simple safety net.
 2. **Eviction** — when the cache is full, remove something. **LRU** (least recently used) is the common policy.
 3. **Invalidation** — remove or update entries when the data changes. This is the hard part, so keep it simple.
@@ -55,6 +57,8 @@ Write:
 
 #### 4. Stale Data — 🟢 Must Know
 
+*A cache can be out of date. Decide how much that matters.*
+
 1. The cache may show old data until the TTL expires or it is invalidated.
 2. Decide per feature how stale is acceptable: profile photo (minutes, fine), account balance (never stale).
 3. The shorter the TTL, the fresher the data but the lower the hit rate.
@@ -62,6 +66,8 @@ Write:
 ---
 
 #### 5. Cache Stampede and Hot Keys — 🟢 Must Know
+
+*Two ways a cache overloads the database or a single node.*
 
 **Stampede:** a popular key expires and thousands of requests miss at the same time, all hitting the database.
 
@@ -77,6 +83,8 @@ Fixes:
 
 #### 6. Write-Through / Write-Back — 🟡 Good to Know
 
+*Two ways to write to a cache and a database together.*
+
 1. **Write-through** — write to the cache and database together. The cache is always fresh; writes are slower.
 2. **Write-back** — write to the cache first and to the database later. Very fast, but data can be lost if the cache dies.
 
@@ -84,12 +92,16 @@ Fixes:
 
 #### 7. Cache Penetration — 🟡 Good to Know
 
+*Requests for data that does not exist always skip the cache.*
+
 1. Requests for keys that **don't exist** always miss and always hit the database (often an attack).
 2. Fix: cache the "not found" result briefly, or use a Bloom filter (topic `33`).
 
 ---
 
 #### 8. In-Process vs Shared Cache — 🟡 Good to Know
+
+*A cache inside each server, or one cache shared by all.*
 
 | | In-process (server memory) | Shared (Redis, Memcached) |
 |---|---|---|
@@ -101,13 +113,19 @@ Fixes:
 
 #### 9. HTTP Cache Headers — 🟡 Good to Know
 
+*Let the client and the CDN do the caching for you.*
+
 1. `Cache-Control: max-age=60` — the client or CDN may reuse the response for 60 seconds.
 2. `ETag` + `If-None-Match` — validate with the server; `304 Not Modified` if unchanged.
 3. Good for mobile: fewer requests, less data.
 
+**Mobile view:** OkHttp (with a cache) and URLSession (with `URLCache`) can follow these headers, so correct headers save mobile data.
+
 ---
 
 #### 10. Watch Out: User-Specific Data — 🟢 Must Know
+
+*A shared cache is used by everyone, so keep users apart.*
 
 1. Never serve one user's cached data to another user.
 2. Include the user ID in the cache key for personal data (`feed:user:42`).
