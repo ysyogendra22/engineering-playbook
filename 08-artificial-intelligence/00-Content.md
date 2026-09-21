@@ -406,12 +406,15 @@ Plain meanings. The last column is the topic that explains the term.
 | LLM | Large language model, trained on huge amounts of text to predict the next token | 2 |
 | Parameters (weights) | The numbers a model learned during training | 2 |
 | Token | A chunk of text (often part of a word) that the model reads and writes | 2 |
+| Tokenization | Splitting text into tokens before the model reads it | 2 |
 | Context window | The most tokens the model can consider at once (input and output) | 2 |
-| Temperature / top-p | Settings that control how random the output is | 2 |
+| Temperature / top-K / top-p | Settings that control how random the output is. Top-K and top-p limit which tokens can be picked | 2 |
 | Hallucination | A confident answer that is wrong or made up | 2 |
 | Knowledge cutoff | The date after which the model saw no training data | 2 |
 | Transformer / attention | The model design behind LLMs. Attention lets each token look at the others | 2 |
 | Pretraining / fine-tuning | Broad first training / extra training on narrow data | 3 |
+| Foundation model | A general-purpose model that can be adapted to many jobs | 3 |
+| SLM | Small language model: like an LLM but smaller, faster, and often able to run on a device | 3, 19 |
 | Open-weight model | A model whose weights you can download and run yourself | 3 |
 | Reasoning model | A model that uses extra "thinking" tokens before it answers | 3 |
 | Multimodal | Handles more than text: images, audio, video | 3 |
@@ -433,7 +436,9 @@ Plain meanings. The last column is the topic that explains the term.
 | Prompt caching | Reusing an unchanged start of a prompt so it costs less and runs faster | 5 |
 | Model routing | Sending easy tasks to a small model and hard ones to a large model | 5, 17 |
 | Embedding | Numbers that represent meaning. Similar meaning means close together | 6 |
+| Vector | A list of numbers. An embedding is a vector | 6 |
 | Vector database | A store built for finding the nearest embeddings | 6 |
+| Semantic search | Searching by meaning instead of exact words | 6 |
 | RAG | Retrieve relevant text, then give it to the model along with the question | 7 |
 | Chunking | Cutting documents into pieces before embedding them | 7 |
 | Reranking | Re-ordering search results by how well they match | 7 |
@@ -475,6 +480,7 @@ Plain meanings. The last column is the topic that explains the term.
 | Tracing | Recording every step of an agent run | 18 |
 | LLMOps | Practices for running LLM apps in production | 18 |
 | On-device AI | The model runs on the phone itself | 19 |
+| Edge AI | AI that runs near where the data is produced (a phone, camera, or sensor) instead of in the cloud | 19 |
 
 ---
 
