@@ -1,19 +1,11 @@
 # AI: Learning & Interview Roadmap
 
-For a mobile engineer who wants to understand modern AI (LLMs, RAG, agents, harnesses) and answer AI questions in interviews.
-This folder has **its own numbering, 1 to 22**. Each topic gets its own doc later.
+Modern AI — LLMs, RAG, agents, harnesses — for building features and answering interview questions.
 
-**How to read references:** a plain number (`7`) is a topic in this folder. `BE 3` is topic 3 in `04-backend-engineering`. `SD 21` is topic 21 in `05-system-design`.
-
-**What you need first:** `BE 1–3` (APIs), `BE 5` (auth), `SD 15` (caching), `SD 21` (queues), `SD 22` (retries), `SD 24` (streaming and real time), `SD 27` (observability).
-
-**Marks:**
-
-| Mark | Meaning |
-|---|---|
-| 🟢 | **Must have.** Expected in most interviews. Learn first. |
-| 🟡 | **Good to have.** Learn after the 🟢 items are solid. |
-| (New) | A newer idea that is still changing. Know the idea, not the product. |
+- **Numbering:** own, 1–22.
+- **References:** `7` = this folder · `BE 3`/`SD 21` = topic N in that roadmap
+- **Start with:** `BE 1–3` (APIs), `BE 5` (auth), `SD 15` (caching), `SD 21` (queues), `SD 22` (retries), `SD 24` (streaming), `SD 27` (observability)
+- **Marks:** 🟢 must have · 🟡 good to have · (New) still changing — know the idea, not the product
 
 ---
 

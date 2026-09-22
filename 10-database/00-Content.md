@@ -1,19 +1,10 @@
 # Databases: Learning & Interview Roadmap
 
-For a mobile engineer who wants to design schemas, write good SQL, understand how databases work inside, and answer database questions in backend and system design interviews.
-This folder has **its own numbering, 1 to 23**. Each topic gets its own doc later.
+Schema design, SQL, how databases work inside, and interview answers. `BE 8–11` and `SD 17–19` already teach the essentials — this is the **deeper, dedicated pass**: internals, MVCC, migrations, Redis, analytics, on-device.
 
-**How to read references:** a plain number (`7`) is a topic in this folder. `BE 8` is topic 8 in `04-backend-engineering`. `SD 17` is topic 17 in `05-system-design`. `ARCH 9` is topic 9 in `09-architecture`. `AI 6` is topic 6 in `08-artificial-intelligence`.
-
-**How this fits with the other folders:** `BE 8–11` and `SD 17–19` already teach the interview essentials (SQL, indexes, transactions, choosing a database, replication, sharding). This folder is the **dedicated database pass**: the same ideas in one ordered path, plus the deeper parts (storage internals, isolation and MVCC, migrations, Redis, analytics, and on-device databases). Start here if you want depth. Use the other two for a quick first pass.
-
-**Marks:**
-
-| Mark | Meaning |
-|---|---|
-| 🟢 | **Must have.** Expected in most interviews. Learn first. |
-| 🟡 | **Good to have.** Learn after the 🟢 items are solid. |
-| (New) | Added for a mobile engineer, or a newer idea that is still changing. |
+- **Numbering:** own, 1–23.
+- **References:** `7` = this folder · `BE 8`/`SD 17`/`ARCH 9`/`AI 6` = topic N in that roadmap
+- **Marks:** 🟢 must have · 🟡 good to have · (New) for a mobile engineer, or still changing
 
 ---
 

@@ -1,20 +1,10 @@
 # Mobile Engineering: Learning & Interview Roadmap
 
-For a mobile engineer preparing for Android and mobile interviews, and growing toward senior and architect level.
-**Android with Kotlin is the main path.** Each topic gives the iOS equivalent where it exists, so you can talk about both. Topic 16 is a short iOS guide.
-This folder has **its own numbering, 1 to 22**. Each topic gets its own doc later.
+**Android with Kotlin is the main path**; each topic notes the iOS equivalent, and topic 16 is a short iOS guide. `SD 30`, `ARCH 19`, `DB 21`, and `AI 19–20` give short mobile overviews elsewhere — this folder is the full, deeper path; where a topic exists there, it links instead of repeating.
 
-**How to read references:** a plain number (`7`) is a topic in this folder. `BE 3` is topic 3 in `04-backend-engineering`. `SD 30` is topic 30 in `05-system-design`. `ARCH 19` is topic 19 in `09-architecture`. `DB 21` is topic 21 in `10-database`. `AI 19` is topic 19 in `08-artificial-intelligence`.
-
-**How this fits with the other folders:** `SD 30` (mobile-specific system design), `ARCH 19` (mobile app architecture overview), `DB 21` (mobile databases), and `AI 19–20` (AI on mobile) give short overviews. This folder is the **full mobile path** and goes deeper on each. Where a topic already exists there, it links instead of repeating.
-
-**Marks:**
-
-| Mark | Meaning |
-|---|---|
-| 🟢 | **Must have.** Expected in most mobile interviews. Learn first. |
-| 🟡 | **Good to have.** Learn after the 🟢 items are solid. |
-| (New) | Added beyond the basics, or a newer area that is still changing. |
+- **Numbering:** own, 1–22.
+- **References:** `7` = this folder · `BE 3`/`SD 30`/`ARCH 19`/`DB 21`/`AI 19` = topic N in that roadmap
+- **Marks:** 🟢 must have · 🟡 good to have · (New) beyond the basics, or still changing
 
 ---
 

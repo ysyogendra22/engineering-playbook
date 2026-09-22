@@ -1,15 +1,8 @@
 # System Design: Interview Roadmap
 
-For a mobile engineer preparing for system design interviews.
-This is **part 2 (topics 13–33)**. Finish **part 1 (topics 1–12)** in `04-backend-engineering` first, including the Notes API. Each topic gets its own doc later.
+Part 2 of the roadmap: **topics 13–33**. Finish part 1 (topics 1–12, including the Notes API) in `04-backend-engineering` first.
 
-**Marks:**
-
-| Mark | Meaning |
-|---|---|
-| 🟢 | **Must have.** Expected in most interviews. Learn first. |
-| 🟡 | **Good to have.** Learn after the 🟢 items are solid. |
-| (New) | Added beyond the original two roadmaps. |
+- **Marks:** 🟢 must have · 🟡 good to have · (New) beyond the original two roadmaps
 
 ---
 

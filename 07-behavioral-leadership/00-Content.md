@@ -1,19 +1,10 @@
 # Behavioral & Leadership: Learning & Interview Roadmap
 
-For a mobile engineer moving toward senior, lead, and architect roles. Behavioral rounds test **how you work with people, make decisions, and handle problems**. The best answers are real stories, told clearly, with a result.
-This folder has **its own numbering, 1 to 21**. Each topic gets its own doc later.
+Behavioral rounds test how you work with people, make decisions, and handle problems. The technical folders teach what to know; this folder teaches **how to tell the story of what you did** — real stories, told clearly, with a result, often traced back to work covered there (e.g. `ARCH 3`, `SD 27`, `MOB 15`).
 
-**How to read references:** a plain number (`7`) is a topic in this folder. `ARCH`, `SD`, `MOB`, `BE`, and `AI` are the numbered roadmaps in `09-architecture`, `05-system-design`, `06-mobile-engineering`, `04-backend-engineering`, and `08-artificial-intelligence`.
-
-**How this fits with the other folders:** the technical folders teach what to know. This folder teaches **how to tell the story of what you did**. Good stories usually come from work covered elsewhere, for example architecture decisions (`ARCH 3`, `ARCH 16`), incidents and releases (`SD 27`, `SD 28`), and mobile quality work (`MOB 11`, `MOB 15`).
-
-**Marks:**
-
-| Mark | Meaning |
-|---|---|
-| 🟢 | **Must have.** Asked in almost every senior interview. Prepare first. |
-| 🟡 | **Good to have.** Prepare after the 🟢 items are solid. |
-| (New) | Added beyond your original list of ten topics. |
+- **Numbering:** own, 1–21.
+- **References:** `7` = this folder · `ARCH`/`SD`/`MOB`/`BE`/`AI` = the other numbered roadmaps
+- **Marks:** 🟢 must have · 🟡 good to have · (New) beyond your original ten topics
 
 ---
 

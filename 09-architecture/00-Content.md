@@ -1,19 +1,11 @@
 # Architecture: Roadmap for an Architect
 
-For a mobile engineer growing into an architect: what to do on any project, which decisions matter most, and which terms to know first.
-This folder has **its own numbering, 1 to 22**. Each topic gets its own doc later.
+What to do on any project, which decisions matter most, and which terms to know first.
 
-**How to read references:** a plain number (`7`) is a topic in this folder. `BE 3` is topic 3 in `04-backend-engineering`. `SD 21` is topic 21 in `05-system-design`. `AI 7` is topic 7 in `08-artificial-intelligence`. Mobile platform details live in `06-mobile-engineering`, and interview stories in `07-behavioral-leadership`.
-
-**What you need first:** `BE 1–4` (backend basics) and `SD 13–15`, `SD 26` (scale, caching, service boundaries). This folder builds on them and does not repeat them.
-
-**Marks:**
-
-| Mark | Meaning |
-|---|---|
-| 🟢 | **Must have.** An architect is expected to know this. Learn first. |
-| 🟡 | **Good to have.** Learn after the 🟢 items are solid. |
-| (New) | Added for a mobile engineer moving into architecture, or a newer idea that is still changing. |
+- **Numbering:** own, 1–22.
+- **References:** `7` = this folder · `BE 3`/`SD 21`/`AI 7` = topic N in that roadmap · mobile detail in `06-mobile-engineering`, interview stories in `07-behavioral-leadership`
+- **Start with:** `BE 1–4` (backend basics), `SD 13–15`, `SD 26` (scale, caching, service boundaries)
+- **Marks:** 🟢 must have · 🟡 good to have · (New) for a mobile engineer moving into architecture, or still changing
 
 ---
 

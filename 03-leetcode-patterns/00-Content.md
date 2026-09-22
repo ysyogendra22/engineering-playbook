@@ -1,23 +1,13 @@
 # LeetCode Patterns: Learning & Interview Roadmap
 
-For a mobile engineer preparing for coding interviews. The goal is to **recognise the pattern, apply a template, and explain the complexity**, in Kotlin.
-This folder has **its own numbering, 1 to 22**. Topics 4 to 18 are the 15 essential patterns from your original list, in the same order. Each topic gets its own doc later.
+Recognise the pattern, apply the template, explain the complexity — in Kotlin. `01-data-structure` and `02-algorithm` teach how each structure or algorithm works; this folder teaches **when to reach for which one**.
 
 Source list: https://leetcode.com/discuss/post/7347258/15-essential-dsa-patterns-for-tech-inter-nxem/
 
-**How to read references:** a plain number (`7`) is a topic in this folder. `DS` is `01-data-structure` (for example `DS Graph`). `ALG` is `02-algorithm` (for example `ALG Searching`). `BE`, `SD`, `MOB`, and `ARCH` are the numbered roadmaps in `04-backend-engineering`, `05-system-design`, `06-mobile-engineering`, and `09-architecture`.
-
-**Problem numbers** are LeetCode's. If a number and a title ever disagree, trust the title. Problems marked *(premium)* need a paid account, so use the free alternative.
-
-**How this fits with the other folders:** your notes in `01-data-structure` and `02-algorithm` teach each structure and algorithm on its own. This folder teaches **when to reach for which one**. Read the matching notes first, then use this roadmap to practise the pattern.
-
-**Marks:**
-
-| Mark | Meaning |
-|---|---|
-| 🟢 | **Must have.** Comes up in most coding interviews. Learn first. |
-| 🟡 | **Good to have.** Learn after the 🟢 items are solid. |
-| (New) | Added beyond your original 15 patterns. |
+- **Numbering:** own, 1–22. Topics 4–18 are your original 15 patterns, in order.
+- **References:** `7` = this folder · `DS`/`ALG` = `01-data-structure`/`02-algorithm` (e.g. `DS Graph`) · `BE`/`SD`/`MOB`/`ARCH` = the other numbered roadmaps
+- **Problem numbers** are LeetCode's — trust the title if they disagree. *(premium)* needs a paid account; use the free alternative given
+- **Marks:** 🟢 must have · 🟡 good to have · (New) beyond your original 15
 
 ---
 

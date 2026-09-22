@@ -1,15 +1,8 @@
 # Backend Engineering: Interview Roadmap
 
-For a mobile engineer preparing for backend and system design interviews.
-This is **part 1 (topics 1–12)**: build a working backend. Continue with **part 2 (topics 13–33)** in `05-system-design`. Each topic gets its own doc later.
+Part 1 of the roadmap: build a working backend, **topics 1–12**. Continue with part 2 in `05-system-design` (topics 13–33).
 
-**Marks:**
-
-| Mark | Meaning |
-|---|---|
-| 🟢 | **Must have.** Expected in most interviews. Learn first. |
-| 🟡 | **Good to have.** Learn after the 🟢 items are solid. |
-| (New) | Added beyond the original two roadmaps. |
+- **Marks:** 🟢 must have · 🟡 good to have · (New) beyond the original two roadmaps
 
 ---
 
