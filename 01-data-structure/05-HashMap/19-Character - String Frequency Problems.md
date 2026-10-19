@@ -21,7 +21,12 @@
 ```text
 counts:  a:1  b:1  c:4  d:2
 
-Each pair of equal letters can sit on both sides:  c,c  c,c  d,d  → 4 + 2 = 6 letters in pairs ... (c:4 → 4, d:2 → 2, total 6)
+Pairs of equal letters can sit on both sides of the palindrome:
+    c has 4 → 2 pairs → 4 letters
+    d has 2 → 1 pair  → 2 letters
+    a and b have 1 each → no pairs
+    letters used in pairs: 4 + 2 = 6
+
 One leftover single letter (a or b) can go in the middle → +1
 
 Answer: 7     e.g. "dccaccd"
