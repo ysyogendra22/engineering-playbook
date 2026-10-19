@@ -113,7 +113,7 @@ Let `N` = total number of elements in all lists, `k` = number of lists.
 #### 8. Common Range Variations — Must Know
 
 1. **Smallest range covering `k` lists** (LeetCode 632) — this note.
-2. **Smallest window in one array that contains all needed values** — sliding window with a `HashMap` (`03-leetcode-patterns`, topic 3).
+2. **Smallest window in one array that contains all needed values** — sliding window with a `HashMap` (`03-leetcode-patterns`, topic 5).
 3. **Largest range / longest consecutive run** (LeetCode 128, Longest Consecutive Sequence) — a `HashSet` solves it in `O(n)`. No heap is needed.
 4. **Minimum difference between any two values from different lists** — the same heap idea, or sort and use two pointers.
 5. **Smallest range after changes** — usually sorting and greedy. Do not force a heap.

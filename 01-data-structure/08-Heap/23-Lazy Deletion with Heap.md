@@ -161,7 +161,7 @@ if (dist > best[node]) continue        // stale entry: a shorter path was found 
 2. Multiple Heap / Advanced Two-Heaps Patterns
 3. Heap + HashMap Pattern
 4. Priority Queue
-5. Dijkstra (`02-algorithm/09-Graph Algorithms`)
+5. Dijkstra (`02-algorithm/07-Graph Algorithms`)
 
 #### 12. Interview Must Remember
 

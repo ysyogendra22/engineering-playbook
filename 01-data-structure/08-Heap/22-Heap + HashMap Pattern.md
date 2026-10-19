@@ -171,7 +171,7 @@ For Reorganize String, the alphabet is small (26 letters), so the heap cost is a
 2. Lazy Deletion with Heap
 3. Heap for Scheduling / Processing by Priority
 4. HashMap (`01-data-structure/05-HashMap`)
-5. Dijkstra (`02-algorithm/09-Graph Algorithms`)
+5. Dijkstra (`02-algorithm/07-Graph Algorithms`)
 
 #### 12. Interview Must Remember
 
