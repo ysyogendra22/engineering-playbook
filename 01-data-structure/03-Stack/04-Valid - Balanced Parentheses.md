@@ -1,123 +1,118 @@
 # Valid / Balanced Parentheses
 
-#### 1. Definition — Must Know
+> This is the most asked stack question. Make sure you can write it from memory.
 
-1. A string of brackets is **valid** if every opening bracket is closed by the **same type** of bracket and in the **correct order**.
-2. Valid: `"()[]{}"`, `"{[]}"`. Invalid: `"(]"`, `"([)]"`, `"(("`.
-3. The method: **push opening brackets; on a closing bracket, the top of the stack must be its match.**
-4. This is *Valid Parentheses* (LeetCode 20). If a number and a title ever disagree, trust the title.
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+You get a string with brackets: `( ) [ ] { }`. It is **valid** when:
 
-1. It is the most famous stack problem and a standard first question.
-2. The same idea checks HTML/XML tags, code blocks, math expressions, and JSON.
-3. The nested "last opened, first closed" shape is exactly LIFO.
+1. every opening bracket is closed by the **same type** of bracket, and
+2. the brackets close in the **correct order**.
 
-#### 3. How It Works — Must Know
+| Valid | Invalid | Why invalid |
+|---|---|---|
+| `()[]{}` | `(]` | wrong type |
+| `{[()]}` | `([)]` | wrong order |
+| `""` (empty) | `((` | never closed |
+| | `())` | closing bracket with nothing to match |
+
+**Idea:** push every opening bracket. When a closing bracket comes, the **top** of the stack must be its match. The newest open bracket must close first. That is exactly LIFO.
+
+#### 2. How It Works
 
 `s = "{[()]}"`
 
 ```text
-{   push           stack: {
-[   push           stack: { [
-(   push           stack: { [ (
-)   top is ( → match → pop       stack: { [
-]   top is [ → match → pop       stack: {
-}   top is { → match → pop       stack: (empty)
+{   push                          stack: {
+[   push                          stack: { [
+(   push                          stack: { [ (
+)   top is "(" → match, pop       stack: { [
+]   top is "[" → match, pop       stack: {
+}   top is "{" → match, pop       stack: (empty)
 
-End: stack is empty → valid
+end: stack is empty → valid
 ```
 
 `s = "([)]"`
 
 ```text
-(   push           stack: (
-[   push           stack: ( [
-)   top is [ , but ) needs ( → mismatch → INVALID
+(   push                          stack: (
+[   push                          stack: ( [
+)   top is "[", but ")" needs "(" → mismatch → invalid
 ```
 
-Invalid in three ways:
+Three ways to fail:
 
-```text
-closing bracket with an empty stack   "())"      → nothing to match
-wrong type on top                     "(]"
-leftover openings at the end          "(("       → stack not empty
-```
+1. A closing bracket arrives and the stack is **empty**.
+2. The top is the **wrong** type.
+3. The loop ends and the stack is **not empty**.
 
-#### 4. Core Concepts — Must Know
-
-1. **Push openers. Match closers against the top.**
-2. **Map closer → opener** (`')' to '('`) so you can compare in one line.
-3. **Three checks:** stack not empty when a closer arrives, top matches, stack empty at the end.
-4. **Quick exit:** an odd length can never be valid.
-5. **Only one bracket type?** No stack is needed. A counter is enough (`open++` for `(`, `open--` for `)`, never below 0, and 0 at the end).
-6. **Other characters** (letters, digits) are ignored in "balanced expression" versions.
-7. **Stack of indices** helps when the answer needs positions (Longest Valid Parentheses).
-
-#### 5. Algorithm — Must Know
-
-```text
-for each character c:
-    if c is an opener: push c
-    else if c is a closer:
-        if stack is empty or stack.pop() != matching opener of c: return false
-return stack is empty
-```
-
-#### 6. Kotlin Implementation — Must Know
+#### 3. Kotlin Code
 
 ```kotlin
-// Valid Parentheses
 fun isValid(s: String): Boolean {
-    if (s.length % 2 != 0) return false
-    val match = mapOf(')' to '(', ']' to '[', '}' to '{')
+    val match = mapOf(')' to '(', ']' to '[', '}' to '{')   // closing → opening
     val stack = ArrayDeque<Char>()
+
     for (c in s) {
-        if (c in match) {                                   // a closing bracket
+        if (c in match) {                                    // c is a closing bracket
             if (stack.isEmpty() || stack.removeLast() != match[c]) return false
         } else {
-            stack.addLast(c)                                // an opening bracket
+            stack.addLast(c)                                 // c is an opening bracket
         }
     }
-    return stack.isEmpty()
+    return stack.isEmpty()                                   // leftovers mean invalid
 }
+```
 
-// Only one bracket type: a counter is enough
-fun isValidSingleType(s: String): Boolean {
-    var open = 0
-    for (c in s) {
-        if (c == '(') open++
-        else if (c == ')') {
-            if (open == 0) return false
-            open--
-        }
-    }
-    return open == 0
-}
+**Only one type of bracket `( )`?** You do not need a stack. A counter is enough:
 
-// Minimum Add to Make Parentheses Valid (LeetCode 921) — counters, no stack needed
-fun minAddToMakeValid(s: String): Int {
-    var open = 0          // unmatched '('
-    var add = 0           // ')' that had no '(' before it
+```kotlin
+fun minAddToMakeValid(s: String): Int {      // LeetCode 921
+    var open = 0      // "(" still waiting for a ")"
+    var extra = 0     // ")" that had no "("
     for (c in s) {
         if (c == '(') open++
         else if (open > 0) open--
-        else add++
+        else extra++
     }
-    return open + add
+    return open + extra
 }
+```
 
-// Longest Valid Parentheses (LeetCode 32) — stack of indices
+**Remove the fewest brackets to make the string valid (LeetCode 1249).** Store the **index** of each `(` in the stack.
+
+```kotlin
+fun minRemoveToMakeValid(s: String): String {
+    val remove = HashSet<Int>()
+    val stack = ArrayDeque<Int>()                 // indexes of "("
+    for ((i, c) in s.withIndex()) {
+        if (c == '(') stack.addLast(i)
+        else if (c == ')') {
+            if (stack.isEmpty()) remove.add(i) else stack.removeLast()
+        }
+    }
+    remove.addAll(stack)                          // "(" that never closed
+    val sb = StringBuilder()
+    for ((i, c) in s.withIndex()) if (i !in remove) sb.append(c)
+    return sb.toString()
+}
+// "lee(t(c)o)de)" → "lee(t(c)o)de"
+```
+
+**Longest valid substring (LeetCode 32).** Push indexes. Keep `-1` at the bottom as a starting point.
+
+```kotlin
 fun longestValidParentheses(s: String): Int {
     val stack = ArrayDeque<Int>()
-    stack.addLast(-1)                                       // base index before the string
+    stack.addLast(-1)
     var best = 0
     for (i in s.indices) {
         if (s[i] == '(') {
             stack.addLast(i)
         } else {
             stack.removeLast()
-            if (stack.isEmpty()) stack.addLast(i)           // new base
+            if (stack.isEmpty()) stack.addLast(i)            // new starting point
             else best = maxOf(best, i - stack.last())
         }
     }
@@ -125,58 +120,48 @@ fun longestValidParentheses(s: String): Int {
 }
 ```
 
-Checks: `isValid("()[]{}")` → `true`. `isValid("([)]")` → `false`. `minAddToMakeValid("())")` → `1`. `longestValidParentheses(")()())")` → `4`.
+#### 4. Complexity
 
-#### 7. Time & Space Complexity — Must Know
-
-| Approach | Time | Space |
-|---|---:|---:|
-| Stack | `O(n)` | `O(n)` |
+| Solution | Time | Space |
+|---|---|---|
+| Stack (`isValid`) | `O(n)` | `O(n)` |
 | Counter (one bracket type) | `O(n)` | `O(1)` |
-| Longest Valid Parentheses (stack of indices) | `O(n)` | `O(n)` |
 
-#### 8. Common Parentheses Patterns — Must Know
+#### 5. Common Mistakes
 
-1. **Valid Parentheses** (LeetCode 20).
-2. **Minimum Add to Make Parentheses Valid** (LeetCode 921).
-3. **Minimum Remove to Make Valid Parentheses** (LeetCode 1249) — stack of indices to remove.
-4. **Longest Valid Parentheses** (LeetCode 32).
-5. **Generate Parentheses** (LeetCode 22) — backtracking.
-6. **Valid Parenthesis String with `*`** (LeetCode 678) — range counter.
-7. **Score of Parentheses** (LeetCode 856), **Remove Outermost Parentheses** (LeetCode 1021).
-8. **Android example:** validating a custom markup or a templating string.
+1. **Popping an empty stack** (input starts with `)`). Check `stack.isEmpty()` first.
+2. **Forgetting the final `stack.isEmpty()`** check. `"(("` would pass.
+3. **Mapping the wrong way.** The map goes from the **closing** bracket to its **opening** bracket.
+4. **Using one counter for several bracket types.** `"([)]"` would wrongly pass.
+5. **Longest Valid Parentheses:** forgetting the `-1` at the bottom.
 
-#### 9. Edge Cases / Common Mistakes
+#### 6. Say This in the Interview
 
-1. Popping from an empty stack when a closer comes first (`"))"`).
-2. Forgetting the final `stack.isEmpty()` check (`"(("`).
-3. Comparing the wrong way round: the **closer** maps to its **opener**.
-4. An empty string is valid.
-5. Odd length: invalid at once.
-6. Using one counter for several bracket types (`"([)]"` would pass wrongly).
-7. Treating other characters as brackets.
-8. In Longest Valid Parentheses: forgetting the base index `-1`.
+1. "I push opening brackets and match each closing bracket against the top."
+2. "It fails if the stack is empty on a closing bracket, if the types differ, or if the stack is not empty at the end."
+3. "Time `O(n)`, space `O(n)`. With one bracket type a counter gives `O(1)` space."
+4. "An odd length can never be valid, so I can return false immediately."
 
-#### 10. When to Use / When Not to Use
+#### 7. Quick Check
 
-**Use a stack when:**
+1. Is `"(()"` valid? Why?
+2. Is `"{[}]"` valid? Why?
 
-1. There are several bracket types or the nesting order matters.
+<details>
+<summary>Answers</summary>
 
-**Use a counter when:**
+1. No. After the loop the stack still holds one `(`.
+2. No. When `}` arrives, the top is `[`, which does not match.
 
-1. There is only one bracket type. It is simpler and `O(1)` space.
+</details>
 
-#### 11. Related Topics
+#### 8. Related LeetCode Questions
 
-1. Stack Fundamentals — LIFO
-2. Expression / String Processing with Stack
-3. Decode String
-4. Backtracking — Generate Parentheses (`02-algorithm/06-Backtracking & Branch and Bound`)
-
-#### 12. Interview Must Remember
-
-1. **Push openers. A closer must match the top. The stack must be empty at the end.**
-2. Three failures: closer on an empty stack, wrong top, leftovers.
-3. One bracket type → a counter is enough.
-4. Longest Valid Parentheses → stack of indices with a base of `-1`.
+| # | Question | Idea |
+|---|---|---|
+| 20 | Valid Parentheses (Easy) | this note |
+| 921 | Minimum Add to Make Parentheses Valid (Medium) | counter |
+| 1249 | Minimum Remove to Make Valid Parentheses (Medium) | stack of indexes |
+| 32 | Longest Valid Parentheses (Hard) | stack of indexes with `-1` |
+| 22 | Generate Parentheses (Medium) | backtracking, not a stack |
+| 678 | Valid Parenthesis String (Medium) | counter with a range for `*` |

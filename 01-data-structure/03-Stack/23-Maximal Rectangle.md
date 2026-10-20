@@ -1,76 +1,52 @@
 # Maximal Rectangle
 
-#### 1. Definition — Must Know
+#### 1. What Is It?
 
-1. Given a binary matrix of `0`s and `1`s, find the **largest rectangle containing only `1`s** and return its **area**.
-2. It is *Maximal Rectangle* (LeetCode 85). If a number and a title ever disagree, trust the title.
-3. The method: turn **each row into a histogram** (heights of consecutive `1`s going up) and solve *Largest Rectangle in Histogram* for that row.
-
-#### 2. Why It Is Used — Must Know
-
-1. It is a classic hard problem that becomes simple once you see the reduction to the histogram problem.
-2. It shows how to build a new problem from a solved one.
-3. It is a frequent follow-up after Largest Rectangle in Histogram.
-
-#### 3. How It Works — Must Know
+You get a grid of `0`s and `1`s. Find the **largest rectangle that contains only `1`s** and return its area.
 
 ```text
-matrix:               heights after each row (consecutive 1s above, including this row):
+1 0 1 0 0
+1 0 1 1 1
+1 1 1 1 1       ← the rectangle of 1s in rows 1–2 and columns 2–4 has area 2 × 3 = 6
+1 0 0 1 0
+```
+
+This is *Maximal Rectangle* (LeetCode 85), a Hard question. The trick is simple once you know *Largest Rectangle in Histogram* (note 11):
+
+> **Turn every row into a histogram, then solve the histogram problem for that row.**
+
+#### 2. How It Works
+
+For each row, make an array `heights`. `heights[c]` is the number of `1`s in a row going **up** from this cell (including this cell). A `0` resets the height to `0`.
+
+```text
+matrix:               heights after each row:
 1 0 1 0 0             row 0: [1, 0, 1, 0, 0]
 1 0 1 1 1             row 1: [2, 0, 2, 1, 1]
 1 1 1 1 1             row 2: [3, 1, 3, 2, 2]
 1 0 0 1 0             row 3: [4, 0, 0, 3, 0]
 ```
 
-Height update rule: `heights[c] = if (cell == 1) heights[c] + 1 else 0`.
+Update rule: `heights[c] = if (cell == '1') heights[c] + 1 else 0`.
 
-Largest rectangle in each histogram:
+Biggest rectangle in each histogram:
 
 ```text
-row 0: [1,0,1,0,0]   → 1
-row 1: [2,0,2,1,1]   → 3  (the three columns 2..4 with height 1)
-row 2: [3,1,3,2,2]   → 6  (columns 2..4 with height 2 → 2 × 3 = 6)  ← best
-row 3: [4,0,0,3,0]   → 4
+row 0: [1,0,1,0,0] → 1
+row 1: [2,0,2,1,1] → 3   (three columns at height 1)
+row 2: [3,1,3,2,2] → 6   (columns 2–4 at height 2 → 2 × 3)   ← best
+row 3: [4,0,0,3,0] → 4
 
 answer = 6
 ```
 
-Each histogram row is solved with the monotonic stack from the previous note in `O(columns)`.
-
-#### 4. Core Concepts — Must Know
-
-1. **Heights array** of size `cols`, updated row by row.
-2. **A `0` cell resets the height to `0`.** A `1` cell adds 1.
-3. **After each row,** compute the largest rectangle in that histogram.
-4. **The answer is the maximum over all rows.**
-5. **Reuse the histogram function** (monotonic stack with a trailing `0` sentinel).
-6. **The matrix may be `Array<CharArray>`** (`'0'`/`'1'`), as on LeetCode. Compare with `'1'`.
-7. **Other approaches:** DP with left/right/height arrays (also `O(rows × cols)`); brute force over all rectangles is too slow.
-
-| Approach | Time | Space |
-|---|---:|---:|
-| Brute force | `O(R² · C²)` or worse | `O(1)` |
-| **Histogram + stack per row** | **`O(R · C)`** | `O(C)` |
-| DP with `left`, `right`, `height` arrays | `O(R · C)` | `O(C)` |
-
-#### 5. Algorithm — Must Know
-
-```text
-heights = zeros(cols); best = 0
-for each row:
-    for each column c:
-        heights[c] = (matrix[row][c] == '1') ? heights[c] + 1 : 0
-    best = max(best, largestRectangleInHistogram(heights))
-return best
-```
-
-#### 6. Kotlin Implementation — Must Know
+#### 3. Kotlin Code
 
 ```kotlin
 fun maximalRectangle(matrix: Array<CharArray>): Int {
     if (matrix.isEmpty()) return 0
     val cols = matrix[0].size
-    val heights = IntArray(cols)
+    val heights = IntArray(cols)                      // carries over from row to row
     var best = 0
 
     for (row in matrix) {
@@ -82,12 +58,12 @@ fun maximalRectangle(matrix: Array<CharArray>): Int {
     return best
 }
 
-// From "Largest Rectangle in Histogram"
+// From note 11: Largest Rectangle in Histogram
 fun largestRectangleArea(heights: IntArray): Int {
-    val stack = ArrayDeque<Int>()                           // indexes, heights increasing
+    val stack = ArrayDeque<Int>()                     // indexes, heights increasing
     var best = 0
     for (i in 0..heights.size) {
-        val h = if (i == heights.size) 0 else heights[i]    // sentinel
+        val h = if (i == heights.size) 0 else heights[i]
         while (stack.isNotEmpty() && heights[stack.last()] >= h) {
             val height = heights[stack.removeLast()]
             val left = if (stack.isEmpty()) -1 else stack.last()
@@ -108,61 +84,51 @@ val matrix = arrayOf(
 println(maximalRectangle(matrix))     // 6
 ```
 
-Checks: the matrix above → `6`. `[["0"]]` → `0`. `[["1"]]` → `1`. `[]` → `0`.
+Checks: the matrix above → `6`. `[['0']]` → `0`. `[['1']]` → `1`. `[]` → `0`.
 
-#### 7. Time & Space Complexity — Must Know
+#### 4. Complexity
 
 For `R` rows and `C` columns:
 
-| Part | Cost |
-|---|---:|
-| Update heights per row | `O(C)` |
-| Histogram per row (stack) | `O(C)` |
-| **Total time** | **`O(R · C)`** |
-| **Space** | `O(C)` for `heights` and the stack |
+| | Time | Space |
+|---|---|---|
+| Heights + stack per row | `O(R · C)` | `O(C)` |
+| Brute force | far too slow | — |
 
-#### 8. Common Related Patterns — Must Know
+#### 5. Common Mistakes
 
-1. **Maximal Rectangle** (LeetCode 85).
-2. **Largest Rectangle in Histogram** (LeetCode 84) — the building block.
-3. **Maximal Square** (LeetCode 221) — DP.
-4. **Count Submatrices With All Ones** (LeetCode 1504) — heights + stack counting.
-5. **Largest Submatrix With Rearrangements** (LeetCode 1727) — heights + sorting.
-6. **Max Area of Island** (LeetCode 695) — connected region, not a rectangle.
-7. **Android example:** the largest empty rectangular space on a grid-based layout.
+1. **Not resetting the height to `0`** when the cell is `0`.
+2. **Creating a new `heights` array for every row.** The heights must carry over.
+3. **Solving the histogram only once at the end.** Do it after **every** row.
+4. **Comparing the cell with the number `1`** when it is a character. Use `'1'`.
+5. **Missing the extra height-`0` bar** inside the histogram function.
+6. **Empty matrix.**
 
-#### 9. Edge Cases / Common Mistakes
+#### 6. Say This in the Interview
 
-1. Not resetting the height to `0` for a `0` cell.
-2. Computing the histogram only once at the end instead of after each row.
-3. Comparing a `Char` cell with the number `1` (use `'1'`).
-4. Forgetting the sentinel in the histogram function.
-5. Empty matrix, or an empty first row.
-6. Creating a new `heights` array for each row (the heights must carry over).
-7. Treating a rectangle that has `0`s inside as valid (the histogram only uses consecutive `1`s).
-8. `Int` overflow for huge matrices (use `Long` for the area if needed).
+1. "I treat each row as the base of a histogram. `heights[c]` counts consecutive 1s going up."
+2. "For every row I run the stack solution for Largest Rectangle in Histogram and keep the best."
+3. "Time `O(R · C)`, space `O(C)`."
 
-#### 10. When to Use / When Not to Use
+#### 7. Quick Check
 
-**Use when:**
+1. What is `heights` after row 1 if row 0 is `[1, 1]` and row 1 is `[1, 0]`?
+2. Why do we reset a height to `0` for a `0` cell?
 
-1. You need the largest all-ones rectangle in a binary grid.
+<details>
+<summary>Answers</summary>
 
-**Avoid when:**
+1. `[2, 0]`.
+2. A `0` breaks the column of `1`s. A rectangle cannot go through it.
 
-1. You need a square (DP is simpler).
-2. You need a region of any shape (flood fill / BFS / DFS).
+</details>
 
-#### 11. Related Topics
+#### 8. Related LeetCode Questions
 
-1. Largest Rectangle in Histogram
-2. Monotonic Stack
-3. Dynamic Programming (`02-algorithm/05-Dynamic Programming`)
-4. Grid BFS (`01-data-structure/04-Queue/09-Grid BFS.md`)
-
-#### 12. Interview Must Remember
-
-1. **Build heights row by row (`0` resets, `1` adds). Run the histogram solution on every row.**
-2. Answer = best over all rows.
-3. `O(R · C)` time, `O(C)` space.
-4. It is Largest Rectangle in Histogram applied `R` times.
+| # | Question | Idea |
+|---|---|---|
+| 84 | Largest Rectangle in Histogram (Hard) | the building block |
+| 85 | Maximal Rectangle (Hard) | this note |
+| 221 | Maximal Square (Medium) | dynamic programming |
+| 1504 | Count Submatrices With All Ones (Medium) | heights + counting |
+| 1727 | Largest Submatrix With Rearrangements (Medium) | heights + sorting |

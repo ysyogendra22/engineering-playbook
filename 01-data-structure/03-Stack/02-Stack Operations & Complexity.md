@@ -1,162 +1,130 @@
 # Stack Operations & Complexity
 
-#### 1. Definition — Must Know
+#### 1. What Is It?
 
-1. The core stack operations are **push**, **pop**, **peek / top**, and **isEmpty**.
-2. All of them run in **`O(1)`** time.
-3. Different classes use different names for the same actions. You must know the Kotlin names and the Java names.
+A stack has four basic operations. You must know them by heart, and you must know **which Kotlin call does each one**.
 
-#### 2. Why It Is Used — Must Know
-
-1. Every stack solution is built from these four calls.
-2. Choosing the safe or throwing version matters when the stack may be empty.
-3. Mixing the names of `Stack`, `Deque` and `ArrayDeque` is a common source of bugs.
-
-#### 3. How It Works — Must Know
-
-```text
-Start:          []
-push(1):        [1]
-push(2):        [1, 2]
-push(3):        [1, 2, 3]       ← 3 is the top
-peek():         → 3             stack is still [1, 2, 3]
-pop():          → 3             stack is [1, 2]
-pop():          → 2             stack is [1]
-isEmpty():      → false
-pop():          → 1             stack is []
-pop():          → error / null  (underflow)
-```
-
-#### 4. Core Concepts — Must Know
-
-1. **Push** — add to the top.
-2. **Pop** — remove and return the top.
-3. **Peek / Top** — look at the top without removing.
-4. **isEmpty** — true when there are no items.
-5. **Names by class:**
-
-| Action | Kotlin `ArrayDeque` | `java.util.Stack` | Java `Deque` (e.g. `java.util.ArrayDeque`) |
+| Operation | What it does | Kotlin `ArrayDeque` | When the stack is empty |
 |---|---|---|---|
-| Push | `addLast(x)` | `push(x)` | `push(x)` (adds to the **front**) |
-| Pop | `removeLast()` | `pop()` | `pop()` (removes from the **front**) |
-| Pop (safe) | `removeLastOrNull()` | — (throws `EmptyStackException`) | `poll()` / `pollFirst()` → `null` |
-| Peek | `last()` | `peek()` | `peek()` (looks at the **front**) |
-| Peek (safe) | `lastOrNull()` | — | `peek()` → `null` if empty |
-| Empty | `isEmpty()` | `empty()` / `isEmpty()` | `isEmpty()` |
+| **Push** | add on top | `addLast(x)` | — |
+| **Pop** | remove the top and return it | `removeLast()` | crashes (`NoSuchElementException`) |
+| **Pop (safe)** | same, but safe | `removeLastOrNull()` | returns `null` |
+| **Peek** | look at the top | `last()` | crashes |
+| **Peek (safe)** | same, but safe | `lastOrNull()` | returns `null` |
+| **isEmpty** | any items? | `isEmpty()` / `isNotEmpty()` | — |
 
-6. **Rule of thumb:** use Kotlin `ArrayDeque` with `addLast` / `removeLast` / `last()`. The names are clear and there is no front/back confusion.
-7. **Other useful calls:** `size`, `clear()`, `contains(x)` (`O(n)`), iterating with `for (x in stack)` (bottom to top for `ArrayDeque`).
-8. **Underflow handling:** decide the behaviour: throw, return `null`, or return a default.
+Use **`ArrayDeque`** and always work at the **end**. That is the whole rule.
 
-#### 5. Algorithm — Must Know
+Other classes you may see (do not use them in new code):
 
-Safe pop:
+| Class | Push / pop / peek | Why avoid |
+|---|---|---|
+| `java.util.Stack` | `push` / `pop` / `peek` | old and slow |
+| `java.util.Deque` (Java) | `push` / `pop` / `peek` | work at the **front**, easy to mix up with `addLast` |
+
+#### 2. How It Works
+
+Most stack solutions use one of three small patterns. Learn to recognise them.
+
+**Pattern A — pop while the top is worse (monotonic stack)**
 
 ```text
-if stack is not empty: value = pop()
-else: handle "nothing to pop"
+nums = [2, 1, 5]    find the next bigger number for each
+
+see 2 → push                 [2]
+see 1 → 1 < 2, push          [2, 1]
+see 5 → 5 > 1, pop 1 (its answer is 5)
+        5 > 2, pop 2 (its answer is 5)
+        push 5               [5]
 ```
 
-Check the top before acting on it:
+**Pattern B — pop two, push one (calculators)**
 
 ```text
-while stack is not empty and stack.top satisfies a condition: pop()
+tokens: 3 4 +      → push 3, push 4, then "+": pop 4, pop 3, push 3 + 4 = 7
 ```
 
-#### 6. Kotlin Implementation — Must Know
+**Pattern C — push, and pop to undo (matching, backspace)**
+
+```text
+text: a b # c      → push a, push b, "#" pops b, push c → result "ac"
+```
+
+#### 3. Kotlin Code
 
 ```kotlin
-val stack = ArrayDeque<String>()
+val stack = ArrayDeque<Int>()
 
-// Push
-stack.addLast("a")
-stack.addLast("b")
-stack.add("c")                     // add = addLast
+stack.addLast(1)                   // push
+stack.addLast(2)
+stack.addLast(3)
 
-// Peek
-println(stack.last())              // c
-println(stack.lastOrNull())        // c
+println(stack.last())              // peek → 3
+println(stack.removeLast())        // pop  → 3
+println(stack.size)                // 2
+println(stack.isNotEmpty())        // true
 
-// Pop
-println(stack.removeLast())        // c
-println(stack.removeLastOrNull())  // b
+// Pattern A: pop while the top is smaller than the new number
+fun popWhileSmaller(stack: ArrayDeque<Int>, x: Int) {
+    while (stack.isNotEmpty() && stack.last() < x) stack.removeLast()
+    stack.addLast(x)
+}
 
-// isEmpty / size
-println(stack.isEmpty())           // false
-println(stack.size)                // 1
+// Pattern B: pop two numbers, push the result. Pop the RIGHT number first.
+fun applyMinus(stack: ArrayDeque<Int>) {
+    val b = stack.removeLast()     // right number
+    val a = stack.removeLast()     // left number
+    stack.addLast(a - b)           // "5 3 -" means 5 - 3 = 2, not 3 - 5
+}
 
-stack.clear()
-println(stack.removeLastOrNull())  // null — no exception
-// stack.removeLast()              // would throw NoSuchElementException
-
-// Iterate bottom → top without removing
-val s = ArrayDeque(listOf(1, 2, 3))
-for (x in s) print("$x ")          // 1 2 3
-println()
-
-// Java-style Deque (note: push/pop/peek work at the FRONT)
-val d: java.util.Deque<Int> = java.util.ArrayDeque()
-d.push(1); d.push(2)
-println(d.peek())                  // 2
-println(d.pop())                   // 2
-
-// Small helper for "peek or default"
-fun <T> ArrayDeque<T>.peekOr(default: T): T = lastOrNull() ?: default
+// Safe pop on a stack that might be empty
+val top: Int? = stack.removeLastOrNull()
 ```
 
-#### 7. Time & Space Complexity — Must Know
+Read the items without removing them: `for (x in stack)` goes from **bottom to top**.
 
-| Operation | Time | Notes |
-|---|---:|---|
-| `push` | `O(1)` amortized | rare resize costs `O(n)` |
-| `pop` | `O(1)` | |
-| `peek` | `O(1)` | |
-| `isEmpty` / `size` | `O(1)` | |
-| `contains` | `O(n)` | |
-| `clear` | `O(n)` | |
-| Iteration | `O(n)` | |
-| Space | `O(n)` | |
+#### 4. Complexity
 
-#### 8. Common Operation Patterns — Must Know
+| Operation | Time |
+|---|---|
+| `push`, `pop`, `peek`, `isEmpty`, `size` | `O(1)` |
+| `contains(x)` / search | `O(n)` |
+| Memory for `n` items | `O(n)` |
 
-1. **Pop while the top is worse:** `while (stack.isNotEmpty() && stack.last() < x) stack.removeLast()` (monotonic stack).
-2. **Pop two, push one:** evaluate an operator (`b = pop(); a = pop(); push(a op b)`).
-3. **Push a marker:** `-1` or a sentinel index at the bottom to avoid empty checks.
-4. **Peek then decide:** compare with the top before pushing.
-5. **Drain at the end:** `while (stack.isNotEmpty()) …` to handle leftovers.
-6. **Push pairs:** `IntArray` or `Pair` entries such as `(value, count)`.
+Many stack solutions have a `while` loop inside a `for` loop. That is still `O(n)`, because **each item is pushed once and popped once**.
 
-#### 9. Edge Cases / Common Mistakes
+#### 5. Common Mistakes
 
-1. Popping an empty stack.
-2. Peeking at the wrong end of a `Deque` (`peek()` is the front).
-3. Using `pop` before `peek` and then losing the value.
-4. In two-operand evaluation: using the wrong order (`a - b` where `a` was pushed first).
-5. Forgetting that `Stack.push` returns the item and `Deque.push` returns nothing.
-6. Using `stack.remove(x)` (remove a specific item, `O(n)`) instead of `removeLast()`.
-7. Checking `size > 0` repeatedly when `isNotEmpty()` is clearer.
-8. Modifying the stack while iterating with `for`.
+1. **Pop or peek on an empty stack.** Check `isNotEmpty()` inside the `while` condition, before `last()`.
+2. **Wrong operand order.** For `-` and `/`, pop the right number first, then the left.
+3. **Using `remove(x)`.** It removes a specific value (`O(n)`), not the top. Use `removeLast()`.
+4. **Changing the stack inside `for (x in stack)`.** It crashes. Use a `while` loop.
 
-#### 10. When to Use / When Not to Use
+#### 6. Say This in the Interview
 
-**Use the throwing versions when:**
+1. "I push as I scan, and pop when the top no longer helps."
+2. "The `while` loop does not make it `O(n²)`, because every item is popped at most once."
+3. "I check for an empty stack before reading the top."
 
-1. An empty stack means a bug in your logic and you want it to fail loudly.
+#### 7. Quick Check
 
-**Use the safe versions when:**
+1. Why is `while (stack.last() < x)` risky?
+2. For tokens `8 2 /`, which number do you pop first?
 
-1. Empty is a normal case (undo with nothing to undo).
+<details>
+<summary>Answers</summary>
 
-#### 11. Related Topics
+1. If the stack is empty, `last()` crashes. Write `stack.isNotEmpty() && stack.last() < x`.
+2. `2` (the right number). Then pop `8`. The result is `8 / 2 = 4`.
 
-1. Stack Fundamentals — LIFO
-2. Stack Implementation
-3. Min Stack
-4. Common Stack Edge Cases
+</details>
 
-#### 12. Interview Must Remember
+#### 8. Related LeetCode Questions
 
-1. **Push = `addLast`, pop = `removeLast`, peek = `last()`.**
-2. Java `Deque.push/pop/peek` act on the **front**.
-3. All are `O(1)`; check for empty before pop/peek.
-4. Prefer `ArrayDeque` over `java.util.Stack`.
+| # | Question | Pattern |
+|---|---|---|
+| 20 | Valid Parentheses (Easy) | C — match and pop |
+| 1047 | Remove All Adjacent Duplicates In String (Easy) | C — pop to undo |
+| 844 | Backspace String Compare (Easy) | C — `#` pops |
+| 150 | Evaluate Reverse Polish Notation (Medium) | B — pop two, push one |
+| 739 | Daily Temperatures (Medium) | A — pop while smaller |

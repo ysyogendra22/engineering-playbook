@@ -1,64 +1,49 @@
 # Evaluate Postfix / Reverse Polish Notation
 
-#### 1. Definition — Must Know
+#### 1. What Is It?
 
-1. **Postfix notation** (Reverse Polish Notation, RPN) writes the operator **after** its two operands: `3 4 +` means `3 + 4`.
-2. It needs **no brackets** and no priority rules. The order of the tokens already says what to do first.
-3. Evaluate it with a **stack of numbers**: push numbers; on an operator, pop two numbers, apply the operator, push the result.
-4. It is *Evaluate Reverse Polish Notation* (LeetCode 150). If a number and a title ever disagree, trust the title.
+Normal maths writes the operator **between** the numbers: `3 + 4`. This is called **infix**.
 
-#### 2. Why It Is Used — Must Know
-
-1. It is the simplest stack-based evaluator and a common easy/medium question.
-2. Compilers and calculators convert normal (infix) expressions to postfix and evaluate them this way.
-3. It teaches the **operand order** rule, which is a very common bug.
-
-#### 3. How It Works — Must Know
-
-`tokens = ["2", "1", "+", "3", "*"]` means `(2 + 1) * 3`.
+**Postfix** (also called **Reverse Polish Notation**, RPN) writes the operator **after** the numbers: `3 4 +`.
 
 ```text
-2   push                         stack [2]
-1   push                         stack [2, 1]
-+   pop b=1, pop a=2, push 2+1   stack [3]
-3   push                         stack [3, 3]
-*   pop b=3, pop a=3, push 3*3   stack [9]
+Infix:    (2 + 1) * 3
+Postfix:  2 1 + 3 *
+```
+
+Postfix needs **no brackets** and no priority rules (`*` before `+`). The order of the tokens already says what to do first.
+
+You evaluate it with a **stack of numbers**:
+
+- number → push it,
+- operator → pop two numbers, calculate, push the result.
+
+This is *Evaluate Reverse Polish Notation* (LeetCode 150).
+
+#### 2. How It Works
+
+`tokens = ["2", "1", "+", "3", "*"]`
+
+```text
+"2"   push 2                                  stack [2]
+"1"   push 1                                  stack [2, 1]
+"+"   pop 1 (right), pop 2 (left), push 2+1   stack [3]
+"3"   push 3                                  stack [3, 3]
+"*"   pop 3 (right), pop 3 (left), push 3*3   stack [9]
 
 answer = 9
 ```
 
-Order matters for `-` and `/`: the **first popped is the right operand**.
+**Order matters** for `-` and `/`. The **first number you pop is the RIGHT number**.
 
 ```text
-tokens: "5", "3", "-"     →   b = pop() = 3,  a = pop() = 5,  result = a - b = 2     (not 3 - 5)
+tokens: "5", "3", "-"
+pop → 3 (right), pop → 5 (left), calculate 5 - 3 = 2      (not 3 - 5)
 ```
 
-Division in the problem truncates toward zero: `["4","13","5","/","+"]` is `4 + (13 / 5) = 6`.
+Division truncates toward zero: `13 / 5 = 2`, and `-7 / 2 = -3`. Kotlin `Int` division does exactly this.
 
-#### 4. Core Concepts — Must Know
-
-1. **Numbers → push. Operators → pop two, compute, push.**
-2. **Right operand first:** `b = pop()`, then `a = pop()`, result is `a op b`.
-3. **At the end, the stack has exactly one number** (for a valid expression). That is the answer.
-4. **Negative numbers are tokens too** (`"-3"`). Distinguish a number from the operator `"-"` by its length or by checking whether it is exactly one of `+ - * /`.
-5. **Division:** Kotlin `/` on `Int` truncates toward zero, which is what the problem asks.
-6. **No priority rules are needed.** The tokens' order already includes them.
-7. **Overflow:** if results can be large, use `Long`.
-
-#### 5. Algorithm — Must Know
-
-```text
-stack = empty
-for each token:
-    if token is an operator:
-        b = stack.pop();  a = stack.pop()
-        stack.push(a op b)
-    else:
-        stack.push(token as number)
-return stack.pop()
-```
-
-#### 6. Kotlin Implementation — Must Know
+#### 3. Kotlin Code
 
 ```kotlin
 fun evalRPN(tokens: Array<String>): Int {
@@ -66,8 +51,8 @@ fun evalRPN(tokens: Array<String>): Int {
     for (token in tokens) {
         when (token) {
             "+", "-", "*", "/" -> {
-                val b = stack.removeLast()               // right operand first
-                val a = stack.removeLast()
+                val b = stack.removeLast()               // right number first
+                val a = stack.removeLast()               // then the left number
                 stack.addLast(
                     when (token) {
                         "+" -> a + b
@@ -77,86 +62,56 @@ fun evalRPN(tokens: Array<String>): Int {
                     }
                 )
             }
-            else -> stack.addLast(token.toInt())          // handles "-3" too
-        }
-    }
-    return stack.last()
-}
-
-// Same idea with Long and a map of operators
-fun evalRPNLong(tokens: List<String>): Long {
-    val ops: Map<String, (Long, Long) -> Long> = mapOf(
-        "+" to { a: Long, b: Long -> a + b },
-        "-" to { a: Long, b: Long -> a - b },
-        "*" to { a: Long, b: Long -> a * b },
-        "/" to { a: Long, b: Long -> a / b },
-    )
-    val stack = ArrayDeque<Long>()
-    for (t in tokens) {
-        val op = ops[t]
-        if (op != null) {
-            val b = stack.removeLast()
-            val a = stack.removeLast()
-            stack.addLast(op(a, b))
-        } else {
-            stack.addLast(t.toLong())
+            else -> stack.addLast(token.toInt())          // also works for "-3"
         }
     }
     return stack.last()
 }
 ```
 
-Checks: `evalRPN(["2","1","+","3","*"])` → `9`. `evalRPN(["4","13","5","/","+"])` → `6`. `evalRPN(["10","6","9","3","+","-11","*","/","*","17","+","5","+"])` → `22`.
+Checks: `["2","1","+","3","*"]` → `9`. `["4","13","5","/","+"]` → `6`. `["10","6","9","3","+","-11","*","/","*","17","+","5","+"]` → `22`.
 
-#### 7. Time & Space Complexity — Must Know
+#### 4. Complexity
 
-| Part | Cost |
-|---|---:|
-| Time | `O(n)` — each token is handled once |
-| Space | `O(n)` for the stack (at most about `n/2` numbers at once) |
+| | Time | Space |
+|---|---|---|
+| Stack | `O(n)` | `O(n)` |
 
-#### 8. Common Postfix Patterns — Must Know
+Each token is handled once.
 
-1. **Evaluate Reverse Polish Notation** (LeetCode 150).
-2. **Infix → postfix conversion** (shunting-yard) — next note.
-3. **Basic Calculator I/II/III** (LeetCode 224, 227, 772) — evaluate infix with a stack directly.
-4. **Expression trees** — postfix evaluation matches a post-order walk of the tree.
-5. **Prefix evaluation** — scan right to left; the operand order flips (first popped is the **left** operand).
-6. **Build an expression tree from postfix** (LeetCode 1628).
-7. **Android example:** a formula engine in a spreadsheet-like feature.
+#### 5. Common Mistakes
 
-#### 9. Edge Cases / Common Mistakes
+1. **Wrong operand order.** `b - a` instead of `a - b`. The first pop is the right number.
+2. **Mistaking `"-3"` for the operator `-`.** Compare the **whole token** with `"-"`. `"-3"` is a number.
+3. **Floor division.** The question wants truncation toward zero. Kotlin `/` on `Int` does this. Do not use `Math.floorDiv`.
+4. **Overflow.** Use `Long` if the numbers can be large.
+5. **Stack has fewer than two numbers** when an operator arrives. Only happens with invalid input.
 
-1. **Wrong operand order** for `-` and `/` (`b - a` instead of `a - b`).
-2. Treating `"-3"` as the operator `-`. Compare the whole token with `"-"`.
-3. Division rounding: use truncation toward zero (Kotlin `Int` division), not floor.
-4. Division by zero (the problem usually guarantees it does not happen).
-5. Popping with fewer than two numbers on the stack (invalid input). Decide whether to throw.
-6. Overflow in `Int` for big expressions.
-7. Using `stack.removeLast()` for the answer and leaving the stack in an unknown state; use `last()` if you only read it.
-8. Assuming the stack ends with one number without checking when input may be invalid.
+#### 6. Say This in the Interview
 
-#### 10. When to Use / When Not to Use
+1. "Postfix needs no brackets. I scan left to right with a stack."
+2. "A number is pushed. For an operator I pop the right operand, then the left operand, and push the result."
+3. "Time `O(n)`, space `O(n)`. Division truncates toward zero."
 
-**Use when:**
+#### 7. Quick Check
 
-1. The expression is already in postfix form.
-2. You convert infix to postfix first and then evaluate.
+1. Evaluate `["6", "2", "/", "3", "-"]`.
+2. Why is `["-3"]` a number and not an operator?
 
-**Avoid when:**
+<details>
+<summary>Answers</summary>
 
-1. The expression has brackets and is in infix form and you only need a result. A direct two-stack evaluation or recursive descent parser may be simpler.
+1. `6 / 2 = 3`, then `3 - 3 = 0`. The answer is `0`.
+2. The token is `"-3"`, which is not exactly `"-"`. Only a token that equals `+`, `-`, `*` or `/` is an operator.
 
-#### 11. Related Topics
+</details>
 
-1. Infix / Prefix / Postfix — Basic Concept
-2. Expression / String Processing with Stack
-3. Stack Operations & Complexity
-4. Expression Parsing (study separately)
+#### 8. Related LeetCode Questions
 
-#### 12. Interview Must Remember
-
-1. **Number → push. Operator → `b = pop()`, `a = pop()`, push `a op b`.**
-2. Right operand is popped first.
-3. Division truncates toward zero; negative numbers are valid tokens.
-4. `O(n)` time and space.
+| # | Question | Idea |
+|---|---|---|
+| 150 | Evaluate Reverse Polish Notation (Medium) | this note |
+| 227 | Basic Calculator II (Medium) | evaluate infix with a stack |
+| 224 | Basic Calculator (Hard) | brackets |
+| 772 | Basic Calculator III (Hard, premium) | brackets and `* /` |
+| 1628 | Design an Expression Tree With Evaluate Function (Medium) | build a tree from postfix |

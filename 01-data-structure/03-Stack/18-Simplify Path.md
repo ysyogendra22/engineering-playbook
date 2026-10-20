@@ -1,145 +1,115 @@
 # Simplify Path
 
-#### 1. Definition — Must Know
+#### 1. What Is It?
 
-1. Given an absolute Unix-style file path, return its **simplified canonical form**.
-2. Rules:
-   - `.` means "the current folder" → ignore it.
-   - `..` means "go up one folder" → remove the last folder (if any).
-   - Multiple slashes (`//`) count as one slash.
-   - The result starts with `/`, has no trailing `/`, and has no `.` or `..`.
-3. It is *Simplify Path* (LeetCode 71). If a number and a title ever disagree, trust the title.
+You get an **absolute file path** (it starts with `/`). Return its **simplest form**.
 
-#### 2. Why It Is Used — Must Know
+Rules:
 
-1. "Go back one level" is a pop. The folders you are inside are a stack.
-2. It is a short, clean stack question.
-3. In apps: file managers, deep links and URL path normalisation, navigation back stacks.
+| Part | Meaning | What to do |
+|---|---|---|
+| `.` | the current folder | ignore it |
+| `..` | go up one folder | remove the last folder (if there is one) |
+| `//` (empty part) | a repeated slash | ignore it |
+| anything else | a folder name | keep it |
 
-#### 3. How It Works — Must Know
+The result must start with `/`, must not end with `/` (except the root itself), and must not contain `.` or `..`.
+
+```text
+"/home//foo/"        → "/home/foo"
+"/a/./b/../../c/"    → "/c"
+"/../"               → "/"        (you cannot go above the root)
+"/..."               → "/..."     ("..." is a normal folder name)
+```
+
+This is *Simplify Path* (LeetCode 71). The folders you are currently inside form a **stack**: going into a folder is a push, and `..` is a pop.
+
+#### 2. How It Works
 
 `path = "/a/./b/../../c/"`
 
-Split by `/` into parts: `["", "a", ".", "b", "..", "..", "c", ""]`.
+Split by `/`: `["", "a", ".", "b", "..", "..", "c", ""]`
 
 ```text
-""   skip (empty part)                  stack: []
-a    push                               stack: [a]
-.    skip                               stack: [a]
-b    push                               stack: [a, b]
-..   pop                                stack: [a]
-..   pop                                stack: []
-c    push                               stack: [c]
-""   skip                               stack: [c]
+""   skip (empty)                 stack: []
+"a"  push                         stack: [a]
+"."  skip                         stack: [a]
+"b"  push                         stack: [a, b]
+".." pop                          stack: [a]
+".." pop                          stack: []
+"c"  push                         stack: [c]
+""   skip                         stack: [c]
 
 result: "/" + "c" = "/c"
 ```
 
-More cases:
-
-```text
-"/home//foo/"     → "/home/foo"
-"/../"            → "/"           (.. at the root does nothing)
-"/a/b/c/../.."    → "/a"
-"/..."            → "/..."        ("..." is a normal folder name)
-```
-
-#### 4. Core Concepts — Must Know
-
-1. **Split on `/`** and process each part.
-2. **Skip** `""` (from `//` or leading/trailing slash) and `"."`.
-3. **`..` pops** the stack if it is not empty. At the root, it does nothing.
-4. **Anything else is a folder name → push.**
-5. **Join** the stack with `/` and add a leading `/`. An empty stack gives `"/"`.
-6. **`...` or `.hidden` are valid names**, not special.
-7. **Why a stack:** the last folder entered is the first one removed by `..`.
-
-#### 5. Algorithm — Must Know
-
-```text
-stack = empty
-for part in path.split("/"):
-    "" or "."  → skip
-    ".."       → pop if the stack is not empty
-    otherwise  → push part
-return "/" + stack joined by "/"
-```
-
-#### 6. Kotlin Implementation — Must Know
+#### 3. Kotlin Code
 
 ```kotlin
 fun simplifyPath(path: String): String {
     val stack = ArrayDeque<String>()
     for (part in path.split("/")) {
         when (part) {
-            "", "." -> { /* skip */ }
-            ".." -> stack.removeLastOrNull()               // does nothing at the root
-            else -> stack.addLast(part)
+            "", "." -> { }                               // ignore
+            ".." -> stack.removeLastOrNull()             // go up; nothing happens at the root
+            else -> stack.addLast(part)                  // a folder name
         }
     }
-    return "/" + stack.joinToString("/")
+    return "/" + stack.joinToString("/")                 // empty stack gives "/"
 }
+```
 
-// Android style: navigate a back stack of screens
+Checks: `simplifyPath("/home/")` → `"/home"`. `simplifyPath("/../")` → `"/"`. `simplifyPath("/home//foo/")` → `"/home/foo"`. `simplifyPath("/a/./b/../../c/")` → `"/c"`. `simplifyPath("/.../a/../b/c/../d/./")` → `"/.../b/d"`.
+
+Same idea in Android: the **back stack** of screens. Opening a screen is a push, pressing back is a pop.
+
+```kotlin
 class Navigator {
     private val backStack = ArrayDeque<String>()
-
     fun open(screen: String) { backStack.addLast(screen) }
     fun back(): String? = backStack.removeLastOrNull()
     fun current(): String? = backStack.lastOrNull()
 }
 ```
 
-Checks: `simplifyPath("/home/")` → `"/home"`. `simplifyPath("/../")` → `"/"`. `simplifyPath("/home//foo/")` → `"/home/foo"`. `simplifyPath("/a/./b/../../c/")` → `"/c"`. `simplifyPath("/.../a/../b/c/../d/./")` → `"/.../b/d"`.
+#### 4. Complexity
 
-#### 7. Time & Space Complexity — Must Know
+| | Time | Space |
+|---|---|---|
+| Split + one pass | `O(n)` | `O(n)` |
 
-| Part | Cost |
-|---|---:|
-| Time | `O(n)` — split and one pass over the parts |
-| Space | `O(n)` — the parts and the stack |
+#### 5. Common Mistakes
 
-#### 8. Common Path / Navigation Patterns — Must Know
+1. **Forgetting to skip empty parts.** `split("/")` returns `""` for a leading slash and for `//`.
+2. **Popping an empty stack on `..`.** Use `removeLastOrNull()`.
+3. **Returning `""` for the root.** It must be `"/"`.
+4. **Treating `"..."` as `..`.** It is a normal folder name.
+5. **A trailing `/`** in the result.
 
-1. **Simplify Path** (LeetCode 71).
-2. **Crawler Log Folder** (LeetCode 1598) — just a counter of the depth.
-3. **Browser History** (LeetCode 1472) — back and forward with two stacks or one array.
-4. **Design File System** (LeetCode 1166) — a trie or a map.
-5. **Resolve relative URLs** (`../images/a.png` against a base).
-6. **Undo/back navigation** — each screen is pushed; back pops.
-7. **Android:** `NavController` back stack, `FragmentManager` back stack.
+#### 6. Say This in the Interview
 
-#### 9. Edge Cases / Common Mistakes
+1. "Folders I am inside form a stack. A name is a push, `..` is a pop, `.` and empty parts are skipped."
+2. "`..` at the root does nothing."
+3. "Time `O(n)`, space `O(n)`."
 
-1. Forgetting to skip empty parts from `//` and the leading `/` (the split gives `""`).
-2. Popping from an empty stack on `..` at the root (use `removeLastOrNull()`).
-3. Returning `""` for the root instead of `"/"`.
-4. Leaving a trailing `/`.
-5. Treating `"..."` as `..`.
-6. Splitting with `trim('/')` first and then forgetting that empty parts still appear between double slashes.
-7. Relative paths: this version assumes an **absolute** path starting with `/`.
-8. Joining without the leading `/`.
+#### 7. Quick Check
 
-#### 10. When to Use / When Not to Use
+1. What does `"/a/../.."` give?
+2. What does `"/a/b/c/../.."` give?
 
-**Use when:**
+<details>
+<summary>Answers</summary>
 
-1. You normalise a path-like string where `..` undoes the last step.
+1. `"/"`. The first `..` removes `a`. The second `..` is at the root and does nothing.
+2. `"/a"`. The two `..` remove `c` and `b`.
 
-**Avoid when:**
+</details>
 
-1. Symbolic links or the real file system matter. Use the OS or `File.canonicalPath` / `Path.normalize()`.
+#### 8. Related LeetCode Questions
 
-#### 11. Related Topics
-
-1. Stack Operations & Complexity
-2. Expression / String Processing with Stack
-3. Remove Adjacent Duplicates
-4. Trie (`01-data-structure/09-Trie`)
-
-#### 12. Interview Must Remember
-
-1. **Split by `/`; skip `""` and `.`; `..` pops; names push; join with `/` and a leading `/`.**
-2. `..` at the root does nothing.
-3. Empty stack → `"/"`.
-4. `O(n)` time and space.
+| # | Question | Idea |
+|---|---|---|
+| 71 | Simplify Path (Medium) | this note |
+| 1598 | Crawler Log Folder (Easy) | only the depth counter is needed |
+| 1472 | Design Browser History (Medium) | back and forward stacks |
+| 844 | Backspace String Compare (Easy) | pop to undo |

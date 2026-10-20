@@ -1,76 +1,45 @@
 # Previous Greater / Smaller Element
 
-#### 1. Definition — Must Know
+#### 1. What Is It?
 
-1. For each item, the **previous greater element** is the **nearest larger value to its left**. The **previous smaller element** is the **nearest smaller value to its left**. If none exists, the answer is `-1`.
-2. Example, previous greater of `[3, 1, 4, 2]` → `[-1, 3, -1, 4]`.
-3. The method: scan **left to right** with a monotonic stack. **After popping**, the item on top of the stack (if any) is the answer.
-
-#### 2. Why It Is Used — Must Know
-
-1. It gives the **left boundary** for each item. Together with the next greater/smaller (right boundary) it defines the range where the item is the maximum/minimum.
-2. It solves Stock Span, histogram areas, and sum-of-minimums problems.
-3. It is still `O(n)` with a stack.
-
-#### 3. How It Works — Must Know
-
-Previous **greater** for `[3, 1, 4, 2]`. Keep a **decreasing** stack of values.
+For each number, find the **nearest bigger (or smaller) number to its LEFT**. If there is none, the answer is `-1`.
 
 ```text
-i=0 (3): stack empty → previous greater = -1         push 3        stack: [3]
-i=1 (1): top 3 > 1 → nothing to pop → answer 3        push 1        stack: [3, 1]
-i=2 (4): pop 1 (1 <= 4), pop 3 (3 <= 4) → stack empty → answer -1     push 4     stack: [4]
-i=3 (2): top 4 > 2 → answer 4                         push 2        stack: [4, 2]
+nums = [3, 1, 4, 2]
+
+previous greater:  [-1, 3, -1, 4]     (for 1 the nearest bigger on the left is 3; for 4 there is none)
+previous smaller:  [-1, -1, 1, 1]     (for 4 the nearest smaller on the left is 1)
+```
+
+It is the same monotonic stack as "next greater", but the **answer is read from the top of the stack**, not written to popped items. Read the "Monotonic Stack" note first.
+
+Why it matters: the previous and next smaller items give the **left and right limits** of each item. Histogram and "sum of subarray minimums" problems use exactly these limits.
+
+#### 2. How It Works
+
+Previous **greater** of `[3, 1, 4, 2]`.
+
+For each number: pop everything that is **smaller than or equal to** it (they can never be an answer for this number or any later one). Then the top, if any, is the answer. Then push the number.
+
+```text
+3: stack empty → answer -1          push 3         stack: [3]
+1: top 3 is bigger → answer 3       push 1         stack: [3, 1]
+4: pop 1, pop 3 (both <= 4)
+   stack empty → answer -1          push 4         stack: [4]
+2: top 4 is bigger → answer 4       push 2         stack: [4, 2]
 
 result: [-1, 3, -1, 4]
 ```
 
-Previous **smaller** for the same array. Keep an **increasing** stack:
+Previous **smaller**: same idea, but pop everything **bigger than or equal to** the number.
 
-```text
-i=0 (3): empty → -1             push      stack: [3]
-i=1 (1): pop 3 (3 >= 1) → empty → -1      push      stack: [1]
-i=2 (4): top 1 < 4 → answer 1             push      stack: [1, 4]
-i=3 (2): pop 4 (4 >= 2); top 1 < 2 → answer 1      push      stack: [1, 2]
-
-result: [-1, -1, 1, 1]
-```
-
-The difference from "next": here the answer is **read from the stack top** while scanning, not written to popped items.
-
-#### 4. Core Concepts — Must Know
-
-1. **Pop the items that cannot be the answer** for this or any later item (they are not greater/smaller enough).
-2. **What remains on top is the nearest valid item** to the left.
-3. **Previous greater:** pop while `nums[top] <= nums[i]`. **Previous smaller:** pop while `nums[top] >= nums[i]`.
-4. **Strict vs non-strict:** with `<=` / `>=` the answer is *strictly* greater/smaller. With `<` / `>`, equal values count as an answer.
-5. **Store indexes** if you need distances or spans (`i - previousIndex`).
-6. **One pass can give both sides:** when an index is popped, the new item is its **next** smaller, and the stack top below it is its **previous** smaller.
-
-| Question | Pop while | Answer is |
-|---|---|---|
-| Previous greater (strict) | `nums[top] <= nums[i]` | top after popping |
-| Previous smaller (strict) | `nums[top] >= nums[i]` | top after popping |
-| Previous greater or equal | `nums[top] < nums[i]` | top after popping |
-
-#### 5. Algorithm — Must Know
-
-```text
-stack = empty
-for i in 0 until n:
-    while stack not empty and nums[stack.top] <= nums[i]:   // for previous greater
-        stack.pop()
-    previous[i] = if stack is empty then -1 else stack.top (index or value)
-    stack.push(i)
-```
-
-#### 6. Kotlin Implementation — Must Know
+#### 3. Kotlin Code
 
 ```kotlin
-// Previous Greater Element (index), -1 if none
+// Index of the previous greater element (-1 if none)
 fun previousGreaterIndex(nums: IntArray): IntArray {
     val result = IntArray(nums.size) { -1 }
-    val stack = ArrayDeque<Int>()                         // indexes, values decreasing
+    val stack = ArrayDeque<Int>()                          // indexes, values decreasing
     for (i in nums.indices) {
         while (stack.isNotEmpty() && nums[stack.last()] <= nums[i]) stack.removeLast()
         result[i] = if (stack.isEmpty()) -1 else stack.last()
@@ -79,10 +48,10 @@ fun previousGreaterIndex(nums: IntArray): IntArray {
     return result
 }
 
-// Previous Smaller Element (index), -1 if none
+// Index of the previous smaller element (-1 if none)
 fun previousSmallerIndex(nums: IntArray): IntArray {
     val result = IntArray(nums.size) { -1 }
-    val stack = ArrayDeque<Int>()                         // indexes, values increasing
+    val stack = ArrayDeque<Int>()                          // indexes, values increasing
     for (i in nums.indices) {
         while (stack.isNotEmpty() && nums[stack.last()] >= nums[i]) stack.removeLast()
         result[i] = if (stack.isEmpty()) -1 else stack.last()
@@ -90,74 +59,67 @@ fun previousSmallerIndex(nums: IntArray): IntArray {
     }
     return result
 }
+```
 
-// Previous AND next smaller index in one pass: left[i] and right[i]
+Checks: `previousGreaterIndex([3,1,4,2])` → `[-1, 0, -1, 2]` (indexes of 3 and 4). `previousSmallerIndex([3,1,4,2])` → `[-1, -1, 1, 1]`.
+
+**Both sides in one pass.** When an index is popped, the new item is its **next** smaller. The item below it in the stack is its **previous** smaller:
+
+```kotlin
 fun smallerBounds(nums: IntArray): Pair<IntArray, IntArray> {
     val n = nums.size
-    val left = IntArray(n) { -1 }        // previous strictly smaller index
-    val right = IntArray(n) { n }        // next smaller-or-equal index
+    val left = IntArray(n) { -1 }      // previous smaller index
+    val right = IntArray(n) { n }      // next smaller-or-equal index
     val stack = ArrayDeque<Int>()
     for (i in 0 until n) {
         while (stack.isNotEmpty() && nums[stack.last()] >= nums[i]) {
-            right[stack.removeLast()] = i                 // i is the NEXT smaller-or-equal of the popped index
+            right[stack.removeLast()] = i
         }
-        left[i] = if (stack.isEmpty()) -1 else stack.last()   // top is the PREVIOUS strictly smaller
+        left[i] = if (stack.isEmpty()) -1 else stack.last()
         stack.addLast(i)
     }
     return left to right
 }
 ```
 
-Checks: `previousGreaterIndex([3,1,4,2])` → `[-1, 0, -1, 2]` (values `[-1, 3, -1, 4]`). `previousSmallerIndex([3,1,4,2])` → `[-1, -1, 1, 1]`. `smallerBounds([3,1,2,4])`: `left = [-1,-1,1,2]`, `right = [1,4,4,4]`.
+#### 4. Complexity
 
-#### 7. Time & Space Complexity — Must Know
+| | Time | Space |
+|---|---|---|
+| Monotonic stack | `O(n)` | `O(n)` |
+| Brute force | `O(n²)` | `O(1)` |
 
-| Version | Time | Space |
-|---|---:|---:|
-| Brute force (scan left for each item) | `O(n²)` | `O(1)` |
-| **Monotonic stack** | **`O(n)`** | `O(n)` |
+#### 5. Common Mistakes
 
-#### 8. Common Previous-Boundary Patterns — Must Know
+1. **Reading the top before popping.** First pop, then read the top.
+2. **Wrong direction.** Previous greater pops `<=`. Previous smaller pops `>=`.
+3. **Forgetting `-1`** when the stack is empty.
+4. **Equal values.** Be consistent: strict on one side and non-strict on the other (explained in the contribution note).
+5. **Mixing "previous" (left) with "next" (right).**
 
-1. **Online Stock Span** (LeetCode 901) — previous greater; span = `i - previousGreaterIndex`.
-2. **Largest Rectangle in Histogram** (LeetCode 84) — left and right smaller bounds.
-3. **Sum of Subarray Minimums** (LeetCode 907) — left and right spans.
-4. **Maximum Width Ramp**, **Trapping Rain Water** — boundaries.
-5. **Number of Visible People in a Queue** (LeetCode 1944) — stack with both sides.
-6. **Next Greater** and **Previous Greater** together: count subarrays where an item is the maximum.
-7. **Android example:** for each item in a feed, the nearest earlier item with a higher priority.
+#### 6. Say This in the Interview
 
-#### 9. Edge Cases / Common Mistakes
+1. "I scan left to right with a monotonic stack. After popping the useless items, the top is the nearest bigger item on the left."
+2. "Each index is pushed and popped once, so it is `O(n)`."
 
-1. Reading the stack top **before** popping instead of after.
-2. Strict vs non-strict comparison (the problem decides).
-3. Forgetting `-1` when the stack is empty.
-4. Mixing up the sign: previous greater pops `<=`, previous smaller pops `>=`.
-5. Using the wrong tie rule in boundary pairs (see the contribution note). One side strict, one side non-strict, or equal values are double counted or missed.
-6. Storing values when distances are needed.
-7. Confusing "previous" (left side) with "next" (right side).
+#### 7. Quick Check
 
-#### 10. When to Use / When Not to Use
+1. What is the previous greater of the first item?
+2. For `[5, 3, 4]`, what is the previous greater of `4`?
 
-**Use when:**
+<details>
+<summary>Answers</summary>
 
-1. You need the nearest larger/smaller value to the left of every item.
-2. You need left and right boundaries for areas or counts.
+1. Always `-1`. There is nothing to its left.
+2. `5`. The `3` is popped because it is smaller than `4`, and `5` is the nearest bigger one.
 
-**Avoid when:**
+</details>
 
-1. You need the answer for a window of fixed size (use a deque).
+#### 8. Related LeetCode Questions
 
-#### 11. Related Topics
-
-1. Monotonic Stack
-2. Stock Span Pattern
-3. Largest Rectangle in Histogram
-4. Contribution Technique with Monotonic Stack
-
-#### 12. Interview Must Remember
-
-1. **Scan left to right, pop the useless items, then the top is the answer.**
-2. Previous greater pops `<=`; previous smaller pops `>=`.
-3. Left bound + right bound = the range where an item is the max/min.
-4. Be consistent about ties.
+| # | Question | Idea |
+|---|---|---|
+| 901 | Online Stock Span (Medium) | previous greater, as a count |
+| 84 | Largest Rectangle in Histogram (Hard) | previous and next smaller bars |
+| 907 | Sum of Subarray Minimums (Medium) | previous and next smaller |
+| 1944 | Number of Visible People in a Queue (Hard) | stack with both sides |

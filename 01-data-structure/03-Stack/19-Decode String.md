@@ -1,75 +1,55 @@
 # Decode String
 
-#### 1. Definition — Must Know
+#### 1. What Is It?
 
-1. Decode a string with the rule `k[encoded]`, meaning "repeat `encoded` exactly `k` times". Brackets can be **nested**.
-2. Example: `"3[a2[c]]"` → `"accaccacc"`.
-3. It is *Decode String* (LeetCode 394). If a number and a title ever disagree, trust the title.
-4. The method: a stack remembers the **repeat count** and the **text built so far** each time a `[` opens.
+A string uses the rule `k[text]`, which means "write `text` exactly `k` times". Brackets can be **nested**. Decode it.
 
-#### 2. Why It Is Used — Must Know
+```text
+"3[a]2[bc]"    → "aaabcbc"
+"3[a2[c]]"     → "accaccacc"
+"2[abc]3[cd]ef" → "abcabccdcdcdef"
+```
 
-1. It is a standard medium question about nested structure.
-2. It shows how to "save the outside state when going inside, restore it when coming out".
-3. The same idea parses nested JSON-like or markup text.
+This is *Decode String* (LeetCode 394). The nested part is the key: you must finish the **inner** group before the **outer** one. That is last-opened, first-closed, so it is a stack.
 
-#### 3. How It Works — Must Know
+#### 2. How It Works
+
+Keep these things:
+
+- `current`: the text of the group you are inside right now,
+- `k`: the number you just read,
+- a stack of **counts** and a stack of **earlier texts**.
+
+Rules:
+
+| You read | Do this |
+|---|---|
+| a digit | `k = k * 10 + digit` (numbers can have many digits) |
+| `[` | save `k` and `current` on the stacks. Start a new empty `current`, set `k = 0`. |
+| `]` | take the saved count and earlier text. New `current` = earlier text + `current` repeated count times. |
+| a letter | add it to `current` |
 
 `s = "3[a2[c]]"`
 
-Keep: `current` (text of the current level), `k` (the number being read), a stack of counts, and a stack of previous texts.
-
 ```text
 '3'   k = 3
-'['   push count 3 and the current text "" ; reset current = "", k = 0
+'['   save count 3 and text ""      current = "", k = 0
 'a'   current = "a"
 '2'   k = 2
-'['   push count 2 and the current text "a" ; reset current = "", k = 0
+'['   save count 2 and text "a"    current = "", k = 0
 'c'   current = "c"
-']'   pop count 2, pop previous text "a" → current = "a" + "c" × 2 = "acc"
-']'   pop count 3, pop previous text ""  → current = "" + "acc" × 3 = "accaccacc"
+']'   count 2, earlier text "a"    current = "a" + "c" × 2 = "acc"
+']'   count 3, earlier text ""     current = "" + "acc" × 3 = "accaccacc"
 
 result: "accaccacc"
 ```
 
-Idea in one line: **on `[` save the state; on `]` pop it and glue the repeated text onto the saved text.**
-
-#### 4. Core Concepts — Must Know
-
-1. **Read digits into `k`** (numbers can have several digits: `"12[a]"`).
-2. **On `[`:** push `k` (the repeat count) and the current text; start a fresh current text.
-3. **On `]`:** pop the count and the previous text; new current = previous + current × count.
-4. **On a letter:** append it to the current text.
-5. **Two stacks (or one stack of pairs):** one for counts, one for previous texts.
-6. **`StringBuilder`** keeps appends cheap.
-7. **Recursive alternative:** parse with a function that returns when it sees `]`.
-8. **The answer is the final current text** after the loop.
-
-| Character | Action |
-|---|---|
-| digit | `k = k * 10 + digit` |
-| `[` | push `k` and `current`; reset both |
-| `]` | pop count and previous; `current = previous + current × count` |
-| letter | append to `current` |
-
-#### 5. Algorithm — Must Know
-
-```text
-current = ""; k = 0; counts = []; texts = []
-for each character c:
-    digit  → k = k * 10 + c
-    '['    → counts.push(k); texts.push(current); current = ""; k = 0
-    ']'    → times = counts.pop(); previous = texts.pop(); current = previous + current × times
-    letter → current += c
-return current
-```
-
-#### 6. Kotlin Implementation — Must Know
+#### 3. Kotlin Code
 
 ```kotlin
 fun decodeString(s: String): String {
     val counts = ArrayDeque<Int>()
-    val previous = ArrayDeque<StringBuilder>()
+    val earlier = ArrayDeque<StringBuilder>()
     var current = StringBuilder()
     var k = 0
 
@@ -78,13 +58,13 @@ fun decodeString(s: String): String {
             c.isDigit() -> k = k * 10 + (c - '0')
             c == '[' -> {
                 counts.addLast(k)
-                previous.addLast(current)
+                earlier.addLast(current)
                 current = StringBuilder()
                 k = 0
             }
             c == ']' -> {
                 val times = counts.removeLast()
-                val outer = previous.removeLast()
+                val outer = earlier.removeLast()
                 repeat(times) { outer.append(current) }
                 current = outer
             }
@@ -93,8 +73,13 @@ fun decodeString(s: String): String {
     }
     return current.toString()
 }
+```
 
-// Recursive version (clear, but uses the call stack)
+Checks: `decodeString("3[a]2[bc]")` → `"aaabcbc"`. `decodeString("3[a2[c]]")` → `"accaccacc"`. `decodeString("2[abc]3[cd]ef")` → `"abcabccdcdcdef"`. `decodeString("10[a]")` → `"aaaaaaaaaa"`.
+
+**Recursive version** (shorter to read, and often accepted):
+
+```kotlin
 fun decodeStringRecursive(s: String): String {
     var i = 0
     fun parse(): String {
@@ -105,12 +90,12 @@ fun decodeStringRecursive(s: String): String {
             when {
                 c.isDigit() -> { k = k * 10 + (c - '0'); i++ }
                 c == '[' -> {
-                    i++                                   // skip '['
+                    i++                                    // skip '['
                     val inner = parse()
                     repeat(k) { sb.append(inner) }
                     k = 0
                 }
-                c == ']' -> { i++; return sb.toString() }  // skip ']' and finish this level
+                c == ']' -> { i++; return sb.toString() }  // this group is finished
                 else -> { sb.append(c); i++ }
             }
         }
@@ -120,60 +105,49 @@ fun decodeStringRecursive(s: String): String {
 }
 ```
 
-Checks: `decodeString("3[a]2[bc]")` → `"aaabcbc"`. `decodeString("3[a2[c]]")` → `"accaccacc"`. `decodeString("2[abc]3[cd]ef")` → `"abcabccdcdcdef"`. `decodeString("10[a]")` → `"aaaaaaaaaa"`.
+#### 4. Complexity
 
-#### 7. Time & Space Complexity — Must Know
+Let `L` be the length of the **decoded** result.
 
-Let `L` be the length of the decoded output.
+| | Time | Space |
+|---|---|---|
+| Stack version | `O(L)` | `O(L)` |
 
-| Part | Cost |
-|---|---:|
-| Time | `O(L)` — every output character is written once (plus `O(n)` for input) |
-| Space | `O(L)` for the result; the stacks hold at most the nesting depth |
+The output can be much longer than the input, for example `"100[100[a]]"` gives 10,000 characters.
 
-The output can be much longer than the input (`"100[100[a]]"` is 10,000 characters).
+#### 5. Common Mistakes
 
-#### 8. Common Nested-Structure Patterns — Must Know
+1. **Reading only one digit.** `"12[a]"` is 12 repeats. Use `k = k * 10 + digit`.
+2. **Not resetting `k = 0`** after `[`. The old number leaks into the next group.
+3. **Not starting a new `current`** after `[`. Outer and inner text get mixed.
+4. **Letters after a `]`** (like `ef` in `"2[abc]3[cd]ef"`). They must be added to the outer text. The code does this because `current = outer` after `]`.
+5. **Pushing `k` as a character** instead of an `Int`.
 
-1. **Decode String** (LeetCode 394).
-2. **Number of Atoms** (LeetCode 726) — formulas like `K4(ON(SO3)2)2`; a stack of maps.
-3. **Basic Calculator** with brackets (LeetCode 224).
-4. **Reverse Substrings Between Each Pair of Parentheses** (LeetCode 1190).
-5. **Mini Parser** (LeetCode 385) — nested lists.
-6. **Brace Expansion** (LeetCode 1087).
-7. **Android example:** parsing a small markup or template language with nested tags.
+#### 6. Say This in the Interview
 
-#### 9. Edge Cases / Common Mistakes
+1. "Brackets are nested, so I use a stack. On `[` I save the count and the text so far. On `]` I restore them and repeat the inner text."
+2. "Digits build `k`, so multi-digit counts work."
+3. "Time and space are `O(L)`, where `L` is the length of the decoded string."
 
-1. Treating a number as a single digit (`"12[a]"` is 12 repeats).
-2. Not resetting `k = 0` after `[` (the old number leaks into the next group).
-3. Not creating a **new** `current` after `[` (mixing the outer and inner text).
-4. On `]`: appending the inner text to the wrong builder, or using the same object for `outer` and `current`.
-5. Letters after a closing bracket (`"2[a]bc"`): they must be appended to the outer text.
-6. Empty brackets (`"3[]"`) → empty string.
-7. Very large repeat counts create huge outputs. The problem limits them.
-8. Pushing `k` as a character instead of an `Int`.
+#### 7. Quick Check
 
-#### 10. When to Use / When Not to Use
+1. Decode `"2[a2[b]]"`.
+2. What happens to `k` after you read `[`?
 
-**Use the stack when:**
+<details>
+<summary>Answers</summary>
 
-1. Nested groups must be expanded or combined, and you want to avoid recursion.
+1. Inner `2[b]` = `bb`. Then `a` + `bb` = `abb`. Repeated twice: `"abbabb"`.
+2. It is saved on the stack and then reset to `0`, ready for the next number.
 
-**Use recursion when:**
+</details>
 
-1. Depth is small and the grammar is clear. It is shorter to read.
+#### 8. Related LeetCode Questions
 
-#### 11. Related Topics
-
-1. Valid / Balanced Parentheses
-2. Expression / String Processing with Stack
-3. Stack-Based DFS (stack instead of recursion)
-4. Recursion (`02-algorithm/03-Recursion & Divide and Conquer`)
-
-#### 12. Interview Must Remember
-
-1. **On `[`: push count and current text. On `]`: pop and repeat.**
-2. Digits build `k` (multi-digit). Reset `k` and `current` after `[`.
-3. Two stacks (counts and texts), or recursion.
-4. `O(output length)` time and space.
+| # | Question | Idea |
+|---|---|---|
+| 394 | Decode String (Medium) | this note |
+| 726 | Number of Atoms (Hard) | the same idea with a stack of maps |
+| 224 | Basic Calculator (Hard) | save and restore at brackets |
+| 1190 | Reverse Substrings Between Each Pair of Parentheses (Medium) | stack of partial strings |
+| 385 | Mini Parser (Medium) | nested lists |

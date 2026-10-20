@@ -1,69 +1,50 @@
 # Next Smaller Element
 
-#### 1. Definition — Must Know
+#### 1. What Is It?
 
-1. For each item, the **next smaller element** is the **first smaller value to its right**. If there is none, the answer is `-1`.
-2. Example: `[4, 5, 2, 10, 8]` → `[2, 2, -1, 8, -1]`.
-3. The method: an **increasing monotonic stack** of indexes (bottom to top: small → big).
-4. It is the mirror of Next Greater Element: flip the comparison.
-
-#### 2. Why It Is Used — Must Know
-
-1. It gives boundaries for areas and spans (Largest Rectangle in Histogram).
-2. It solves "find the discount / the next cheaper item" style questions.
-3. It is `O(n)` instead of `O(n²)`.
-
-#### 3. How It Works — Must Know
-
-`nums = [4, 5, 2, 10, 8]`
+For each number, find the **first smaller number to its right**. If there is none, the answer is `-1`.
 
 ```text
-i=0 (4):  push 0                                  stack values: [4]
-i=1 (5):  5 > 4 → push                            stack: [4, 5]
-i=2 (2):  top 5 > 2 → pop idx1: answer 2
-          top 4 > 2 → pop idx0: answer 2          stack: []   then push idx2: [2]
-i=3 (10): 10 > 2 → push                           stack: [2, 10]
-i=4 (8):  top 10 > 8 → pop idx3: answer 8         stack: [2]  then push idx4: [2, 8]
+nums   = [4, 5, 2, 10, 8]
+answer = [2, 2, -1, 8, -1]
 
-Left: idx2 (2) and idx4 (8) → -1
-
-result: [2, 2, -1, 8, -1]
+4 → next smaller is 2
+5 → 2
+2 → none → -1
+10 → 8
+8 → none → -1
 ```
 
-Rule: **while the top is bigger than the new item, pop it; the new item is its next smaller element.**
+It is the **mirror** of Next Greater Element. The code is the same. Only the comparison flips. Use an **increasing** monotonic stack.
 
-#### 4. Core Concepts — Must Know
+#### 2. How It Works
 
-1. **Increasing stack of indexes.**
-2. **Pop while `nums[top] > nums[i]`** (strictly smaller). Use `>=` for "smaller or equal".
-3. **Same cost and structure** as Next Greater: only the comparison changes.
-4. **Real use — "final price after a discount":** the discount for item `i` is the first later price that is smaller or equal. So use `>=` when popping.
-5. **Previous smaller** is found in the same loop: after popping, the top (if any) is the previous smaller item.
-6. **Both sides at once:** when an index is popped, the new item is its **next smaller**, and the item just below it in the stack is its **previous smaller**. This is how histogram widths are found.
-
-| Task | Pop while | Answer |
-|---|---|---|
-| Next smaller (strict) | `nums[top] > nums[i]` | `nums[i]` |
-| Next smaller or equal | `nums[top] >= nums[i]` | `nums[i]` |
-| Previous smaller (strict) | `nums[top] >= nums[i]` | `nums[top]` after popping |
-
-#### 5. Algorithm — Must Know
+The stack holds indexes of numbers **still waiting** for a smaller number. Their values go up from bottom to top.
 
 ```text
-result = all -1; stack = empty
-for i in 0 until n:
-    while stack not empty and nums[stack.top] > nums[i]:
-        result[stack.pop()] = nums[i]
-    stack.push(i)
+nums = [4, 5, 2, 10, 8]
+
+i=0 (4):  push                                   waiting: [4]
+i=1 (5):  5 is not smaller → push                waiting: [4, 5]
+i=2 (2):  2 < 5 → 5 gets answer 2
+          2 < 4 → 4 gets answer 2                waiting: []  then push 2 → [2]
+i=3 (10): push                                   waiting: [2, 10]
+i=4 (8):  8 < 10 → 10 gets answer 8              waiting: [2]  then push 8 → [2, 8]
+
+2 and 8 are left → -1
 ```
 
-#### 6. Kotlin Implementation — Must Know
+Rule:
+
+> **While the top of the stack is bigger than the new item, pop it. The new item is the answer for the popped one.**
+
+#### 3. Kotlin Code
 
 ```kotlin
-// Next Smaller Element (value), -1 if none
+// Next smaller element (value), -1 if none
 fun nextSmallerElements(nums: IntArray): IntArray {
     val result = IntArray(nums.size) { -1 }
-    val stack = ArrayDeque<Int>()                         // indexes, values increasing
+    val stack = ArrayDeque<Int>()                        // indexes, values increasing
     for (i in nums.indices) {
         while (stack.isNotEmpty() && nums[stack.last()] > nums[i]) {
             result[stack.removeLast()] = nums[i]
@@ -73,27 +54,14 @@ fun nextSmallerElements(nums: IntArray): IntArray {
     return result
 }
 
-// Next Smaller index (n if none) — useful for widths
-fun nextSmallerIndex(nums: IntArray): IntArray {
-    val n = nums.size
-    val result = IntArray(n) { n }
-    val stack = ArrayDeque<Int>()
-    for (i in 0 until n) {
-        while (stack.isNotEmpty() && nums[stack.last()] > nums[i]) {
-            result[stack.removeLast()] = i
-        }
-        stack.addLast(i)
-    }
-    return result
-}
-
 // Final Prices With a Special Discount in a Shop (LeetCode 1475)
+// The discount for item i is the first later price that is smaller or equal to it.
 fun finalPrices(prices: IntArray): IntArray {
     val result = prices.copyOf()
     val stack = ArrayDeque<Int>()
     for (i in prices.indices) {
-        while (stack.isNotEmpty() && prices[stack.last()] >= prices[i]) {
-            result[stack.removeLast()] -= prices[i]       // discount = first later price <= this price
+        while (stack.isNotEmpty() && prices[stack.last()] >= prices[i]) {   // >= : "smaller or equal"
+            result[stack.removeLast()] -= prices[i]
         }
         stack.addLast(i)
     }
@@ -103,54 +71,48 @@ fun finalPrices(prices: IntArray): IntArray {
 
 Checks: `nextSmallerElements([4,5,2,10,8])` → `[2,2,-1,8,-1]`. `finalPrices([8,4,6,2,3])` → `[4,2,4,2,3]`.
 
-#### 7. Time & Space Complexity — Must Know
+**Where this idea is used next:** in *Largest Rectangle in Histogram*, the next smaller bar on the right and the previous smaller bar on the left decide how wide a rectangle can be.
 
-| Version | Time | Space |
-|---|---:|---:|
+#### 4. Complexity
+
+| | Time | Space |
+|---|---|---|
+| Monotonic stack | `O(n)` | `O(n)` |
 | Brute force | `O(n²)` | `O(1)` |
-| **Monotonic stack** | **`O(n)`** | `O(n)` |
 
-#### 8. Common Next-Smaller Patterns — Must Know
+#### 5. Common Mistakes
 
-1. **Final Prices With a Special Discount** (LeetCode 1475).
-2. **Largest Rectangle in Histogram** (LeetCode 84) — next and previous smaller bars.
-3. **Sum of Subarray Minimums** (LeetCode 907) — spans from previous/next smaller.
-4. **Remove K Digits** (LeetCode 402) — a stack that removes bigger digits before a smaller one.
-5. **Online Stock Span** — previous greater (mirror problem).
-6. **Smallest subsequence problems** (LeetCode 316, 1081) — increasing stack with extra rules.
-7. **Android example:** for each price in a list, find the next cheaper price.
+1. **Mixing up greater and smaller.** Next smaller pops when `top > new`. Next greater pops when `top < new`.
+2. **Wrong rule for equal values.** "Smaller" is strict (`>`). "Smaller or equal" (like the shop discount) uses `>=`.
+3. **Changing the original array** while you still read it. Copy it first (`prices.copyOf()`).
+4. **`stack.last()` on an empty stack.** Check `isNotEmpty()` first.
+5. **Forgetting `-1`** for numbers left in the stack.
 
-#### 9. Edge Cases / Common Mistakes
+#### 6. Say This in the Interview
 
-1. Using `<` when the problem needs "smaller or equal" (or the other way round).
-2. Mixing up with Next Greater (flipped sign).
-3. Forgetting the default (`-1` for values, `n` for indexes).
-4. `stack.last()` on an empty stack inside the `while`.
-5. Modifying `prices` in place while still reading it (use a copy, as above).
-6. Ties creating wrong widths in area problems. Be consistent: strict on one side, non-strict on the other.
-7. Assuming left-to-right gives the *previous* smaller directly. Read the top **after** popping.
+1. "This is the mirror of next greater, so I use an increasing monotonic stack of indexes."
+2. "When the new item is smaller than the top, the top has found its next smaller element."
+3. "Each index is pushed and popped once. Time `O(n)`, space `O(n)`."
 
-#### 10. When to Use / When Not to Use
+#### 7. Quick Check
 
-**Use when:**
+1. What does `[1, 2, 3]` give for next smaller?
+2. In *Final Prices*, why use `>=` and not `>`?
 
-1. You need the nearest smaller value on one side, for every item.
+<details>
+<summary>Answers</summary>
 
-**Avoid when:**
+1. `[-1, -1, -1]`. Nothing to the right is smaller.
+2. The discount comes from the first later price that is **smaller or equal**. An equal price also counts.
 
-1. You need the minimum of a sliding window (monotonic queue).
-2. You need the smallest value in the whole array (just `min()`).
+</details>
 
-#### 11. Related Topics
+#### 8. Related LeetCode Questions
 
-1. Monotonic Stack
-2. Next Greater Element
-3. Previous Greater / Smaller Element
-4. Largest Rectangle in Histogram
-
-#### 12. Interview Must Remember
-
-1. **Increasing stack of indexes. Pop while `top > current`.**
-2. Same code as Next Greater with the comparison flipped.
-3. Final-prices style questions use `>=` when popping.
-4. `O(n)` time and space.
+| # | Question | Idea |
+|---|---|---|
+| 1475 | Final Prices With a Special Discount in a Shop (Easy) | next smaller or equal |
+| 84 | Largest Rectangle in Histogram (Hard) | next and previous smaller bars |
+| 907 | Sum of Subarray Minimums (Medium) | next and previous smaller |
+| 402 | Remove K Digits (Medium) | pop bigger digits before a smaller one |
+| 316 | Remove Duplicate Letters (Medium) | increasing stack with extra rules |

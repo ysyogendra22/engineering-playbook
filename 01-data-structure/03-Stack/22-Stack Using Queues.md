@@ -1,70 +1,41 @@
 # Stack Using Queues
 
-#### 1. Definition — Must Know
+> The full version, with more cases, is in `01-data-structure/04-Queue/15-Stack Using Queues.md`. This note has what you need for the interview.
 
-1. Build a **LIFO stack** using only **queue** operations (`addLast` to enqueue, `removeFirst` to dequeue, `first` to peek).
-2. A queue gives the *oldest* item first, so we must arrange the queue so that the *newest* item is at the front.
-3. It is *Implement Stack using Queues* (LeetCode 225). The full version of this note, with both designs and more cases, is in `01-data-structure/04-Queue/15-Stack Using Queues.md`.
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+Build a **stack** (LIFO) using only **queue** operations: add at the back, remove from the front, look at the front.
 
-1. It is the mirror of "Queue using two stacks". Interviewers often ask both together.
-2. It tests whether you really understand LIFO vs FIFO.
-3. It trains the **rotate** operation: `queue.addLast(queue.removeFirst())`.
+A queue gives the **oldest** item first. A stack must give the **newest** item first. So we must arrange the queue so that the **newest item is at the front**.
 
-#### 3. How It Works — Must Know
+This is *Implement Stack using Queues* (LeetCode 225). It is the mirror of *Implement Queue using Stacks* (LeetCode 232).
 
-**One-queue method.** After every `push`, rotate the queue so the newest item reaches the front.
+#### 2. How It Works
+
+**One queue.** After every `push`, **rotate** the queue: move the older items from the front to the back, so the new item ends up at the front.
 
 ```text
-push(1):  [1]                          nothing to rotate
-push(2):  add 2 → [1, 2]    rotate 1 time (1 goes to the back)  → [2, 1]
-push(3):  add 3 → [2, 1, 3] rotate 2 times                       → [3, 2, 1]
+push(1):  add 1 → [1]                           nothing to rotate
+push(2):  add 2 → [1, 2]    rotate 1 time:  1 goes to the back   → [2, 1]
+push(3):  add 3 → [2, 1, 3] rotate 2 times: 2 then 1 go to the back → [3, 2, 1]
 
-top() → 3  (front)
-pop() → 3  → queue [2, 1]
+top() → 3     (the front)
+pop() → 3     queue is now [2, 1]
 ```
 
 Now `pop` and `top` are plain queue operations on the front.
 
-```text
-Stack view (top on the left):   3 2 1
-Queue view (front on the left): 3 2 1      ← the same order after rotation
-```
+Rotate exactly `size - 1` times. (Rotating `size` times brings the order back to where it started.)
 
-#### 4. Core Concepts — Must Know
-
-1. **Costly push, cheap pop** (the usual choice): `push` rotates `size - 1` times, `pop`/`top` are `O(1)`.
-2. **Costly pop, cheap push** (the other choice): `push` is `O(1)`; `pop` rotates `size - 1` items so the last one reaches the front, then removes it.
-3. **One queue is enough.** The second queue in textbook solutions only does what rotation does.
-4. **Rotate exactly `size - 1` times.** Rotating `size` times returns to the start.
-5. **`empty()`** is just `queue.isEmpty()`.
-6. **Compared with a real stack**, this is slower. It exists to test understanding.
-
-| Design | `push` | `pop` | `top` |
-|---|---:|---:|---:|
-| Rotate on push | `O(n)` | `O(1)` | `O(1)` |
-| Rotate on pop | `O(1)` | `O(n)` | `O(n)` |
-| Real stack (`ArrayDeque`) | `O(1)` | `O(1)` | `O(1)` |
-
-#### 5. Algorithm — Must Know
-
-```text
-push(x):   queue.addLast(x);  repeat(queue.size - 1) { queue.addLast(queue.removeFirst()) }
-pop():     return queue.removeFirst()
-top():     return queue.first()
-empty():   return queue.isEmpty()
-```
-
-#### 6. Kotlin Implementation — Must Know
+#### 3. Kotlin Code
 
 ```kotlin
 class MyStack {
-    private val queue = ArrayDeque<Int>()          // used ONLY as a queue: addLast / removeFirst / first
+    private val queue = ArrayDeque<Int>()          // use ONLY addLast / removeFirst / first
 
     fun push(x: Int) {
         queue.addLast(x)
-        repeat(queue.size - 1) {                   // older items go behind the new one
+        repeat(queue.size - 1) {                   // move the older items behind the new one
             queue.addLast(queue.removeFirst())
         }
     }
@@ -85,79 +56,48 @@ println(s.pop())     // 2
 println(s.empty())   // false
 ```
 
-Rotate-on-pop variant (cheap push):
+You may also be asked for the other choice: `push` is `O(1)` and `pop` rotates `size - 1` items. Say that you picked rotate-on-push because `pop` and `top` are then the most common, cheapest calls.
 
-```kotlin
-class MyStackCheapPush {
-    private val queue = ArrayDeque<Int>()
+#### 4. Complexity
 
-    fun push(x: Int) { queue.addLast(x) }
-
-    fun pop(): Int {
-        repeat(queue.size - 1) { queue.addLast(queue.removeFirst()) }
-        return queue.removeFirst()
-    }
-
-    fun top(): Int {
-        repeat(queue.size - 1) { queue.addLast(queue.removeFirst()) }
-        val value = queue.first()
-        queue.addLast(queue.removeFirst())        // rotate the last one back
-        return value
-    }
-
-    fun empty() = queue.isEmpty()
-}
-```
-
-#### 7. Time & Space Complexity — Must Know
-
-| Operation | Rotate on push |
-|---|---:|
-| `push` | `O(n)` |
-| `pop` | `O(1)` |
-| `top` | `O(1)` |
-| `empty` | `O(1)` |
+| Operation | Time |
+|---|---|
+| `push` | `O(n)` (the rotation) |
+| `pop`, `top`, `empty` | `O(1)` |
 | Space | `O(n)` |
 
-`n` pushes cost `O(n²)` in total with this design.
+#### 5. Common Mistakes
 
-#### 8. Common Related Patterns — Must Know
+1. **Rotating `size` times** instead of `size - 1`.
+2. **Rotating before adding** the new item.
+3. **Using `removeLast()`.** That is a stack operation. The point is to use queue operations only.
+4. **Popping an empty stack.** Say how you handle it.
+5. **Saying `push` is `O(1)`** in the rotate-on-push design.
 
-1. **Implement Stack using Queues** (LeetCode 225).
-2. **Implement Queue using Stacks** (LeetCode 232) (`01-data-structure/04-Queue/14-Queue Using Two Stacks.md`).
-3. **Min Stack** — extra info per item.
-4. **Reverse a queue** with a stack, or reverse a stack with a queue.
-5. **Rotation in simulations:** hot potato, round-robin.
+#### 6. Say This in the Interview
 
-#### 9. Edge Cases / Common Mistakes
+1. "A queue gives the oldest item first, so after each push I rotate the queue to put the newest item at the front."
+2. "Push is `O(n)`. Pop and top are `O(1)`."
+3. "In practice I would use a real stack, which is `O(1)` for everything."
 
-1. Rotating `size` times instead of `size - 1`.
-2. Rotating before adding the new item.
-3. Using `removeLast()` and thereby using stack operations, defeating the exercise.
-4. Pop or top on an empty stack (`NoSuchElementException`). State how you handle it.
-5. Claiming `push` is `O(1)` in the rotate-on-push design.
-6. Rotate-on-pop `top()`: forgetting to put the last item back at the end of the queue.
+#### 7. Quick Check
 
-#### 10. When to Use / When Not to Use
+1. Queue is `[2, 1]`. You push `3`. What is the queue after the rotation?
+2. How many rotations after pushing into a queue that now has 5 items?
 
-**Use when:**
+<details>
+<summary>Answers</summary>
 
-1. The problem limits you to queue operations.
+1. `[3, 2, 1]`. Add 3 → `[2, 1, 3]`. Rotate 2 times.
+2. `4` (`size - 1`).
 
-**Avoid when:**
+</details>
 
-1. You can use a real stack. It is simpler and `O(1)` for everything.
+#### 8. Related LeetCode Questions
 
-#### 11. Related Topics
-
-1. Stack Implementation
-2. Queue Using Two Stacks (`01-data-structure/04-Queue/14-Queue Using Two Stacks.md`)
-3. Stack Using Queues — full version in the Queue folder (`01-data-structure/04-Queue/15-Stack Using Queues.md`)
-4. Min Stack
-
-#### 12. Interview Must Remember
-
-1. **After each push, rotate `size − 1` times so the newest item is at the front.**
-2. Then `pop` and `top` are plain queue operations.
-3. One queue is enough. Push is `O(n)`.
-4. Know both directions: stack from queues, queue from stacks.
+| # | Question | Idea |
+|---|---|---|
+| 225 | Implement Stack using Queues (Easy) | this note |
+| 232 | Implement Queue using Stacks (Easy) | the mirror |
+| 155 | Min Stack (Medium) | store extra data with each item |
+| 1381 | Design a Stack With Increment Operation (Medium) | stack design |

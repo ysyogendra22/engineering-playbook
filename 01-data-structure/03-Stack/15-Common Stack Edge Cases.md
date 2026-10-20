@@ -1,81 +1,47 @@
 # Common Stack Edge Cases
 
-#### 1. Definition — Must Know
+> Read this list before every stack interview, and run through it at the end of every solution.
 
-1. These are the situations where stack code most often **crashes or gives wrong answers**.
-2. Most come from five places: **empty stack**, **wrong end of a Deque**, **leftovers at the end**, **ties in monotonic stacks**, and **order of operands**.
-3. Check this list before you say "done".
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+These are the situations where stack solutions most often **crash** or **give a wrong answer**. Interviewers watch if you check them yourself. Most bugs come from five places:
 
-1. Interviewers watch if you test the empty and one-item cases yourself.
-2. A single wrong comparison (`<` vs `<=`) changes the answer on equal values.
-3. In real code, an unchecked `pop()` is a common crash.
+1. an **empty** stack,
+2. **items left over** at the end,
+3. **equal values** in a monotonic stack,
+4. the **order of two numbers** in a calculator,
+5. the **wrong end** of a `Deque`.
 
-#### 3. How It Works — Must Know
+#### 2. The Checklist
 
-The most common crash and the most common silent bug:
-
-```text
-Crash:   "())"  →  the second ')' arrives and the stack is empty → removeLast() throws.
-         Always check isNotEmpty() before pop/peek.
-
-Silent:  [2, 2] next greater element
-         pop while top < current  → 2 < 2 is false → the first 2 stays → answer -1  (strictly greater)
-         pop while top <= current → the first 2 gets answer 2                       (greater or equal)
-         The problem statement decides. A wrong choice gives wrong answers only on ties.
-```
-
-#### 4. Core Concepts — Must Know
-
-| # | Edge case | What happens | Fix |
+| # | Edge case | What goes wrong | Fix |
 |---|---|---|---|
-| 1 | `pop`/`peek` on an empty stack | `NoSuchElementException` | check `isNotEmpty()` or use `...OrNull()` |
-| 2 | Closing bracket first (`")("`) | pop on empty | check empty before matching |
-| 3 | Leftover items after the loop | missed answers / false "valid" | check `stack.isEmpty()`, or process leftovers |
-| 4 | Ties in monotonic stacks | wrong on equal values | choose `<` or `<=` from the problem; be consistent |
-| 5 | Left boundary when stack is empty | wrong width / index | use `-1`; right boundary default `n` |
-| 6 | Missing sentinel in histogram | last bars not counted | extra step with height `0` |
-| 7 | Storing values when you need distances | cannot compute `i - j` | store indexes |
-| 8 | Operand order in RPN (`a - b`, `a / b`) | wrong sign / result | `b = pop(); a = pop(); a op b` |
-| 9 | Integer division and negatives | rounding differs | Kotlin `/` truncates toward zero |
-| 10 | `Deque.push/pop/peek` act on the **front** | order reversed | use `addLast`/`removeLast`/`last()` consistently |
-| 11 | `java.util.Stack` vs `ArrayDeque` mixed | confusing, slower | use `ArrayDeque` |
-| 12 | Modifying a stack while iterating with `for` | `ConcurrentModificationException` | drain with `while` |
-| 13 | Deep recursion instead of a stack | `StackOverflowError` | explicit stack |
-| 14 | Min Stack with `<` in the compact version | wrong after popping duplicates | use `<=` |
-| 15 | Multi-digit numbers / spaces in parsers | wrong numbers | `num = num * 10 + digit`; skip spaces |
-| 16 | Last token not processed | missing last operand | handle the end of input |
-| 17 | `Int` overflow (area, sums, products) | wrong values | use `Long` |
-| 18 | Decode String: nested counts | wrong repeats | one stack for counts, one for strings |
-| 19 | Simplify Path: `..` at root, empty parts | wrong path | ignore `..` on an empty stack; skip `""` and `.` |
-| 20 | Asteroid Collision: equal sizes | both should explode | handle the `==` case |
+| 1 | `pop` / `peek` on an empty stack | `NoSuchElementException` | check `isNotEmpty()` or use `removeLastOrNull()` |
+| 2 | Closing bracket comes first (`")("`) | pop on empty | check empty before matching |
+| 3 | Items left after the loop | wrong "valid" answer, missed answers | check `stack.isEmpty()` / handle leftovers |
+| 4 | Equal values (`[2, 2]`) | wrong answer on ties | choose `<` or `<=` from the question |
+| 5 | No left limit (stack empty) | wrong width / index | use `-1`; right limit default is `n` |
+| 6 | Histogram without the extra `0` bar | last bars never counted | loop one step past the end |
+| 7 | Storing values when you need distance | cannot compute `i - j` | store **indexes** |
+| 8 | Operand order (`5 3 -`) | `3 - 5` instead of `5 - 3` | pop right first, then left |
+| 9 | Integer division with negatives | rounding differs | Kotlin `/` truncates toward zero (usually what is asked) |
+| 10 | Java `Deque.push` / `pop` | they work at the **front** | use `addLast` / `removeLast` / `last()` |
+| 11 | Changing the stack inside `for (x in stack)` | `ConcurrentModificationException` | use a `while` loop |
+| 12 | Very deep recursion | `StackOverflowError` | use your own stack |
+| 13 | Min Stack with `<` (compact version) | wrong after popping duplicate minimums | use `<=` |
+| 14 | Multi-digit numbers, spaces, last token | wrong numbers | `num = num * 10 + digit`, skip spaces, handle the end |
+| 15 | Big products (area, sums) | `Int` overflow | use `Long` |
 
-#### 5. Algorithm — Must Know
-
-Checklist before you finish:
-
-```text
-1. Can I pop/peek an empty stack anywhere? (first character, empty input)
-2. What is left in the stack at the end, and did I handle it?
-3. Monotonic stack: strict or non-strict? Indexes or values?
-4. Left/right boundaries: -1 and n when missing? Sentinel added?
-5. Two-operand pops: right operand first?
-6. Am I using the right end of the Deque for every action?
-7. Could the input be very deep (use an explicit stack)? Could numbers overflow?
-```
-
-#### 6. Kotlin Implementation — Must Know
+#### 3. Kotlin Code
 
 ```kotlin
 val stack = ArrayDeque<Int>()
 
 // 1. Empty stack
-// stack.removeLast()                     // NoSuchElementException
-println(stack.removeLastOrNull())         // null
-println(stack.lastOrNull())               // null
+println(stack.removeLastOrNull())        // null  (stack.removeLast() would crash)
+println(stack.lastOrNull())              // null
 
-// 2. Safe bracket check
+// 3. Leftovers: a bracket check must end with isEmpty()
 fun isValid(s: String): Boolean {
     val pairs = mapOf(')' to '(', ']' to '[', '}' to '{')
     val st = ArrayDeque<Char>()
@@ -84,94 +50,75 @@ fun isValid(s: String): Boolean {
             if (st.isEmpty() || st.removeLast() != pairs[c]) return false
         } else st.addLast(c)
     }
-    return st.isEmpty()                    // leftovers mean invalid
+    return st.isEmpty()                  // "((" must fail
 }
 
-// 3. Ties: strict vs non-strict
-fun nextGreaterStrict(nums: IntArray): IntArray {
+// 4. Equal values: '<' means strictly greater
+fun nextGreater(nums: IntArray): IntArray {
     val res = IntArray(nums.size) { -1 }
     val st = ArrayDeque<Int>()
     for (i in nums.indices) {
-        while (st.isNotEmpty() && nums[st.last()] < nums[i]) res[st.removeLast()] = nums[i]   // '<' strict
+        while (st.isNotEmpty() && nums[st.last()] < nums[i]) res[st.removeLast()] = nums[i]
         st.addLast(i)
     }
     return res
 }
-println(nextGreaterStrict(intArrayOf(2, 2)).toList())     // [-1, -1]
+// nextGreater([2, 2]) → [-1, -1]. With '<=' it would be [2, -1].
 
-// 4. Java Deque ends
-val dq = java.util.ArrayDeque<Int>()
-dq.push(1); dq.push(2)                    // push adds to the FRONT
-println(dq.peek())                        // 2
-dq.addLast(0)                             // the back
-println(dq)                               // [2, 1, 0]
-
-// 5. Operand order in RPN: "5 3 -" means 5 - 3
-fun applyMinus(stack: ArrayDeque<Int>) {
-    val b = stack.removeLast()
-    val a = stack.removeLast()
-    stack.addLast(a - b)                  // not b - a
+// 8. Operand order: "5 3 -" means 5 - 3
+fun minus(st: ArrayDeque<Int>) {
+    val b = st.removeLast()              // right
+    val a = st.removeLast()              // left
+    st.addLast(a - b)
 }
 
-// 6. Division truncates toward zero
-println(-7 / 2)                           // -3
-println(7 / -2)                           // -3
+// 10. Java Deque: push adds to the FRONT
+val dq = java.util.ArrayDeque<Int>()
+dq.push(1); dq.push(2)
+println(dq.peek())                       // 2 (front)
 
-// 7. Overflow in area
-val h = 100_000; val w = 100_000
-println(h * w)                            // 1410065408 (overflow)
-println(h.toLong() * w)                   // 10000000000
+// 15. Overflow
+println(100_000 * 100_000)               // 1410065408 (wrong)
+println(100_000L * 100_000)              // 10000000000
 ```
 
-#### 7. Time & Space Complexity — Must Know
+#### 4. Complexity
 
-| Concern | Impact |
-|---|---|
-| Missing the empty check | crash (not a complexity issue, but a correctness one) |
-| `contains` on a stack | `O(n)`; keep a separate set if needed |
-| Deep recursion | uses call-stack memory, risk of overflow |
-| Storing pairs/objects per item | extra memory per push |
+Edge cases do not change the time or space. They change **correctness**. An unchecked `pop` is a crash, not a slow program.
 
-#### 8. Common Bug Families — Must Know
+#### 5. Common Mistakes
 
-1. **Empty-state bugs:** pop/peek on empty; leftovers at the end.
-2. **Tie bugs:** `<` vs `<=` in monotonic stacks.
-3. **Boundary bugs:** `-1` / `n` / sentinel in histogram-style problems.
-4. **Order bugs:** operand order; Deque ends.
-5. **Parsing bugs:** multi-digit, spaces, last token.
-6. **Number bugs:** overflow, division rounding.
-7. **Structure bugs:** value vs index in the stack; wrong stack type.
+1. **Testing only the example from the question.** Also test: empty input, one item, all items equal, all increasing, all decreasing.
+2. **Returning early and skipping the final `isEmpty()` check.**
+3. **Mixing `java.util.Stack` and `ArrayDeque`.**
+4. **Not saying your assumption out loud** (for example, "I assume the input has only brackets").
 
-#### 9. Edge Cases / Common Mistakes
+#### 6. Say This in the Interview
 
-1. Testing only the example from the problem.
-2. Returning from inside the loop and skipping the final emptiness check.
-3. Using `stack.size` after a pop and expecting the old value.
-4. Treating `peek()` as `pop()`.
-5. Mixing a `Stack` class and `Deque` methods.
-6. Forgetting to clear or reset a reused stack between test cases (class fields).
-7. Not stating assumptions about invalid input (non-bracket characters, empty string).
+1. "Edge cases I will check: empty input, a single item, and items left in the stack."
+2. "For equal values I use strict `<`, because the question says *strictly* greater."
+3. "I will use `Long` here to avoid overflow."
 
-#### 10. When to Use / When Not to Use
+#### 7. Quick Check
 
-**Use this checklist when:**
+1. What does `isValid("((")` return, and which line makes sure of it?
+2. What happens if you `pop` the right number second in `8 2 /`?
 
-1. You finish any stack solution.
+<details>
+<summary>Answers</summary>
 
-**Remember:**
+1. `false`. The final `return st.isEmpty()` fails because two `(` are left.
+2. You compute `2 / 8 = 0` instead of `8 / 2 = 4`.
 
-1. Most stack bugs are an unchecked empty pop or a wrong tie rule.
+</details>
 
-#### 11. Related Topics
+#### 8. Related LeetCode Questions
 
-1. Stack Operations & Complexity
-2. Valid / Balanced Parentheses
-3. Monotonic Stack
-4. Largest Rectangle in Histogram
-
-#### 12. Interview Must Remember
-
-1. **Check empty before pop/peek. Check leftovers at the end.**
-2. **Decide `<` vs `<=` from the problem statement.**
-3. Operand order: pop the right operand first.
-4. Use indexes, sentinels (`-1`, `n`, height `0`), and `Long` where needed.
+| # | Question | Edge case to watch |
+|---|---|---|
+| 20 | Valid Parentheses (Easy) | empty stack, leftovers |
+| 155 | Min Stack (Medium) | duplicate minimums |
+| 150 | Evaluate Reverse Polish Notation (Medium) | operand order, division |
+| 739 | Daily Temperatures (Medium) | equal temperatures |
+| 84 | Largest Rectangle in Histogram (Hard) | sentinel, `-1` limit |
+| 71 | Simplify Path (Medium) | `..` at the root |
