@@ -1,103 +1,75 @@
 # Queue Operations
 
-#### 1. Definition — Must Know
+#### 1. What Is It?
 
-1. The core queue operations are **enqueue**, **dequeue**, **peek**, **size**, and **isEmpty**.
-2. They all run in **`O(1)`** (amortized for `ArrayDeque`).
-3. Kotlin and Java use different names for the same actions. You must know both sets.
+A queue has a few basic operations. Know them by heart, and know **which Kotlin call does each one**. Java uses different names for the same actions, and interviewers may use either.
 
-#### 2. Why It Is Used — Must Know
-
-1. Interview code uses these calls constantly (BFS, simulations, design questions).
-2. Choosing the "safe" or "throwing" version matters when the queue may be empty.
-3. Mixing the names (`add` vs `addLast`, `poll` vs `removeFirst`) is a common source of bugs.
-
-#### 3. How It Works — Must Know
-
-```text
-enqueue(x)   put x at the back
-dequeue()    remove and return the front item
-peek()       return the front item, do not remove
-size         number of items
-isEmpty      true when there are no items
-
-Start:          []
-enqueue(1):     [1]
-enqueue(2):     [1, 2]
-peek():         → 1       queue stays [1, 2]
-dequeue():      → 1       queue is [2]
-dequeue():      → 2       queue is []
-dequeue():      → error or null (the queue is empty)
-```
-
-#### 4. Core Concepts — Must Know
-
-**Kotlin `ArrayDeque`**
-
-| Action | Call | When empty |
+| Action | Kotlin `ArrayDeque` | If the queue is empty |
 |---|---|---|
-| Enqueue | `addLast(x)` or `add(x)` | — |
-| Dequeue | `removeFirst()` | throws `NoSuchElementException` |
-| Dequeue (safe) | `removeFirstOrNull()` | returns `null` |
-| Peek | `first()` | throws |
-| Peek (safe) | `firstOrNull()` | returns `null` |
-| Size / empty | `size`, `isEmpty()`, `isNotEmpty()` | — |
+| **Enqueue** (add at the back) | `addLast(x)` | — |
+| **Dequeue** (remove the front) | `removeFirst()` | crashes (`NoSuchElementException`) |
+| **Dequeue (safe)** | `removeFirstOrNull()` | returns `null` |
+| **Peek** (look at the front) | `first()` | crashes |
+| **Peek (safe)** | `firstOrNull()` | returns `null` |
+| **Size / empty** | `size`, `isEmpty()`, `isNotEmpty()` | — |
 
-**Java `Queue` interface** (`LinkedList`, `java.util.ArrayDeque`, `PriorityQueue`)
+The Java `Queue` interface (`LinkedList`, `java.util.ArrayDeque`) has two sets of names:
 
-| Action | Throws on failure | Returns special value |
+| Action | Crashes when it fails | Returns a special value |
 |---|---|---|
-| Enqueue | `add(x)` | `offer(x)` → `false` if a bounded queue is full |
-| Dequeue | `remove()` | `poll()` → `null` if empty |
-| Peek | `element()` | `peek()` → `null` if empty |
+| Enqueue | `add(x)` | `offer(x)` (`false` if a bounded queue is full) |
+| Dequeue | `remove()` | `poll()` (`null` if empty) |
+| Peek | `element()` | `peek()` (`null` if empty) |
 
-1. **Prefer `offer` / `poll` / `peek`** with Java queues. They do not throw.
-2. **`add` on a normal queue never fails.** It matters for bounded queues (full → exception).
-3. **Order of removal for each type:**
-   - `ArrayDeque`, `LinkedList`: oldest first.
-   - `PriorityQueue`: smallest (or highest priority) first.
-4. **Clear / contains / iterate:** `clear()`, `contains(x)` (`O(n)`), `for (x in queue)` (front to back, does not remove).
-
-#### 5. Algorithm — Must Know
-
-Safe processing loop:
+#### 2. How It Works
 
 ```text
-while queue is not empty:
-    item = dequeue()
-    ...
+Start:        []
+enqueue(1):   [1]
+enqueue(2):   [1, 2]
+peek():       1                 queue stays [1, 2]
+dequeue():    1                 queue is [2]
+dequeue():    2                 queue is []
+dequeue():    error or null     the queue is empty
 ```
 
-Safe peek:
+Three small patterns appear in many solutions:
 
-```text
-if queue is not empty: look at front
-else: handle "no item"
-```
+| Pattern | Code idea | Used for |
+|---|---|---|
+| **Drain loop** | `while (queue.isNotEmpty()) { removeFirst() ... }` | BFS, task processing |
+| **Rotate** | `queue.addLast(queue.removeFirst())` | hot potato, round robin, stack from queue |
+| **One level at a time** | `repeat(queue.size) { ... }` | level-order traversal |
 
-#### 6. Kotlin Implementation — Must Know
+#### 3. Kotlin Code
 
 ```kotlin
 val q = ArrayDeque<String>()
 
 q.addLast("A")                  // enqueue
 q.addLast("B")
-q.add("C")                      // same as addLast
+q.addLast("C")
 
-println(q.first())              // A  (peek)
-println(q.removeFirst())        // A  (dequeue)
+println(q.first())              // A   (peek)
+println(q.removeFirst())        // A   (dequeue)
 println(q.size)                 // 2
-println("B" in q)               // true, O(n)
+println("B" in q)               // true, but this is O(n)
 
-for (item in q) println(item)   // B, C  — front to back
+for (item in q) println(item)   // B, C  (front to back, nothing is removed)
 
 q.clear()
-println(q.firstOrNull())        // null
-// q.removeFirst()              // would throw NoSuchElementException
-println(q.removeFirstOrNull())  // null
+println(q.removeFirstOrNull())  // null, no crash
 ```
 
-Java-style:
+Rotate (move the front to the back):
+
+```kotlin
+val people = ArrayDeque(listOf("A", "B", "C", "D"))
+repeat(2) { people.addLast(people.removeFirst()) }
+println(people)                 // [C, D, A, B]
+```
+
+Java style:
 
 ```kotlin
 import java.util.LinkedList
@@ -109,68 +81,49 @@ jq.offer(2)
 println(jq.peek())    // 1
 println(jq.poll())    // 1
 println(jq.poll())    // 2
-println(jq.poll())    // null — empty, no exception
+println(jq.poll())    // null: empty, no crash
 ```
 
-A queue that returns a default when empty:
+#### 4. Complexity
 
-```kotlin
-fun <T> ArrayDeque<T>.dequeueOrDefault(default: T): T = removeFirstOrNull() ?: default
-```
-
-#### 7. Time & Space Complexity — Must Know
-
-| Operation | Time |
-|---|---:|
-| `addLast` / `offer` | `O(1)` amortized |
-| `removeFirst` / `poll` | `O(1)` |
-| `first` / `peek` | `O(1)` |
-| `size`, `isEmpty` | `O(1)` |
+| Action | Time |
+|---|---|
+| `addLast`, `removeFirst`, `first`, `size`, `isEmpty` | `O(1)` |
 | `contains` | `O(n)` |
-| `clear` | `O(n)` |
-| Iteration | `O(n)` |
+| `clear`, iterate all | `O(n)` |
 
-Space is `O(n)` for `n` stored items.
+#### 5. Common Mistakes
 
-#### 8. Common Operation Patterns — Must Know
+1. **Dequeue or peek on an empty queue.** Check `isNotEmpty()` or use the `...OrNull()` versions.
+2. **Using `remove(x)`** thinking it is "dequeue". It removes a specific value (`O(n)`).
+3. **On a Java `Deque`, mixing `push` and `addLast`.** `push` adds to the **front**.
+4. **Changing the queue inside `for (x in queue)`.** It crashes.
+5. **Assuming a `PriorityQueue` prints in priority order.** It does not. Only `poll()` gives the right order.
 
-1. **Drain loop:** `while (queue.isNotEmpty()) { removeFirst() … }`.
-2. **Snapshot size for a level:** `repeat(queue.size) { … }`.
-3. **Rotate:** `queue.addLast(queue.removeFirst())` (hot potato, round robin).
-4. **Peek before deciding:** `if (queue.first() < x) …`.
-5. **Enqueue many:** `queue.addAll(list)`.
-6. **Bounded queue:** check `offer` result, or check `size == capacity` before adding.
+#### 6. Say This in the Interview
 
-#### 9. Edge Cases / Common Mistakes
+1. "I use `ArrayDeque`: `addLast` to enqueue and `removeFirst` to dequeue, both `O(1)`."
+2. "`removeFirstOrNull` is safe when the queue may be empty."
+3. "I capture the size with `repeat(queue.size)` so new items do not extend the current level."
 
-1. `removeFirst()` or `first()` on an empty queue throws. Check `isEmpty()` or use `...OrNull()`.
-2. Mixing `push`/`pop` (stack words) with queue calls on a `Deque`. On `java.util.Deque`, `push` adds to the **front**.
-3. Using `add` when you wanted `addFirst` (front) on a deque.
-4. Using `contains` in a loop (`O(n)` each).
-5. Confusing `remove()` (dequeue) with `remove(x)` (delete a specific item).
-6. Modifying the queue inside `for (x in queue)`. This throws `ConcurrentModificationException`.
-7. Assuming `PriorityQueue` iterates in priority order. It does not.
+#### 7. Quick Check
 
-#### 10. When to Use / When Not to Use
+1. Which Java method returns `null` instead of crashing when the queue is empty: `remove()` or `poll()`?
+2. How do you move the front item to the back?
 
-**Use the throwing version when:**
+<details>
+<summary>Answers</summary>
 
-1. An empty queue is a bug and you want it to crash loudly.
+1. `poll()`.
+2. `queue.addLast(queue.removeFirst())`.
 
-**Use the safe version when:**
+</details>
 
-1. An empty queue is normal (polling a task queue).
+#### 8. Related LeetCode Questions
 
-#### 11. Related Topics
-
-1. Queue Fundamentals
-2. Queue Implementation
-3. Deque
-4. Queue Edge Cases
-
-#### 12. Interview Must Remember
-
-1. **Enqueue = `addLast` / `offer`. Dequeue = `removeFirst` / `poll`. Peek = `first` / `peek`.**
-2. Safe versions return `null` instead of throwing.
-3. Everything is `O(1)` except `contains` and `clear`.
-4. `repeat(queue.size)` captures the size once, for level-by-level loops.
+| # | Question | Operation used |
+|---|---|---|
+| 933 | Number of Recent Calls (Easy) | drain from the front |
+| 1823 | Find the Winner of the Circular Game (Medium) | rotate |
+| 2073 | Time Needed to Buy Tickets (Easy) | rotate |
+| 102 | Binary Tree Level Order Traversal (Medium) | `repeat(queue.size)` |

@@ -1,71 +1,52 @@
 # Deque
 
-#### 1. Definition — Must Know
+#### 1. What Is It?
 
-1. A **deque** ("deck", double-ended queue) lets you **add and remove at both ends**.
-2. It can act as a **queue** (add back, remove front), as a **stack** (add and remove at the same end), or as both at once.
-3. In Kotlin, `ArrayDeque` is a deque.
+A **deque** (say "deck", short for double-ended queue) lets you **add and remove at both ends**.
 
-#### 2. Why It Is Used — Must Know
+It can act as:
 
-1. One structure replaces both a stack and a queue.
-2. It supports **sliding window maximum/minimum** (monotonic queue) in `O(n)`.
-3. It supports **0-1 BFS** and **palindrome checks** from both ends.
-4. Real uses: undo/redo, browser history, work stealing between threads.
+- a **queue**: add at the back, remove at the front,
+- a **stack**: add and remove at the same end,
+- or both at once.
 
-#### 3. How It Works — Must Know
+In Kotlin, `ArrayDeque` is a deque. So the `ArrayDeque` you already use for stacks and queues is the deque.
 
-```text
-        addFirst ↓                    ↓ addLast
-front → [ A ][ B ][ C ][ D ] ← back
-        removeFirst ↑                 ↑ removeLast
+Why interviewers care: a deque is the tool for **sliding window maximum** (note 13), **0-1 BFS** (note 17), palindrome checks from both ends, and undo/redo.
 
-addFirst(X):   [ X ][ A ][ B ][ C ][ D ]
-addLast(Y):    [ X ][ A ][ B ][ C ][ D ][ Y ]
-removeFirst(): [ A ][ B ][ C ][ D ][ Y ]       (X leaves)
-removeLast():  [ A ][ B ][ C ][ D ]            (Y leaves)
-```
-
-Different roles:
+#### 2. How It Works
 
 ```text
-Queue:  addLast + removeFirst
-Stack:  addLast + removeLast     (or addFirst + removeFirst)
-Deque:  any of the four
+         addFirst ↓                    ↓ addLast
+front →  [ A ][ B ][ C ][ D ]  ← back
+         removeFirst ↑                 ↑ removeLast
+
+addFirst(X):    [ X ][ A ][ B ][ C ][ D ]
+addLast(Y):     [ X ][ A ][ B ][ C ][ D ][ Y ]
+removeFirst():  [ A ][ B ][ C ][ D ][ Y ]         X leaves
+removeLast():   [ A ][ B ][ C ][ D ]              Y leaves
 ```
 
-#### 4. Core Concepts — Must Know
+| Role | Calls you use |
+|---|---|
+| Queue | `addLast` + `removeFirst` |
+| Stack | `addLast` + `removeLast` |
+| Deque | any of the four |
 
-1. **Four main operations:** `addFirst`, `addLast`, `removeFirst`, `removeLast`. Also `first()` and `last()` to look.
-2. **All are `O(1)` amortized** on `ArrayDeque`.
-3. **Kotlin `ArrayDeque`** also behaves like a list: `deque[i]` is `O(1)`, `size`, `contains` (`O(n)`).
-4. **Java `Deque` names:**
+Names in Kotlin and in Java:
 
-| Action | Kotlin `ArrayDeque` | Java `Deque` (throws) | Java `Deque` (null/false) |
-|---|---|---|---|
-| Add front | `addFirst(x)` | `addFirst(x)` | `offerFirst(x)` |
-| Add back | `addLast(x)` | `addLast(x)` | `offerLast(x)` |
-| Remove front | `removeFirst()` / `removeFirstOrNull()` | `removeFirst()` | `pollFirst()` |
-| Remove back | `removeLast()` / `removeLastOrNull()` | `removeLast()` | `pollLast()` |
-| Peek front | `first()` / `firstOrNull()` | `getFirst()` | `peekFirst()` |
-| Peek back | `last()` / `lastOrNull()` | `getLast()` | `peekLast()` |
+| Action | Kotlin `ArrayDeque` | Java `Deque` (returns `null`/`false` on failure) |
+|---|---|---|
+| Add front | `addFirst(x)` | `offerFirst(x)` |
+| Add back | `addLast(x)` | `offerLast(x)` |
+| Remove front | `removeFirst()` / `removeFirstOrNull()` | `pollFirst()` |
+| Remove back | `removeLast()` / `removeLastOrNull()` | `pollLast()` |
+| Peek front | `first()` / `firstOrNull()` | `peekFirst()` |
+| Peek back | `last()` / `lastOrNull()` | `peekLast()` |
 
-5. **Warning:** on a Java `Deque`, `push(x)` adds to the **front** and `pop()` removes from the front. Mixing `push` with `addLast` is confusing.
-6. **`java.util.ArrayDeque` does not allow `null`.** Kotlin's does.
-7. **Bounded deque / circular deque:** fixed size, wrap-around indices (LeetCode 641).
+Warning: on a Java `Deque`, `push(x)` adds to the **front** and `pop()` removes from the **front**. Do not mix them with `addLast`.
 
-#### 5. Algorithm — Must Know
-
-Palindrome check with a deque:
-
-```text
-put all characters in a deque
-while size > 1:
-    if removeFirst() != removeLast(): not a palindrome
-palindrome
-```
-
-#### 6. Kotlin Implementation — Must Know
+#### 3. Kotlin Code
 
 ```kotlin
 val dq = ArrayDeque<Int>()
@@ -77,19 +58,9 @@ println(dq.first())               // 1
 println(dq.last())                // 3
 println(dq.removeFirst())         // 1   → [2, 3]
 println(dq.removeLast())          // 3   → [2]
-println(dq[0])                    // 2   (index access works)
+println(dq[0])                    // 2   (index access works, O(1))
 
-// As a stack
-val stack = ArrayDeque<Int>()
-stack.addLast(1); stack.addLast(2)
-println(stack.removeLast())       // 2
-
-// As a queue
-val queue = ArrayDeque<Int>()
-queue.addLast(1); queue.addLast(2)
-println(queue.removeFirst())      // 1
-
-// Palindrome check from both ends
+// Palindrome check: compare from both ends
 fun isPalindrome(s: String): Boolean {
     val d = ArrayDeque<Char>()
     for (c in s) if (c.isLetterOrDigit()) d.addLast(c.lowercaseChar())
@@ -98,89 +69,60 @@ fun isPalindrome(s: String): Boolean {
     }
     return true
 }
+// isPalindrome("A man, a plan, a canal: Panama") → true
 
-// Undo / redo with two deques (idea)
+// Undo / redo with two deques
 class History {
-    private val undo = ArrayDeque<String>()
-    private val redo = ArrayDeque<String>()
+    private val undoStack = ArrayDeque<String>()
+    private val redoStack = ArrayDeque<String>()
 
-    fun perform(action: String) { undo.addLast(action); redo.clear() }
-    fun undo(): String? = undo.removeLastOrNull()?.also { redo.addLast(it) }
-    fun redo(): String? = redo.removeLastOrNull()?.also { undo.addLast(it) }
+    fun perform(action: String) { undoStack.addLast(action); redoStack.clear() }
+    fun undo(): String? = undoStack.removeLastOrNull()?.also { redoStack.addLast(it) }
+    fun redo(): String? = redoStack.removeLastOrNull()?.also { undoStack.addLast(it) }
 }
 ```
 
-Java style:
+#### 4. Complexity
 
-```kotlin
-import java.util.Deque
-import java.util.ArrayDeque as JavaArrayDeque
+| Action | Time |
+|---|---|
+| `addFirst`, `addLast`, `removeFirst`, `removeLast`, `first`, `last` | `O(1)` |
+| `deque[i]` (Kotlin `ArrayDeque`) | `O(1)` |
+| `contains`, remove from the middle | `O(n)` |
 
-val d: Deque<Int> = JavaArrayDeque()
-d.offerFirst(1)
-d.offerLast(2)
-println(d.pollFirst())    // 1
-println(d.pollLast())     // 2
-println(d.pollFirst())    // null
-```
+#### 5. Common Mistakes
 
-#### 7. Time & Space Complexity — Must Know
+1. **Mixing `push`/`pop` (front) with `addLast`/`removeLast` (back)** on a Java `Deque`.
+2. **`removeFirst()` or `first()` on an empty deque** crashes. Use the `...OrNull()` versions.
+3. **Adding `null`** to `java.util.ArrayDeque`. It throws.
+4. **Using the wrong end** and getting reversed order.
+5. **Removing from the middle** and expecting `O(1)`.
 
-| Operation | Time |
-|---|---:|
-| `addFirst` / `addLast` | `O(1)` amortized |
-| `removeFirst` / `removeLast` | `O(1)` |
-| `first` / `last` | `O(1)` |
-| `get(i)` (Kotlin `ArrayDeque`) | `O(1)` |
-| `contains` | `O(n)` |
-| Insert / remove in the middle | `O(n)` |
-| Space | `O(n)` |
+#### 6. Say This in the Interview
 
-#### 8. Common Deque Patterns — Must Know
+1. "A deque gives `O(1)` add and remove at both ends, so I can use it as a stack, a queue, or both."
+2. "For a sliding window maximum I keep a monotonic deque of indexes."
+3. "For 0-1 BFS I push 0-cost neighbours to the front and 1-cost neighbours to the back."
 
-1. **Sliding Window Maximum** (LeetCode 239) — monotonic deque.
-2. **0-1 BFS** — front for weight 0, back for weight 1.
-3. **Palindrome check** from both ends.
-4. **Design Circular Deque** (LeetCode 641).
-5. **Undo / redo history** and browser back/forward.
-6. **Work-stealing queues** (one thread takes from the front, others steal from the back).
-7. **Shortest Subarray with Sum at Least K** (LeetCode 862) — monotonic deque.
-8. **Android example:** the back stack as a deque; a list of recent searches (add front, trim the back).
+#### 7. Quick Check
 
-#### 9. Edge Cases / Common Mistakes
+1. Which two calls make a deque behave like a stack?
+2. Where does `push(x)` add on a Java `Deque`?
 
-1. Mixing `push`/`pop` (front) with `addLast`/`removeLast` on a Java `Deque`.
-2. `removeFirst()`, `first()` on an empty deque throw. Use the `...OrNull()` versions.
-3. Adding `null` to `java.util.ArrayDeque`.
-4. Using `removeAt(i)` in the middle and expecting `O(1)`.
-5. Forgetting that `ArrayDeque.remove(x)` (by value) is `O(n)`.
-6. Assuming the deque is sorted. It only keeps insertion positions.
-7. Using the wrong end for a stack/queue role and getting reverse order.
-8. Calling `removeFirst()` on a `MutableList` in JDK 21 builds and expecting it to exist on older Android versions. Use `ArrayDeque`.
+<details>
+<summary>Answers</summary>
 
-#### 10. When to Use / When Not to Use
+1. `addLast` and `removeLast` (or `addFirst` and `removeFirst`).
+2. At the **front**.
 
-**Use when:**
+</details>
 
-1. You need both ends, or one structure for stack and queue.
-2. You solve window max/min or 0-1 BFS.
+#### 8. Related LeetCode Questions
 
-**Avoid when:**
-
-1. You need only one end. A stack or queue name states your intent better.
-2. You need fast removal from the middle. Use a linked list with a map.
-
-#### 11. Related Topics
-
-1. Queue Operations
-2. Monotonic Queue
-3. 0-1 BFS
-4. Circular Queue
-5. Stack (`01-data-structure/03-Stack`)
-
-#### 12. Interview Must Remember
-
-1. **Deque = add and remove at both ends, all `O(1)`.**
-2. Kotlin: `ArrayDeque` with `addFirst/addLast/removeFirst/removeLast`.
-3. Java `Deque.push` adds to the **front**.
-4. Used for sliding window max, 0-1 BFS, palindromes.
+| # | Question | Idea |
+|---|---|---|
+| 641 | Design Circular Deque (Medium) | ring buffer with two ends |
+| 239 | Sliding Window Maximum (Hard) | monotonic deque (note 13) |
+| 2290 | Minimum Obstacle Removal to Reach Corner (Hard) | 0-1 BFS (note 17) |
+| 862 | Shortest Subarray with Sum at Least K (Hard) | monotonic deque (note 19) |
+| 125 | Valid Palindrome (Easy) | compare from both ends |

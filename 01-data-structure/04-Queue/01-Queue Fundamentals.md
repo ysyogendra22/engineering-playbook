@@ -1,172 +1,161 @@
 # Queue Fundamentals
 
-#### 1. Definition — Must Know
+> Start here. Read this note slowly once. Every other Queue note builds on it.
 
-1. A **queue** is a collection where items leave in the **same order they arrived**: **FIFO** (First In, First Out).
-2. You **add at the back** (enqueue) and **remove from the front** (dequeue).
-3. You normally see only the **front** item. There is no random access in the middle.
+#### 1. What Is a Queue?
 
-#### 2. Why It Is Used — Must Know
+A **queue** is a list where you **add at the back** and **remove from the front**.
 
-1. It keeps **fairness and order**: the first request is handled first.
-2. It is the data structure behind **BFS** (breadth-first search) and level-order traversal.
-3. It connects parts of a system that work at different speeds (task queues, message queues, network buffers).
-4. In Android: the main-thread `MessageQueue`, `WorkManager` jobs, `Flow` and `Channel` buffers.
+The first item you add is the first item that comes out. This is **FIFO**: **F**irst **I**n, **F**irst **O**ut.
 
-#### 3. How It Works — Must Know
+Picture a line at a ticket counter. New people join at the back. The person at the front is served first.
+
+A **stack** is the opposite (last in, first out).
+
+#### 2. Words You Must Know
+
+| Word | Meaning |
+|---|---|
+| **Enqueue** | add an item at the back |
+| **Dequeue** | remove and return the item at the front |
+| **Peek** | look at the front item, do not remove it |
+| **Front / Back** | the oldest item / the newest item |
+| **`O(1)`** | the work stays the same however big the queue is (fast) |
+
+#### 3. How It Works
 
 ```text
-front                    back
-  ↓                        ↓
-[ A ][ B ][ C ][ D ]   ←  enqueue(E) adds here
-  ↑
-dequeue() removes A
+Start: empty
 
-After enqueue(E) and dequeue():   [ B ][ C ][ D ][ E ]
+enqueue(1)   →  [1]
+enqueue(2)   →  [1, 2]
+enqueue(3)   →  [1, 2, 3]       front = 1, back = 3
+peek()       →  1               queue stays [1, 2, 3]
+dequeue()    →  1               queue is now [2, 3]
+dequeue()    →  2               queue is now [3]
 ```
 
-```text
-Queue = a line at a ticket counter:
-people join at the back, the person at the front is served first.
-```
+Common kinds of queues you will meet:
 
-Compare with a **stack** (LIFO): the last item in is the first out. A queue is the opposite.
-
-#### 4. Core Concepts — Must Know
-
-1. **FIFO order** — the oldest item leaves first.
-2. **Three main operations:** `enqueue` (add), `dequeue` (remove), `peek` (look at the front). All `O(1)`.
-3. **Queue types:**
-
-| Type | What it does |
+| Kind | What is different |
 |---|---|
 | Simple queue | plain FIFO |
-| Circular queue | fixed array that wraps around |
-| Deque | add and remove at both ends |
-| Priority queue | the highest priority leaves first (a heap, not FIFO) |
-| Blocking queue | `take()` waits when empty, `put()` waits when full |
-| Monotonic queue | a deque kept in sorted order (window max/min) |
+| **Deque** | add and remove at **both** ends (notes 12, 13) |
+| **Circular queue** | a fixed-size array that wraps around (note 11) |
+| **Priority queue** | the **best** item leaves first, not the oldest (this is a heap, see the Heap folder) |
+| **Blocking queue** | waits when empty or full, used between threads (note 16) |
 
-4. **Kotlin/JVM tools:**
+#### 4. Kotlin Code
 
-| Tool | Use |
-|---|---|
-| `kotlin.collections.ArrayDeque<T>` | default queue/deque in Kotlin, fast at both ends |
-| `java.util.ArrayDeque<T>` | same idea, no `null` items |
-| `java.util.LinkedList<T>` | works as a `Queue`, but uses more memory |
-| `java.util.PriorityQueue<T>` | priority order (study under Heap) |
-| `BlockingQueue` / `Channel` | threads and coroutines |
-
-5. A Kotlin **`MutableList`** can act as a queue, but `removeAt(0)` is `O(n)`. Avoid it.
-6. Queues and stacks can be built from each other (see the later notes).
-
-#### 5. Algorithm — Must Know
-
-The common "process everything in order" loop:
-
-```text
-queue = [start items]
-while queue is not empty:
-    item = dequeue()
-    handle item
-    enqueue any new items that this item creates
-```
-
-#### 6. Kotlin Implementation — Must Know
+Use `ArrayDeque`. Add at the **back**, remove from the **front**.
 
 ```kotlin
 val queue = ArrayDeque<Int>()
 
-queue.addLast(10)               // enqueue
+queue.addLast(10)                  // enqueue
 queue.addLast(20)
 queue.addLast(30)
 
-println(queue.first())          // peek → 10
-println(queue.removeFirst())    // dequeue → 10
-println(queue)                  // [20, 30]
-println(queue.size)             // 2
-println(queue.isEmpty())        // false
+println(queue.first())             // peek → 10
+println(queue.removeFirst())       // dequeue → 10
+println(queue)                     // [20, 30]
+println(queue.size)                // 2
 
-// Safe versions for empty queues
-println(queue.firstOrNull())        // 20, or null when empty
-println(queue.removeFirstOrNull())  // 20, or null when empty
+// Popping an empty queue crashes. These versions return null instead:
+println(queue.removeFirstOrNull()) // 20
+println(queue.firstOrNull())       // 30
+```
 
-// Process in order
+The loop you will write again and again:
+
+```kotlin
 while (queue.isNotEmpty()) {
     val item = queue.removeFirst()
-    println("Handling $item")
+    // handle item; you may add new items to the back with queue.addLast(...)
 }
 ```
 
-Using the Java `Queue` interface:
+Do **not** use a list with `removeAt(0)` as a queue. It shifts every item, so it costs `O(n)` each time.
 
-```kotlin
-import java.util.LinkedList
-import java.util.Queue
+#### 5. How to Spot a Queue Problem
 
-val q: Queue<String> = LinkedList()
-q.offer("a")          // enqueue
-q.offer("b")
-println(q.peek())     // a
-println(q.poll())     // a   (null if empty)
-```
+| If the question has... | Think... |
+|---|---|
+| "shortest path", "minimum number of steps/moves" (all steps cost the same) | BFS with a queue |
+| "level by level", "by depth" | BFS with `repeat(queue.size)` |
+| "spreads from many places at once" (rot, fire, water) | multi-source BFS |
+| "process in the order they arrive" | plain queue |
+| "max/min of every window" | monotonic queue (deque) |
+| "last N events", fixed memory | circular queue |
 
-#### 7. Time & Space Complexity — Must Know
+#### 6. Complexity
 
-| Operation | `ArrayDeque` | `LinkedList` | `MutableList.removeAt(0)` |
-|---|---:|---:|---:|
-| Enqueue (add last) | `O(1)` amortized | `O(1)` | `O(1)` |
-| Dequeue (remove first) | `O(1)` amortized | `O(1)` | **`O(n)`** |
-| Peek | `O(1)` | `O(1)` | `O(1)` |
-| Search | `O(n)` | `O(n)` | `O(n)` |
-| Space | `O(n)` | `O(n)`, bigger per item | `O(n)` |
+| Action | Time |
+|---|---|
+| `addLast`, `removeFirst`, `first`, `isEmpty` | `O(1)` |
+| Search for a value | `O(n)` |
+| Memory for `n` items | `O(n)` |
 
-`ArrayDeque` is "amortized" because the array grows sometimes, which is rare.
+#### 7. Common Mistakes
 
-#### 8. Common Queue Patterns — Must Know
+1. **Dequeue from an empty queue.** It crashes. Check `isNotEmpty()` or use `removeFirstOrNull()`.
+2. **Using `removeAt(0)`** on a list as a dequeue. It is `O(n)`.
+3. **Mixing up queue and stack.** Queue: `addLast` + `removeFirst`. Stack: `addLast` + `removeLast`.
+4. **Changing a queue while looping over it** with `for (x in queue)`. It crashes. Use a `while` loop.
 
-1. **BFS** on graphs, trees, and grids.
-2. **Level-by-level processing.**
-3. **Shortest path** in an unweighted graph.
-4. **Sliding window with a deque** (monotonic queue).
-5. **Task scheduling** and producer-consumer.
-6. **Simulation:** hot potato, ticket queue, recent calls.
-7. **Design questions:** queue from two stacks, circular queue.
+#### 8. Say This in the Interview
 
-#### 9. Edge Cases / Common Mistakes
+1. "The order matters (oldest first), so I will use a queue."
+2. "For the fewest steps I will use BFS with a queue and a visited set."
+3. "Each item is added once and removed once, so the time is `O(n)`."
 
-1. Dequeuing from an empty queue. `removeFirst()` throws; `removeFirstOrNull()` returns `null`.
-2. Using `list.removeAt(0)` as dequeue (`O(n)`).
-3. Confusing queue (FIFO) with stack (LIFO).
-4. Using `java.util.ArrayDeque` and adding `null`. It throws.
-5. Iterating a queue while changing it.
-6. Forgetting that the size changes inside the loop (see level-by-level).
-7. Using a queue where a priority queue is needed.
+#### 9. Quick Check
 
-#### 10. When to Use / When Not to Use
+1. You enqueue `1`, `2`, `3` and then dequeue once. What is at the front?
+2. Why is `list.removeAt(0)` a bad dequeue?
 
-**Use when:**
+<details>
+<summary>Answers</summary>
 
-1. Order of arrival matters.
-2. You explore level by level (BFS).
-3. You hand work between producers and consumers.
+1. `2`.
+2. It moves every other item one place to the left, so it takes `O(n)` time. `ArrayDeque.removeFirst()` is `O(1)`.
 
-**Avoid when:**
+</details>
 
-1. You need the most recent item first. Use a stack.
-2. You need the best item first. Use a priority queue.
-3. You need random access. Use a list or array.
+#### 10. Related LeetCode Questions (Often Asked)
 
-#### 11. Related Topics
+Solve them in this order. Search by title if a number looks wrong.
 
-1. Queue Operations
-2. BFS
-3. Stack (`01-data-structure/03-Stack`)
-4. Heap / Priority Queue (`01-data-structure/08-Heap`)
+**Start here — Easy**
 
-#### 12. Interview Must Remember
+| # | Question | Main idea | Note |
+|---|---|---|---|
+| 933 | Number of Recent Calls | drop old times from the front | 04 |
+| 232 | Implement Queue using Stacks | two stacks | 14 |
+| 225 | Implement Stack using Queues | rotate the queue | 15 |
+| 733 | Flood Fill | BFS on a grid | 09 |
 
-1. **FIFO: add at the back, remove from the front.**
-2. In Kotlin use `ArrayDeque` with `addLast` / `removeFirst`.
-3. Never use `removeAt(0)` on a list as a queue.
-4. A queue is the tool for BFS and level-order work.
+**Most often asked — Medium**
+
+| # | Question | Main idea | Note |
+|---|---|---|---|
+| 102 | Binary Tree Level Order Traversal | `repeat(queue.size)` | 06 |
+| 199 | Binary Tree Right Side View | last node of each level | 06 |
+| 994 | Rotting Oranges | multi-source BFS | 08 |
+| 542 | 01 Matrix | multi-source BFS | 08 |
+| 1091 | Shortest Path in Binary Matrix | grid BFS | 09 |
+| 127 | Word Ladder | BFS on words | 07, 18 |
+| 752 | Open the Lock | BFS on states | 07, 18 |
+| 622 | Design Circular Queue | ring buffer | 11 |
+| 641 | Design Circular Deque | ring buffer with two ends | 11, 12 |
+
+**Hard — these separate strong candidates**
+
+| # | Question | Main idea | Note |
+|---|---|---|---|
+| 239 | Sliding Window Maximum | monotonic deque | 13 |
+| 862 | Shortest Subarray with Sum at Least K | monotonic deque on prefix sums | 19 |
+| 1438 | Longest Subarray, Absolute Diff ≤ Limit | two monotonic deques | 19 |
+| 2290 | Minimum Obstacle Removal to Reach Corner | 0-1 BFS | 17 |
+
+**If you have little time, do these 8 first:** 102, 994, 542, 1091, 127, 239, 232, 622.
