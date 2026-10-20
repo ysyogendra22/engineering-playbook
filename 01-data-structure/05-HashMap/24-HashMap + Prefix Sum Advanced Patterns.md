@@ -1,67 +1,44 @@
 # HashMap + Prefix Sum Advanced Patterns
 
-#### 1. Definition — Must Know
+> Read notes 11 and 12 first. Here the "prefix" is not always a sum.
 
-1. The basic pattern stores **prefix sums** in a map (`Prefix Sum + HashMap`).
-2. The **advanced** version stores any **prefix state** that can be updated one element at a time: an XOR value, a bitmask of parities, a balance, a count of odd numbers.
-3. Rule: **two equal prefix states mean the part between them is "neutral"** (XOR 0, all parities even, balance 0).
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+The basic pattern stores **prefix sums** in a map. The advanced version stores **any state that you can update one element at a time**: an XOR value, a bitmask of odd/even counts, a count of odd numbers.
 
-1. It turns hard-looking questions ("longest substring with every vowel an even number of times") into a short loop.
-2. It shows you understand the idea, not only the Subarray Sum Equals K template.
-3. These are medium and hard interview problems.
+The rule is the same:
 
-#### 3. How It Works — Must Know
+> **Two equal prefix states mean the part between them is "neutral"** (XOR 0, every count even, balance 0).
 
-**XOR prefix.** XOR undoes itself: `a xor a = 0`. So the XOR of a subarray `[j+1 .. i]` is `prefix[i] xor prefix[j]`.
+So the question becomes "find two equal states" or "find a state at a fixed offset".
 
-```text
-Want subarray XOR = k:     prefix[i] xor prefix[j] = k   →   prefix[j] = prefix[i] xor k
-```
+#### 2. How It Works
 
-**Bitmask parity.** For "each vowel appears an even number of times", keep 5 bits, one per vowel. Each vowel flips its bit. Equal masks at `j` and `i` mean every vowel appeared an even number of times between them.
+**XOR prefix.** `a xor a = 0`, so the XOR of a subarray is `prefix[i] xor prefix[j]`. To get a subarray with XOR `k`, look for `prefix[i] xor k` in the map.
+
+**Bitmask of parities** (*Find the Longest Substring Containing Vowels in Even Counts*, LeetCode 1371). Keep 5 bits, one per vowel. Each time you see a vowel, **flip its bit**. If the same mask appeared before, every vowel appeared an even number of times in between.
 
 ```text
-s = "eleetminicoworoep"           a=bit0  e=bit1  i=bit2  o=bit3  u=bit4
+bit0=a  bit1=e  bit2=i  bit3=o  bit4=u
 
-mask after each character (flip the bit when you see a vowel):
-e → 00010      l → 00010      e → 00000      e → 00010 ...
-mask 00000 first seen at index -1 (before the string); seen again at index 2
-→ the part from index 0 to 2 ("ele") has e twice (even), so length 3 is possible
+s = "eleetminicoworoep"
+the mask starts as 00000.  'e' flips bit1, 'l' does nothing, 'e' flips bit1 back...
+mask 00000 is seen at index -1 (before the string) and again at index 2
+→ "ele" has "e" twice (even) → a valid substring of length 3
+The best answer for this input is 13.
 ```
 
-The answer for this input is `13` (the substring `"leetminicowor"`).
+Which state for which question:
 
-#### 4. Core Concepts — Must Know
-
-| Problem | Prefix state | Map stores | Lookup |
+| Question | State | Map stores | Look up |
 |---|---|---|---|
-| Subarrays with XOR = k (count) | running XOR | state → count | `state xor k` |
-| Longest substring, vowels all even (LeetCode 1371) | 5-bit parity mask | mask → first index | same mask |
-| Count Number of Nice Subarrays (LeetCode 1248) | number of odd numbers so far | count → how many | `odd - k` |
-| Binary Subarrays With Sum (LeetCode 930) | running sum of 0/1 | sum → count | `sum - goal` |
-| Contiguous Array (LeetCode 525) | balance (+1 / −1) | balance → first index | same balance |
-| Number of Substrings with equal counts | difference of counts | difference → count | same difference |
+| Subarrays with XOR `k` (count) | running XOR | state → count | `state xor k` |
+| Vowels all even (longest) | 5-bit mask | mask → first index | the same mask |
+| Nice Subarrays: exactly `k` odd numbers | how many odd numbers so far | count → how many times | `odd - k` |
+| Binary Subarrays With Sum | running sum | sum → count | `sum - goal` |
+| Equal 0s and 1s | balance | balance → first index | the same balance |
 
-1. **Pick the state** so the question becomes "find two equal states" or "find a state at a fixed offset".
-2. **Bitmask state** has at most `2^m` values for `m` flags, so an array of size `2^m` can replace the map.
-3. **Count → map of counts. Longest → map of first indices.**
-4. **Start with the empty prefix:** state `0` with count `1`, or first index `-1`.
-5. **Look up before storing** the current state.
-
-#### 5. Algorithm — Must Know
-
-```text
-state = start state (0)
-map = { state : 1 }  or  { state : -1 }
-for i, x in input:
-    state = update(state, x)
-    look up the needed partner state in the map
-    store the state (count it, or keep the first index only)
-```
-
-#### 6. Kotlin Implementation — Must Know
+#### 3. Kotlin Code
 
 ```kotlin
 // Count subarrays whose XOR equals k
@@ -80,7 +57,7 @@ fun countSubarraysXor(nums: IntArray, k: Int): Int {
 
 // Longest substring where each vowel appears an even number of times (LeetCode 1371)
 fun findTheLongestSubstring(s: String): Int {
-    val firstIndex = IntArray(32) { -2 }           // -2 = not seen yet
+    val firstIndex = IntArray(32) { -2 }             // -2 means "not seen yet"
     firstIndex[0] = -1
     var mask = 0
     var best = 0
@@ -98,7 +75,7 @@ fun findTheLongestSubstring(s: String): Int {
     return best
 }
 
-// Count Number of Nice Subarrays — exactly k odd numbers
+// Count Number of Nice Subarrays (LeetCode 1248): exactly k odd numbers
 fun numberOfSubarrays(nums: IntArray, k: Int): Int {
     val count = HashMap<Int, Int>()
     count[0] = 1
@@ -112,7 +89,7 @@ fun numberOfSubarrays(nums: IntArray, k: Int): Int {
     return answer
 }
 
-// Binary Subarrays With Sum (0/1 array): the same shape as Subarray Sum Equals K
+// Binary Subarrays With Sum (LeetCode 930)
 fun numSubarraysWithSum(nums: IntArray, goal: Int): Int {
     val count = HashMap<Int, Int>()
     count[0] = 1
@@ -127,62 +104,53 @@ fun numSubarraysWithSum(nums: IntArray, goal: Int): Int {
 }
 ```
 
-Checks: `countSubarraysXor([4, 2, 2, 6, 4], 6)` → `4`. `numberOfSubarrays([1,1,2,1,1], 3)` → `2`. `findTheLongestSubstring("eleetminicoworoep")` → `13`.
+Checks: `countSubarraysXor([4,2,2,6,4], 6)` → `4`. `numberOfSubarrays([1,1,2,1,1], 3)` → `2`. `findTheLongestSubstring("eleetminicoworoep")` → `13`.
 
-#### 7. Time & Space Complexity — Must Know
+#### 4. Complexity
 
 | Problem | Time | Space |
-|---|---:|---:|
+|---|---|---|
 | XOR subarrays | `O(n)` | `O(n)` |
 | Vowel mask | `O(n)` | `O(1)` (32 slots) |
 | Nice subarrays | `O(n)` | `O(n)` |
 | Brute force | `O(n²)` | — |
 
-#### 8. Common Advanced Prefix Patterns — Must Know
+#### 5. Common Mistakes
 
-1. **Count subarrays with XOR k** (also LeetCode 1442 style XOR triplets).
-2. **Find the Longest Substring Containing Vowels in Even Counts** (LeetCode 1371).
-3. **Count Number of Nice Subarrays** (LeetCode 1248).
-4. **Binary Subarrays With Sum** (LeetCode 930).
-5. **Contiguous Array** (LeetCode 525).
-6. **Make Sum Divisible by P** (LeetCode 1590).
-7. **Subarray Sums Divisible by K** (LeetCode 974).
-8. **2D prefix sums + map:** Number of Submatrices That Sum to Target (LeetCode 1074) — fix two rows, then run the 1D pattern over columns.
-9. **Sliding window alternative:** `atMost(k) - atMost(k - 1)` counts "exactly k" for non-negative arrays.
+1. **Choosing a state that loses information** the question needs.
+2. **Forgetting the empty prefix** (`0` with count `1`, or index `-1`).
+3. **Overwriting the first index** when you want the longest range.
+4. **Using `-1` as "not seen"** when `-1` is also the empty-prefix index. The vowel code uses `-2` for "not seen".
+5. **Wrong bit for a vowel**, or one bit used for two letters.
+6. **Looking up after storing.**
+7. **Using it for subsequences.** It only works for **contiguous** parts.
 
-#### 9. Edge Cases / Common Mistakes
+#### 6. Say This in the Interview
 
-1. Choosing a state that loses information the question needs.
-2. Forgetting the empty prefix (`0` with count `1` / index `-1`).
-3. Overwriting the first index when you want the longest range.
-4. Using `-1` as "not seen" and also as the empty-prefix index. Use a different marker, as in the vowel code (`-2`).
-5. Bit positions wrong or reused for two characters.
-6. Looking up after storing, which can count empty ranges.
-7. `Int` overflow in sums.
-8. Using it for subsequences. It only works for contiguous parts.
+1. "The answer needs two equal prefix states, so I keep a map from state to first index (or count)."
+2. "For 'every count even' the state is a bitmask of parities. For XOR questions I look up `state xor k`."
+3. "One pass: `O(n)` time."
 
-#### 10. When to Use / When Not to Use
+#### 7. Quick Check
 
-**Use when:**
+1. What is the XOR of `a` with itself?
+2. In the vowel problem, what does a repeated mask tell you?
 
-1. The rule can be expressed as "two equal states" or "states at a fixed offset".
-2. The parts must be contiguous.
+<details>
+<summary>Answers</summary>
 
-**Avoid when:**
+1. `0`.
+2. In the part between the two positions, every vowel appeared an even number of times.
 
-1. A sliding window already works (non-negative numbers, `O(1)` space).
-2. The rule depends on order in ways a single state cannot capture.
+</details>
 
-#### 11. Related Topics
+#### 8. Related LeetCode Questions
 
-1. Prefix Sum + HashMap
-2. Subarray Sum Patterns
-3. Bit Manipulation (`02-algorithm/09-Bit Manipulation`)
-4. Prefix Sum (`03-leetcode-patterns`, topic 7)
-
-#### 12. Interview Must Remember
-
-1. **Choose a prefix state; equal states ⇒ the middle part is neutral.**
-2. XOR: look for `state xor k`. Parity: use a bitmask. Balance: use `+1 / −1`.
-3. Count → counts; longest → first index; start with the empty prefix.
-4. Contiguous only. `O(n)` time.
+| # | Question | Idea |
+|---|---|---|
+| 1371 | Find the Longest Substring Containing Vowels in Even Counts (Medium) | bitmask of parities |
+| 1248 | Count Number of Nice Subarrays (Medium) | count of odd numbers |
+| 930 | Binary Subarrays With Sum (Medium) | same shape as 560 |
+| 525 | Contiguous Array (Medium) | balance (note 12) |
+| 974 | Subarray Sums Divisible by K (Medium) | remainders (note 12) |
+| 1074 | Number of Submatrices That Sum to Target (Hard) | fix two rows, then 1D prefix sums |

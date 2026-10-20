@@ -1,18 +1,18 @@
 # Counting Pairs / Complements
 
-#### 1. Definition — Must Know
+#### 1. What Is It?
 
-1. These problems ask **how many pairs** `(i, j)` with `i < j` satisfy a rule, such as "equal", "sum is `target`", or "sum is divisible by `k`".
-2. The method: go left to right and keep a map of **counts of earlier values**. For each new item, **add the count of its complement** to the answer, then record the item.
-3. It is Two Sum, but **counting** instead of returning indices.
+These questions ask **how many pairs** `(i, j)` with `i < j` follow a rule: "equal", "sum to `target`", "divisible by `k`".
 
-#### 2. Why It Is Used — Must Know
+It is **Two Sum, but counting** instead of returning indexes:
 
-1. Brute force checks every pair (`O(n²)`). Counting uses one pass (`O(n)`).
-2. It handles duplicates correctly because the map holds counts, not just yes/no.
-3. It appears with sums, differences, remainders, and equal values.
+- Go left to right.
+- Keep a map of **how many times each earlier value appeared**.
+- For each new item, **add the count of its complement** to the answer. Then record the item.
 
-#### 3. How It Works — Must Know
+Brute force checks every pair (`O(n²)`). Counting uses one pass (`O(n)`).
+
+#### 2. How It Works
 
 *Number of Good Pairs* (LeetCode 1512): count pairs `i < j` with `nums[i] == nums[j]`.
 
@@ -20,49 +20,33 @@
 
 ```text
 count = {}                    answer = 0
-x=1  seen before 0 times → answer += 0     count {1:1}
-x=2  0 times             → answer += 0     count {1:1, 2:1}
-x=3  0 times             → answer += 0     count {1:1, 2:1, 3:1}
-x=1  1 time              → answer += 1     count {1:2, ...}       pair (0,3)
-x=1  2 times             → answer += 2     count {1:3, ...}       pairs (0,4) (3,4)
-x=3  1 time              → answer += 1     count {..., 3:2}       pair (2,5)
+x=1   seen 0 times  → add 0         count {1:1}
+x=2   seen 0 times  → add 0         count {1:1, 2:1}
+x=3   seen 0 times  → add 0         count {1:1, 2:1, 3:1}
+x=1   seen 1 time   → add 1         count {1:2, ...}      pair (0,3)
+x=1   seen 2 times  → add 2         count {1:3, ...}      pairs (0,4) and (3,4)
+x=3   seen 1 time   → add 1         count {..., 3:2}      pair (2,5)
 
-Answer: 4
+answer = 4
 ```
 
-Each new item forms a pair with **every earlier item that matches its complement**. The count of earlier matches is exactly the number of new pairs.
+Each new item forms a pair with **every earlier item** that matches its complement. The stored count is exactly the number of new pairs.
 
-#### 4. Core Concepts — Must Know
-
-1. **Complement** depends on the rule:
+The complement depends on the rule:
 
 | Rule | Complement of `x` |
 |---|---|
-| `a[i] == a[j]` | `x` |
-| `a[i] + a[j] == target` | `target - x` |
-| `a[i] - a[j] == k` | `x - k` (and/or `x + k`) |
-| `(a[i] + a[j]) % m == 0` | remainder `(m - x % m) % m` |
+| `a == b` | `x` |
+| `a + b == target` | `target - x` |
+| `a - b == k` | `x - k` (and/or `x + k`) |
+| `(a + b) % m == 0` | the remainder `(m - x % m) % m` |
 
-2. **Look up first, then add `x`.** This keeps `i < j` and stops an item from pairing with itself.
-3. **Counts, not just presence.** If the complement appeared 3 times, add 3.
-4. **Remainders:** count remainders in an `IntArray(m)` when `m` is small and fixed.
-5. **Equal values** (`x == complement`) are handled automatically by lookup-before-add.
-6. **Result size:** the count can reach `n²/2`. Use `Long` for big inputs.
+**Look up first, then add `x`.** That keeps `i < j` and stops an item from pairing with itself.
 
-#### 5. Algorithm — Must Know
-
-```text
-count = empty map; answer = 0
-for x in nums:
-    answer += count[complement(x)] (or 0)
-    count[x] += 1
-return answer
-```
-
-#### 6. Kotlin Implementation — Must Know
+#### 3. Kotlin Code
 
 ```kotlin
-// Number of Good Pairs — equal values
+// Number of Good Pairs: equal values
 fun numIdenticalPairs(nums: IntArray): Int {
     val count = HashMap<Int, Int>()
     var answer = 0
@@ -85,25 +69,25 @@ fun countPairsWithSum(nums: IntArray, target: Int): Long {
     return answer
 }
 
-// Pairs of Songs With Total Durations Divisible by 60 — remainders in an array
+// Pairs of Songs With Total Durations Divisible by 60 (LeetCode 1010)
 fun numPairsDivisibleBy60(time: IntArray): Int {
     val remainder = IntArray(60)
     var answer = 0
     for (t in time) {
         val r = t % 60
-        answer += remainder[(60 - r) % 60]      // partner remainder
+        answer += remainder[(60 - r) % 60]          // the partner remainder
         remainder[r]++
     }
     return answer
 }
 
-// K-diff Pairs in an Array — count UNIQUE pairs with |a - b| == k
+// K-diff Pairs in an Array (LeetCode 532): count UNIQUE pairs with |a - b| == k
 fun findPairs(nums: IntArray, k: Int): Int {
     val count = HashMap<Int, Int>()
     for (x in nums) count[x] = (count[x] ?: 0) + 1
     var pairs = 0
     for ((value, c) in count) {
-        if (k == 0) { if (c > 1) pairs++ }
+        if (k == 0) { if (c > 1) pairs++ }          // a pair of equal numbers
         else if ((value + k) in count) pairs++
     }
     return pairs
@@ -112,57 +96,50 @@ fun findPairs(nums: IntArray, k: Int): Int {
 
 Checks: `numIdenticalPairs([1,2,3,1,1,3])` → `4`. `numPairsDivisibleBy60([30,20,150,100,40])` → `3`. `findPairs([3,1,4,1,5], 2)` → `2`.
 
-#### 7. Time & Space Complexity — Must Know
+#### 4. Complexity
 
-| Approach | Time | Space |
-|---|---:|---:|
+| Way | Time | Space |
+|---|---|---|
 | Brute force | `O(n²)` | `O(1)` |
 | **Count map, one pass** | **`O(n)`** | `O(u)` |
 | Remainder array of size `m` | `O(n + m)` | `O(m)` |
 
-#### 8. Common Pair-Counting Patterns — Must Know
+#### 5. Common Mistakes
 
-1. **Number of Good Pairs** (LeetCode 1512).
-2. **Pairs of Songs Divisible by 60** (LeetCode 1010).
-3. **K-diff Pairs in an Array** (LeetCode 532).
-4. **Count Number of Bad Pairs** (LeetCode 2364) — rewrite the rule as `nums[i] - i`, then count equal values.
-5. **Max Number of K-Sum Pairs** (LeetCode 1679) — use up pairs as you match them.
-6. **Number of Pairs of Interchangeable Rectangles** (LeetCode 2001) — ratio as the key.
-7. **4Sum II** (LeetCode 454) — counts of pair sums.
-8. **Subarray version:** counts of prefix values (`Prefix Sum + HashMap`).
+1. **Adding the current value before the lookup.** An item pairs with itself.
+2. **Counting each pair twice** (as `(i, j)` and as `(j, i)`).
+3. **Using a set** when counts are needed.
+4. **Negative remainders.** Use `((x % m) + m) % m`.
+5. **Wrong partner remainder.** It is `(m - r) % m`, not `m - r` (when `r` is `0`).
+6. **Overflow** of the answer. It can reach `n²/2`, so use `Long` for big inputs.
+7. **K-diff pairs:** forgetting the special case `k == 0`.
 
-#### 9. Edge Cases / Common Mistakes
+#### 6. Say This in the Interview
 
-1. Adding the current value before the lookup, so each item pairs with itself.
-2. Counting each pair twice (once as `(i, j)` and once as `(j, i)`).
-3. Using a set, which loses duplicates, when counts are needed.
-4. Negative remainders: use `((x % m) + m) % m` for negative numbers.
-5. Remainder `0` partner: it is `0`, not `m`. Use `(m - r) % m`.
-6. `Int` overflow in the answer. Use `Long` for large inputs.
-7. In K-diff pairs: counting a pair once per value. Check `k == 0` separately.
-8. Max K-Sum Pairs: not decreasing the complement's count after using it.
+1. "For each item I add how many earlier items complete a pair, then I record the item. That keeps `i < j`."
+2. "A count map handles duplicates, which a set cannot."
+3. "One pass: `O(n)` time. I use `Long` if the count can be large."
 
-#### 10. When to Use / When Not to Use
+#### 7. Quick Check
 
-**Use when:**
+1. For `[1, 1, 1]`, how many good pairs are there?
+2. Why record the current item **after** the lookup?
 
-1. You count pairs by a rule that can be turned into "find the complement".
+<details>
+<summary>Answers</summary>
 
-**Avoid when:**
+1. `3`: pairs (0,1), (0,2), (1,2). The code adds 0, then 1, then 2.
+2. Otherwise the item would be counted as a partner of itself.
 
-1. You must list the pairs themselves. Use two pointers or store indices.
-2. The array is sorted and `O(1)` space is required. Use two pointers.
+</details>
 
-#### 11. Related Topics
+#### 8. Related LeetCode Questions
 
-1. Two Sum Pattern
-2. Frequency Counting
-3. Prefix Sum + HashMap
-4. Subarray Sum Patterns
-
-#### 12. Interview Must Remember
-
-1. **Look up the complement's count first, then add the current item.**
-2. Counts handle duplicates; a set does not.
-3. Remainder partner: `(m - r) % m`.
-4. `O(n)` time. Use `Long` if the count can be large.
+| # | Question | Idea |
+|---|---|---|
+| 1512 | Number of Good Pairs (Easy) | equal values |
+| 1010 | Pairs of Songs With Total Durations Divisible by 60 (Medium) | remainder counts |
+| 532 | K-diff Pairs in an Array (Medium) | unique pairs |
+| 2364 | Count Number of Bad Pairs (Medium) | rewrite the rule as `nums[i] - i`, count equal values |
+| 1679 | Max Number of K-Sum Pairs (Medium) | use up pairs as you match them |
+| 454 | 4Sum II (Medium) | counts of pair sums (note 08) |

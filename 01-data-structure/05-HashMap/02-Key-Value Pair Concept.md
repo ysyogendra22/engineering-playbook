@@ -1,77 +1,60 @@
 # Key-Value Pair Concept
 
-#### 1. Definition — Must Know
+#### 1. What Is It?
 
-1. A **key-value pair** (also called an **entry**) links one **key** to one **value**.
-2. The **key** is the label you search with. The **value** is the data stored under that label.
-3. Keys are **unique** in a map. Values can repeat.
+A **key-value pair** (also called an **entry**) links one **key** to one **value**.
 
-#### 2. Why It Is Used — Must Know
-
-1. Most real data is "something → information about it": user id → user, word → meaning, product → price.
-2. Choosing the right key and value is the main design decision in a HashMap problem.
-3. Good key/value choices make the solution short and fast.
-
-#### 3. How It Works — Must Know
+- The **key** is what you search with. It must be unique in the map.
+- The **value** is the data stored under that key. Values can repeat.
 
 ```text
 Key (unique)     Value (can repeat)
 "Asha"       →   30
 "Ben"        →   25
-"Chitra"     →   30          ← two keys can share a value
-"Asha"       →   31          ← same key: the old value 30 is replaced
+"Chitra"     →   30          ← two keys may have the same value
+"Asha"       →   31          ← same key again: the old value 30 is replaced
 ```
 
-A map entry is one row: `("Ben", 25)`. In Kotlin, a pair is written `"Ben" to 25`.
+In Kotlin, `"Ben" to 25` makes a `Pair`, and `mapOf("Ben" to 25)` makes a map from pairs.
 
-**Choosing key and value — ask two questions:**
+**The most important skill in HashMap problems is choosing the key and the value.** Ask two questions:
 
-```text
-1. What do I search with?   → that is the KEY
-2. What do I need back?     → that is the VALUE
-```
+1. What do I **search with**? → that is the **key**.
+2. What do I **need back**? → that is the **value**.
+
+#### 2. How It Works
 
 | Problem | Key | Value |
 |---|---|---|
-| Count letters | letter | count |
-| Two Sum | number | index |
+| Count letters | the letter | the count |
+| Two Sum | the number | its index |
 | Group Anagrams | sorted letters | list of words |
-| Prefix sum | prefix sum | how many times / first index |
-| Phone book | name | number |
+| Subarray sum | prefix sum | how many times it appeared |
+| Cache | the request | the saved result |
+| Copy a linked list | old node | new node |
 
-#### 4. Core Concepts — Must Know
+Three shapes of values appear again and again:
 
-1. **Unique keys.** `put` on an existing key replaces the value.
-2. **Values are free.** They can be numbers, lists, objects, even other maps.
-3. **A key must be immutable** (or never changed while in the map).
-4. **Entry** (`Map.Entry<K, V>`) gives `.key` and `.value`.
-5. **Destructuring:** `for ((k, v) in map)` reads each pair.
-6. **Views of a map:** `map.keys` (a set), `map.values` (a collection), `map.entries` (a set of entries).
-7. **`Pair<A, B>`** is a plain two-value holder. `a to b` creates one. A `Pair` is *not* a map entry, but `mapOf(a to b)` builds a map from pairs.
+| Value is... | Meaning | Example |
+|---|---|---|
+| a number | count or index | frequency map, Two Sum |
+| a list | a group | Group Anagrams |
+| an object | extra data | `id → User` |
 
-#### 5. Algorithm — Must Know
-
-```text
-Designing a map for a problem:
-1. Decide the key (what I look up by).
-2. Decide the value (what I need to know about it).
-3. Decide when to add, update, and read.
-```
-
-#### 6. Kotlin Implementation — Must Know
+#### 3. Kotlin Code
 
 ```kotlin
 val scores = hashMapOf("Asha" to 90, "Ben" to 75)
 
-// Read all entries
+// Read every pair
 for ((name, score) in scores) println("$name has $score")
-for (entry in scores.entries) println("${entry.key} -> ${entry.value}")
 
-// Views
-println(scores.keys)        // [Asha, Ben]  (a Set)
-println(scores.values)      // [90, 75]     (a Collection — values can repeat)
+// Three views of a map
+println(scores.keys)        // the keys, as a Set
+println(scores.values)      // the values (repeats allowed)
+println(scores.entries)     // the pairs
 
-// Values can be lists: key → many values
+// Value is a list: key → many items
 val tags = HashMap<String, MutableList<String>>()
 tags.getOrPut("kotlin") { mutableListOf() }.add("android")
 tags.getOrPut("kotlin") { mutableListOf() }.add("coroutines")
@@ -82,62 +65,54 @@ data class User(val id: Int, val name: String)
 val users = listOf(User(1, "Asha"), User(2, "Ben"))
 val byId = users.associateBy { it.id }              // id → User
 val nameById = users.associate { it.id to it.name } // id → name
-
-// Swap keys and values (values must be unique, or later ones win)
-val reversed = scores.entries.associate { (k, v) -> v to k }
 ```
 
-#### 7. Time & Space Complexity — Must Know
+`associateBy` and `associate` keep only the **last** item when two items have the same key. Use `groupBy` to keep all of them.
 
-| Operation | Time |
-|---|---:|
-| Read one pair by key | `O(1)` average |
-| Add / update / remove one pair | `O(1)` average |
-| Iterate all pairs | `O(n)` |
-| Find a key by value (reverse lookup) | `O(n)` |
-| Space | `O(n)` pairs |
+#### 4. Complexity
 
-#### 8. Common Key-Value Designs — Must Know
+| Action | Time |
+|---|---|
+| Find, add, update or remove one pair | `O(1)` on average |
+| Visit all pairs | `O(n)` |
+| Find a key from a value (reverse lookup) | `O(n)` |
 
-1. **item → count** (frequency).
-2. **item → index** (position tracking, Two Sum).
-3. **category → list of items** (grouping).
-4. **state → result** (memoization in DP).
-5. **old node → new node** (copying structures).
-6. **prefix → count** (subarray sums).
-7. **Android example:** `viewId → listener`, `userId → cached profile`, `route → screen`.
+For a fast reverse lookup, keep a second map the other way round.
 
-#### 9. Edge Cases / Common Mistakes
+#### 5. Common Mistakes
 
-1. Picking the wrong key, so you cannot find what you need quickly.
-2. Overwriting by accident when two items share a key.
-3. Needing to search by value. That is `O(n)`. Keep a second map the other way.
-4. Using a mutable object as a key and changing it.
-5. Forgetting that `associateBy` and `associate` keep the **last** item for a repeated key.
-6. Treating `map.values` as a set. It can contain repeats.
-7. Building a `String` key by joining fields without a separator (`"1" + "23"` equals `"12" + "3"`).
+1. **Choosing the wrong key**, so you cannot find the thing you need quickly.
+2. **Overwriting a value by accident** when two items share a key.
+3. **Searching by value.** That is `O(n)`. Keep a second map.
+4. **Using a mutable object as a key** and changing it.
+5. **Using `associateBy` when you need all items.** It keeps only the last.
+6. **Joining fields into a `String` key without a separator.** `"1" + "23"` and `"12" + "3"` are both `"123"`. Use `"1,23"`.
 
-#### 10. When to Use / When Not to Use
+#### 6. Say This in the Interview
 
-**Use when:**
+1. "My key is the number, and my value is its index."
+2. "I need to look up by X, so X is the key."
+3. "The value is a list, because several items can share a key."
 
-1. Every item has a natural label to look it up by.
+#### 7. Quick Check
 
-**Avoid when:**
+1. For "count how many times each word appears", what are the key and the value?
+2. For "group words that are anagrams", what is the value?
 
-1. There is no useful key. Use a list.
-2. Keys repeat and you need all of them. Use `key → list` (grouping).
+<details>
+<summary>Answers</summary>
 
-#### 11. Related Topics
+1. Key: the word. Value: the count (a number).
+2. A list of words.
 
-1. HashMap Fundamentals
-2. Grouping Pattern
-3. Mapping / Index Tracking
-4. HashMap with Custom Objects / Keys
+</details>
 
-#### 12. Interview Must Remember
+#### 8. Related LeetCode Questions
 
-1. **Key = what you search with. Value = what you need back.**
-2. Keys are unique; values can repeat.
-3. Value = list gives grouping. Value = count gives frequency.
-4. Say your key and value out loud before you code.
+| # | Question | Key → value |
+|---|---|---|
+| 1 | Two Sum (Easy) | number → index |
+| 242 | Valid Anagram (Easy) | letter → count |
+| 49 | Group Anagrams (Medium) | sorted letters → list of words |
+| 981 | Time Based Key-Value Store (Medium) | key → list of (time, value) |
+| 138 | Copy List with Random Pointer (Medium) | old node → new node |

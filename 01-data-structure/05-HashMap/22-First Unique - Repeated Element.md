@@ -1,72 +1,43 @@
 # First Unique / Repeated Element
 
-#### 1. Definition — Must Know
+#### 1. What Is It?
 
-1. **First unique element:** the first value (by position) that appears **exactly once**.
-2. **First repeated element:** the first value that shows up **a second time** while scanning left to right.
-3. They are different questions and need different approaches:
-   - first unique → **count everything first**, then scan in order,
-   - first repeated → **one pass** with a set.
+Two questions that sound alike but need different methods:
 
-#### 2. Why It Is Used — Must Know
+| Question | Meaning | Method |
+|---|---|---|
+| **First unique** | the first item (by position) that appears **exactly once** | **count everything first**, then scan in the original order |
+| **First repeated** | the first item that shows up **a second time** while you scan | **one pass** with a set |
 
-1. They test the difference between "count first" and "check as you go".
-2. *First Unique Character in a String* (LeetCode 387) is a very common easy question.
-3. The streaming version (first unique in a stream) shows how to keep order with a queue.
+Why "unique" needs two passes: you cannot know that an item is unique until you have seen the whole input.
 
-#### 3. How It Works — Must Know
+*First Unique Character in a String* (LeetCode 387) is a very common easy question.
 
-`s = "loveleetcode"`
+#### 2. How It Works
 
-**First unique character**
+**First unique** in `"loveleetcode"`:
 
 ```text
-Pass 1: count      l:2  o:2  v:1  e:4  t:1  c:1  d:1
-Pass 2: scan in order and stop at the first letter with count 1
-        l(2) no, o(2) no, v(1) YES → index 2
+Pass 1: count        l:2  o:2  v:1  e:4  t:1  c:1  d:1
+Pass 2: scan in the original order, stop at the first letter with count 1
+        l(2) no,  o(2) no,  v(1) YES → index 2
 ```
 
-**First repeated character**
+**First repeated** in `"abcdbe"`:
 
 ```text
-s = "abcdbe"
-a → add (new)  b → add  c → add  d → add  b → add returns false → 'b' is the first repeated
+a → add (new)    b → add    c → add    d → add
+b → add returns false → b is the first repeated character
 ```
 
-Why two passes for "unique"? You cannot know a letter is unique until you have seen the whole string.
+Important: a map has **no input order**. Scan the **input** (not the map) to find the first unique. Or use a `LinkedHashMap`, which keeps insertion order.
 
-#### 4. Core Concepts — Must Know
+**First unique in a stream** (items arrive one at a time): keep a count map **and** a queue of candidates. When asked, remove from the front of the queue while the front is no longer unique.
 
-1. **First unique = count, then scan the original order.** The map has no order; the original string/array gives the order.
-2. **First repeated = set.** `add` returns `false` at the first repeat.
-3. **`LinkedHashMap` keeps insertion order**, so you can find the first entry with count 1 without a second pass over the input (but scanning the entries costs `O(u)`).
-4. **Store the index** (`value → first index`, or `-1` after a repeat) to find the unique one with the smallest index.
-5. **Streams:** keep a queue of candidates and discard from the front while the front is no longer unique (lazy deletion).
-6. **Small alphabet:** use `IntArray(26)` for counts.
-
-| Question | Approach |
-|---|---|
-| First unique (array/string known up front) | count, then scan in order |
-| First repeated | set, one pass |
-| First unique in a stream | counts map + queue |
-| First non-repeating by index with one pass | `value → index`, mark repeats as `-1`, take the minimum index at the end |
-
-#### 5. Algorithm — Must Know
-
-```text
-First unique:
-  count each item
-  for each item in the original order: if count == 1 → return it
-
-First repeated:
-  seen = empty set
-  for each item: if seen.add(item) is false → return it
-```
-
-#### 6. Kotlin Implementation — Must Know
+#### 3. Kotlin Code
 
 ```kotlin
-// First Unique Character in a String — returns the index, or -1
+// First Unique Character in a String: returns the index, or -1
 fun firstUniqChar(s: String): Int {
     val count = IntArray(26)
     for (c in s) count[c - 'a']++
@@ -76,7 +47,7 @@ fun firstUniqChar(s: String): Int {
     return -1
 }
 
-// First unique value in an array, any integers
+// First unique number in an array (any integers)
 fun firstUnique(nums: IntArray): Int? {
     val count = HashMap<Int, Int>()
     for (n in nums) count[n] = (count[n] ?: 0) + 1
@@ -90,7 +61,7 @@ fun firstRepeated(nums: IntArray): Int? {
     return null
 }
 
-// First unique in a stream (like LeetCode 1429, premium)
+// First unique in a stream (LeetCode 1429, premium)
 class FirstUnique {
     private val count = HashMap<Int, Int>()
     private val queue = ArrayDeque<Int>()
@@ -101,7 +72,7 @@ class FirstUnique {
     }
 
     fun showFirstUnique(): Int {
-        // lazy deletion: drop front values that became non-unique
+        // drop front values that are no longer unique
         while (queue.isNotEmpty() && count.getValue(queue.first()) > 1) queue.removeFirst()
         return if (queue.isEmpty()) -1 else queue.first()
     }
@@ -110,59 +81,48 @@ class FirstUnique {
 
 Checks: `firstUniqChar("leetcode")` → `0`. `firstUniqChar("loveleetcode")` → `2`. `firstUniqChar("aabb")` → `-1`.
 
-#### 7. Time & Space Complexity — Must Know
+#### 4. Complexity
 
 | Task | Time | Space |
-|---|---:|---:|
-| First unique, two passes | `O(n)` | `O(u)` (`O(1)` for 26 letters) |
-| First repeated, set | `O(n)` | `O(u)` |
-| Stream `add` | `O(1)` | `O(u)` |
-| Stream `showFirstUnique` | `O(1)` amortized | — |
+|---|---|---|
+| First unique (two passes) | `O(n)` | `O(u)` (`O(1)` for 26 letters) |
+| First repeated | `O(n)` | `O(u)` |
+| Stream: `add` / `showFirstUnique` | `O(1)` / `O(1)` on average | `O(u)` |
 
-#### 8. Common Patterns — Must Know
+#### 5. Common Mistakes
 
-1. **First Unique Character in a String** (LeetCode 387).
-2. **First Unique Number in a stream** (LeetCode 1429, premium).
-3. **First Letter to Appear Twice** (LeetCode 2351) — first repeated, set.
-4. **Find the first duplicate** in an array — set.
-5. **Single Number** (LeetCode 136) — XOR is the `O(1)` space answer.
-6. **Remove all adjacent duplicates** — stack, not a map.
-7. **Android example:** show the first notification type that has only one unread message.
+1. **Trying to find the first unique in one pass** without counts.
+2. **Looping over the map** and expecting the input order. Loop over the input.
+3. **Mixing up** "first repeated" (second occurrence comes first) with "first element that has a duplicate". In `[2, 1, 1, 2]` the first repeated is `1`, but the first element with a duplicate is `2`.
+4. **Returning the value when the index is asked** (or the reverse).
+5. **No unique item.** Return `-1` or `null`.
+6. **Stream version:** leaving non-unique values at the front of the queue.
 
-#### 9. Edge Cases / Common Mistakes
+#### 6. Say This in the Interview
 
-1. Trying to find the first unique in one pass without counts.
-2. Looping over the **map** to find the first unique and expecting the input order. Loop over the input instead (or use `LinkedHashMap`).
-3. Confusing "first repeated" (second occurrence appears first) with "first element that has a duplicate". Example: `[2, 1, 1, 2]` — the first repeated by second occurrence is `1`; the first element that has a duplicate is `2`.
-4. Returning the value when the index is wanted, or the reverse.
-5. No unique value: return `-1` / `null`.
-6. Stream version: leaving non-unique values at the front of the queue.
-7. Counting in a `HashMap` when a 26-slot array is enough.
+1. "To find the first unique I count every item, then scan the input in order and return the first with count 1. That is `O(n)`."
+2. "For the first repeated item, a set and one pass is enough."
+3. "For a stream I keep counts plus a queue of candidates and remove non-unique ones from the front when asked."
 
-#### 10. When to Use / When Not to Use
+#### 7. Quick Check
 
-**Use the count + scan when:**
+1. What is the first unique character of `"aabbcd"`?
+2. What is the first repeated character of `"abcba"`?
 
-1. All data is available and you need the first unique.
+<details>
+<summary>Answers</summary>
 
-**Use the set when:**
+1. `c` (index 4).
+2. `b`. The second `b` appears before the second `a`.
 
-1. You need the first repeated element.
+</details>
 
-**Use the queue + map when:**
+#### 8. Related LeetCode Questions
 
-1. Data arrives as a stream and you must answer at any moment.
-
-#### 11. Related Topics
-
-1. Frequency Counting
-2. Duplicate Detection
-3. Character / String Frequency Problems
-4. Queue (`01-data-structure/04-Queue`)
-
-#### 12. Interview Must Remember
-
-1. **First unique → count first, then scan in the original order.**
-2. **First repeated → set, one pass.**
-3. Stream: map of counts + queue, drop non-unique fronts lazily.
-4. A map has no input order; use the input (or a `LinkedHashMap`) for order.
+| # | Question | Idea |
+|---|---|---|
+| 387 | First Unique Character in a String (Easy) | count, then scan |
+| 2351 | First Letter to Appear Twice (Easy) | first repeated, set |
+| 1429 | First Unique Number (Medium, premium) | counts + queue |
+| 136 | Single Number (Easy) | XOR gives `O(1)` space |
+| 217 | Contains Duplicate (Easy) | any repeat |

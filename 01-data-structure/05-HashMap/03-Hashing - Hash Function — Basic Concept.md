@@ -1,140 +1,114 @@
 # Hashing / Hash Function — Basic Concept
 
-#### 1. Definition — Must Know
+> Keep this at a basic level. Interviews ask the idea, not the maths.
 
-1. **Hashing** turns a key into a **number** (the **hash code**). That number picks the bucket where the entry is stored.
-2. A **hash function** is the rule that makes this number. In Kotlin/Java it is `hashCode()`.
-3. A good hash function is **fast**, **consistent** (same key → same number), and **spreads keys evenly**.
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+**Hashing** turns a key into a **number** called the **hash code**. The map uses that number to pick the **bucket** where the pair is stored.
 
-1. It lets a map jump straight to the right bucket instead of scanning every entry.
-2. This is the reason `get` and `put` are `O(1)` on average.
-3. Interviewers ask about it to check you know why `equals()` and `hashCode()` must match.
+A **hash function** is the rule that makes the number. In Kotlin and Java it is the `hashCode()` method.
 
-#### 3. How It Works — Must Know
+A good hash function is:
+
+- **fast**,
+- **consistent**: the same key always gives the same number,
+- **spread out**: different keys usually give different numbers.
+
+#### 2. How It Works
 
 ```text
 key "abc"
-   ↓ hashCode()              96354       (a number)
-   ↓ spread the bits         96354 XOR (96354 >>> 16) = 96355
-   ↓ keep the low bits       96355 AND (tableSize - 1)      tableSize = 16 → 3
-bucket 3
+   ↓ hashCode()                    96354          (a number)
+   ↓ mix the bits, keep the low part
+   ↓ with a table of 16 buckets    bucket 3
 ```
 
-`String.hashCode()` rule: `s[0]·31^(n−1) + s[1]·31^(n−2) + … + s[n−1]`.
+How `String.hashCode()` works: `s[0]·31^(n−1) + s[1]·31^(n−2) + … + s[n−1]`.
 
 ```text
 "abc" = 97·31² + 98·31 + 99 = 93217 + 3038 + 99 = 96354
 ```
 
-Why `AND (size − 1)`? Java keeps the table size as a **power of 2**, so this is a fast replacement for `% size`.
+**The most important rule (asked in interviews):**
 
-#### 4. Core Concepts — Must Know
+> If two keys are **equal** (`equals()`), they **must** have the **same** hash code.
 
-1. **Same key → same hash**, every time in one run. If the key changes, the hash may change.
-2. **Equal keys → equal hashes** (the contract). The opposite is not required: different keys *may* share a hash.
-3. **Different keys with the same hash = collision** (see "Collision Handling").
-4. **Built-in hashes:**
+The reverse is not required. Two different keys *may* share a hash code. That is a **collision** (next note).
+
+Hash codes of common types:
 
 | Type | Hash code |
 |---|---|
 | `Int` | the number itself |
-| `Long` | `(v xor (v ushr 32)).toInt()` |
 | `Char` | its code |
-| `Boolean` | `1231` / `1237` |
-| `String` | polynomial with 31 (above) |
-| `List` | combines the hashes of items |
-| `Pair`, `data class` | combines the hashes of fields |
+| `String` | the formula above |
+| `List`, `Pair`, `data class` | built from the hash codes of the contents |
+| `IntArray`, `Array` | identity based. **Two arrays with the same content have different hash codes.** |
 
-5. **Arrays use identity hashes.** Two arrays with the same content have different hashes. Use `contentHashCode()` if you need content hashing, or use a `List`.
-6. **Hashes can be negative.** Never use `hash % n` as an index without fixing the sign (`and 0x7fffffff` or `Math.floorMod`).
-7. **Good hash:** spreads values evenly. **Bad hash:** `return 1` — every key in one bucket, so `O(n)` operations.
-
-#### 5. Algorithm — Must Know
-
-```text
-indexFor(key):
-    h = key.hashCode()
-    h = h XOR (h >>> 16)              // mix the high bits into the low bits
-    return h AND (tableSize - 1)      // table size is a power of two
-```
-
-#### 6. Kotlin Implementation — Must Know
+#### 3. Kotlin Code
 
 ```kotlin
-println("abc".hashCode())              // 96354
-println(42.hashCode())                 // 42
-println("Aa".hashCode())               // 2112
-println("BB".hashCode())               // 2112  — a collision: different strings, same hash
+println("abc".hashCode())                       // 96354
+println(42.hashCode())                          // 42
+println("Aa".hashCode() == "BB".hashCode())     // true: a collision
 
-println(listOf(1, 2).hashCode() == listOf(1, 2).hashCode())     // true
-println(intArrayOf(1, 2).hashCode() == intArrayOf(1, 2).hashCode()) // false (identity)
+println(listOf(1, 2).hashCode() == listOf(1, 2).hashCode())          // true
+println(intArrayOf(1, 2).hashCode() == intArrayOf(1, 2).hashCode())  // false (arrays use identity)
 println(intArrayOf(1, 2).contentHashCode() == intArrayOf(1, 2).contentHashCode()) // true
 
-// A correct custom hashCode
+// A custom key: equals and hashCode use the SAME fields
 class Point(val x: Int, val y: Int) {
     override fun equals(other: Any?) = other is Point && x == other.x && y == other.y
-    override fun hashCode(): Int = 31 * x + y          // uses the same fields as equals
+    override fun hashCode(): Int = 31 * x + y
 }
 
-// A safe bucket index for your own table
-fun bucketIndex(key: Any?, size: Int): Int = (key.hashCode() and 0x7fffffff) % size
+// Easier: a data class writes both for you
+data class Point2(val x: Int, val y: Int)
 ```
 
-`data class Point(val x: Int, val y: Int)` writes `equals` and `hashCode` for you.
+#### 4. Complexity
 
-#### 7. Time & Space Complexity — Must Know
-
-| Part | Cost |
+| Action | Time |
 |---|---|
-| Computing an `Int` hash | `O(1)` |
-| Computing a `String` hash | `O(length)` (Java caches it after the first call) |
-| Computing a `List` hash | `O(size)` |
-| Finding the bucket | `O(1)` |
+| Hash of an `Int` | `O(1)` |
+| Hash of a `String` of length `L` | `O(L)` (Java remembers it after the first time) |
+| Hash of a `List` of size `L` | `O(L)` |
 
 A long key makes every map operation slower, because hashing and comparing read the whole key.
 
-#### 8. Common Hashing Ideas — Must Know
+#### 5. Common Mistakes
 
-1. **Hash a key to find a bucket** — the core of HashMap and HashSet.
-2. **Build a good composite key** (a `Pair`, a `data class`, or a joined `String`).
-3. **Rolling hash** (Rabin–Karp) — update a substring hash in `O(1)` as the window slides (`02-algorithm/08-String Algorithms`).
-4. **Hash for equality checks** — equal hashes are a quick reason to compare; different hashes mean "not equal" for sure.
-5. **Not for security.** `hashCode()` is not a cryptographic hash.
+1. **Writing `equals()` but not `hashCode()`** (or the opposite). The map then loses keys.
+2. **Using different fields** in `equals` and `hashCode`.
+3. **Using an array as a key.** Use a `List`, a `String`, or a `data class`.
+4. **Changing a key** after it is in the map. Its hash code changes, and the map can no longer find it.
+5. **Thinking different keys always have different hash codes.** They do not.
+6. **Using `hash % size` with a negative hash.** The index can be negative. Use `and 0x7fffffff` first.
 
-#### 9. Edge Cases / Common Mistakes
+#### 6. Say This in the Interview
 
-1. Overriding `equals()` but not `hashCode()` (or the reverse).
-2. Using fields in `hashCode` that are not in `equals`, or fields that change.
-3. `hash % n` with a negative hash gives a negative index.
-4. Expecting the same `hashCode()` across different runs or JVMs. Only equality inside one run is promised.
-5. Using an array as a key.
-6. Hashing a very long string again and again. Cache the result if it is needed repeatedly.
-7. Thinking different keys always have different hashes. They do not.
+1. "The hash code picks the bucket. `equals()` then finds the exact key inside the bucket."
+2. "Equal keys must have equal hash codes. In Kotlin a `data class` gives me both."
+3. "I avoid arrays as keys because they use identity hash codes."
 
-#### 10. When to Use / When Not to Use
+#### 7. Quick Check
 
-**Think about the hash when:**
+1. If `a.equals(b)` is true, what must be true about their hash codes?
+2. Why can't an `IntArray` be a good map key?
 
-1. You write a custom class that will be a map key or set item.
-2. You explain why map lookup is fast.
+<details>
+<summary>Answers</summary>
 
-**Do not:**
+1. They must be equal.
+2. Two arrays with the same content have different hash codes and are not `equals`, so a lookup with a new array never finds the old one.
 
-1. Write your own hash function in interviews unless asked. Use the built-in ones.
-2. Use `hashCode()` for security (passwords, tokens).
+</details>
 
-#### 11. Related Topics
+#### 8. Related LeetCode Questions
 
-1. Collision Handling — Basic Concept
-2. HashMap with Custom Objects / Keys
-3. Designing a Simple HashMap — Concept
-4. String Algorithms — rolling hash (`02-algorithm/08-String Algorithms`)
-
-#### 12. Interview Must Remember
-
-1. **Hash code → bucket index → compare with `equals()`.**
-2. **Equal keys must have equal hash codes.**
-3. Different keys can share a hash (a collision). That is allowed.
-4. Arrays hash by identity. Use `List` or `contentHashCode()`.
+| # | Question | Idea |
+|---|---|---|
+| 706 | Design HashMap (Easy) | build buckets with a hash function (note 26) |
+| 705 | Design HashSet (Easy) | same idea |
+| 49 | Group Anagrams (Medium) | a good key (sorted letters) |
+| 187 | Repeated DNA Sequences (Medium) | hash of a substring |

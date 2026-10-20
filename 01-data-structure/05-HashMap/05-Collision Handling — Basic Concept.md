@@ -1,151 +1,120 @@
 # Collision Handling — Basic Concept
 
-#### 1. Definition — Must Know
+> A basic idea. Interviewers ask "what happens when two keys collide?". Give a short, correct answer.
 
-1. A **collision** happens when two different keys get the **same bucket**.
-2. **Collision handling** is how the map still stores and finds both.
-3. Java's `HashMap` uses **chaining**: each bucket holds a small list (and, if it grows too long, a balanced tree).
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+A **collision** happens when two different keys get the **same bucket**.
 
-1. Collisions are unavoidable. There are far more possible keys than buckets.
-2. Interviewers ask "what happens when two keys collide?". You need a short, correct answer.
-3. It explains why a bad `hashCode()` makes a map slow.
+It is unavoidable: there are far more possible keys than buckets. A good HashMap still stores and finds both keys correctly.
 
-#### 3. How It Works — Must Know
+Java's `HashMap` uses **chaining**: each bucket holds a small **list** of pairs. If one bucket gets too long (8 or more pairs), Java turns it into a balanced **tree**, so even a bad bucket stays fast.
 
-`"Aa"` and `"BB"` both have `hashCode()` `2112`, so they share a bucket.
+#### 2. How It Works
+
+`"Aa"` and `"BB"` have the **same** hash code (`2112`), so they share a bucket.
 
 ```text
-bucket 0:  -
-bucket 1:  -
-bucket 2:  -
-bucket 3:  -
-bucket 4:  [ "Aa" → 1 ]  →  [ "BB" → 2 ]       ← chain of two entries
-bucket 5:  -
-```
+bucket 3:  (empty)
+bucket 4:  [ "Aa" → 1 ] → [ "BB" → 2 ]       ← a chain of two pairs
+bucket 5:  (empty)
 
-```text
 get("BB"):
    1. hash "BB" → bucket 4
-   2. walk the chain: "Aa".equals("BB")? no  →  "BB".equals("BB")? yes → return 2
+   2. walk the chain: "Aa".equals("BB")? no.  "BB".equals("BB")? yes → return 2
 ```
 
-That is why `equals()` is always checked: the hash only finds the bucket, `equals()` finds the exact key.
+This is why `equals()` is always checked: the hash only finds the **bucket**, and `equals()` finds the **exact key**.
 
-#### 4. Core Concepts — Must Know
-
-1. **Chaining (separate chaining):** each bucket stores a list of entries. Java's `HashMap` uses this.
-2. **Treeification (Java 8+):** if one bucket gets 8 or more entries (and the table has at least 64 buckets), the chain becomes a balanced tree. The worst case drops from `O(n)` to about `O(log n)`.
-3. **Load factor:** default `0.75`. When `size > capacity × 0.75`, the table doubles and entries are spread out again, which keeps chains short.
-4. **Open addressing:** another approach — if the bucket is taken, probe the next free slot (linear, quadratic, double hashing). Java's `HashMap` does not use it. (Low priority.)
-5. **Quality of hashCode:** a good hash spreads keys evenly, so most chains have 0–2 entries.
+Two ways to handle collisions:
 
 | Method | Idea | Used by |
 |---|---|---|
-| Chaining | Bucket = list/tree of entries | Java `HashMap`, `HashSet` |
-| Open addressing | Probe for the next free slot | Some other languages / custom tables |
+| **Chaining** | each bucket holds a list (or tree) | Java `HashMap`, `HashSet` |
+| **Open addressing** | if the bucket is taken, probe the next free slot | some other languages (not needed for interviews) |
 
-#### 5. Algorithm — Must Know
+**Load factor:** Java doubles the table when it is 75% full. This keeps the chains short.
 
-```text
-put(key, value):
-    i = bucketIndex(key)
-    for each entry in bucket[i]:
-        if entry.key equals key: replace value; return
-    add new entry to bucket[i]
-    size++
-    if size > capacity * 0.75: resize (double and re-place all entries)
-```
-
-#### 6. Kotlin Implementation — Must Know
+#### 3. Kotlin Code
 
 ```kotlin
-// Two different keys with the same hash still work correctly in a HashMap
+// Two different keys with the same hash code still work
 val map = HashMap<String, Int>()
 map["Aa"] = 1
 map["BB"] = 2
-println("Aa".hashCode() == "BB".hashCode())    // true — a collision
-println(map["Aa"])                              // 1
-println(map["BB"])                              // 2
+println("Aa".hashCode() == "BB".hashCode())     // true: a collision
+println(map["Aa"])                               // 1
+println(map["BB"])                               // 2
 
-// A deliberately bad hash — still correct, but slow
+// A deliberately bad hash: correct, but slow
 class BadKey(val id: Int) {
     override fun equals(other: Any?) = other is BadKey && id == other.id
-    override fun hashCode(): Int = 1            // every key collides
+    override fun hashCode(): Int = 1             // every key lands in the same bucket
 }
 val slow = HashMap<BadKey, Int>()
 for (i in 0 until 5) slow[BadKey(i)] = i
-println(slow[BadKey(3)])                        // 3 — found, but by scanning the chain
+println(slow[BadKey(3)])                         // 3: found by walking the chain
 ```
 
-A tiny chaining table (the idea only):
+A tiny chaining table (to show the idea):
 
 ```kotlin
 class ChainTable(private val size: Int = 8) {
     private val buckets = Array(size) { mutableListOf<Pair<String, Int>>() }
 
+    private fun index(key: String) = (key.hashCode() and 0x7fffffff) % size
+
     fun put(key: String, value: Int) {
-        val bucket = buckets[(key.hashCode() and 0x7fffffff) % size]
-        val index = bucket.indexOfFirst { it.first == key }
-        if (index >= 0) bucket[index] = key to value else bucket.add(key to value)
+        val bucket = buckets[index(key)]
+        val i = bucket.indexOfFirst { it.first == key }
+        if (i >= 0) bucket[i] = key to value else bucket.add(key to value)
     }
 
     fun get(key: String): Int? =
-        buckets[(key.hashCode() and 0x7fffffff) % size].firstOrNull { it.first == key }?.second
+        buckets[index(key)].firstOrNull { it.first == key }?.second
 }
 ```
 
-#### 7. Time & Space Complexity — Must Know
+#### 4. Complexity
 
 | Case | Time per operation |
-|---|---:|
-| Good hash, load factor ≤ 0.75 | `O(1)` average |
-| All keys in one bucket, chain list | `O(n)` |
-| All keys in one bucket, Java tree bucket | `O(log n)` |
-| Resize | `O(n)`, but rare (amortized `O(1)`) |
+|---|---|
+| Good hash, short chains | `O(1)` on average |
+| All keys in one bucket (chain) | `O(n)` |
+| All keys in one bucket (Java tree bucket) | `O(log n)` |
+| Resize | `O(n)`, but rare |
 
-Space: `O(n)` entries plus the bucket array.
+#### 5. Common Mistakes
 
-#### 8. Common Collision Ideas — Must Know
+1. **Thinking a collision loses data.** It does not. Both pairs are kept.
+2. **Thinking equal hash codes mean equal keys.** They do not.
+3. **Writing `hashCode()` that returns a constant.** It is legal but makes the map slow.
+4. **Using different fields** in `equals` and `hashCode`.
+5. **Saying the worst case is always `O(n)`.** In Java 8+ it is about `O(log n)`.
 
-1. **Chaining** — default in Java.
-2. **Treeify long chains** — Java 8+.
-3. **Resize on load factor** — keeps chains short.
-4. **Equal hash ≠ equal key** — always compare with `equals()`.
-5. **Hash-flooding attacks:** an attacker sends many keys with the same hash to slow a server. Treeifying reduces the damage. (Background only.)
+#### 6. Say This in the Interview
 
-#### 9. Edge Cases / Common Mistakes
+1. "Two keys can land in the same bucket. Java chains them in a list, or a tree if the list gets long."
+2. "The hash picks the bucket. `equals()` finds the exact key."
+3. "Resizing at a load factor of 0.75 keeps the chains short, so operations are `O(1)` on average."
 
-1. Thinking a collision loses data. It does not; both entries are kept.
-2. Thinking equal hash codes mean equal keys.
-3. Writing `hashCode()` that returns a constant. It is legal but makes the map slow.
-4. Writing `hashCode()` with different fields than `equals()`.
-5. Forgetting that keys must not change while in the map; the entry would sit in the wrong bucket.
-6. Saying the worst case is always `O(n)`. In modern Java it is `O(log n)` for comparable keys.
-7. Explaining collisions with too much theory. A short chain example is enough.
+#### 7. Quick Check
 
-#### 10. When to Use / When Not to Use
+1. If two keys collide, are both stored?
+2. Why does `get` still call `equals()`?
 
-**Know this when:**
+<details>
+<summary>Answers</summary>
 
-1. You explain how `HashMap` works.
-2. You design a custom key class.
+1. Yes. They sit in the same bucket, in a chain.
+2. Several keys can be in one bucket. `equals()` tells which one is the key you asked for.
 
-**Skip deep details when:**
+</details>
 
-1. The question is about solving a coding problem, not about implementing a map.
+#### 8. Related LeetCode Questions
 
-#### 11. Related Topics
-
-1. Hashing / Hash Function — Basic Concept
-2. Designing a Simple HashMap — Concept
-3. HashMap with Custom Objects / Keys
-4. HashSet Fundamentals (`01-data-structure/06-HashSet`)
-
-#### 12. Interview Must Remember
-
-1. **Collision = two keys, one bucket.** Java uses **chaining**.
-2. Long chains become **trees** (Java 8+).
-3. Resize at load factor `0.75` keeps chains short.
-4. The hash finds the bucket; **`equals()` finds the key.**
+| # | Question | Idea |
+|---|---|---|
+| 706 | Design HashMap (Easy) | buckets with chaining (note 26) |
+| 705 | Design HashSet (Easy) | same idea |
+| 49 | Group Anagrams (Medium) | choose a key that avoids unwanted collisions |

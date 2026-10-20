@@ -1,147 +1,170 @@
 # HashMap Fundamentals
 
-#### 1. Definition — Must Know
+> Start here. HashMap is the most used data structure in coding interviews. Read this note slowly once.
 
-1. A **HashMap** stores **key → value** pairs and finds a value by its key in **`O(1)` on average**.
-2. Each **key is unique**. Putting a value under an existing key **replaces** the old value.
-3. It has **no index** and **no guaranteed order**. You ask "what goes with this key?", not "what is at position 3?".
-4. In Kotlin/JVM, `HashMap<K, V>` (and `hashMapOf(...)`) is `java.util.HashMap`.
+#### 1. What Is a HashMap?
 
-#### 2. Why It Is Used — Must Know
+A **HashMap** stores **key → value** pairs, and finds a value by its key **very fast**.
 
-1. **Fast lookup by key:** id → user, word → count, value → index.
-2. **Counting:** how many times does each item appear?
-3. **Grouping:** put related items under one key.
-4. It turns many `O(n²)` solutions (nested loops) into `O(n)`. It is the most used data structure in coding interviews.
+Think of a phone book: you look up a **name** (the key) and get a **number** (the value). You do not read every page.
 
-#### 3. How It Works — Must Know
+Rules:
 
-```text
-key  →  hashCode()  →  bucket index  →  look inside that bucket, compare keys with equals()
+- Each **key is unique**. Adding a value under an existing key **replaces** the old value.
+- Values can repeat.
+- A HashMap has **no index** and **no guaranteed order**.
 
-put("apple", 3):   hash("apple") → bucket 5 → empty → store ("apple" → 3)
-put("pear", 7):    hash("pear")  → bucket 9 → empty → store ("pear" → 7)
-get("apple"):      hash("apple") → bucket 5 → key matches → return 3
-put("apple", 9):   hash("apple") → bucket 5 → key matches → replace value 3 with 9
-```
+#### 2. Words You Must Know
 
-```text
-bucket 5: ("apple" → 9)
-bucket 9: ("pear"  → 7)
-```
+| Word | Meaning |
+|---|---|
+| **Key** | what you search with |
+| **Value** | the data stored for that key |
+| **Put** | add or replace a pair |
+| **Get** | find the value for a key |
+| **Hash code** | a number made from the key. It decides where the pair is stored. |
+| **Bucket** | a slot in the table where pairs are stored |
+| **`O(1)`** | the work stays the same however big the map is (fast) |
 
-If two keys land in the same bucket (a **collision**), the bucket holds a small chain of entries. Java's `HashMap` starts with 16 buckets and doubles them when 75% full.
-
-#### 4. Core Concepts — Must Know
-
-1. **Key + value.** The key is used to find. The value is the data you want.
-2. **Keys need `equals()` and `hashCode()`** that agree. Strings, numbers, `Pair`, `List` and data classes are safe keys.
-3. **`get` returns `V?`** (null when the key is missing). Handle it.
-4. **Kotlin map types:**
-
-| Type | Order | Speed | Use when |
-|---|---|---|---|
-| `HashMap` / `hashMapOf()` | none | `O(1)` avg | Most interview problems |
-| `LinkedHashMap` / `mutableMapOf()` | insertion order | `O(1)` avg | You need the original order |
-| `TreeMap` / `sortedMapOf()` | sorted by key | `O(log n)` | Sorted keys, floor/ceiling |
-| `mapOf()` | insertion order | `O(1)` avg | Read-only map |
-
-5. **`mutableMapOf()` is a `LinkedHashMap`**, not a plain `HashMap`.
-6. A `HashMap` allows **one `null` key** and null values. Avoid them.
-
-#### 5. Algorithm — Must Know
-
-The usual shape of a HashMap solution:
+#### 3. How It Works
 
 ```text
-map = empty
-for each item:
-    look up something about it in the map   (a count, an index, a group)
-    use or update that information
-    store the item's own information in the map
+key → hashCode() → bucket number → look inside that bucket, compare keys with equals()
+
+put("apple", 3):  hash → bucket 5 → empty → store ("apple" → 3)
+put("pear", 7):   hash → bucket 9 → empty → store ("pear" → 7)
+get("apple"):     hash → bucket 5 → key matches → return 3
+put("apple", 9):  hash → bucket 5 → key matches → replace 3 with 9
 ```
 
-#### 6. Kotlin Implementation — Must Know
+The hash code jumps straight to the right bucket, so you never scan all the pairs. That is why `get` and `put` are `O(1)` on average.
+
+Java's `HashMap` starts with 16 buckets and doubles them when it is 75% full.
+
+#### 4. Kotlin Code
 
 ```kotlin
-val map = HashMap<String, Int>()            // empty
-val ages = hashMapOf("Asha" to 30, "Ben" to 25)
+val map = HashMap<String, Int>()          // empty map: String keys, Int values
 
-map["apple"] = 3                            // put
-map["apple"] = 9                            // update (replaces)
-println(map["apple"])                       // 9
-println(map["kiwi"])                        // null (missing key)
-println(map.getOrDefault("kiwi", 0))        // 0
-println("apple" in map)                     // true  — same as containsKey
+map["apple"] = 3                           // put
+map["apple"] = 9                           // same key: the value is replaced
+println(map["apple"])                      // 9
+println(map["kiwi"])                       // null: the key is missing
+println(map.getOrDefault("kiwi", 0))       // 0: a default for a missing key
+println("apple" in map)                    // true: does the key exist?
 map.remove("apple")
-println(map.size)                           // 0
+println(map.size)                          // 0
 
-for ((key, value) in ages) println("$key -> $value")    // order not guaranteed
+val ages = hashMapOf("Asha" to 30, "Ben" to 25)
+for ((name, age) in ages) println("$name is $age")     // the order is not guaranteed
 ```
 
-Count with a map (the most common use):
+The most common use, **counting**:
 
 ```kotlin
 val counts = HashMap<Char, Int>()
 for (c in "banana") counts[c] = (counts[c] ?: 0) + 1
-println(counts)                             // {a=3, b=1, n=2}
+println(counts)                            // {a=3, b=1, n=2}
 ```
 
-#### 7. Time & Space Complexity — Must Know
+`map[key]` gives `Int?` (nullable), so `counts[c]++` does not compile. Write `(counts[c] ?: 0) + 1`.
 
-| Operation | Average | Worst |
-|---|---:|---:|
-| `put` | `O(1)` | `O(n)`* |
-| `get` | `O(1)` | `O(n)`* |
-| `remove` | `O(1)` | `O(n)`* |
-| `containsKey` | `O(1)` | `O(n)`* |
-| `containsValue` | `O(n)` | `O(n)` |
-| Iterate all | `O(n + capacity)` | — |
-| Space | `O(n)` | — |
+#### 5. Which Map to Use
 
-\*Worst case happens only with very bad hashing. Modern Java turns long chains into trees, so it is rare. Say "`O(1)` average" in interviews.
+| Type | Order | Speed | Use when |
+|---|---|---|---|
+| `HashMap` / `hashMapOf()` | none | `O(1)` | most interview problems |
+| `LinkedHashMap` / `mutableMapOf()` | insertion order | `O(1)` | you need the original order |
+| `TreeMap` / `sortedMapOf()` | sorted by key | `O(log n)` | you need sorted keys, floor/ceiling |
+| `mapOf()` | insertion order | `O(1)` | read-only |
 
-#### 8. Common HashMap Patterns — Must Know
+Note: `mutableMapOf()` gives a `LinkedHashMap`, not a plain `HashMap`.
 
-1. **Frequency counting** — `value → count`.
-2. **Lookup / existence** — `id → object`.
-3. **Two Sum** — `value → index`.
-4. **Grouping** — `key → list of items`.
-5. **Prefix sum + map** — `prefix → count or first index`.
-6. **Cache** — `key → cached value` (LRU with a linked list).
+#### 6. How to Spot a HashMap Problem
 
-#### 9. Edge Cases / Common Mistakes
+| If the question says... | Think... |
+|---|---|
+| "how many times", "most frequent" | count with a map |
+| "find two numbers that add to...", "have I seen this?" | store what you saw |
+| "group by...", "anagrams" | `key → list` |
+| "subarray with sum k" | prefix sum + map |
+| "longest substring with..." | window + count map |
+| "cache", "least recently used" | map + linked list |
+| the brute force has two nested loops | try to replace one loop with a map lookup |
 
-1. Forgetting that `map[key]` can be `null`. Use `?: 0`, `getOrDefault`, or `getOrPut`.
-2. Writing `map[key]++` on a `HashMap<K, Int>`. It does not compile because `get` returns a nullable.
-3. Expecting insertion order from a `HashMap`.
-4. Using arrays as keys. They compare by reference.
-5. Changing a key object after it is in the map.
-6. Using `containsValue` in a loop (`O(n)` each time).
-7. Using a map when a plain array would be faster (small integer keys or 26 letters).
+#### 7. Complexity
 
-#### 10. When to Use / When Not to Use
+| Action | Average time |
+|---|---|
+| `put`, `get`, `remove`, `containsKey` | `O(1)` |
+| `containsValue` | `O(n)` |
+| Memory for `n` pairs | `O(n)` |
 
-**Use when:**
+Say "`O(1)` on average". In the very worst case (many keys in one bucket) it is slower, but modern Java handles that well.
 
-1. You need to find, count, or group by a key quickly.
+#### 8. Common Mistakes
 
-**Avoid when:**
+1. **Forgetting that `map[key]` can be `null`.** Use `?: 0`, `getOrDefault` or `getOrPut`.
+2. **Writing `map[key]++`.** It does not compile. Use `map[key] = (map[key] ?: 0) + 1`.
+3. **Expecting insertion order** from a `HashMap`. Use `LinkedHashMap` for that.
+4. **Using an array as a key.** Arrays compare by reference, so lookups fail. Use a `List`, `String` or `data class`.
+5. **Changing a key** after putting it in the map.
 
-1. You only need existence. A `HashSet` is lighter.
-2. Keys are small integers in a known range. Use an array.
-3. You need sorted keys. Use a `TreeMap`.
+#### 9. Say This in the Interview
 
-#### 11. Related Topics
+1. "Brute force is `O(n²)`. With a HashMap I can look up in `O(1)`, so I get `O(n)` time and `O(n)` space."
+2. "My key is ... and my value is ..." (always say this out loud).
+3. "I handle the missing key with a default."
 
-1. Key-Value Pair Concept
-2. Hashing / Hash Function — Basic Concept
-3. HashMap Operations & Complexity
-4. HashSet (`01-data-structure/06-HashSet`)
+#### 10. Quick Check
 
-#### 12. Interview Must Remember
+1. What does `map["x"]` return if `"x"` is not in the map?
+2. What happens if you `put` the same key twice?
 
-1. **HashMap = key → value with `O(1)` average put/get/remove.**
-2. `get` returns a nullable. Use `?: 0` or `getOrDefault`.
-3. No order. `mutableMapOf()` is a `LinkedHashMap`.
-4. Keys need correct `equals()` and `hashCode()`.
+<details>
+<summary>Answers</summary>
+
+1. `null`.
+2. The old value is replaced by the new one. The map still has one pair for that key.
+
+</details>
+
+#### 11. Related LeetCode Questions (Often Asked)
+
+Solve them in this order. Search by title if a number looks wrong.
+
+**Start here — Easy**
+
+| # | Question | Main idea | Note |
+|---|---|---|---|
+| 1 | Two Sum | `value → index` | 08 |
+| 217 | Contains Duplicate | seen before? | 18 |
+| 242 | Valid Anagram | count letters | 06, 19 |
+| 387 | First Unique Character in a String | count, then scan | 22 |
+| 383 | Ransom Note | count letters | 06 |
+| 169 | Majority Element | count | 06 |
+
+**Most often asked — Medium**
+
+| # | Question | Main idea | Note |
+|---|---|---|---|
+| 49 | Group Anagrams | `sorted letters → words` | 20 |
+| 347 | Top K Frequent Elements | count, then heap | 06 |
+| 560 | Subarray Sum Equals K | prefix sum + map | 11 |
+| 3 | Longest Substring Without Repeating Characters | window + last index | 13 |
+| 438 | Find All Anagrams in a String | window of counts | 19 |
+| 146 | LRU Cache | map + doubly linked list | 25 |
+| 454 | 4Sum II | map of pair sums | 08 |
+| 523 | Continuous Subarray Sum | remainders in a map | 12 |
+| 525 | Contiguous Array | balance in a map | 12 |
+| 138 | Copy List with Random Pointer | old node → new node | 23 |
+
+**Hard — these separate strong candidates**
+
+| # | Question | Main idea | Note |
+|---|---|---|---|
+| 76 | Minimum Window Substring | window + count maps | 13 |
+| 992 | Subarrays with K Different Integers | `atMost(k) - atMost(k-1)` | 13 |
+| 460 | LFU Cache | map of frequency lists | 25 |
+
+**If you have little time, do these 8 first:** 1, 242, 49, 347, 560, 3, 146, 76.

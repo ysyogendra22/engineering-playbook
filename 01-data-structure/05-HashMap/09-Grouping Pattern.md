@@ -1,60 +1,39 @@
 # Grouping Pattern
 
-#### 1. Definition — Must Know
+#### 1. What Is It?
 
-1. The **grouping pattern** puts items that share a property under the **same key**.
-2. The map is `key → list of items`.
-3. The key is a value you compute from each item (its length, first letter, sorted letters, date, category).
+The **grouping pattern** puts items that share something under the **same key**.
 
-#### 2. Why It Is Used — Must Know
+The map is `key → list of items`. The key is a value you work out from each item: its length, first letter, sorted letters, date, category.
 
-1. It organizes data in one pass (`O(n)`) instead of repeated filtering.
-2. It is the base of Group Anagrams, bucket problems, and "section headers" in lists.
-3. In apps: group chat messages by date, contacts by first letter, products by category.
+It organises data in **one pass** (`O(n)`) instead of filtering again and again. In an Android app: group chat messages by date, contacts by first letter, products by category.
 
-#### 3. How It Works — Must Know
+#### 2. How It Works
 
 Group words by length: `["hi", "yo", "hello", "world", "ok"]`
 
 ```text
 key = word.length
 
-"hi"    → key 2   {2: [hi]}
-"yo"    → key 2   {2: [hi, yo]}
-"hello" → key 5   {2: [hi, yo], 5: [hello]}
-"world" → key 5   {2: [hi, yo], 5: [hello, world]}
-"ok"    → key 2   {2: [hi, yo, ok], 5: [hello, world]}
+"hi"     → key 2    {2: [hi]}
+"yo"     → key 2    {2: [hi, yo]}
+"hello"  → key 5    {2: [hi, yo], 5: [hello]}
+"world"  → key 5    {2: [hi, yo], 5: [hello, world]}
+"ok"     → key 2    {2: [hi, yo, ok], 5: [hello, world]}
 ```
 
-The important step: **if the key is new, create an empty list first**, then add the item. `getOrPut` does both.
+The important step: **if the key is new, create an empty list first**, then add the item. `getOrPut` does both in one call.
 
-#### 4. Core Concepts — Must Know
+Kotlin tools:
 
-1. **Choose the key.** The key is the "same group" rule.
-2. **`getOrPut(key) { mutableListOf() }.add(item)`** is the standard line.
-3. **`groupBy { key }`** does the whole job for a collection.
-4. **Group count only?** Use `groupingBy { key }.eachCount()` or a count map.
-5. **Group, then use:** sort inside groups, take the largest group, count groups (`map.size`).
-6. **Related Kotlin helpers:**
-
-| Helper | Result |
+| Tool | Result |
 |---|---|
-| `groupBy { key }` | `Map<K, List<T>>` (lists of all items) |
-| `associateBy { key }` | `Map<K, T>` (one item per key, the **last** wins) |
-| `groupingBy { key }.eachCount()` | `Map<K, Int>` |
-| `partition { condition }` | two lists (true / false) |
+| `groupBy { key }` | `Map<K, List<T>>` — all items for each key |
+| `associateBy { key }` | `Map<K, T>` — one item per key (the **last** one wins) |
+| `groupingBy { key }.eachCount()` | `Map<K, Int>` — only the counts |
+| `partition { condition }` | two lists: matching and not matching |
 
-#### 5. Algorithm — Must Know
-
-```text
-groups = empty map
-for each item:
-    key = computeKey(item)
-    groups[key] (create an empty list if missing).add(item)
-return groups
-```
-
-#### 6. Kotlin Implementation — Must Know
+#### 3. Kotlin Code
 
 ```kotlin
 // Manual grouping by length
@@ -66,82 +45,72 @@ fun groupByLength(words: List<String>): Map<Int, List<String>> {
     return groups
 }
 
-// Built-in
+// Built in
 val byLength = listOf("hi", "yo", "hello", "world", "ok").groupBy { it.length }
 // {2=[hi, yo, ok], 5=[hello, world]}
 
-// Group objects
+// Group objects (Android style: messages by date)
 data class Message(val date: String, val text: String)
 val messages = listOf(Message("Mon", "Hi"), Message("Tue", "Yo"), Message("Mon", "Bye"))
-val byDate = messages.groupBy { it.date }          // {Mon=[Hi, Bye], Tue=[Yo]}
-
-// Group and transform the values
+val byDate = messages.groupBy { it.date }                      // {Mon=[...2 messages], Tue=[...1]}
 val textsByDate = messages.groupBy({ it.date }, { it.text })   // {Mon=[Hi, Bye], Tue=[Yo]}
 
-// Group indices (Group the People Given the Group Size They Belong To — idea)
-fun groupIndicesByValue(nums: IntArray): Map<Int, List<Int>> {
+// Group indexes by value
+fun groupIndexesByValue(nums: IntArray): Map<Int, List<Int>> {
     val groups = HashMap<Int, MutableList<Int>>()
     for ((i, n) in nums.withIndex()) groups.getOrPut(n) { mutableListOf() }.add(i)
     return groups
 }
 
-// Largest group
-val biggest = byLength.maxByOrNull { it.value.size }?.key
+// The largest group
+val biggestKey = byLength.maxByOrNull { it.value.size }?.key
 ```
 
-#### 7. Time & Space Complexity — Must Know
+The most famous grouping question is **Group Anagrams** (note 20).
 
-| Part | Time | Space |
-|---|---:|---:|
+#### 4. Complexity
+
+| | Time | Space |
+|---|---|---|
 | Group `n` items with an `O(1)` key | `O(n)` | `O(n)` |
-| Group `n` strings of length `k`, key = sorted letters | `O(n · k log k)` | `O(n · k)` |
-| Group with a count key (26 counts) | `O(n · k)` | `O(n · k)` |
+| Key made from a string of length `k` | `O(n · k)` or more | `O(n · k)` |
 
-The cost of the **key** is the main variable. A simple key is `O(1)`; a key built from a string costs `O(k)` or more.
+The cost of computing the key is what changes. A simple key is `O(1)`.
 
-#### 8. Common Grouping Patterns — Must Know
+#### 5. Common Mistakes
 
-1. **Group Anagrams** (LeetCode 49) — key = sorted letters (next topic).
-2. **Group by property** — length, first letter, parity, remainder.
-3. **Group Shifted Strings** (LeetCode 249, premium) — key = pattern of differences.
-4. **Group the People Given the Group Size** (LeetCode 1282) — key = group size.
-5. **Group indices of equal values** — `value → list of indices`.
-6. **Sections in a list (Android)** — group messages by date, then show headers.
-7. **Bucket sort idea** — group numbers by range or digit.
+1. **`getOrDefault(key, mutableListOf()).add(x)`.** The new list is never stored, so `x` is lost. Use `getOrPut`.
+2. **`associateBy` when you need all items.** It keeps only the last.
+3. **A key that is too coarse** (different things grouped together) **or too fine** (equal things split).
+4. **An `IntArray` as a key.** Use a `List` or a `String`.
+5. **Expecting sorted groups from a `HashMap`.** Sort the keys yourself, or use `groupBy` (which keeps first-seen order).
+6. **`groupBy` returns read-only lists.** Call `toMutableList()` if you need to edit them.
 
-#### 9. Edge Cases / Common Mistakes
+#### 6. Say This in the Interview
 
-1. Using `getOrDefault(key, mutableListOf())` then `.add()`. The new list is never stored, so the item is lost.
-2. Using `associateBy` when you need all items. It keeps only the last one.
-3. A key that is too coarse (groups different things) or too fine (splits equal things).
-4. Using `IntArray` as a key.
-5. Expecting ordered groups from a `HashMap`. Use `LinkedHashMap` (what `groupBy` returns) or sort the keys.
-6. Changing a list inside the map while looping over the map.
-7. Forgetting that `groupBy` returns **read-only lists**. Use `toMutableList()` if you need to edit.
-8. Empty input returns an empty map.
+1. "I group with `key → list`. The key is ... for each item."
+2. "I use `getOrPut` so the list is created the first time a key appears."
+3. "One pass: `O(n)` plus the cost of building each key."
 
-#### 10. When to Use / When Not to Use
+#### 7. Quick Check
 
-**Use when:**
+1. What does `listOf(1, 2, 3, 4).groupBy { it % 2 }` give?
+2. Why is `getOrDefault(key, mutableListOf())` a bug for grouping?
 
-1. You need to see or process items by category.
-2. You need the group sizes or the largest group.
+<details>
+<summary>Answers</summary>
 
-**Avoid when:**
+1. `{1=[1, 3], 0=[2, 4]}`.
+2. The default list is never stored in the map, so the items you add to it are lost.
 
-1. You only need counts. A count map is lighter.
-2. You only need to split into two parts. Use `partition`.
+</details>
 
-#### 11. Related Topics
+#### 8. Related LeetCode Questions
 
-1. Group Anagrams Pattern
-2. Frequency Counting
-3. Key-Value Pair Concept
-4. Sorting (`02-algorithm/01-sorting`)
-
-#### 12. Interview Must Remember
-
-1. **`getOrPut(key) { mutableListOf() }.add(item)`.**
-2. `getOrDefault` does not store the new list.
-3. `groupBy` is the one-line version. `associateBy` keeps one item per key.
-4. The key design decides everything.
+| # | Question | Idea |
+|---|---|---|
+| 49 | Group Anagrams (Medium) | key = sorted letters (note 20) |
+| 1282 | Group the People Given the Group Size They Belong To (Medium) | key = group size |
+| 249 | Group Shifted Strings (Medium, premium) | key = pattern of differences |
+| 451 | Sort Characters By Frequency (Medium) | group letters by count |
+| 981 | Time Based Key-Value Store (Medium) | key → list of (time, value) |

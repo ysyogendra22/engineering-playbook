@@ -1,67 +1,45 @@
 # Character / String Frequency Problems
 
-#### 1. Definition — Must Know
+> Very common in FAANG interviews. Most string questions start by counting letters.
 
-1. These are string problems solved by **counting characters** (or words).
-2. The counter is either a **`HashMap<Char, Int>`** (any characters) or an **`IntArray(26)`** (lowercase letters only).
-3. Comparing two counters tells you if two strings use the same letters (anagrams, permutations, ransom notes, palindromes).
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+These are string questions solved by **counting characters**.
 
-1. It avoids sorting the strings (`O(n log n)`) and works in `O(n)`.
-2. It is the most common string pattern in interviews.
-3. It is the base of the sliding window string problems.
+The counter is:
 
-#### 3. How It Works — Must Know
+- `IntArray(26)` when the input is lowercase `a`–`z` (fast, `O(1)` space),
+- `HashMap<Char, Int>` for any other characters,
+- `HashMap<String, Int>` for words.
 
-*Longest Palindrome* (LeetCode 409): build the longest palindrome from the given letters.
+Comparing two counters tells you if two strings use the same letters: anagrams, permutations, ransom notes, palindromes.
+
+#### 2. How It Works
+
+Three rules to remember:
+
+1. **Two strings are anagrams** when all their letter counts are equal.
+2. **A string can be rearranged into a palindrome** when **at most one** letter has an odd count.
+3. **To compare windows**, keep a count array for the window and compare it with the target counts.
+
+*Longest Palindrome* (LeetCode 409): build the longest palindrome from the letters.
 
 `s = "abccccdd"`
 
 ```text
 counts:  a:1  b:1  c:4  d:2
 
-Pairs of equal letters can sit on both sides of the palindrome:
+Pairs of equal letters go on both sides:
     c has 4 → 2 pairs → 4 letters
     d has 2 → 1 pair  → 2 letters
-    a and b have 1 each → no pairs
-    letters used in pairs: 4 + 2 = 6
+    letters in pairs: 4 + 2 = 6
 
 One leftover single letter (a or b) can go in the middle → +1
 
-Answer: 7     e.g. "dccaccd"
+answer: 7     e.g. "dccaccd"
 ```
 
-Rule: add `count / 2 * 2` for every letter. If any letter has an odd count, add `1` for the middle.
-
-*Find All Anagrams in a String* uses the same counts, but in a fixed window that slides one step at a time.
-
-#### 4. Core Concepts — Must Know
-
-1. **Pick the counter:**
-
-| Input | Counter |
-|---|---|
-| Lowercase `a`–`z` | `IntArray(26)`, index `c - 'a'` |
-| ASCII | `IntArray(128)` or `IntArray(256)` |
-| Any Unicode | `HashMap<Char, Int>` |
-| Words | `HashMap<String, Int>` |
-
-2. **Two strings are anagrams** when all their letter counts are equal.
-3. **Compare two arrays** with `contentEquals`. Compare two maps with `==`.
-4. **Add for one string, subtract for the other.** If all counts end at 0, they match.
-5. **Palindrome rule:** at most one letter may have an odd count.
-6. **Normalize first:** `lowercase()`, remove spaces and punctuation if the problem says to ignore them.
-
-#### 5. Algorithm — Must Know
-
-```text
-count = counter for string A (add)
-for each character of string B: count[c] -= 1
-all counts are 0  →  same letters
-```
-
-#### 6. Kotlin Implementation — Must Know
+#### 3. Kotlin Code
 
 ```kotlin
 // Valid Anagram
@@ -82,20 +60,20 @@ fun longestPalindrome(s: String): Int {
     var length = 0
     var hasOdd = false
     for (c in count.values) {
-        length += c / 2 * 2
+        length += c / 2 * 2                    // use the pairs
         if (c % 2 == 1) hasOdd = true
     }
     return if (hasOdd) length + 1 else length
 }
 
-// Palindrome Permutation — can some rearrangement be a palindrome?
+// Palindrome Permutation: can some rearrangement be a palindrome?
 fun canPermutePalindrome(s: String): Boolean {
     val odd = HashSet<Char>()
-    for (c in s) if (!odd.add(c)) odd.remove(c)       // toggle
+    for (c in s) if (!odd.add(c)) odd.remove(c)    // toggle the letter in and out
     return odd.size <= 1
 }
 
-// Find All Anagrams in a String — fixed window
+// Find All Anagrams in a String: a fixed window of letter counts
 fun findAnagrams(s: String, p: String): List<Int> {
     if (p.length > s.length) return emptyList()
     val need = IntArray(26)
@@ -104,7 +82,7 @@ fun findAnagrams(s: String, p: String): List<Int> {
     val result = mutableListOf<Int>()
     for (i in s.indices) {
         window[s[i] - 'a']++
-        if (i >= p.length) window[s[i - p.length] - 'a']--
+        if (i >= p.length) window[s[i - p.length] - 'a']--      // the letter that left the window
         if (i >= p.length - 1 && window.contentEquals(need)) result.add(i - p.length + 1)
     }
     return result
@@ -117,71 +95,57 @@ fun frequencySort(s: String): String {
         .sortedByDescending { it.value }
         .joinToString("") { it.key.toString().repeat(it.value) }
 }
-
-// Any characters (not only a–z)
-fun charCounts(s: String): Map<Char, Int> = s.groupingBy { it }.eachCount()
 ```
 
 Checks: `longestPalindrome("abccccdd")` → `7`. `findAnagrams("cbaebabacd", "abc")` → `[0, 6]`.
 
-#### 7. Time & Space Complexity — Must Know
+#### 4. Complexity
 
 | Problem | Time | Space |
-|---|---:|---:|
+|---|---|---|
 | Anagram check | `O(n)` | `O(1)` for 26 letters |
 | Longest Palindrome | `O(n)` | `O(alphabet)` |
 | Find All Anagrams | `O(26 · n)` ≈ `O(n)` | `O(1)` |
 | Sort by frequency | `O(n + u log u)` | `O(u)` |
 
-`u` = number of distinct characters.
+#### 5. Common Mistakes
 
-#### 8. Common Frequency-String Patterns — Must Know
+1. **`IntArray(26)` with capital letters, digits or spaces.** It crashes with an index error.
+2. **Different lengths** in an anagram check.
+3. **Not normalising case** (`'A'` vs `'a'`).
+4. **Palindrome rule:** allowing more than one odd count.
+5. **Comparing two `IntArray`s with `==`.** Use `contentEquals`.
+6. **Maps with zero counts** make `==` fail. Remove zero-count keys first.
+7. **Emoji and other Unicode.** A Kotlin `Char` is only a part of them. State your assumption.
 
-1. **Valid Anagram** (LeetCode 242).
-2. **Ransom Note** (LeetCode 383).
-3. **First Unique Character in a String** (LeetCode 387).
-4. **Longest Palindrome** (LeetCode 409), **Palindrome Permutation** (LeetCode 266, premium).
-5. **Find All Anagrams in a String** (LeetCode 438), **Permutation in String** (LeetCode 567).
-6. **Sort Characters By Frequency** (LeetCode 451).
-7. **Group Anagrams** (LeetCode 49) — counts or sorted letters as a key.
-8. **Minimum Number of Steps to Make Two Strings Anagram** (LeetCode 1347) — count differences.
-9. **Word frequency** in text — `HashMap<String, Int>`.
+#### 6. Say This in the Interview
 
-#### 9. Edge Cases / Common Mistakes
+1. "I assume lowercase English letters, so I use an `IntArray(26)`: `O(1)` space."
+2. "Two strings are anagrams if every letter count is equal."
+3. "For a palindrome, at most one letter may have an odd count."
 
-1. `IntArray(26)` with uppercase letters, digits, or spaces. This gives an index error.
-2. Different lengths in an anagram check.
-3. Forgetting to normalize case or remove spaces.
-4. Comparing map counts when one map still has `0` entries.
-5. Palindrome: allowing more than one odd count.
-6. Unicode: a Kotlin `Char` is a 16-bit unit. Emoji need code points.
-7. Using `==` to compare two `IntArray`s. Use `contentEquals`.
-8. Empty strings: two empty strings are anagrams.
+#### 7. Quick Check
 
-#### 10. When to Use / When Not to Use
+1. Can `"carrace"` be rearranged into a palindrome?
+2. Why does `findAnagrams` subtract a letter when `i >= p.length`?
 
-**Use `IntArray(26)` when:**
+<details>
+<summary>Answers</summary>
 
-1. The input is lowercase English letters. It is faster and uses `O(1)` space.
+1. Yes. Counts: c:2, a:2, r:2, e:1 — only one odd count.
+2. That letter just left the window, so its count must go down.
 
-**Use a `HashMap` when:**
+</details>
 
-1. The alphabet is large or unknown, or the items are words.
+#### 8. Related LeetCode Questions
 
-**Avoid counting when:**
-
-1. Order matters (substrings, subsequences). Use DP or two pointers.
-
-#### 11. Related Topics
-
-1. Frequency Counting
-2. Group Anagrams Pattern
-3. HashMap + Two Pointers / Sliding Window
-4. String Algorithms (`02-algorithm/08-String Algorithms`)
-
-#### 12. Interview Must Remember
-
-1. **Letters `a`–`z` → `IntArray(26)`. Anything else → `HashMap`.**
-2. Anagram = equal counts. Palindrome = at most one odd count.
-3. `contentEquals` for arrays; `==` for maps.
-4. Normalize case and say your alphabet assumption.
+| # | Question | Idea |
+|---|---|---|
+| 242 | Valid Anagram (Easy) | equal counts |
+| 383 | Ransom Note (Easy) | enough letters |
+| 387 | First Unique Character in a String (Easy) | count, then scan |
+| 409 | Longest Palindrome (Easy) | pairs plus one |
+| 438 | Find All Anagrams in a String (Medium) | fixed window |
+| 567 | Permutation in String (Medium) | fixed window |
+| 451 | Sort Characters By Frequency (Medium) | counts, then sort |
+| 49 | Group Anagrams (Medium) | counts as a key (note 20) |

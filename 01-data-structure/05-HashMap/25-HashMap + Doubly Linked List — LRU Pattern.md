@@ -1,69 +1,51 @@
 # HashMap + Doubly Linked List — LRU Pattern
 
-#### 1. Definition — Must Know
+> **LRU Cache** is one of the most asked FAANG design questions. Be able to write it from memory.
 
-1. An **LRU cache** (Least Recently Used) holds at most `capacity` items. When it is full, it **removes the item that was used longest ago**.
-2. Both `get(key)` and `put(key, value)` must run in **`O(1)`**.
-3. The classic design: a **HashMap** (`key → node`) for instant lookup, plus a **doubly linked list** ordered by recent use (most recent at the front).
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+An **LRU cache** (Least Recently Used) holds at most `capacity` items. When it is full and a new item arrives, it **removes the item that was used the longest time ago**.
 
-1. *LRU Cache* (LeetCode 146) is one of the most asked design questions.
-2. Real systems use it: image caches, API response caches, memory caches in Android apps.
-3. It combines two data structures, which interviewers like to see.
+Both `get(key)` and `put(key, value)` must run in **`O(1)`**.
 
-#### 3. How It Works — Must Know
+The design:
 
-Capacity 2.
+- a **HashMap** `key → node` for instant lookup,
+- a **doubly linked list** ordered by use: **front = most recent, back = least recent**.
 
-```text
-list order: most recent → least recent        map: key → node
+Why a **doubly** linked list? To remove a node from the middle in `O(1)` you need its `prev` and `next`. The map gives you the node directly, so no searching.
 
-put(1, A)        list: [1]
-put(2, B)        list: [2, 1]
-get(1)  → A      move 1 to the front:  [1, 2]
-put(3, C)        full! remove the least recent (the back: 2), add 3 at the front:  [3, 1]
-get(2)  → -1     2 was removed
-```
+Real uses: image caches, API response caches, `android.util.LruCache`.
 
-Why a **doubly** linked list? To remove a node from the middle in `O(1)`, you need its `prev` and `next`. The map gives you the node, so no searching.
+#### 2. How It Works
+
+Capacity 2. The list is shown from most recent to least recent.
 
 ```text
-head ⇄ [3] ⇄ [1] ⇄ tail          head and tail are dummy nodes (no edge cases)
+put(1, A)     list: [1]
+put(2, B)     list: [2, 1]
+get(1) → A    move 1 to the front:  [1, 2]
+put(3, C)     full! remove the least recent (the back: 2), add 3 at the front:  [3, 1]
+get(2) → -1   2 was removed
 ```
 
-#### 4. Core Concepts — Must Know
-
-1. **Map:** `key → node`. Finds a node in `O(1)`.
-2. **Doubly linked list:** keeps the order of use. **Front = most recent. Back = least recent.**
-3. **Dummy `head` and `tail` nodes** remove the special cases for empty, first, and last positions.
-4. **Every `get` and every `put` of an existing key moves the node to the front.**
-5. **When full, evict `tail.prev`** and remove its key from the map. This is why the node stores its **key**.
-6. **Three small helpers:** `remove(node)`, `addToFront(node)`, and move = remove + add.
-7. **Kotlin shortcut:** `LinkedHashMap` with `accessOrder = true` already does this.
-8. **Android:** `android.util.LruCache` is the ready-made class.
-
-| Part | Job | Cost |
-|---|---|---:|
-| HashMap | find a node by key | `O(1)` |
-| Doubly linked list | reorder and evict | `O(1)` |
-
-#### 5. Algorithm — Must Know
+Picture of the list with two **dummy nodes** (`head` and `tail`) so there are no special cases:
 
 ```text
-get(key):
-    if key not in map: return -1
-    node = map[key]; move node to the front; return node.value
-
-put(key, value):
-    if key in map: update value; move node to the front; return
-    if map.size == capacity: evict tail.prev (remove it from the list and from the map)
-    create node; add to the front; map[key] = node
+head ⇄ [3] ⇄ [1] ⇄ tail
 ```
 
-#### 6. Kotlin Implementation — Must Know
+Rules:
 
-**Manual version (what interviewers expect)**
+1. **`get`**: if the key exists, move its node to the front and return the value. Otherwise `-1`.
+2. **`put` on an existing key**: update the value and move the node to the front.
+3. **`put` on a new key**: if full, remove the node before `tail` (the least recent) and delete its key from the map. Then add the new node at the front.
+
+Each node stores its **key** too, so you can delete the right entry from the map when evicting.
+
+#### 3. Kotlin Code
+
+**By hand (what interviewers expect)**
 
 ```kotlin
 class LRUCache(private val capacity: Int) {
@@ -74,8 +56,8 @@ class LRUCache(private val capacity: Int) {
     }
 
     private val map = HashMap<Int, Node>()
-    private val head = Node(0, 0)          // dummy: most recent side
-    private val tail = Node(0, 0)          // dummy: least recent side
+    private val head = Node(0, 0)            // dummy: the most recent side
+    private val tail = Node(0, 0)            // dummy: the least recent side
 
     init {
         head.next = tail
@@ -110,7 +92,7 @@ class LRUCache(private val capacity: Int) {
             return
         }
         if (map.size == capacity) {
-            val lru = tail.prev!!              // least recently used
+            val lru = tail.prev!!            // the least recently used
             remove(lru)
             map.remove(lru.key)
         }
@@ -121,9 +103,9 @@ class LRUCache(private val capacity: Int) {
 }
 ```
 
-Trace with capacity 2: `put(1,1)`, `put(2,2)`, `get(1)` → `1`, `put(3,3)` (evicts 2), `get(2)` → `-1`, `put(4,4)` (evicts 1), `get(1)` → `-1`, `get(3)` → `3`, `get(4)` → `4`.
+Trace with capacity 2: `put(1,1)`, `put(2,2)`, `get(1)` → `1`, `put(3,3)` (removes 2), `get(2)` → `-1`, `put(4,4)` (removes 1), `get(1)` → `-1`, `get(3)` → `3`, `get(4)` → `4`.
 
-**Shortcut with `LinkedHashMap`**
+**The shortcut with `LinkedHashMap`**
 
 ```kotlin
 class LRUCacheShort(private val capacity: Int) {
@@ -137,62 +119,53 @@ class LRUCacheShort(private val capacity: Int) {
 }
 ```
 
-Say in the interview: "I can use `LinkedHashMap`, but I will write the list by hand to show how it works."
+Say in the interview: "I can use `LinkedHashMap`, but I will write the list by hand to show how it works." In Android, `android.util.LruCache` is the ready-made class.
 
-#### 7. Time & Space Complexity — Must Know
+#### 4. Complexity
 
-| Operation | Time |
-|---|---:|
+| Action | Time |
+|---|---|
 | `get` | `O(1)` |
 | `put` | `O(1)` |
-| Space | `O(capacity)` |
+| Memory | `O(capacity)` |
 
-#### 8. Common LRU / Cache Patterns — Must Know
+#### 5. Common Mistakes
 
-1. **LRU Cache** (LeetCode 146).
-2. **LFU Cache** (LeetCode 460) — least frequently used; a map of frequency → list.
-3. **Design a time-based cache** — map of key → list of (time, value); binary search.
-4. **TTL cache** — entries expire after a time; check on read or clean in the background.
-5. **Android:** `LruCache<K, V>` for bitmaps, `ViewModel` caches, in-memory response caches.
-6. **Thread safety:** wrap in `synchronized` or use a concurrent cache library. `LinkedHashMap` is not thread-safe.
+1. **`put` on an existing key must update and move**, not evict.
+2. **Not storing the key inside the node.** You cannot delete the evicted key from the map.
+3. **Not removing the node from the list before adding it to the front.**
+4. **Wrong pointer order in `addToFront`.**
+5. **No dummy `head` and `tail`.** You get many `null` checks and bugs.
+6. **Using a singly linked list.** Removing from the middle becomes `O(n)`.
+7. **`LinkedHashMap` with the default access order (`false`)** behaves like FIFO, not LRU.
+8. **A `get` of a missing key must not change the order.**
 
-#### 9. Edge Cases / Common Mistakes
+#### 6. Say This in the Interview
 
-1. `put` on an existing key must **update and move** the node. It must not evict.
-2. Not storing the **key inside the node**, so you cannot remove the evicted key from the map.
-3. Forgetting to remove the node from the list before re-adding it.
-4. Wrong pointer order in `addToFront`.
-5. Not using dummy nodes, which leads to many `null` checks and bugs.
-6. Capacity `0` or `1`. (Capacity `1`: every new key evicts the previous one.)
-7. `get` of a missing key must not change the order.
-8. Using a singly linked list (removal from the middle is `O(n)`).
-9. `LinkedHashMap` with `accessOrder = false` (the default) behaves like FIFO, not LRU.
+1. "I need `O(1)` lookup and `O(1)` reordering. A HashMap gives the lookup. A doubly linked list gives the reordering."
+2. "The map goes from key to node. The front of the list is the most recent. I evict the node before the tail."
+3. "I use dummy head and tail nodes to avoid edge cases."
+4. "In production on Android I would use `LruCache`."
 
-#### 10. When to Use / When Not to Use
+#### 7. Quick Check
 
-**Use when:**
+1. Capacity 2: `put(1)`, `put(2)`, `get(1)`, `put(3)`. Which key is evicted?
+2. Why does each node store its key?
 
-1. You need a fixed-size cache that keeps recent items.
+<details>
+<summary>Answers</summary>
 
-**Use a library class when:**
+1. Key `2`. After `get(1)`, key `1` is the most recent, so `2` is the least recent.
+2. When you evict the last node, you need its key to remove the entry from the map.
 
-1. In production Android code, use `LruCache`. Do not hand-write it.
+</details>
 
-**Avoid when:**
+#### 8. Related LeetCode Questions
 
-1. Access patterns are frequency-based. LFU may suit better.
-2. The data is small and unbounded growth is acceptable.
-
-#### 11. Related Topics
-
-1. HashMap + Linked List Pattern
-2. Linked List (`01-data-structure/02-LinkedList`)
-3. LRU Cache (study separately)
-4. Caching strategies (`05-system-design`)
-
-#### 12. Interview Must Remember
-
-1. **HashMap (`key → node`) + doubly linked list (order of use).**
-2. Front = most recent. Evict `tail.prev`. Dummy head and tail.
-3. Both `get` and `put` are **`O(1)`**.
-4. `LinkedHashMap(capacity, 0.75f, true)` with `removeEldestEntry` is the shortcut.
+| # | Question | Idea |
+|---|---|---|
+| 146 | LRU Cache (Medium) | this note |
+| 460 | LFU Cache (Hard) | least frequently used: a map of frequency → list |
+| 432 | All O(1) Data Structure (Hard) | map + linked list of buckets |
+| 380 | Insert Delete GetRandom O(1) (Medium) | map + array |
+| 981 | Time Based Key-Value Store (Medium) | map + binary search |

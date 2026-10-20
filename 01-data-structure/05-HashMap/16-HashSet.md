@@ -1,68 +1,50 @@
 # HashSet
 
-#### 1. Definition — Must Know
+> A short note from the HashMap side. The full HashSet notes are in `01-data-structure/06-HashSet`.
 
-1. A **HashSet** is a collection of **unique values** with `O(1)` average `add`, `contains` and `remove`.
-2. It is the **keys-only** cousin of a HashMap. Java's `HashSet` is built on a `HashMap`, where each value is a dummy object.
-3. This note is the short view from the HashMap side. The full HashSet notes are in `01-data-structure/06-HashSet`.
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+A **HashSet** is a collection of **unique values**. It answers one question fast: **"is this value in the set?"**
 
-1. When you only need "have I seen this?", a set is simpler and lighter than a map.
-2. It removes duplicates and gives fast membership checks.
-3. Many map solutions can be simplified to a set when counts or indices are not needed.
+It is a HashMap with **keys only** (no values). In Java, a `HashSet` is built on a `HashMap` where every value is a dummy object.
 
-#### 3. How It Works — Must Know
+- `add(x)` returns `true` if `x` was new, and `false` if it was already there.
+- `x in set` checks if `x` is inside.
+- All are `O(1)` on average.
 
-```text
-HashSet<String> = HashMap<String, DUMMY>
-
-add("apple")      →  map.put("apple", DUMMY)       returns true if the key was new
-contains("apple") →  map.containsKey("apple")
-remove("apple")   →  map.remove("apple")
-```
+#### 2. How It Works
 
 ```text
-set:  {apple, pear}           same as map keys  {apple → ·, pear → ·}
+HashSet<String>  =  HashMap<String, dummy>
+
+add("apple")       →  put("apple", dummy)         returns true if the key was new
+contains("apple")  →  containsKey("apple")
+remove("apple")    →  remove("apple")
 ```
 
-#### 4. Core Concepts — Must Know
+Same rules as map keys: correct `equals()` and `hashCode()`, no arrays, no changing items after adding them.
 
-1. **Unique values only.** Adding an existing value does nothing and returns `false`.
-2. **Same rules as map keys:** correct `equals()` / `hashCode()`, no arrays, no mutation.
-3. **Same speed:** `O(1)` average.
-4. **Same order rules:** `HashSet` none, `LinkedHashSet` insertion order, `TreeSet` sorted.
-5. **Convert both ways:**
+Types:
 
-| From | To | Code |
-|---|---|---|
-| list | set | `list.toHashSet()` |
-| map | its keys as a set | `map.keys` |
-| set | map with a default | `set.associateWith { 0 }` |
+| Type | Order |
+|---|---|
+| `HashSet` / `hashSetOf()` | none |
+| `LinkedHashSet` / `mutableSetOf()` | insertion order |
+| `TreeSet` / `sortedSetOf()` | sorted, `O(log n)` |
 
-6. **Set operations:** `union`, `intersect`, `subtract` (`01-data-structure/06-HashSet/12`).
-
-#### 5. Algorithm — Must Know
-
-```text
-seen = empty set
-for each item:
-    if seen.add(item) is false → duplicate
-```
-
-#### 6. Kotlin Implementation — Must Know
+#### 3. Kotlin Code
 
 ```kotlin
 val set = HashSet<Int>()
-println(set.add(5))          // true  (new)
-println(set.add(5))          // false (already there)
-println(5 in set)            // true
+println(set.add(5))            // true  (new)
+println(set.add(5))            // false (already there)
+println(5 in set)              // true
 set.remove(5)
 
-val unique = listOf(3, 1, 3, 2).toHashSet()      // {1, 2, 3}
+val unique = listOf(3, 1, 3, 2).toHashSet()          // {1, 2, 3}
 val keysOnly: Set<String> = hashMapOf("a" to 1, "b" to 2).keys
 
-// Contains Duplicate
+// Contains Duplicate: add() returning false means a repeat
 fun containsDuplicate(nums: IntArray): Boolean {
     val seen = HashSet<Int>()
     for (n in nums) if (!seen.add(n)) return true
@@ -70,55 +52,45 @@ fun containsDuplicate(nums: IntArray): Boolean {
 }
 ```
 
-#### 7. Time & Space Complexity — Must Know
+#### 4. Complexity
 
-| Operation | Average |
-|---|---:|
-| `add` | `O(1)` |
-| `contains` | `O(1)` |
-| `remove` | `O(1)` |
-| Space | `O(n)` (less than a map, because there are no values) |
+| Action | Time |
+|---|---|
+| `add`, `contains`, `remove` | `O(1)` on average |
+| Memory | `O(n)` (less than a map) |
 
-#### 8. Common HashSet Patterns — Must Know
+#### 5. Common Mistakes
 
-1. **Duplicate detection.**
-2. **Fast membership / lookup.**
-3. **Unique elements and distinct counts.**
-4. **Longest Consecutive Sequence.**
-5. **Visited / seen in BFS and DFS.**
-6. **Sliding window with unique items.**
+1. **Using `HashMap<K, Boolean>`** when a `HashSet<K>` is enough.
+2. **Using a set when you need counts or indexes.** Use a map.
+3. **Expecting insertion order** from `HashSet`.
+4. **Arrays or mutable objects** inside a set.
+5. **Removing from a set inside a `for` loop** over it.
 
-All are explained in `01-data-structure/06-HashSet`.
+#### 6. Say This in the Interview
 
-#### 9. Edge Cases / Common Mistakes
+1. "I only need to know if I have seen the value, so a `HashSet` is enough. A map would store values I never use."
+2. "`add` returns `false` for a duplicate, so one call is both the check and the insert."
 
-1. Using a `HashMap<K, Boolean>` when a `HashSet<K>` is enough.
-2. Using a set when counts are needed.
-3. Expecting insertion order from `HashSet`.
-4. Putting arrays or mutable objects in a set.
-5. Removing from a set while looping over it.
-6. Forgetting that `mutableSetOf()` is a `LinkedHashSet`.
+#### 7. Quick Check
 
-#### 10. When to Use / When Not to Use
+1. What does `set.add(x)` return when `x` is already in the set?
+2. When must you use a map instead of a set?
 
-**Use when:**
+<details>
+<summary>Answers</summary>
 
-1. You need only existence or uniqueness.
+1. `false`.
+2. When you need to store something with each key: a count, an index, or a list.
 
-**Use a map when:**
+</details>
 
-1. You need counts, indices, or other data per key.
+#### 8. Related LeetCode Questions
 
-#### 11. Related Topics
-
-1. HashMap vs HashSet
-2. Duplicate Detection
-3. HashSet Fundamentals (`01-data-structure/06-HashSet/01-HashSet Fundamentals.md`)
-4. HashMap Fundamentals
-
-#### 12. Interview Must Remember
-
-1. **A set is a map without values.** Existence only.
-2. `add` returns `false` for a duplicate.
-3. Same key rules as a map: `equals`, `hashCode`, immutability.
-4. Need counts or indices → use a `HashMap`.
+| # | Question | Idea |
+|---|---|---|
+| 217 | Contains Duplicate (Easy) | seen before? |
+| 128 | Longest Consecutive Sequence (Medium) | set + start-of-run check |
+| 349 | Intersection of Two Arrays (Easy) | two sets |
+| 202 | Happy Number (Easy) | detect a loop with a set |
+| 705 | Design HashSet (Easy) | buckets (note 26) |

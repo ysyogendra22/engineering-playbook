@@ -1,89 +1,55 @@
 # Designing a Simple HashMap — Concept
 
-#### 1. Definition — Must Know
+> A common design question, often asked as "how does HashMap work inside?". A short, correct version is enough.
 
-1. Designing a simple HashMap means building `put`, `get` and `remove` yourself, with an **array of buckets** and **chaining**.
-2. It is the problem *Design HashMap* (LeetCode 706).
-3. It tests whether you understand hashing, buckets, collisions, and resizing. It is **not** about writing production code.
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+Designing a simple HashMap means writing `put`, `get` and `remove` yourself, using:
 
-1. It is a common design question, often as a follow-up to "how does `HashMap` work?".
-2. Writing it makes hashing and collisions easy to remember.
-3. A short, correct version is enough in interviews.
+- an **array of buckets**,
+- a **hash function** that picks the bucket,
+- **chaining**: each bucket is a small list of pairs.
 
-#### 3. How It Works — Must Know
+This is *Design HashMap* (LeetCode 706).
 
-```text
-buckets (array of lists), size 5
+It tests whether you understand hashing, buckets, collisions and resizing. It is **not** about writing production code.
 
-put(7, "x"):   index = hash(7) % 5 = 2  → bucket 2: [(7, x)]
-put(12, "y"):  index = 12 % 5 = 2       → bucket 2: [(7, x), (12, y)]     ← collision, chained
-get(12):       index 2 → walk the list → key 12 found → "y"
-remove(7):     index 2 → delete (7, x) → bucket 2: [(12, y)]
-```
-
-Steps for every operation:
+#### 2. How It Works
 
 ```text
-1. index = (hashCode & 0x7fffffff) % bucketCount
-2. walk the list in that bucket and compare keys with equals()
-3. put: replace or append.  get: return or null.  remove: delete if found.
+buckets (array of lists), 5 buckets
+
+put(7, "x"):    index = 7 % 5 = 2   → bucket 2: [(7, x)]
+put(12, "y"):   index = 12 % 5 = 2  → bucket 2: [(7, x), (12, y)]      ← a collision, chained
+get(12):        index 2 → walk the list → key 12 found → "y"
+remove(7):      index 2 → delete (7, x) → bucket 2: [(12, y)]
 ```
 
-**Resizing:** when `size > bucketCount × 0.75`, create a bucket array twice as large and place every entry again (**rehash**). This keeps the chains short.
+For every operation:
 
-#### 4. Core Concepts — Must Know
+1. `index = (hashCode and 0x7fffffff) % bucketCount` (the mask removes the sign, so the index is never negative).
+2. Walk the list in that bucket and compare keys with `equals()`.
+3. **put:** replace the value if the key exists, otherwise add a new pair. **get:** return the value or `null`. **remove:** delete the pair if found.
 
-1. **Bucket array:** `Array<MutableList<Entry>>`.
-2. **Entry:** holds `key` and `value`.
-3. **Index:** `(key.hashCode() and 0x7fffffff) % buckets.size` — the mask removes the sign bit so the index is never negative.
-4. **Chaining:** each bucket is a small list of entries that landed there.
-5. **Load factor 0.75:** when exceeded, double the buckets and re-place all entries.
-6. **Sizes:** a prime number of buckets spreads keys better with a simple `%`. Java uses a power of two with bit masking.
-7. **Update vs insert:** `put` with an existing key replaces its value; `size` changes only for new keys.
+**Resizing:** when `size > bucketCount × 0.75`, create a bucket array twice as big and place every pair again (this is called **rehashing**). This keeps the lists short.
 
-| Choice | Simple version | Production (Java) |
-|---|---|---|
-| Bucket size | fixed prime (e.g. 1009) | power of 2, grows |
-| Collisions | list per bucket | list, then tree at 8+ entries |
-| Resize | optional in interviews | yes, at 0.75 load |
-| Null keys | not handled | one `null` key allowed |
+#### 3. Kotlin Code
 
-#### 5. Algorithm — Must Know
-
-```text
-put(key, value):
-    bucket = buckets[indexFor(key)]
-    for entry in bucket: if entry.key == key: entry.value = value; return
-    bucket.add(Entry(key, value)); size++
-    if size > buckets.size * 0.75: resize()
-
-get(key):
-    for entry in buckets[indexFor(key)]: if entry.key == key: return entry.value
-    return null
-
-remove(key):
-    delete the entry with that key from its bucket (size-- if found)
-```
-
-#### 6. Kotlin Implementation — Must Know
-
-**LeetCode style (Int keys, fixed buckets)**
+**The LeetCode version (Int keys, a fixed number of buckets)**
 
 ```kotlin
 class MyHashMap {
     private class Entry(val key: Int, var value: Int)
 
-    private val buckets = Array(1009) { mutableListOf<Entry>() }
-    private fun index(key: Int) = key % 1009           // keys are non-negative in this problem
+    private val buckets = Array(1009) { mutableListOf<Entry>() }      // 1009 is a prime number
+    private fun index(key: Int) = key % 1009
 
     fun put(key: Int, value: Int) {
         val bucket = buckets[index(key)]
         for (e in bucket) {
-            if (e.key == key) { e.value = value; return }
+            if (e.key == key) { e.value = value; return }              // update
         }
-        bucket.add(Entry(key, value))
+        bucket.add(Entry(key, value))                                  // new pair
     }
 
     fun get(key: Int): Int {
@@ -97,7 +63,7 @@ class MyHashMap {
 }
 ```
 
-**Generic version with resizing**
+**A generic version with resizing**
 
 ```kotlin
 class SimpleHashMap<K, V>(initialCapacity: Int = 16) {
@@ -125,7 +91,7 @@ class SimpleHashMap<K, V>(initialCapacity: Int = 16) {
         }
         bucket.add(Node(key, value))
         size++
-        if (size > buckets.size * 3 / 4) resize()
+        if (size > buckets.size * 3 / 4) resize()                      // load factor 0.75
     }
 
     fun remove(key: K): V? {
@@ -162,58 +128,50 @@ m.remove("a")
 println(m["a"])       // null
 ```
 
-#### 7. Time & Space Complexity — Must Know
+#### 4. Complexity
 
-| Operation | Average | Worst |
-|---|---:|---:|
-| `put` | `O(1)` amortized | `O(n)` (all keys in one bucket, or a resize) |
-| `get` | `O(1)` | `O(n)` |
-| `remove` | `O(1)` | `O(n)` |
-| Resize | `O(n)` | — |
-| Space | `O(n + buckets)` | — |
+| Action | Average | Worst |
+|---|---|---|
+| `put`, `get`, `remove` | `O(1)` | `O(n)` (all keys in one bucket, or a resize) |
+| Resize | `O(n)`, but rare | — |
+| Memory | `O(n + buckets)` | — |
 
-#### 8. Common Design Ideas — Must Know
+#### 5. Common Mistakes
 
-1. **Design HashMap** (LeetCode 706) and **Design HashSet** (LeetCode 705).
-2. **Bucket array + chaining** — the standard answer.
-3. **Open addressing** (probing) — an alternative; mention it, do not code it unless asked.
-4. **Resize and rehash** at load factor `0.75`.
-5. **Related designs:** LRU Cache, LFU Cache, Insert Delete GetRandom O(1) (map + array), Time-based Key-Value Store.
-6. **Thread safety:** `ConcurrentHashMap` splits locks per bucket.
+1. **Negative indexes** from `hashCode() % n`. Mask the sign bit first.
+2. **`put` adds a second pair for an existing key.** Search the bucket first.
+3. **Increasing `size` on an update.**
+4. **Removing from a list inside a `for` loop.** Use an iterator or `removeAll`.
+5. **No handling of a missing key.** `get` should return `null` (or `-1`).
+6. **Never resizing.** The lists grow and everything becomes `O(n)`.
+7. **Not saying how you treat `null` keys.** Say "not supported" and move on.
 
-#### 9. Edge Cases / Common Mistakes
+#### 6. Say This in the Interview
 
-1. Negative indices from `hashCode() % n`. Mask the sign bit first.
-2. `put` on an existing key adds a second entry. Always search the bucket first.
-3. Increasing `size` on update.
-4. `remove` while iterating without an `Iterator` (use `iterator.remove()` or `removeAll`).
-5. Not handling a missing key (`get` should return `null` / `-1`).
-6. Forgetting to resize, so chains grow and everything becomes `O(n)`.
-7. Using `==` on keys. In Kotlin `==` already calls `equals()`, but `===` does not.
-8. Using a bucket count of `0`.
-9. Null keys: decide and state how you handle them (usually "not supported").
+1. "I use an array of buckets. The index is the hash code, with the sign removed, modulo the bucket count."
+2. "Each bucket is a list. `put` searches the list first and replaces or appends."
+3. "When the load factor passes 0.75 I double the buckets and rehash. That keeps operations `O(1)` on average."
+4. "Collisions are handled by chaining. The worst case is `O(n)`."
 
-#### 10. When to Use / When Not to Use
+#### 7. Quick Check
 
-**Use this knowledge when:**
+1. Why search the bucket before adding in `put`?
+2. Why resize at a load factor of 0.75?
 
-1. The interviewer asks you to design or explain a HashMap.
+<details>
+<summary>Answers</summary>
 
-**Do not:**
+1. If the key is already there, you must replace its value. Adding a second pair would store the key twice.
+2. It keeps the lists short. Short lists mean `O(1)` average time.
 
-1. Write your own map in real code. Use the standard one.
-2. Spend interview time on open addressing or advanced hashing unless asked.
+</details>
 
-#### 11. Related Topics
+#### 8. Related LeetCode Questions
 
-1. Hashing / Hash Function — Basic Concept
-2. Collision Handling — Basic Concept
-3. HashMap + Doubly Linked List — LRU Pattern
-4. Linked List (`01-data-structure/02-LinkedList`)
-
-#### 12. Interview Must Remember
-
-1. **Array of buckets + chaining. Index = `(hash and 0x7fffffff) % size`.**
-2. `put`: search the bucket first, replace or append.
-3. Resize at load factor `0.75`: double the buckets and re-place all entries.
-4. Say average `O(1)`, worst `O(n)`.
+| # | Question | Idea |
+|---|---|---|
+| 706 | Design HashMap (Easy) | this note |
+| 705 | Design HashSet (Easy) | same idea, keys only |
+| 146 | LRU Cache (Medium) | HashMap + doubly linked list (note 25) |
+| 380 | Insert Delete GetRandom O(1) (Medium) | map + array |
+| 981 | Time Based Key-Value Store (Medium) | map of key → list |

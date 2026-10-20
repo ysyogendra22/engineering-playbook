@@ -1,103 +1,77 @@
 # Subarray Sum Patterns
 
-#### 1. Definition — Must Know
+> Read note 11 first. Here the same idea is used with different "prefix values".
 
-1. **Subarray sum patterns** are problems about contiguous parts of an array whose sum (or a property of the sum) matches a rule.
-2. They all use the same engine: **running prefix value + a map of earlier prefix values**.
-3. What changes is **what you store as the prefix** (the sum, the remainder, a balance) and **what you store in the map** (a count or a first index).
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+Many subarray problems use the same engine: a **running prefix value** and a **map of earlier prefix values**.
 
-1. Once you know the engine, many "hard-looking" problems become the same short solution.
-2. They are very common in interviews.
-3. Choosing the right prefix value is the real skill.
+What changes is **what you track** and **what you store**:
 
-#### 3. How It Works — Must Know
-
-Same engine, different prefix:
-
-```text
-Sum equals k                → prefix = running sum,        look for sum - k
-Sum divisible by k          → prefix = running sum % k,    look for the SAME remainder
-Equal numbers of 0 and 1    → prefix = balance (+1 / -1),  look for the SAME balance
-```
-
-*Contiguous Array* (LeetCode 525): longest subarray with equal 0s and 1s. Treat `0` as `-1`.
-
-```text
-nums = [0, 1, 0]         balance after each element: -1, 0, -1
-
-first = {0: -1}          ← before the array, balance is 0, at index -1
-i=0  balance -1   not seen → first[-1]=0
-i=1  balance  0   seen at -1 → length 1-(-1) = 2         ([0,1])
-i=2  balance -1   seen at 0  → length 2-0 = 2            ([1,0])
-
-Answer: 2
-```
-
-Two equal prefix values at `j` and `i` mean the part between them adds to zero (balance), or to a multiple of `k` (remainder).
-
-#### 4. Core Concepts — Must Know
-
-| Problem | Prefix value | Map stores | Lookup |
+| Question | Prefix value | Map stores | Look up |
 |---|---|---|---|
-| Subarray Sum = k (count) | `sum` | prefix → count | `sum - k` |
-| Longest subarray, sum = k | `sum` | prefix → first index | `sum - k` |
-| Divisible by k (count) | `sum mod k` | remainder → count | same remainder |
-| Continuous Subarray Sum | `sum mod k` | remainder → first index | same remainder |
-| Equal 0s and 1s | balance | balance → first index | same balance |
+| Sum equals `k` (count) | running sum | prefix → count | `sum - k` |
+| Longest, sum equals `k` | running sum | prefix → first index | `sum - k` |
+| Sum divisible by `k` (count) | `sum mod k` | remainder → count | the **same** remainder |
+| Multiple of `k`, length ≥ 2 | `sum mod k` | remainder → first index | the **same** remainder |
+| Equal number of 0s and 1s | balance (+1 / −1) | balance → first index | the **same** balance |
 
-1. **Equal prefixes mean the middle part is "zero".** The sum between them is `0` (or a multiple of `k`).
-2. **Fix negative remainders:** in Kotlin `-1 % 5 == -1`. Use `((sum % k) + k) % k`.
-3. **Longest → first index; count → count.**
-4. **Length at least 2** (Continuous Subarray Sum): compare `i - firstIndex >= 2`.
+The key idea: **two equal prefix values mean the part between them adds to zero** (for balance), or to a **multiple of `k`** (for remainders).
 
-#### 5. Algorithm — Must Know
+#### 2. How It Works
+
+**Contiguous Array** (LeetCode 525): the longest subarray with equal 0s and 1s. Treat `0` as `-1`, so the balance is `0` exactly when the counts are equal.
 
 ```text
-map = { startState : startValue }          // {0: 1} for counting, {0: -1} for first index
-state = 0
-for i, x in nums:
-    state = update(state, x)               // add, mod, or +1/-1
-    look up the needed state in the map
-    store the state (count it, or keep the first index)
+nums = [0, 1, 0]     balance after each element: -1, 0, -1
+
+first = {0: -1}      (before the array, balance 0, at index -1)
+i=0  balance -1   not seen → first[-1] = 0
+i=1  balance  0   seen at -1 → length 1 - (-1) = 2     ([0,1])
+i=2  balance -1   seen at 0  → length 2 - 0 = 2        ([1,0])
+
+answer 2
 ```
 
-#### 6. Kotlin Implementation — Must Know
+**Remainders:** if `prefix[i] % k == prefix[j] % k`, then the part between them has a sum that is a multiple of `k`.
+
+In Kotlin, `-3 % 5` is `-3`, not `2`. Fix negative remainders with `((x % k) + k) % k`.
+
+#### 3. Kotlin Code
 
 ```kotlin
-// Subarray Sums Divisible by K — count
+// Subarray Sums Divisible by K (LeetCode 974): count
 fun subarraysDivByK(nums: IntArray, k: Int): Int {
     val count = HashMap<Int, Int>()
     count[0] = 1
-    var sum = 0
+    var remainder = 0
     var answer = 0
     for (x in nums) {
-        sum = ((sum + x) % k + k) % k          // keep the remainder non-negative
-        answer += count[sum] ?: 0
-        count[sum] = (count[sum] ?: 0) + 1
+        remainder = ((remainder + x) % k + k) % k          // keep it non-negative
+        answer += count[remainder] ?: 0
+        count[remainder] = (count[remainder] ?: 0) + 1
     }
     return answer
 }
 
-// Continuous Subarray Sum — is there a subarray of length >= 2 whose sum is a multiple of k?
+// Continuous Subarray Sum (LeetCode 523): a subarray of length >= 2 whose sum is a multiple of k
 fun checkSubarraySum(nums: IntArray, k: Int): Boolean {
     val firstIndex = HashMap<Int, Int>()
     firstIndex[0] = -1
-    var sum = 0
+    var remainder = 0
     for ((i, x) in nums.withIndex()) {
-        sum = (sum + x) % k                    // k > 0 and numbers >= 0 in this problem
-        val j = firstIndex[sum]
+        remainder = (remainder + x) % k
+        val j = firstIndex[remainder]
         if (j != null) {
-            if (i - j >= 2) return true
+            if (i - j >= 2) return true                    // length is at least 2
         } else {
-            firstIndex[sum] = i                // keep the earliest index only
+            firstIndex[remainder] = i                      // keep only the earliest index
         }
     }
     return false
 }
 
-// Contiguous Array — longest subarray with equal 0s and 1s
+// Contiguous Array (LeetCode 525)
 fun findMaxLength(nums: IntArray): Int {
     val firstIndex = HashMap<Int, Int>()
     firstIndex[0] = -1
@@ -114,58 +88,49 @@ fun findMaxLength(nums: IntArray): Int {
 
 Checks: `subarraysDivByK([4,5,0,-2,-3,1], 5)` → `7`. `checkSubarraySum([23,2,4,6,7], 6)` → `true`. `findMaxLength([0,1,0])` → `2`.
 
-The plain "sum equals k" versions are in "Prefix Sum + HashMap".
+#### 4. Complexity
 
-#### 7. Time & Space Complexity — Must Know
-
-| Problem | Time | Space |
-|---|---:|---:|
-| All of the above | `O(n)` | `O(n)` (remainders: `O(min(n, k))`) |
+| | Time | Space |
+|---|---|---|
+| All of the above | `O(n)` | `O(n)` (for remainders, `O(min(n, k))`) |
 | Brute force | `O(n²)` | `O(1)` |
 
-#### 8. Common Subarray-Sum Patterns — Must Know
+#### 5. Common Mistakes
 
-1. **Subarray Sum Equals K** (LeetCode 560).
-2. **Subarray Sums Divisible by K** (LeetCode 974).
-3. **Continuous Subarray Sum** (LeetCode 523).
-4. **Contiguous Array** (LeetCode 525).
-5. **Binary Subarrays With Sum** (LeetCode 930).
-6. **Maximum Size Subarray Sum Equals k** (LeetCode 325, premium).
-7. **Count Number of Nice Subarrays** (LeetCode 1248) — treat odd as `1`, even as `0`, then count sum `k`.
-8. **Make Sum Divisible by P** (LeetCode 1590) — remainder and shortest subarray.
+1. **Negative remainders.** Fix with `((x % k) + k) % k`.
+2. **Forgetting the start entry** (`{0: 1}` or `{0: -1}`).
+3. **Overwriting the first index.** Store it only if it is missing.
+4. **Wrong length check** for "length at least 2": use `i - j >= 2`.
+5. **Mixing count maps and first-index maps.** Count questions need counts. Longest/exists questions need first indexes.
+6. **Dividing by `k = 0`.** Check what the question allows.
+7. **Using a sliding window** here. It fails with negative numbers.
 
-#### 9. Edge Cases / Common Mistakes
+#### 6. Say This in the Interview
 
-1. Negative remainders: `-3 % 5 == -3` in Kotlin. Fix with `+ k` and `% k` again.
-2. Forgetting the starting entry (`{0: 1}` or `{0: -1}`).
-3. Overwriting the first index. Only store it if it is missing.
-4. Checking length `>= 2` wrongly (`i - j > 2`).
-5. `k = 0` in the divisibility problems (division by zero). Handle it separately if allowed.
-6. Mixing up count maps and first-index maps.
-7. `Int` overflow of the sum.
-8. Using sliding window for these (it breaks with negatives).
+1. "The question is about equal prefix states, so I use a map from prefix state to first index (or count)."
+2. "For divisibility the state is the remainder. For equal 0s and 1s the state is a balance."
+3. "Time `O(n)`, space `O(n)`."
 
-#### 10. When to Use / When Not to Use
+#### 7. Quick Check
 
-**Use when:**
+1. In Contiguous Array, what do we do with each `0`?
+2. Two prefixes have the same remainder mod `k`. What does that tell you about the part between them?
 
-1. The question is about contiguous parts, sums, remainders, or balances.
+<details>
+<summary>Answers</summary>
 
-**Avoid when:**
+1. Treat it as `-1`, so equal counts of 0s and 1s give a balance of `0`.
+2. Its sum is a multiple of `k`.
 
-1. The parts do not need to be contiguous (subsequences). Use DP or sorting.
-2. Numbers are positive and a window works with `O(1)` space.
+</details>
 
-#### 11. Related Topics
+#### 8. Related LeetCode Questions
 
-1. Prefix Sum + HashMap
-2. HashMap + Prefix Sum Advanced Patterns
-3. Counting Pairs / Complements
-4. Prefix Sum (`03-leetcode-patterns`, topic 7)
-
-#### 12. Interview Must Remember
-
-1. **Same engine, different prefix:** sum, remainder, or balance.
-2. **Equal prefixes ⇒ the part between them is zero / a multiple of `k`.**
-3. Count → count map. Longest → first-index map.
-4. Fix negative remainders. Start with `{0: 1}` or `{0: -1}`.
+| # | Question | Idea |
+|---|---|---|
+| 560 | Subarray Sum Equals K (Medium) | the base case (note 11) |
+| 974 | Subarray Sums Divisible by K (Medium) | remainders, count |
+| 523 | Continuous Subarray Sum (Medium) | remainders, first index |
+| 525 | Contiguous Array (Medium) | balance, first index |
+| 930 | Binary Subarrays With Sum (Medium) | same shape as 560 |
+| 1590 | Make Sum Divisible by P (Medium) | remainder + shortest subarray |
