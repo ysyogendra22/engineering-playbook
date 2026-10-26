@@ -47,7 +47,31 @@ Which stack for which question:
 | Next **greater** | `top < new` | big → small |
 | Next **smaller** | `top > new` | small → big |
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| | Brute force | Optimized |
+|---|---|---|
+| Idea | for each item, scan to the right | one pass with a stack of indexes |
+| Time | `O(n²)` | `O(n)` |
+| Space | `O(1)` extra | `O(n)` |
+
+The brute force is easy to write, and it is a good first answer to say out loud:
+
+```kotlin
+fun nextGreaterBrute(nums: IntArray): IntArray {
+    val result = IntArray(nums.size) { -1 }
+    for (i in nums.indices) {
+        for (j in i + 1 until nums.size) {
+            if (nums[j] > nums[i]) { result[i] = nums[j]; break }
+        }
+    }
+    return result
+}
+```
+
+The stack does not re-scan. Each item is pushed once and popped once.
+
+#### 4. Kotlin Code
 
 Store **indexes**, not values. You can always read the value with `nums[index]`, and you need indexes to write answers and to measure distances.
 
@@ -88,7 +112,7 @@ val j = stack.removeLast()
 answer[j] = i - j
 ```
 
-#### 4. Complexity
+#### 5. Complexity
 
 | | Time | Space |
 |---|---|---|
@@ -97,7 +121,7 @@ answer[j] = i - j
 
 Why `O(n)` even with a `while` inside a `for`: each index is **pushed once and popped once**.
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Wrong comparison direction.** Draw the first three steps on paper to check.
 2. **Storing values instead of indexes.** You cannot compute distances.
@@ -106,13 +130,13 @@ Why `O(n)` even with a `while` inside a `for`: each index is **pushed once and p
 5. **`stack.last()` on an empty stack.** Always check `isNotEmpty()` first.
 6. **Using it for a sliding window.** For a fixed-size window, use a monotonic **queue** (Queue folder, note 13).
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "I will use a monotonic stack of indexes. When the new item is bigger than the top, the top has found its next greater element."
 2. "Every index is pushed once and popped once, so the time is `O(n)` and the space is `O(n)`."
 3. "Items left on the stack have no greater element to their right."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. Which stack gives the next **smaller** element: decreasing or increasing?
 2. Why is the answer for `[3, 2, 1]` all `-1` for next greater?
@@ -125,17 +149,17 @@ Why `O(n)` even with a `while` inside a `for`: each index is **pushed once and p
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|
-| 496 | Next Greater Element I (Easy) | next greater + map |
-| 739 | Daily Temperatures (Medium) | distance to the next warmer day |
-| 503 | Next Greater Element II (Medium) | circular array |
-| 901 | Online Stock Span (Medium) | previous greater |
-| 402 | Remove K Digits (Medium) | pop bigger digits before a smaller one |
-| 316 | Remove Duplicate Letters (Medium) | increasing stack with rules |
-| 456 | 132 Pattern (Medium) | decreasing stack |
-| 84 | Largest Rectangle in Histogram (Hard) | next and previous smaller |
-| 42 | Trapping Rain Water (Hard) | decreasing stack (or two pointers) |
-| 907 | Sum of Subarray Minimums (Medium) | next and previous smaller |
+| 496 | [Next Greater Element I](https://leetcode.com/problems/next-greater-element-i/) (Easy) | next greater + map |
+| 739 | [Daily Temperatures](https://leetcode.com/problems/daily-temperatures/) (Medium) | distance to the next warmer day |
+| 503 | [Next Greater Element II](https://leetcode.com/problems/next-greater-element-ii/) (Medium) | circular array |
+| 901 | [Online Stock Span](https://leetcode.com/problems/online-stock-span/) (Medium) | previous greater |
+| 402 | [Remove K Digits](https://leetcode.com/problems/remove-k-digits/) (Medium) | pop bigger digits before a smaller one |
+| 316 | [Remove Duplicate Letters](https://leetcode.com/problems/remove-duplicate-letters/) (Medium) | increasing stack with rules |
+| 456 | [132 Pattern](https://leetcode.com/problems/132-pattern/) (Medium) | decreasing stack |
+| 84 | [Largest Rectangle in Histogram](https://leetcode.com/problems/largest-rectangle-in-histogram/) (Hard) | next and previous smaller |
+| 42 | [Trapping Rain Water](https://leetcode.com/problems/trapping-rain-water/) (Hard) | decreasing stack (or two pointers) |
+| 907 | [Sum of Subarray Minimums](https://leetcode.com/problems/sum-of-subarray-minimums/) (Medium) | next and previous smaller |

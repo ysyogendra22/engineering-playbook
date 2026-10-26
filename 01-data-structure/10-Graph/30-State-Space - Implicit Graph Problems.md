@@ -1,442 +1,177 @@
 # State-Space / Implicit Graph Problems
 
-#### 1. Definition — Must Know
+> A favourite FAANG trick: the question does not mention a graph, but it is one.
 
-1. An **Implicit Graph** is a graph where nodes and edges are **not explicitly given**.
-2. You generate neighbors from the current **state** using the problem's allowed operations.
-3. Each state acts like a graph node.
-4. Each valid transition acts like an edge.
+#### 1. What Is It?
 
-```text id="ig01"
-State      → Vertex
-Operation  → Edge
+In an **implicit graph** the nodes and edges are not given as a list. They come from **rules**:
+
+- a **node** is a **state** (a word, a lock code, a board layout, a number),
+- an **edge** is **one allowed move** from one state to another.
+
+You never build the whole graph. You **generate the neighbours** of a state when you need them, and you search with BFS (or DFS / Dijkstra).
+
+Signs in a question: "minimum number of moves/steps/changes", "transform A into B one step at a time", "reach the target state".
+
+| Question | State | One move |
+|---|---|---|
+| Word Ladder | a word | change one letter (the new word must be in the list) |
+| Open the Lock | a 4-digit code | turn one wheel up or down |
+| Sliding Puzzle | the board as a string | slide a tile into the empty space |
+| Perfect Squares | a number | subtract a square |
+| Jug problems | (amount in jug A, amount in jug B) | fill, empty, or pour |
+
+#### 2. How It Works
+
+Steps:
+
+1. Decide what a **state** is. It must contain **everything** that affects the future.
+2. Write how to produce the **neighbours** of a state.
+3. Run **BFS** from the start state, with a **visited** set of states. BFS gives the fewest moves.
+4. Stop when you reach the target.
+
+*Open the Lock* (LeetCode 752): a lock has 4 wheels `0–9`. Start at `"0000"`. Each move turns one wheel one step (`9` wraps to `0`). Some codes are **dead ends** (the lock gets stuck). Find the fewest moves to reach `target`.
+
+```text
+state: "0000".  Neighbours (8): 1000, 9000, 0100, 0900, 0010, 0090, 0001, 0009
+Each state has 8 neighbours. Skip dead ends and visited states.
+BFS level 1: the 8 neighbours.  Level 2: their neighbours ... until we reach the target.
 ```
 
-#### 2. Why It Is Important — Must Know
+Treat the dead ends as already visited, so BFS never enters them.
 
-Many interview problems do not look like graph problems.
+#### 3. Kotlin Code
 
-Example:
-
-```text id="ig02"
-Start = "0000"
-Target = "0202"
-
-Operation:
-Turn one digit +1 or -1
-```
-
-No graph is provided.
-
-But:
-
-```text id="ig03"
-"0000" → Node
-
-"0001", "0009", "0010"... → Neighbors
-
-One operation → Edge
-```
-
-So it is an **implicit graph**.
-
-#### 3. Explicit vs Implicit Graph
-
-```text id="ig04"
-Explicit Graph                Implicit Graph
-
-Adjacency list given          Neighbors generated
-
-Nodes provided                States represent nodes
-
-Edges provided                Operations represent edges
-
-graph[node]                   generateNeighbors(state)
-```
-
-Important:
-
-```text id="ig05"
-Do NOT build the entire graph
-if neighbors can be generated when needed.
-```
-
-#### 4. How to Recognize It — Must Know
-
-Look for phrases like:
-
-```text id="ig06"
-Minimum moves
-Minimum steps
-Minimum transformations
-Reach target
-Change one thing at a time
-Allowed operations
-Possible states
-```
-
-Then think:
-
-```text id="ig07"
-Can I model each situation as a state
-and each operation as an edge?
-```
-
-If yes → graph traversal may apply.
-
-#### 5. Core Modeling — Must Know
-
-Every state-space problem needs three things:
-
-```text id="ig08"
-1. State
-2. Transition
-3. Goal
-```
-
-Example:
-
-```text id="ig09"
-Word Ladder
-
-State      → Current word
-Transition → Change one character
-Goal       → Target word
-```
-
-Another example:
-
-```text id="ig10"
-Grid
-
-State      → (row, column)
-Transition → Move up/down/left/right
-Goal       → Destination
-```
-
-#### 6. BFS Pattern — Must Know
-
-If every transition has the **same cost** and the question asks:
-
-```text id="ig11"
-Minimum moves / steps / transformations
-```
-
-use:
-
-```text id="ig12"
-BFS
-```
-
-Why?
-
-```text id="ig13"
-Level 0 → 0 moves
-Level 1 → 1 move
-Level 2 → 2 moves
-Level 3 → 3 moves
-```
-
-The first time the target is reached gives the minimum number of transitions.
-
-#### 7. Generic BFS Template — Must Know
-
-```kotlin id="ig14"
-fun shortestSteps(start: String, target: String): Int {
-
-    val queue = ArrayDeque<Pair<String, Int>>()
-    val visited = mutableSetOf<String>()
-
-    queue.addLast(start to 0)
-    visited.add(start)
+```kotlin
+// Open the Lock (LeetCode 752)
+fun openLock(deadends: Array<String>, target: String): Int {
+    val visited = HashSet<String>(deadends.toList())          // dead ends count as visited
+    if ("0000" in visited) return -1
+    val queue = ArrayDeque<String>()
+    queue.addLast("0000")
+    visited.add("0000")
+    var moves = 0
 
     while (queue.isNotEmpty()) {
-
-        val (state, steps) = queue.removeFirst()
-
-        if (state == target) {
-            return steps
+        repeat(queue.size) {
+            val code = queue.removeFirst()
+            if (code == target) return moves
+            for (i in 0 until 4) {
+                for (delta in intArrayOf(1, 9)) {                    // +1 or -1 (mod 10)
+                    val digit = (code[i] - '0' + delta) % 10
+                    val next = code.substring(0, i) + digit + code.substring(i + 1)
+                    if (visited.add(next)) queue.addLast(next)       // add() is false if already visited
+                }
+            }
         }
+        moves++
+    }
+    return -1
+}
 
-        for (next in generateNeighbors(state)) {
+// Word Ladder (LeetCode 127): the number of words in the shortest chain
+fun ladderLength(beginWord: String, endWord: String, wordList: List<String>): Int {
+    val words = wordList.toHashSet()
+    if (endWord !in words) return 0
+    words.remove(beginWord)
+    val queue = ArrayDeque<String>()
+    queue.addLast(beginWord)
+    var steps = 1
+    while (queue.isNotEmpty()) {
+        repeat(queue.size) {
+            val word = queue.removeFirst()
+            if (word == endWord) return steps
+            val chars = word.toCharArray()
+            for (i in chars.indices) {
+                val original = chars[i]
+                for (c in 'a'..'z') {
+                    if (c == original) continue
+                    chars[i] = c
+                    val next = String(chars)
+                    if (words.remove(next)) queue.addLast(next)      // remove = mark visited
+                }
+                chars[i] = original
+            }
+        }
+        steps++
+    }
+    return 0
+}
 
-            if (visited.add(next)) {
-                queue.addLast(next to steps + 1)
+// Perfect Squares (LeetCode 279): the fewest perfect squares that sum to n (the state is the remaining number)
+fun numSquares(n: Int): Int {
+    val queue = ArrayDeque<Int>()
+    val visited = BooleanArray(n + 1)
+    queue.addLast(n)
+    visited[n] = true
+    var steps = 0
+    while (queue.isNotEmpty()) {
+        steps++
+        repeat(queue.size) {
+            val remaining = queue.removeFirst()
+            var s = 1
+            while (s * s <= remaining) {
+                val next = remaining - s * s
+                if (next == 0) return steps
+                if (!visited[next]) { visited[next] = true; queue.addLast(next) }
+                s++
             }
         }
     }
-
-    return -1
+    return steps
 }
 ```
 
-Core structure:
+Checks: `openLock(["0201","0101","0102","1212","2002"], "0202")` → `6`. `ladderLength("hit","cog",["hot","dot","dog","lot","log","cog"])` → `5`. `numSquares(12)` → `3` (4 + 4 + 4). `numSquares(13)` → `2` (4 + 9).
 
-```text id="ig15"
-Start
-  ↓
-BFS
-  ↓
-Generate Neighbors
-  ↓
-Visited Check
-  ↓
-Target?
-```
+For Word Ladder, the faster two-sided search is in the Queue folder (note 18, bidirectional BFS).
 
-#### 8. Visited Is Critical — Must Know
+#### 4. Complexity
 
-State transitions can create cycles.
+| Problem | Time | Space |
+|---|---|---|
+| Open the Lock | `O(10⁴ · 4 · 2)` (at most 10,000 states) | `O(10⁴)` |
+| Word Ladder (`n` words of length `L`) | `O(n · L · 26 · L)` (building each string costs `L`) | `O(n · L)` |
+| Perfect Squares | `O(n · √n)` | `O(n)` |
+| General | `O(number of states × moves per state)` | `O(number of states)` |
 
-Example:
+#### 5. Common Mistakes
 
-```text id="ig16"
-A → B
-B → A
-```
+1. **Putting too little in the state.** If the future depends on something (keys collected, steps left), include it, or you merge different situations.
+2. **No visited set**, so states repeat and the search explodes.
+3. **Marking visited when dequeuing.** Mark when you add the state.
+4. **Counting steps off by one.** Decide whether the start counts as step 0 or 1.
+5. **Using DFS** for the fewest moves.
+6. **Mutable state objects** (arrays) as set keys. Use a `String`, `List` or `data class`.
+7. **The target is not allowed** (not in the word list). Return `0` / `-1`.
 
-Without visited:
+#### 6. Say This in the Interview
 
-```text id="ig17"
-A → B → A → B → A ...
-```
+1. "I will treat each state as a node and each allowed move as an edge. I need the fewest moves, so BFS."
+2. "My state is ..., and its neighbours are ..."
+3. "A visited set prevents repeating states. The number of states bounds the work."
 
-So maintain:
+#### 7. Quick Check
 
-```kotlin id="ig18"
-val visited = mutableSetOf<State>()
-```
+1. What is the "node" in Word Ladder?
+2. Why BFS and not DFS?
 
-Mark a state visited when adding it to the queue.
+<details>
+<summary>Answers</summary>
 
-#### 9. State Representation — Must Know
+1. A word.
+2. The question asks for the fewest moves, and BFS reaches each state by the shortest route first.
 
-Choosing the right state is often the hardest part.
+</details>
 
-Simple state:
+#### 8. Related LeetCode Questions
 
-```text id="ig19"
-Current Word
-Current Number
-Current Position
-```
-
-Complex state:
-
-```text id="ig20"
-(row, col, keysCollected)
-
-(node, remainingStops)
-
-(position, usedMask)
-```
-
-Rule:
-
-```text id="ig21"
-State must contain all information
-needed to make future decisions.
-```
-
-If two situations have different future possibilities, they may need to be treated as different states.
-
-#### 10. Common Example — Word Ladder
-
-```text id="ig22"
-hit → hot → dot → dog → cog
-```
-
-Model:
-
-```text id="ig23"
-Vertex → Word
-
-Edge → Two words differ by one valid character change
-```
-
-Question:
-
-```text id="ig24"
-Minimum transformations?
-```
-
-Use:
-
-```text id="ig25"
-BFS
-```
-
-You usually generate valid neighboring words dynamically rather than building the complete graph first.
-
-#### 11. Common Example — Open the Lock
-
-State:
-
-```text id="ig26"
-"0000"
-```
-
-Operations:
-
-```text id="ig27"
-Turn any wheel:
-
-+1
-or
--1
-```
-
-Each generated combination is a neighboring state.
-
-```text id="ig28"
-"0000"
-  ↓
-"1000"
-"9000"
-"0100"
-"0900"
-...
-```
-
-Minimum turns:
-
-```text id="ig29"
-BFS
-```
-
-#### 12. BFS vs DFS vs Dijkstra — Must Know
-
-```text id="ig30"
-Need any valid solution
-        ↓
-      DFS/BFS
-
-
-Minimum moves
-All transitions equal cost
-        ↓
-       BFS
-
-
-Different non-negative transition costs
-        ↓
-     Dijkstra
-
-
-Explore all combinations / backtrack
-        ↓
-       DFS
-```
-
-Algorithm depends on the **edge/transition cost**, not whether the graph is explicit.
-
-#### 13. Multi-Source State-Space — Good to Know
-
-If multiple states are valid starting points:
-
-```text id="ig31"
-S1
-S2
-S3
-```
-
-Initialize:
-
-```text id="ig32"
-Queue = [S1, S2, S3]
-```
-
-Then run:
-
-```text id="ig33"
-Multi-Source BFS
-```
-
-Useful for nearest-source or spreading problems.
-
-#### 14. Complexity — Must Know
-
-Implicit graph complexity still follows:
-
-```text id="ig34"
-O(V + E)
-```
-
-But here:
-
-```text id="ig35"
-V = Number of reachable states
-
-E = Number of valid transitions
-```
-
-If every state generates at most `K` neighbors:
-
-```text id="ig36"
-Time ≈ O(Number of States × K)
-```
-
-Space:
-
-```text id="ig37"
-O(Number of States)
-```
-
-for queue + visited in the worst case.
-
-The state space can sometimes be very large, so avoid generating unnecessary states.
-
-#### 15. Common Interview Patterns — Must Know
-
-1. **Word transformations**
-   ```text
-   Word Ladder
-   ```
-
-2. **Minimum operations**
-   ```text
-   Number/state transformations
-   ```
-
-3. **Lock combinations**
-   ```text
-   Open the Lock
-   ```
-
-4. **Board movement**
-   ```text
-   Position = State
-   ```
-
-5. **Minimum moves in games**
-   ```text
-   BFS
-   ```
-
-6. **States with extra conditions**
-   ```text
-   (position, additionalState)
-   ```
-
-#### 16. Common Mistakes — Must Know
-
-1. Not recognizing the problem as a graph.
-2. Building the complete graph unnecessarily.
-3. Using DFS for minimum moves with equal-cost transitions.
-4. Forgetting `visited`.
-5. Marking visited too late.
-6. Using an incomplete state representation.
-7. Generating invalid neighbors.
-8. Forgetting blocked/forbidden states.
-9. Assuming `O(V + E)` is small without considering how large the state space can become.
-
-#### 17. Interview Must Remember
-
-1. **State = Vertex**.
-2. **Valid operation = Edge**.
-3. Generate neighbors **on demand**.
-4. Minimum equal-cost moves → **BFS**.
-5. Different non-negative costs → **Dijkstra**.
-6. Use `visited` to avoid repeated states/cycles.
-7. State must contain **everything needed for future decisions**.
-8. When a problem says **minimum moves/transformations**, check whether it is an **implicit graph**.
+| # | Question | Idea |
+|---|---|---|
+| 752 | Open the Lock (Medium) | lock codes are states |
+| 127 | Word Ladder (Hard) | words are states |
+| 433 | Minimum Genetic Mutation (Medium) | like Word Ladder |
+| 279 | Perfect Squares (Medium) | numbers are states |
+| 773 | Sliding Puzzle (Hard) | board strings are states |
+| 365 | Water and Jug Problem (Medium) | `(a, b)` amounts are states |
+| 864 | Shortest Path to Get All Keys (Hard) | state = `(row, col, keys)` |

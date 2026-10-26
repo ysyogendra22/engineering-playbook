@@ -1,313 +1,149 @@
 # Cycle Detection — Directed Graph
 
-#### 1. Definition — Must Know
+> Asked all the time: *Course Schedule* is a directed cycle detection.
 
-1. A cycle exists when following **directed edges** eventually leads back to a node in the same path.
-2. Common approaches:
-   - **DFS + Recursion Path / State** — Must Know.
-   - **Topological Sort (Kahn's Algorithm)** — Must Know.
+#### 1. What Is It?
 
-#### 2. Example — Must Know
+In a **directed** graph, a cycle means you can follow the arrows and come back to a node you started from.
 
-Cyclic:
+Example: `A → B → C → A`. In a course schedule, "A needs B, B needs C, C needs A" is impossible.
 
-```text
-0 → 1 → 2
-    ↑   ↓
-    └── 3
-```
-
-Cycle:
+The undirected "parent" check does **not** work here. In a directed graph, two different paths can reach the same node without any cycle:
 
 ```text
-1 → 2 → 3 → 1
+A → B → D        D is reached by two paths, but there is no cycle.
+A → C → D
 ```
 
-Acyclic:
+Two standard ways:
+
+| Way | Idea |
+|---|---|
+| **DFS with 3 states** | a cycle exists if DFS reaches a node that is **still on the current path** |
+| **Kahn's algorithm** (note 16) | if topological sort cannot process all nodes, there is a cycle |
+
+#### 2. How It Works
+
+Give every node one of three states:
+
+| State | Meaning |
+|---|---|
+| `0` unvisited | not seen yet |
+| `1` visiting | on the **current DFS path** |
+| `2` done | fully explored, **no cycle through it** |
+
+Rule: if DFS reaches a node whose state is `1` (visiting), we came back to the current path → **cycle**.
 
 ```text
-0 → 1 → 2 → 3
+Graph: 0 → 1, 1 → 2, 2 → 0
+
+dfs(0): state[0] = visiting
+   dfs(1): state[1] = visiting
+      dfs(2): state[2] = visiting
+         neighbour 0: state is visiting → CYCLE
 ```
-
-No cycle exists.
-
-#### 3. Why `visited` Alone Is Not Enough — Must Know
-
-Consider:
 
 ```text
-0 → 1
- \→ 2
-    ↑
-    1
+Graph: 0 → 1, 0 → 2, 1 → 3, 2 → 3          (no cycle)
+
+dfs(0) visiting
+   dfs(1) visiting → dfs(3) visiting → done (state 2) → 1 done
+   dfs(2) visiting → neighbour 3 is DONE (not visiting) → fine → 2 done
+0 done
 ```
 
-`2` may already be visited when reached again.
+Reaching a **done** node is fine. Only reaching a **visiting** node is a cycle.
 
-But that does **not automatically mean a cycle**.
-
-A cycle exists only when we reach a node that is already part of the **current DFS path**.
-
-Think:
-
-```text
-Visited before        → Not necessarily cycle
-
-In current DFS path   → Cycle
-```
-
-#### 4. DFS State Concept — Must Know
-
-Use two arrays:
-
-```text
-visited[node]
-path[node]
-```
-
-Meaning:
-
-```text
-visited → Node has been explored before.
-
-path    → Node currently exists in this DFS recursion path.
-```
-
-Rule:
-
-```text
-neighbor is already in current path
-              ↓
-            Cycle
-```
-
-#### 5. Core DFS Logic — Must Know
-
-```text
-DFS(node):
-
-1. Mark visited[node] = true
-2. Mark path[node] = true
-
-3. For every neighbor:
-
-   if neighbor not visited:
-       if DFS(neighbor):
-           return true
-
-   else if path[neighbor]:
-       return true
-
-4. Remove node from current path:
-   path[node] = false
-
-5. return false
-```
-
-#### 6. Kotlin Implementation — Must Know
+#### 3. Kotlin Code
 
 ```kotlin
-fun hasCycle(
-    n: Int,
-    graph: Array<MutableList<Int>>
-): Boolean {
-
-    val visited = BooleanArray(n)
-    val path = BooleanArray(n)
+// Is there a cycle in a directed graph?
+fun hasCycle(n: Int, graph: List<List<Int>>): Boolean {
+    val state = IntArray(n)                       // 0 = unvisited, 1 = visiting, 2 = done
 
     fun dfs(node: Int): Boolean {
-
-        visited[node] = true
-        path[node] = true
-
-        for (neighbor in graph[node]) {
-
-            if (!visited[neighbor]) {
-
-                if (dfs(neighbor)) {
-                    return true
-                }
-
-            } else if (path[neighbor]) {
-
-                return true
-            }
+        state[node] = 1
+        for (next in graph[node]) {
+            if (state[next] == 1) return true     // back to the current path → cycle
+            if (state[next] == 0 && dfs(next)) return true
         }
-
-        path[node] = false
-
+        state[node] = 2
         return false
     }
 
-    for (node in 0 until n) {
+    for (s in 0 until n) {
+        if (state[s] == 0 && dfs(s)) return true
+    }
+    return false
+}
 
-        if (!visited[node]) {
-            if (dfs(node)) {
-                return true
-            }
-        }
+// Course Schedule (LeetCode 207): can you finish all courses?
+fun canFinish(numCourses: Int, prerequisites: Array<IntArray>): Boolean {
+    val graph = List(numCourses) { mutableListOf<Int>() }
+    for ((course, pre) in prerequisites) graph[pre].add(course)     // pre → course
+    return !hasCycle(numCourses, graph)
+}
+
+// Find Eventual Safe States (LeetCode 802): nodes that cannot reach a cycle
+fun eventualSafeNodes(graph: Array<IntArray>): List<Int> {
+    val n = graph.size
+    val state = IntArray(n)                       // 0 = unvisited, 1 = visiting, 2 = safe
+
+    fun isSafe(node: Int): Boolean {
+        if (state[node] == 1) return false        // on the current path → part of a cycle
+        if (state[node] == 2) return true
+        state[node] = 1
+        for (next in graph[node]) if (!isSafe(next)) return false
+        state[node] = 2
+        return true
     }
 
-    return false
+    return (0 until n).filter { isSafe(it) }
 }
 ```
 
-#### 7. 3-State Approach — Good to Know
+Checks: `canFinish(2, [[1,0]])` → `true`. `canFinish(2, [[1,0],[0,1]])` → `false`. `eventualSafeNodes([[1,2],[2,3],[5],[0],[5],[],[]])` → `[2, 4, 5, 6]`.
 
-Instead of two arrays, use one state array:
+#### 4. Complexity
 
-```text
-0 → Unvisited
-1 → Visiting
-2 → Visited / Completed
-```
+| | Time | Space |
+|---|---|---|
+| DFS with 3 states | `O(V + E)` | `O(V)` |
+| Kahn's algorithm | `O(V + E)` | `O(V)` |
 
-Cycle rule:
+#### 5. Common Mistakes
 
-```text
-Edge to state 1
-      ↓
-    Cycle
-```
+1. **Using only a `visited` flag** (2 states). A node reached by two different paths looks like a cycle. You need the third state.
+2. **Forgetting to set the state to "done"** after exploring a node.
+3. **Using the parent check** from the undirected version.
+4. **Checking only one start node.** Loop over all nodes.
+5. **Wrong edge direction** in Course Schedule. The edge is `prerequisite → course`.
 
-Kotlin idea:
+#### 6. Say This in the Interview
 
-```kotlin
-val state = IntArray(n)
+1. "In a directed graph I use DFS with three states: unvisited, on the current path, and done. Reaching a node that is on the current path means a cycle."
+2. "Alternatively Kahn's algorithm: if I cannot process every node, there is a cycle."
+3. "Time `O(V + E)`."
 
-fun dfs(node: Int): Boolean {
+#### 7. Quick Check
 
-    state[node] = 1
+1. Why is reaching a "done" node not a cycle?
+2. For `[[1, 0]]` in Course Schedule, which way does the edge point?
 
-    for (neighbor in graph[node]) {
+<details>
+<summary>Answers</summary>
 
-        if (state[neighbor] == 1) {
-            return true
-        }
+1. A done node was fully explored and does not lead back to the current path. We just found another way to reach it.
+2. `0 → 1` (course `0` is the prerequisite of course `1`).
 
-        if (state[neighbor] == 0 && dfs(neighbor)) {
-            return true
-        }
-    }
+</details>
 
-    state[node] = 2
+#### 8. Related LeetCode Questions
 
-    return false
-}
-```
-
-This is a clean interview-friendly alternative.
-
-#### 8. Why Remove Node from Current Path? — Must Know
-
-After DFS finishes:
-
-```kotlin
-path[node] = false
-```
-
-because the node is no longer part of the **active recursion path**.
-
-It remains:
-
-```text
-visited = true
-path    = false
-```
-
-This distinction is critical.
-
-#### 9. Kahn's Algorithm Approach — Must Know
-
-Cycle detection can also use **Topological Sort**.
-
-Logic:
-
-```text
-1. Calculate in-degree of every node.
-2. Add all nodes with in-degree 0 to queue.
-3. Process them and reduce neighbors' in-degree.
-4. Count processed nodes.
-```
-
-Then:
-
-```text
-processedNodes == V
-        ↓
-     No Cycle
-
-processedNodes < V
-        ↓
-       Cycle
-```
-
-Why?
-
-Nodes inside a directed cycle can never all reach `in-degree = 0`.
-
-Study the implementation under **Topological Sort / Kahn's Algorithm**.
-
-#### 10. Complexity — Must Know
-
-For DFS or Kahn's Algorithm:
-
-```text
-Time  → O(V + E)
-Space → O(V)
-```
-
-Every vertex and edge is processed a constant number of times.
-
-#### 11. Common Interview Patterns — Must Know
-
-1. **Course Schedule**
-   ```text
-   Dependencies + Cycle Detection
-   ```
-
-2. **Task Dependencies**
-   ```text
-   Directed Graph + Cycle
-   ```
-
-3. **Can all tasks be completed?**
-   ```text
-   Detect cycle / Topological Sort
-   ```
-
-4. **Dependency ordering**
-   ```text
-   DAG + Topological Sort
-   ```
-
-#### 12. Undirected vs Directed Cycle Detection — Must Know
-
-```text
-Undirected                  Directed
-
-DFS + Parent                DFS + Current Path
-Visited neighbor            Node in active path
-!= parent → Cycle           → Cycle
-
-Alternative: Union-Find     Alternative: Kahn's
-```
-
-#### 13. Common Mistakes — Must Know
-
-1. Treating every edge to a visited node as a cycle.
-2. Forgetting `path[node] = false` after DFS completes.
-3. Using undirected `parent` logic for directed graphs.
-4. Running DFS from only one node in a disconnected graph.
-5. Confusing `visited` with **currently visiting**.
-6. Forgetting that a self-loop `A → A` is a cycle.
-
-#### 14. Interview Must Remember
-
-1. Directed cycle → think **current DFS path**.
-2. `visited` alone is not enough.
-3. `path[neighbor] == true` → cycle.
-4. Clean alternative → `0 = unvisited, 1 = visiting, 2 = completed`.
-5. **Kahn's Algorithm:** processed nodes `< V` → cycle.
-6. Complexity → `O(V + E)`.
-7. Dependency / Course Schedule problems → think **cycle detection + topological sort**.
+| # | Question | Idea |
+|---|---|---|
+| 207 | Course Schedule (Medium) | is there a cycle? |
+| 210 | Course Schedule II (Medium) | give the order (note 15) |
+| 802 | Find Eventual Safe States (Medium) | nodes that cannot reach a cycle |
+| 685 | Redundant Connection II (Hard) | directed cycle + in-degree |
+| 329 | Longest Increasing Path in a Matrix (Hard) | DFS on a DAG with memo |

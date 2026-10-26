@@ -34,7 +34,30 @@ getMin():  → 5
 
 Because both stacks always have the same size, popping both keeps them in step. The old minimum comes back by itself.
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| | Brute force | Optimized |
+|---|---|---|
+| Idea | scan all items in `getMin()` | store the minimum next to each item |
+| `getMin()` | `O(n)` | `O(1)` |
+| Extra space | `O(1)` | `O(n)` |
+
+The brute force is easy to write, and it is a good first answer to say out loud:
+
+```kotlin
+class MinStackBrute {
+    private val items = ArrayList<Int>()
+
+    fun push(x: Int) { items.add(x) }
+    fun pop() { items.removeAt(items.size - 1) }
+    fun top(): Int = items.last()
+    fun getMin(): Int = items.min()          // scans every item: O(n)   (Kotlin 1.7+)
+}
+```
+
+The question asks for `O(1)` `getMin()`, so we trade `O(n)` extra memory for speed.
+
+#### 4. Kotlin Code
 
 ```kotlin
 class MinStack {
@@ -85,28 +108,28 @@ class MinStackPairs {
 
 A **Max Stack** is the same code with `maxOf`.
 
-#### 4. Complexity
+#### 5. Complexity
 
 | Operation | Time |
 |---|---|
 | `push`, `pop`, `top`, `getMin` | `O(1)` |
 | Extra memory | `O(n)` (the second stack) |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Using one `min` variable.** After you pop the minimum you cannot get the previous one.
 2. **Popping only one stack.** Always pop both.
 3. **Calling `getMin()` or `top()` on an empty stack.** Say how you handle it (throw, or the problem guarantees it does not happen).
 4. **Space-saving trick done wrong.** Some solutions push onto `minStack` only when `x` is a new minimum. Then use `x <= min` (not `<`), or duplicate minimums break after a pop.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "A single `min` variable fails when the minimum is popped, so I store the minimum with every item."
 2. "I keep a second stack with the minimum so far. Push and pop both stacks together."
 3. "All four operations are `O(1)`. The cost is `O(n)` extra space."
 4. "For a Max Stack I only flip the comparison."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. Push `4`, `2`, `6`. What is `getMin()`? Pop twice. What is `getMin()` now?
 2. Why must `minStack` repeat the old minimum when you push `7` on top of `3`?
@@ -119,12 +142,12 @@ A **Max Stack** is the same code with `maxOf`.
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|
-| 155 | Min Stack (Medium) | this note |
-| 716 | Max Stack (Hard, premium) | needs `popMax` too |
-| 895 | Maximum Frequency Stack (Hard) | map from frequency to stack |
-| 232 | Implement Queue using Stacks (Easy) | design with stacks |
-| 1381 | Design a Stack With Increment Operation (Medium) | stack design |
+| 155 | [Min Stack](https://leetcode.com/problems/min-stack/) (Medium) | this note |
+| 716 | [Max Stack](https://leetcode.com/problems/max-stack/) (Hard, premium) | needs `popMax` too |
+| 895 | [Maximum Frequency Stack](https://leetcode.com/problems/maximum-frequency-stack/) (Hard) | map from frequency to stack |
+| 232 | [Implement Queue using Stacks](https://leetcode.com/problems/implement-queue-using-stacks/) (Easy) | design with stacks |
+| 1381 | [Design a Stack With Increment Operation](https://leetcode.com/problems/design-a-stack-with-increment-operation/) (Medium) | stack design |

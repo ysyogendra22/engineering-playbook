@@ -1,330 +1,151 @@
 # Shortest Path in Unweighted Graph — BFS
 
-#### 1. Definition — Must Know
+> "Minimum number of steps" almost always means BFS. The queue details are also in `01-data-structure/04-Queue/07-Queue for Shortest Path.md`.
 
-1. In an **unweighted graph**, BFS finds the shortest path from a source to other vertices.
-2. Shortest path means the **minimum number of edges**.
-3. BFS works because it explores nodes **level by level**.
+#### 1. What Is It?
 
-#### 2. Why BFS Works — Must Know
+In a graph where **every edge costs the same** (an unweighted graph), **BFS finds the shortest path**.
 
-Graph:
+The first time BFS reaches a node is the shortest way to it. So you store:
 
-```text
-    1
-   / \
-  2   3
-  |   |
-  4---5
-```
+- `dist[node]`: the number of edges from the start. It also marks the node as visited.
+- `parent[node]`: where you came from. It lets you rebuild the path.
 
-Starting from `1`:
+The "node" can be a city, a grid cell, a word, a lock code or a number. Questions say "minimum number of moves / steps / changes".
+
+#### 2. How It Works
 
 ```text
-Level 0 → 1
-Level 1 → 2, 3
-Level 2 → 4, 5
+Graph:   0 — 1 — 2 — 5          edges: 0-1, 1-2, 2-5, 0-3, 3-4, 4-2
+         |        |
+         3 ———————4
+
+Shortest path from 0 to 5?
+
+queue [0]                dist 0→0
+take 0: reach 1, 3       dist 1→1, 3→1       parent 1←0, 3←0
+take 1: reach 2          dist 2→2            parent 2←1
+take 3: reach 4          dist 4→2            parent 4←3
+take 2: reach 5          dist 5→3            parent 5←2
+
+Follow the parents back from 5:  5 ← 2 ← 1 ← 0     path 0 → 1 → 2 → 5   (3 edges)
 ```
 
-Therefore:
+Why BFS is correct: the queue finishes all nodes at distance `d` before any node at distance `d + 1`. So the first arrival is the shortest.
 
-```text
-Distance(1 → 1) = 0
-Distance(1 → 2) = 1
-Distance(1 → 3) = 1
-Distance(1 → 4) = 2
-```
+If the edges have **different costs**, BFS is wrong. Use Dijkstra (note 18).
 
-The **first time BFS reaches a node**, it has found its shortest distance from the source.
-
-#### 3. Core Logic — Must Know
-
-```text
-1. Set all distances = -1.
-
-2. distance[source] = 0.
-
-3. Add source to Queue.
-
-4. While Queue is not empty:
-
-   node = remove front
-
-   for each neighbor:
-
-       if neighbor is unvisited:
-
-           distance[neighbor] =
-               distance[node] + 1
-
-           add neighbor to Queue
-```
-
-Core pattern:
-
-```text
-BFS + Distance Array
-```
-
-#### 4. Kotlin Implementation — Must Know
+#### 3. Kotlin Code
 
 ```kotlin
-fun shortestDistance(
-    n: Int,
-    graph: Array<MutableList<Int>>,
-    source: Int
-): IntArray {
-
-    val distance = IntArray(n) { -1 }
+// Shortest path as a list of nodes. Empty list if the target cannot be reached.
+fun shortestPath(graph: List<List<Int>>, src: Int, dst: Int): List<Int> {
+    val dist = IntArray(graph.size) { -1 }          // -1 means "not reached yet"
+    val parent = IntArray(graph.size) { -1 }
     val queue = ArrayDeque<Int>()
-
-    distance[source] = 0
-    queue.addLast(source)
+    dist[src] = 0
+    queue.addLast(src)
 
     while (queue.isNotEmpty()) {
-
         val node = queue.removeFirst()
-
-        for (neighbor in graph[node]) {
-
-            if (distance[neighbor] == -1) {
-
-                distance[neighbor] =
-                    distance[node] + 1
-
-                queue.addLast(neighbor)
+        if (node == dst) break
+        for (next in graph[node]) {
+            if (dist[next] == -1) {
+                dist[next] = dist[node] + 1
+                parent[next] = node
+                queue.addLast(next)
             }
         }
     }
 
-    return distance
-}
-```
-
-Here:
-
-```text
-distance == -1 → Unvisited
-```
-
-So a separate `visited` array is unnecessary.
-
-#### 5. Finding the Actual Path — Must Know
-
-Distance tells us the shortest **length**.
-
-To reconstruct the actual path, store each node's parent.
-
-```kotlin
-fun shortestPath(
-    n: Int,
-    graph: Array<MutableList<Int>>,
-    source: Int,
-    target: Int
-): List<Int> {
-
-    val parent = IntArray(n) { -1 }
-    val visited = BooleanArray(n)
-    val queue = ArrayDeque<Int>()
-
-    queue.addLast(source)
-    visited[source] = true
-
-    while (queue.isNotEmpty()) {
-
-        val node = queue.removeFirst()
-
-        if (node == target) break
-
-        for (neighbor in graph[node]) {
-
-            if (!visited[neighbor]) {
-
-                visited[neighbor] = true
-                parent[neighbor] = node
-
-                queue.addLast(neighbor)
-            }
-        }
-    }
-
-    if (!visited[target]) return emptyList()
-
+    if (dist[dst] == -1) return emptyList()
     val path = mutableListOf<Int>()
-    var current = target
-
-    while (current != -1) {
-        path.add(current)
-        current = parent[current]
+    var cur = dst
+    while (cur != -1) {
+        path.add(cur)
+        cur = parent[cur]
     }
+    return path.reversed()
+}
 
-    path.reverse()
+// Shortest Path with Alternating Colors (LeetCode 1129): the state is (node, colour of the last edge)
+fun shortestAlternatingPaths(n: Int, redEdges: Array<IntArray>, blueEdges: Array<IntArray>): IntArray {
+    val graph = Array(2) { List(n) { mutableListOf<Int>() } }       // 0 = red, 1 = blue
+    for ((a, b) in redEdges) graph[0][a].add(b)
+    for ((a, b) in blueEdges) graph[1][a].add(b)
 
-    return path
+    val answer = IntArray(n) { -1 }
+    val visited = Array(2) { BooleanArray(n) }
+    val queue = ArrayDeque<IntArray>()                               // [node, colour of the last edge]
+    queue.addLast(intArrayOf(0, 0)); queue.addLast(intArrayOf(0, 1))
+    visited[0][0] = true; visited[1][0] = true
+    var steps = 0
+    while (queue.isNotEmpty()) {
+        repeat(queue.size) {
+            val (node, colour) = queue.removeFirst()
+            if (answer[node] == -1) answer[node] = steps
+            val nextColour = 1 - colour                              // the next edge must have the other colour
+            for (next in graph[nextColour][node]) {
+                if (!visited[nextColour][next]) {
+                    visited[nextColour][next] = true
+                    queue.addLast(intArrayOf(next, nextColour))
+                }
+            }
+        }
+        steps++
+    }
+    return answer
 }
 ```
 
-Example:
+Check: on the graph above, `shortestPath(graph, 0, 5)` → `[0, 1, 2, 5]`.
 
-```text
-parent[4] = 2
-parent[2] = 1
-```
+The grid version (Shortest Path in Binary Matrix) is in `01-data-structure/04-Queue/09-Grid BFS.md`.
 
-Reconstruct backwards:
+#### 4. Complexity
 
-```text
-4 → 2 → 1
-```
+| | Time | Space |
+|---|---|---|
+| BFS shortest path | `O(V + E)` | `O(V)` |
+| Grid `R × C` | `O(R · C)` | `O(R · C)` |
 
-Reverse:
+#### 5. Common Mistakes
 
-```text
-1 → 2 → 4
-```
+1. **Using BFS on a weighted graph.**
+2. **Marking visited when taking the node out** instead of when adding it.
+3. **Forgetting `dist[start] = 0`.**
+4. **Unreachable target.** Return `-1` or an empty path. Do not follow `parent` from `-1`.
+5. **Forgetting to reverse** the path.
+6. **Counting nodes instead of edges** (or the reverse).
+7. **Forgetting extra state.** If a rule depends on more than the node (like the last colour), put it in the BFS state.
 
-#### 6. Time & Space Complexity — Must Know
+#### 6. Say This in the Interview
 
-Using adjacency list:
+1. "Every move costs 1, so BFS gives the shortest path. The first time I reach a node is the shortest way."
+2. "I keep a `dist` array as my visited marker and a `parent` array to rebuild the path."
+3. "Time `O(V + E)`. With different costs I would use Dijkstra."
 
-```text
-Time  → O(V + E)
-Space → O(V)
-```
+#### 7. Quick Check
 
-1. Every vertex is visited at most once.
-2. Every edge is examined.
-3. Queue + distance/parent arrays require `O(V)` extra space.
+1. What is the BFS distance of the start node?
+2. Why is the first arrival the shortest?
 
-#### 7. Grid Connection — Must Know
+<details>
+<summary>Answers</summary>
 
-A grid with equal-cost movement is also an **unweighted graph**.
+1. `0`.
+2. BFS handles all nodes at distance `d` before any at `d + 1`, so no shorter way can appear later.
 
-```text
-S . .
-# # .
-. . T
-```
+</details>
 
-Each cell:
+#### 8. Related LeetCode Questions
 
-```text
-Cell → Vertex
-Movement → Edge
-```
-
-Therefore:
-
-```text
-Minimum moves in grid
-        ↓
-       BFS
-```
-
-#### 8. Multi-Source BFS — Good to Know
-
-If there are multiple starting points:
-
-```text
-S1 . . S2
-```
-
-Add all sources to the queue initially:
-
-```text
-Queue → [S1, S2]
-```
-
-Then run normal BFS.
-
-Useful for:
-
-1. Rotting Oranges.
-2. Distance to nearest source.
-3. Spread/infection problems.
-
-#### 9. BFS vs Dijkstra — Must Know
-
-```text
-Unweighted / Equal-cost edges
-            ↓
-           BFS
-
-Different non-negative weights
-            ↓
-         Dijkstra
-```
-
-Example:
-
-```text
-A --10-- B
- \       /
-  1     1
-   \   /
-     C
-```
-
-BFS may prefer:
-
-```text
-A → B
-```
-
-because it has one edge.
-
-But weighted shortest path is:
-
-```text
-A → C → B
-
-Cost = 2
-```
-
-So normal BFS is not suitable for general weighted graphs.
-
-#### 10. Common Interview Patterns — Must Know
-
-1. **Minimum number of edges**
-   ```text
-   BFS
-   ```
-
-2. **Minimum moves / steps**
-   ```text
-   BFS
-   ```
-
-3. **Shortest path in grid**
-   ```text
-   BFS
-   ```
-
-4. **Nearest node / target**
-   ```text
-   BFS
-   ```
-
-5. **Multiple starting points**
-   ```text
-   Multi-Source BFS
-   ```
-
-#### 11. Common Mistakes — Must Know
-
-1. Using DFS for shortest path in an unweighted graph.
-2. Marking visited too late and adding the same node multiple times.
-3. Using normal BFS when edges have different costs.
-4. Forgetting unreachable nodes should remain `-1` or equivalent.
-5. Storing only distance when the problem asks for the actual path.
-6. Forgetting `parent` when path reconstruction is required.
-
-#### 12. Interview Must Remember
-
-1. **Unweighted shortest path → BFS**.
-2. BFS explores nodes in increasing distance from the source.
-3. `distance[neighbor] = distance[node] + 1`.
-4. First visit gives the shortest distance.
-5. Need actual path → maintain a **parent array**.
-6. Multiple sources → initialize queue with **all sources**.
-7. Complexity → `O(V + E)`.
+| # | Question | Idea |
+|---|---|---|
+| 1091 | Shortest Path in Binary Matrix (Medium) | grid BFS |
+| 127 | Word Ladder (Hard) | words are nodes |
+| 752 | Open the Lock (Medium) | lock codes are nodes |
+| 433 | Minimum Genetic Mutation (Medium) | like Word Ladder |
+| 1129 | Shortest Path with Alternating Colors (Medium) | state = node + last colour |
+| 909 | Snakes and Ladders (Medium) | board squares are nodes |
+| 279 | Perfect Squares (Medium) | numbers are nodes |

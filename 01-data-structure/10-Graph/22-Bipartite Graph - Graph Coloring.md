@@ -1,349 +1,142 @@
 # Bipartite Graph / Graph Coloring
 
-#### 1. Definition — Must Know
+#### 1. What Is It?
 
-1. A **Bipartite Graph** can divide its vertices into **two groups**.
-2. Every edge must connect vertices from **different groups**.
-3. No edge can connect two vertices in the same group.
-4. Think of it as coloring the graph using exactly **2 colors**.
+A graph is **bipartite** if you can split its vertices into **two groups** so that **every edge connects a vertex of one group to a vertex of the other group**. No edge stays inside a group.
 
-```text id="bp01"
-Color A → 0
-Color B → 1
+Equivalent ideas:
+
+- You can **colour** the vertices with **2 colours** so that neighbours always have different colours.
+- The graph has **no odd-length cycle**.
+
+Where it appears:
+
+| Story | Two groups |
+|---|---|
+| "split people into two teams so that enemies are apart" | Possible Bipartition |
+| "can the graph be coloured with 2 colours?" | Is Graph Bipartite? |
+| matching jobs to workers | jobs vs workers |
+
+#### 2. How It Works
+
+Use BFS (or DFS) to colour the graph:
+
+1. Colour the start node `0`.
+2. Give every neighbour the **opposite colour** (`1 - colour`).
+3. If a neighbour already has the **same colour** as the current node → **not bipartite**.
+4. Repeat for every component (the graph may be disconnected).
+
+```text
+Graph: 0-1, 1-2, 2-3, 3-0   (a square: even cycle)
+
+colour 0 = A
+neighbours 1 and 3 → B
+neighbour of 1: 2 → A      (and 2's neighbour 3 is B: fine)
+all edges join A and B → bipartite
+
+Graph: 0-1, 1-2, 2-0   (a triangle: odd cycle)
+
+colour 0 = A;  1 = B;  2 (neighbour of 0) = B
+but 1-2 is an edge and both are B → NOT bipartite
 ```
 
-#### 2. Example — Must Know
+#### 3. Kotlin Code
 
-Bipartite:
+```kotlin
+// Is Graph Bipartite? (LeetCode 785): graph[i] = neighbours of i
+fun isBipartite(graph: Array<IntArray>): Boolean {
+    val n = graph.size
+    val colour = IntArray(n) { -1 }                    // -1 = not coloured yet
 
-```text id="bp02"
-A ----- B
-|       |
-D ----- C
-```
-
-Possible coloring:
-
-```text id="bp03"
-A → Red
-B → Blue
-C → Red
-D → Blue
-```
-
-Every connected edge has different colors.
-
-#### 3. Non-Bipartite Example — Must Know
-
-```text id="bp04"
-    A
-   / \
-  B---C
-```
-
-Try coloring:
-
-```text id="bp05"
-A → Red
-B → Blue
-C → Blue
-```
-
-But:
-
-```text id="bp06"
-B ----- C
-```
-
-connects two Blue vertices.
-
-Therefore the graph is **not bipartite**.
-
-#### 4. Important Rule — Must Know
-
-An undirected graph is bipartite **if and only if it contains no odd-length cycle**.
-
-```text id="bp07"
-Even Cycle → Can be Bipartite
-
-Odd Cycle  → Not Bipartite
-```
-
-Example:
-
-```text id="bp08"
-Triangle = 3 edges
-          ↓
-      Odd Cycle
-          ↓
-    Not Bipartite
-```
-
-This is one of the most important interview facts.
-
-#### 5. Core Logic — Must Know
-
-Use:
-
-```text id="bp09"
-BFS/DFS + Color Array
-```
-
-Color states:
-
-```text id="bp10"
--1 → Not colored
- 0 → Color A
- 1 → Color B
-```
-
-For every edge:
-
-```text id="bp11"
-u ----- v
-
-color[u] != color[v]
-```
-
-If both have the same color:
-
-```text id="bp12"
-Same Color
-    ↓
-Not Bipartite
-```
-
-#### 6. BFS Algorithm — Must Know
-
-```text id="bp13"
-1. Pick an uncolored node.
-
-2. Assign color 0.
-
-3. Add it to Queue.
-
-4. For every neighbor:
-
-   if uncolored:
-       assign opposite color
-       add to Queue
-
-   else if same color:
-       return false
-
-5. Repeat for every disconnected component.
-```
-
-Opposite color:
-
-```text id="bp14"
-1 - color[node]
-```
-
-#### 7. Kotlin BFS Implementation — Must Know
-
-```kotlin id="bp15"
-fun isBipartite(
-    graph: Array<IntArray>
-): Boolean {
-
-    val color = IntArray(graph.size) { -1 }
-
-    for (start in graph.indices) {
-
-        if (color[start] != -1) continue
-
+    for (start in 0 until n) {
+        if (colour[start] != -1) continue              // already done (another component)
+        colour[start] = 0
         val queue = ArrayDeque<Int>()
-
         queue.addLast(start)
-        color[start] = 0
-
         while (queue.isNotEmpty()) {
-
             val node = queue.removeFirst()
+            for (next in graph[node]) {
+                if (colour[next] == -1) {
+                    colour[next] = 1 - colour[node]    // the opposite colour
+                    queue.addLast(next)
+                } else if (colour[next] == colour[node]) {
+                    return false                       // two neighbours with the same colour
+                }
+            }
+        }
+    }
+    return true
+}
 
-            for (neighbor in graph[node]) {
-
-                if (color[neighbor] == -1) {
-
-                    color[neighbor] = 1 - color[node]
-                    queue.addLast(neighbor)
-
-                } else if (color[neighbor] == color[node]) {
-
+// Possible Bipartition (LeetCode 886): people 1..n, dislikes[i] = [a, b]
+fun possibleBipartition(n: Int, dislikes: Array<IntArray>): Boolean {
+    val graph = Array(n + 1) { mutableListOf<Int>() }
+    for ((a, b) in dislikes) {
+        graph[a].add(b)
+        graph[b].add(a)
+    }
+    val colour = IntArray(n + 1) { -1 }
+    for (start in 1..n) {
+        if (colour[start] != -1) continue
+        colour[start] = 0
+        val queue = ArrayDeque<Int>()
+        queue.addLast(start)
+        while (queue.isNotEmpty()) {
+            val node = queue.removeFirst()
+            for (next in graph[node]) {
+                if (colour[next] == -1) {
+                    colour[next] = 1 - colour[node]
+                    queue.addLast(next)
+                } else if (colour[next] == colour[node]) {
                     return false
                 }
             }
         }
     }
-
     return true
 }
 ```
 
-#### 8. DFS Implementation — Good to Know
+Checks: `isBipartite([[1,3],[0,2],[1,3],[0,2]])` → `true` (the square). `isBipartite([[1,2],[0,2],[0,1]])` → `false` (the triangle). `possibleBipartition(4, [[1,2],[1,3],[2,4]])` → `true`.
 
-```kotlin id="bp16"
-fun isBipartite(
-    graph: Array<IntArray>
-): Boolean {
+#### 4. Complexity
 
-    val color = IntArray(graph.size) { -1 }
+| | Time | Space |
+|---|---|---|
+| BFS / DFS colouring | `O(V + E)` | `O(V)` |
 
-    fun dfs(node: Int, currentColor: Int): Boolean {
+#### 5. Common Mistakes
 
-        color[node] = currentColor
+1. **Colouring only one component.** Loop over all nodes.
+2. **Treating "already coloured with the opposite colour" as an error.** That is fine. Only the **same** colour is a problem.
+3. **Using `visited` only.** You need the colour, not just visited.
+4. **Nodes numbered from 1** with 0-based arrays.
+5. **Directed edges.** Bipartite checking treats edges as undirected.
 
-        for (neighbor in graph[node]) {
+#### 6. Say This in the Interview
 
-            if (color[neighbor] == -1) {
+1. "A graph is bipartite if I can 2-colour it. I BFS from every unvisited node, giving neighbours the opposite colour."
+2. "If a neighbour already has my colour, it is not bipartite. That happens exactly when there is an odd cycle."
+3. "Time `O(V + E)`."
 
-                if (!dfs(neighbor, 1 - currentColor)) {
-                    return false
-                }
+#### 7. Quick Check
 
-            } else if (color[neighbor] == currentColor) {
+1. Is a triangle bipartite?
+2. Is any tree bipartite?
 
-                return false
-            }
-        }
+<details>
+<summary>Answers</summary>
 
-        return true
-    }
+1. No. It is an odd cycle (3 edges).
+2. Yes. A tree has no cycle at all, so no odd cycle.
 
-    for (node in graph.indices) {
+</details>
 
-        if (color[node] == -1) {
+#### 8. Related LeetCode Questions
 
-            if (!dfs(node, 0)) {
-                return false
-            }
-        }
-    }
-
-    return true
-}
-```
-
-#### 9. Disconnected Graph — Must Know
-
-Graph:
-
-```text id="bp17"
-0 --- 1       2 --- 3
-```
-
-One BFS/DFS may not cover every component.
-
-Therefore:
-
-```kotlin id="bp18"
-for (node in graph.indices) {
-
-    if (color[node] == -1) {
-        // Start BFS/DFS
-    }
-}
-```
-
-Every component must satisfy the coloring rule.
-
-#### 10. Time & Space Complexity — Must Know
-
-```text id="bp19"
-Time  → O(V + E)
-Space → O(V)
-```
-
-1. Every vertex is colored once.
-2. Every edge is examined.
-3. Color array + BFS queue/DFS stack → `O(V)`.
-
-#### 11. Common Interview Patterns — Must Know
-
-1. **Can graph be divided into two groups?**
-   ```text
-   Bipartite Check
-   ```
-
-2. **Two-team assignment with conflicts**
-   ```text
-   Bipartite Graph
-   ```
-
-3. **People who dislike each other into two groups**
-   ```text
-   Bipartite Graph
-   ```
-
-4. **2-color graph**
-   ```text
-   BFS/DFS + Coloring
-   ```
-
-5. **Odd cycle exists**
-   ```text
-   Not Bipartite
-   ```
-
-#### 12. General Graph Coloring — Good to Know
-
-Bipartite checking is specifically:
-
-```text id="bp20"
-2-Coloring
-```
-
-General graph coloring asks:
-
-```text id="bp21"
-Can we color the graph using K colors
-so adjacent nodes have different colors?
-```
-
-Example:
-
-```text id="bp22"
-Triangle:
-
-A
-|\
-| \
-B--C
-```
-
-Requires at least:
-
-```text id="bp23"
-3 colors
-```
-
-For FAANG preparation:
-
-```text id="bp24"
-Bipartite / 2-Coloring → Must Know
-
-General K-Coloring     → Good to Know
-
-Advanced coloring algorithms
-                      → Low Priority
-```
-
-#### 13. Common Mistakes — Must Know
-
-1. Checking only one connected component.
-2. Forgetting to assign the opposite color.
-3. Using only `visited` instead of tracking colors.
-4. Assuming every cyclic graph is non-bipartite.
-5. **Even cycles can be bipartite; odd cycles cannot.**
-6. A self-loop immediately makes a graph non-bipartite.
-
-#### 14. Interview Must Remember
-
-1. Bipartite = graph can be divided into **2 groups**.
-2. Adjacent vertices must have **different colors**.
-3. Solve using **BFS/DFS + 2-coloring**.
-4. Opposite color → `1 - color[node]`.
-5. Same-colored neighbors → **not bipartite**.
-6. **Odd cycle → not bipartite**.
-7. Complexity → `O(V + E)`.
+| # | Question | Idea |
+|---|---|---|
+| 785 | Is Graph Bipartite? (Medium) | 2-colour with BFS |
+| 886 | Possible Bipartition (Medium) | the same with `dislikes` edges |
+| 1042 | Flower Planting With No Adjacent (Medium) | greedy colouring |
+| 207 | Course Schedule (Medium) | another cycle-related graph question |

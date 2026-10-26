@@ -55,7 +55,33 @@ i=6 (end, height 0):
 answer = 10
 ```
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| | Brute force | Optimized |
+|---|---|---|
+| Idea | for each bar, stretch left and right while bars are not shorter | increasing stack |
+| Time | `O(n²)` | `O(n)` |
+| Space | `O(1)` | `O(n)` |
+
+The brute force is easy to write, and it is a good first answer to say out loud:
+
+```kotlin
+fun largestRectangleBrute(heights: IntArray): Int {
+    var best = 0
+    for (i in heights.indices) {
+        var left = i
+        var right = i
+        while (left > 0 && heights[left - 1] >= heights[i]) left--
+        while (right < heights.size - 1 && heights[right + 1] >= heights[i]) right++
+        best = maxOf(best, heights[i] * (right - left + 1))
+    }
+    return best
+}
+```
+
+The stack finds the nearest shorter bar on both sides for every bar in a single pass.
+
+#### 4. Kotlin Code
 
 ```kotlin
 fun largestRectangleArea(heights: IntArray): Int {
@@ -100,14 +126,14 @@ fun trap(height: IntArray): Int {
 
 (Two pointers also solve this in `O(1)` space. Know both.)
 
-#### 4. Complexity
+#### 5. Complexity
 
 | | Time | Space |
 |---|---|---|
 | Monotonic stack | `O(n)` | `O(n)` |
 | Brute force (expand from every bar) | `O(n²)` | `O(1)` |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Forgetting the extra bar of height 0** at the end. The bars left in the stack are never counted.
 2. **Wrong width.** It is `i - left - 1`, not `i - left`.
@@ -116,14 +142,14 @@ fun trap(height: IntArray): Int {
 5. **Computing the area before popping.**
 6. **Overflow.** `height × width` can exceed `Int` for very large inputs. Use `Long` if the limits are big.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "A rectangle is limited by its shortest bar, so for each bar I need the nearest shorter bar on the left and on the right."
 2. "I use an increasing stack. A shorter bar pops the taller ones and tells me their right limit. The new top is the left limit."
 3. "I add a bar of height 0 at the end to flush the stack."
 4. "Time `O(n)`, space `O(n)`."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. What is the answer for `[4]`?
 2. In `[2, 4]`, what is the biggest rectangle?
@@ -136,12 +162,12 @@ fun trap(height: IntArray): Int {
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|
-| 84 | Largest Rectangle in Histogram (Hard) | this note |
-| 85 | Maximal Rectangle (Hard) | one histogram per row |
-| 42 | Trapping Rain Water (Hard) | decreasing stack or two pointers |
-| 907 | Sum of Subarray Minimums (Medium) | same left and right limits |
-| 739 | Daily Temperatures (Medium) | easier warm-up for the same stack |
+| 84 | [Largest Rectangle in Histogram](https://leetcode.com/problems/largest-rectangle-in-histogram/) (Hard) | this note |
+| 85 | [Maximal Rectangle](https://leetcode.com/problems/maximal-rectangle/) (Hard) | one histogram per row |
+| 42 | [Trapping Rain Water](https://leetcode.com/problems/trapping-rain-water/) (Hard) | decreasing stack or two pointers |
+| 907 | [Sum of Subarray Minimums](https://leetcode.com/problems/sum-of-subarray-minimums/) (Medium) | same left and right limits |
+| 739 | [Daily Temperatures](https://leetcode.com/problems/daily-temperatures/) (Medium) | easier warm-up for the same stack |

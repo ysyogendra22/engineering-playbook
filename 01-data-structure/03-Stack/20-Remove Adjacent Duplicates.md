@@ -47,7 +47,34 @@ a(1) a(2)                                                  stack: a(2)
 result: "aa"
 ```
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| | Brute force | Optimized |
+|---|---|---|
+| Idea | keep deleting `"aa"`, `"bb"`... until nothing changes | one pass with a stack |
+| Time | `O(n²)` | `O(n)` |
+| Space | `O(n)` | `O(n)` |
+
+The brute force is easy to write, and it is a good first answer to say out loud:
+
+```kotlin
+fun removeDuplicatesBrute(s: String): String {
+    var t = s
+    var changed = true
+    while (changed) {
+        changed = false
+        for (c in 'a'..'z') {
+            val r = t.replace("$c$c", "")
+            if (r != t) { t = r; changed = true }
+        }
+    }
+    return t
+}
+```
+
+A removal can create a new pair. The stack handles this in one pass because the top is always the last kept character.
+
+#### 4. Kotlin Code
 
 ```kotlin
 // Version I: remove pairs
@@ -77,7 +104,7 @@ fun removeDuplicatesK(s: String, k: Int): String {
 
 Checks: `removeDuplicates("abbaca")` → `"ca"`. `removeDuplicates("azxxzy")` → `"ay"`. `removeDuplicatesK("deeedbbcccbdaa", 3)` → `"aa"`. `removeDuplicatesK("pbbcggttciiippooaais", 2)` → `"ps"`.
 
-#### 4. Complexity
+#### 5. Complexity
 
 | | Time | Space |
 |---|---|---|
@@ -85,7 +112,7 @@ Checks: `removeDuplicates("abbaca")` → `"ca"`. `removeDuplicates("azxxzy")` �
 
 Each character is pushed at most once and popped at most once.
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Using `replace` in a loop** until nothing changes. It works but is `O(n²)`.
 2. **Reading the top of an empty stack.** Check `isNotEmpty()`.
@@ -93,14 +120,14 @@ Each character is pushed at most once and popped at most once.
 4. **Version II:** forgetting to remove the pair when the count reaches `k`.
 5. **Building the result in the wrong order.** The bottom of the stack is the first character.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "Removing a pair can create a new pair, so I use a stack. The top is the last kept character."
 2. "If the new character equals the top, I pop. Otherwise I push."
 3. "For groups of `k` I keep a count with each character and remove the group when the count hits `k`."
 4. "One pass: `O(n)` time and `O(n)` space."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. What does `"abccba"` give in Version I?
 2. What does `"aaa"` give in Version II with `k = 2`?
@@ -113,12 +140,12 @@ Each character is pushed at most once and popped at most once.
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|
-| 1047 | Remove All Adjacent Duplicates In String (Easy) | version I |
-| 1209 | Remove All Adjacent Duplicates in String II (Medium) | version II |
-| 844 | Backspace String Compare (Easy) | `#` pops |
-| 1544 | Make The String Great (Easy) | remove neighbours that are the same letter in different cases |
-| 735 | Asteroid Collision (Medium) | chain reactions |
+| 1047 | [Remove All Adjacent Duplicates In String](https://leetcode.com/problems/remove-all-adjacent-duplicates-in-string/) (Easy) | version I |
+| 1209 | [Remove All Adjacent Duplicates in String II](https://leetcode.com/problems/remove-all-adjacent-duplicates-in-string-ii/) (Medium) | version II |
+| 844 | [Backspace String Compare](https://leetcode.com/problems/backspace-string-compare/) (Easy) | `#` pops |
+| 1544 | [Make The String Great](https://leetcode.com/problems/make-the-string-great/) (Easy) | remove neighbours that are the same letter in different cases |
+| 735 | [Asteroid Collision](https://leetcode.com/problems/asteroid-collision/) (Medium) | chain reactions |

@@ -1,335 +1,178 @@
 # Grid as Graph
 
-#### 1. Definition — Must Know
+> A very common FAANG pattern. A 2D grid is a graph that you do not have to build.
 
-1. A **2D grid can be treated as a graph**.
-2. Each cell → **Vertex / Node**.
-3. Valid movement between cells → **Edge**.
-4. Then normal graph algorithms like **DFS and BFS** can be applied.
+#### 1. What Is It?
 
-```text
-Grid:
+A 2D grid (matrix) is a graph:
 
-1 1 0
-0 1 1
-0 0 1
-```
+- each **cell** is a **vertex**,
+- two cells are connected if they are **neighbours**: up, down, left, right (sometimes also the 4 diagonals).
 
-Each cell is a node connected to allowed neighboring cells.
+You do not build an adjacency list. You **compute the neighbours** from the row and the column.
 
-#### 2. Why It Is Used — Must Know
+So all graph tools work on a grid: DFS, BFS, shortest path, connected components, multi-source BFS, Dijkstra.
 
-Many interview problems are given as matrices but are actually graph problems.
+#### 2. How It Works
 
-Examples:
-
-1. Number of Islands.
-2. Flood Fill.
-3. Rotting Oranges.
-4. Shortest Path in a Grid.
-5. Maze problems.
-6. Surrounded Regions.
-
-Think:
+For the cell `(r, c)`, the neighbours are:
 
 ```text
-Grid + Movement = Graph
+          (r-1, c)
+(r, c-1)   (r, c)   (r, c+1)
+          (r+1, c)
 ```
 
-#### 3. Neighbor Directions — Must Know
-
-Most problems allow movement in **4 directions**:
-
-```text
-       Up
-        ↑
-Left ← Cell → Right
-        ↓
-       Down
-```
-
-Directions:
-
-```text
-(-1, 0) → Up
-( 1, 0) → Down
-( 0,-1) → Left
-( 0, 1) → Right
-```
-
-Kotlin:
+In code, use a **direction array**:
 
 ```kotlin
-val directions = arrayOf(
-    intArrayOf(-1, 0),
-    intArrayOf(1, 0),
-    intArrayOf(0, -1),
-    intArrayOf(0, 1)
-)
+val dirs = arrayOf(intArrayOf(1, 0), intArrayOf(-1, 0), intArrayOf(0, 1), intArrayOf(0, -1))
 ```
 
-#### 4. 8-Direction Movement — Good to Know
+Every neighbour check has the same three parts:
 
-Some problems also allow diagonals.
+1. **Is it inside the grid?** `nr in 0 until rows && nc in 0 until cols` (check this **first**).
+2. **Is it allowed?** (land, not a wall, same colour...)
+3. **Is it unvisited?**
 
-```text
-↖ ↑ ↗
-← X →
-↙ ↓ ↘
-```
+Handy tricks:
 
-That gives **8 neighbors**.
+- **Cell id:** `r * cols + c` is a single `Int`. Decode with `id / cols` and `id % cols`.
+- **Mark visited** with a `BooleanArray`, or by **changing the cell** (e.g. `'1'` → `'0'`) if you may modify the input.
 
-Always read the movement rules before implementing traversal.
+Which walk:
 
-#### 5. DFS on Grid — Must Know
+| Question | Use |
+|---|---|
+| count / mark regions, flood fill | DFS or BFS |
+| shortest path (each move costs 1) | BFS |
+| spread from many cells at once | multi-source BFS |
+| cells have different costs | Dijkstra |
+
+#### 3. Kotlin Code
 
 ```kotlin
-fun dfs(
-    row: Int,
-    col: Int,
-    grid: Array<CharArray>
-) {
-    if (
-        row !in grid.indices ||
-        col !in grid[0].indices ||
-        grid[row][col] != '1'
-    ) {
-        return
+private val DIRS = arrayOf(intArrayOf(1, 0), intArrayOf(-1, 0), intArrayOf(0, 1), intArrayOf(0, -1))
+
+// Number of Islands (LeetCode 200): count connected groups of '1'
+fun numIslands(grid: Array<CharArray>): Int {
+    if (grid.isEmpty()) return 0
+    val rows = grid.size
+    val cols = grid[0].size
+
+    fun dfs(r: Int, c: Int) {
+        if (r !in 0 until rows || c !in 0 until cols || grid[r][c] != '1') return
+        grid[r][c] = '0'                                    // mark visited
+        for (d in DIRS) dfs(r + d[0], c + d[1])
     }
 
-    grid[row][col] = '0'
-
-    dfs(row - 1, col, grid)
-    dfs(row + 1, col, grid)
-    dfs(row, col - 1, grid)
-    dfs(row, col + 1, grid)
+    var islands = 0
+    for (r in 0 until rows) for (c in 0 until cols) {
+        if (grid[r][c] == '1') {
+            islands++
+            dfs(r, c)
+        }
+    }
+    return islands
 }
-```
 
-Pattern:
-
-```text
-Check Boundary
-      ↓
-Check Valid Cell
-      ↓
-Mark Visited
-      ↓
-Explore Neighbors
-```
-
-#### 6. BFS on Grid — Must Know
-
-```kotlin
-fun bfs(
-    startRow: Int,
-    startCol: Int,
-    grid: Array<CharArray>
-) {
-    val queue = ArrayDeque<Pair<Int, Int>>()
-
-    queue.addLast(startRow to startCol)
-    grid[startRow][startCol] = '0'
-
-    val directions = arrayOf(
-        intArrayOf(-1, 0),
-        intArrayOf(1, 0),
-        intArrayOf(0, -1),
-        intArrayOf(0, 1)
-    )
-
-    while (queue.isNotEmpty()) {
-
-        val (row, col) = queue.removeFirst()
-
-        for ((dr, dc) in directions) {
-
-            val newRow = row + dr
-            val newCol = col + dc
-
-            if (
-                newRow in grid.indices &&
-                newCol in grid[0].indices &&
-                grid[newRow][newCol] == '1'
-            ) {
-                grid[newRow][newCol] = '0'
-                queue.addLast(newRow to newCol)
+// The same with BFS and a visited array (does not change the input, no deep recursion)
+fun numIslandsBfs(grid: Array<CharArray>): Int {
+    if (grid.isEmpty()) return 0
+    val rows = grid.size
+    val cols = grid[0].size
+    val visited = BooleanArray(rows * cols)
+    var islands = 0
+    for (r in 0 until rows) for (c in 0 until cols) {
+        if (grid[r][c] == '1' && !visited[r * cols + c]) {
+            islands++
+            val queue = ArrayDeque<Int>()
+            visited[r * cols + c] = true
+            queue.addLast(r * cols + c)
+            while (queue.isNotEmpty()) {
+                val id = queue.removeFirst()
+                for (d in DIRS) {
+                    val nr = id / cols + d[0]
+                    val nc = id % cols + d[1]
+                    if (nr in 0 until rows && nc in 0 until cols &&
+                        grid[nr][nc] == '1' && !visited[nr * cols + nc]
+                    ) {
+                        visited[nr * cols + nc] = true
+                        queue.addLast(nr * cols + nc)
+                    }
+                }
             }
         }
     }
+    return islands
+}
+
+// Island Perimeter (LeetCode 463): count the sides of land cells that touch water or the edge
+fun islandPerimeter(grid: Array<IntArray>): Int {
+    val rows = grid.size
+    val cols = grid[0].size
+    var perimeter = 0
+    for (r in 0 until rows) for (c in 0 until cols) {
+        if (grid[r][c] == 1) {
+            for (d in DIRS) {
+                val nr = r + d[0]
+                val nc = c + d[1]
+                if (nr !in 0 until rows || nc !in 0 until cols || grid[nr][nc] == 0) perimeter++
+            }
+        }
+    }
+    return perimeter
 }
 ```
 
-#### 7. Visited Tracking — Must Know
+Checks: `numIslands` on `["11000","11000","00100","00011"]` → `3`. `islandPerimeter([[0,1,0,0],[1,1,1,0],[0,1,0,0],[1,1,0,0]])` → `16`.
 
-Two common approaches:
+#### 4. Complexity
 
-**Separate visited array:**
+For `R` rows and `C` columns:
 
-```kotlin
-val visited = Array(rows) {
-    BooleanArray(cols)
-}
-```
+| | Time | Space |
+|---|---|---|
+| DFS or BFS over the grid | `O(R · C)` | `O(R · C)` worst case |
 
-Or modify the grid itself:
+#### 5. Common Mistakes
 
-```kotlin
-grid[row][col] = '0'
-```
+1. **Checking the bounds after reading the cell.** You get an index error. Check bounds first.
+2. **Not marking visited** before going deeper. DFS goes back and forth forever.
+3. **Mixing `rows` and `cols`** in the cell id on a non-square grid.
+4. **4 versus 8 directions.** Read the question.
+5. **Comparing a `Char` cell with a number** (`grid[r][c] == 1` when it is `'1'`).
+6. **Deep recursion** on a big grid (`StackOverflowError`). Use BFS or an explicit stack.
+7. **Changing the input** when the caller still needs it.
 
-Modifying the grid is simpler when the problem allows it.
+#### 6. Say This in the Interview
 
-#### 8. Number of Islands Pattern — Must Know
+1. "I treat the grid as a graph. Each cell connects to its 4 neighbours, which I compute with a direction array."
+2. "I check bounds first, then the cell value, then visited."
+3. "Time and space are `O(R · C)`. For fewest steps I use BFS; for regions DFS or BFS."
 
-```text
-1 1 0 0
-1 0 0 1
-0 0 1 1
-```
+#### 7. Quick Check
 
-Logic:
+1. What are the four direction pairs?
+2. Why do you check the bounds before reading `grid[nr][nc]`?
 
-```text
-For every cell:
+<details>
+<summary>Answers</summary>
 
-    if cell == land:
-        islands++
-        DFS/BFS to mark entire island
-```
+1. `(1,0)`, `(-1,0)`, `(0,1)`, `(0,-1)`.
+2. If `nr` or `nc` is outside the grid, reading the cell throws an index error.
 
-One DFS/BFS discovers **one connected component**.
+</details>
 
-So:
+#### 8. Related LeetCode Questions
 
-```text
-Island = Connected Component
-```
-
-#### 9. Shortest Path Pattern — Must Know
-
-If every movement has equal cost:
-
-```text
-Grid + Minimum Steps
-        ↓
-       BFS
-```
-
-Why?
-
-BFS explores:
-
-```text
-Distance 0
-Distance 1
-Distance 2
-Distance 3
-...
-```
-
-So the first time the destination is reached gives the minimum number of moves.
-
-#### 10. Multi-Source BFS — Good to Know
-
-Sometimes multiple cells are starting points.
-
-Example:
-
-```text
-Rotting Oranges
-```
-
-Instead of starting BFS from one cell:
-
-```text
-Add ALL starting cells to queue
-        ↓
-Run BFS together
-```
-
-Pattern:
-
-```text
-Multiple sources + minimum time/distance
-                ↓
-         Multi-Source BFS
-```
-
-#### 11. Time & Space Complexity — Must Know
-
-For:
-
-```text
-Rows = R
-Columns = C
-```
-
-Total cells:
-
-```text
-V = R × C
-```
-
-Each cell has at most a constant number of neighbors.
-
-Therefore:
-
-```text
-Time  → O(R × C)
-Space → O(R × C)
-```
-
-DFS recursion or BFS queue can contain up to `R × C` cells.
-
-#### 12. Common Patterns — Must Know
-
-1. **Connected Areas**
-   ```text
-   DFS / BFS
-   ```
-
-2. **Number of Islands**
-   ```text
-   Connected Components
-   ```
-
-3. **Flood Fill**
-   ```text
-   DFS / BFS
-   ```
-
-4. **Minimum Steps / Shortest Path**
-   ```text
-   BFS
-   ```
-
-5. **Multiple Starting Points**
-   ```text
-   Multi-Source BFS
-   ```
-
-6. **Path Exploration**
-   ```text
-   DFS / Backtracking
-   ```
-
-#### 13. Common Mistakes — Must Know
-
-1. Forgetting row/column boundary checks.
-2. Forgetting to mark cells visited.
-3. Marking BFS cells visited too late.
-4. Assuming diagonal movement when only 4 directions are allowed.
-5. Using DFS for minimum-step problems when BFS is simpler.
-6. Modifying the original grid when the problem requires preserving it.
-
-#### 14. Interview Must Remember
-
-1. **Cell = Vertex, movement = Edge**.
-2. Grid problems are often graph problems in disguise.
-3. Connected region → think **DFS/BFS**.
-4. Minimum steps → think **BFS**.
-5. Multiple sources → think **Multi-Source BFS**.
-6. Always check **boundaries + visited + valid cell**.
-7. Typical complexity → `O(R × C)`.
+| # | Question | Idea |
+|---|---|---|
+| 200 | Number of Islands (Medium) | count regions |
+| 695 | Max Area of Island (Medium) | size of a region |
+| 463 | Island Perimeter (Easy) | count borders |
+| 733 | Flood Fill (Easy) | change a region (note 12) |
+| 1091 | Shortest Path in Binary Matrix (Medium) | BFS shortest path |
+| 994 | Rotting Oranges (Medium) | multi-source BFS |
+| 417 | Pacific Atlantic Water Flow (Medium) | search from the borders |
+| 79 | Word Search (Medium) | grid DFS + backtracking |

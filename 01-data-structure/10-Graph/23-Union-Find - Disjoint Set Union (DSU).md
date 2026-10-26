@@ -1,477 +1,159 @@
 # Union-Find / Disjoint Set Union (DSU)
 
-#### 1. Definition — Must Know
+> A must-know structure for FAANG. It answers "are these two connected?" very fast, and it is short to code.
 
-1. **Union-Find / DSU** manages elements divided into separate connected groups.
-2. It efficiently answers:
+#### 1. What Is It?
 
-```text
-Are A and B connected?
-```
+**Union-Find** (also called **Disjoint Set Union**, DSU) keeps track of **groups** of items. It has two main operations:
 
-3. Two main operations:
+| Operation | Meaning |
+|---|---|
+| **`find(x)`** | which group does `x` belong to? Returns a group **leader** (root). |
+| **`union(a, b)`** | merge the group of `a` and the group of `b` |
 
-```text
-Find  → Find which group an element belongs to.
-Union → Merge two groups.
-```
+Two items are in the same group when `find(a) == find(b)`.
 
-#### 2. Why It Is Used — Must Know
+Use it when:
 
-DSU is useful when the problem involves:
+- **edges arrive one by one** and you must know if two nodes are connected,
+- you need to **count groups** (components) as they merge,
+- you must find the **edge that creates a cycle**,
+- you build a **minimum spanning tree** (Kruskal).
 
-```text
-Connections + Merging Groups
-```
+Each group is a small tree. Each node points to a **parent**. The root points to itself.
 
-Common uses:
+#### 2. How It Works
 
-1. Connected Components.
-2. Dynamic connectivity.
-3. Cycle Detection — Undirected Graph.
-4. Kruskal's Minimum Spanning Tree.
-5. Accounts Merge.
-
-#### 3. Core Concept — Must Know
-
-Initially every node belongs to its own group.
+Start with each item alone: `parent[i] = i`.
 
 ```text
-0   1   2   3   4
+Items 0..4, each its own group:    parent = [0, 1, 2, 3, 4]
+
+union(0, 1): root of 0 is 0, root of 1 is 1 → make 1's root point to 0:   parent = [0, 0, 2, 3, 4]
+union(2, 3): parent = [0, 0, 2, 2, 4]
+union(1, 3): find(1) = 0, find(3) = 2 → different groups → link: parent = [0, 0, 0, 2, 4]
+
+find(3): 3 → 2 → 0     root is 0
+find(4): 4             root is 4 (alone)
+Same group? find(1) == find(3)? 0 == 0 → yes
+Groups: {0,1,2,3} and {4}  → count = 2
 ```
 
-Parent:
+Two small tricks make it almost constant time (see notes 24 and 25):
 
-```text
-parent = [0, 1, 2, 3, 4]
-```
+1. **Path compression:** while finding the root, point every node directly at the root.
+2. **Union by size/rank:** attach the smaller tree under the bigger tree.
 
-After:
+With both, each operation costs `O(α(n))`, which is below 5 for any real input. Treat it as constant.
 
-```text
-union(0, 1)
-union(1, 2)
-```
-
-We may have:
-
-```text
-    0
-   / \
-  1   2
-
-3
-
-4
-```
-
-Now:
-
-```text
-find(0) == find(2)
-```
-
-So `0` and `2` belong to the same component.
-
-#### 4. Find Operation — Must Know
-
-`find(x)` returns the **root / representative** of the group containing `x`.
-
-Example:
-
-```text
-2 → 1 → 0
-```
-
-Then:
-
-```text
-find(2) = 0
-find(1) = 0
-find(0) = 0
-```
-
-If:
-
-```text
-find(a) == find(b)
-```
-
-then `a` and `b` are connected.
-
-#### 5. Union Operation — Must Know
-
-To merge `a` and `b`:
-
-```text
-rootA = find(a)
-rootB = find(b)
-```
-
-If:
-
-```text
-rootA != rootB
-```
-
-merge the two groups.
-
-Conceptually:
-
-```text
-Before:
-
-0 --- 1
-
-2 --- 3
-
-
-union(1, 2)
-
-
-After:
-
-0 --- 1 --- 2 --- 3
-```
-
-#### 6. Basic Implementation
-
-A basic DSU can do:
+#### 3. Kotlin Code
 
 ```kotlin
-fun find(x: Int): Int {
-
-    if (parent[x] == x) {
-        return x
-    }
-
-    return find(parent[x])
-}
-```
-
-But this can create deep trees:
-
-```text
-4 → 3 → 2 → 1 → 0
-```
-
-which makes `find()` slower.
-
-Two optimizations are important:
-
-```text
-Path Compression
-Union by Rank / Size
-```
-
-#### 7. Path Compression — Must Know
-
-Without compression:
-
-```text
-4 → 3 → 2 → 1 → 0
-```
-
-After:
-
-```text
-find(4)
-```
-
-Path compression changes it closer to:
-
-```text
-    0
-  / | | \
- 1  2 3  4
-```
-
-Implementation:
-
-```kotlin
-fun find(x: Int): Int {
-
-    if (parent[x] != x) {
-        parent[x] = find(parent[x])
-    }
-
-    return parent[x]
-}
-```
-
-Key line:
-
-```kotlin
-parent[x] = find(parent[x])
-```
-
-This makes future `find()` operations very fast.
-
-#### 8. Union by Rank / Size — Must Know
-
-Goal:
-
-```text
-Avoid creating deep trees.
-```
-
-With **Union by Size**, attach the smaller tree under the larger tree.
-
-```text
-Small Tree
-    ↓
-Large Tree
-```
-
-This keeps the DSU structure shallow.
-
-You only need to implement **Rank or Size** in an interview, not both.
-
-#### 9. Kotlin Implementation — Must Know
-
-Using:
-
-```text
-Path Compression + Union by Size
-```
-
-```kotlin
-class DSU(n: Int) {
-
-    private val parent = IntArray(n) { it }
+class UnionFind(n: Int) {
+    private val parent = IntArray(n) { it }          // each node is its own root at the start
     private val size = IntArray(n) { 1 }
+    var count = n                                    // number of groups
+        private set
 
     fun find(x: Int): Int {
-
-        if (parent[x] != x) {
-            parent[x] = find(parent[x])
-        }
-
+        if (parent[x] != x) parent[x] = find(parent[x])    // path compression
         return parent[x]
     }
 
     fun union(a: Int, b: Int): Boolean {
-
         var rootA = find(a)
         var rootB = find(b)
-
-        if (rootA == rootB) {
-            return false
-        }
-
-        if (size[rootA] < size[rootB]) {
-            val temp = rootA
-            rootA = rootB
-            rootB = temp
-        }
-
-        parent[rootB] = rootA
+        if (rootA == rootB) return false                   // already in the same group
+        if (size[rootA] < size[rootB]) { val t = rootA; rootA = rootB; rootB = t }
+        parent[rootB] = rootA                              // the smaller tree goes under the bigger one
         size[rootA] += size[rootB]
-
+        count--
         return true
     }
+
+    fun connected(a: Int, b: Int) = find(a) == find(b)
 }
-```
 
-Usage:
-
-```kotlin
-val dsu = DSU(5)
-
-dsu.union(0, 1)
-dsu.union(1, 2)
-
-println(dsu.find(0) == dsu.find(2))
-// true
-```
-
-#### 10. Why `union()` Returns Boolean — Good to Know
-
-Our implementation returns:
-
-```text
-true  → Two different components were merged.
-
-false → They were already connected.
-```
-
-This is very useful for **cycle detection**.
-
-#### 11. Cycle Detection — Must Know
-
-For every undirected edge:
-
-```text
-(u, v)
-```
-
-Check:
-
-```text
-find(u) == find(v)
-```
-
-If true:
-
-```text
-Already Connected
-       ↓
-Adding this edge
-       ↓
-Creates Cycle
-```
-
-Example:
-
-```text
-0 ----- 1
- \     /
-   \ /
-    2
-```
-
-Process:
-
-```text
-union(0,1) → true
-union(1,2) → true
-union(0,2) → false
-```
-
-The last edge detects the cycle.
-
-#### 12. Connected Components — Must Know
-
-Initially:
-
-```text
-components = n
-```
-
-Every successful union:
-
-```text
-components--
-```
-
-Example:
-
-```kotlin
-var components = n
-
-for ((u, v) in edges) {
-
-    if (dsu.union(u, v)) {
-        components--
+// Number of Provinces (LeetCode 547)
+fun findCircleNum(isConnected: Array<IntArray>): Int {
+    val n = isConnected.size
+    val uf = UnionFind(n)
+    for (i in 0 until n) for (j in i + 1 until n) {
+        if (isConnected[i][j] == 1) uf.union(i, j)
     }
+    return uf.count
+}
+
+// Redundant Connection (LeetCode 684): the edge that creates a cycle
+fun findRedundantConnection(edges: Array<IntArray>): IntArray {
+    val uf = UnionFind(edges.size + 1)
+    for ((a, b) in edges) {
+        if (!uf.union(a, b)) return intArrayOf(a, b)      // a and b were already connected
+    }
+    return intArrayOf()
+}
+
+// Satisfiability of Equality Equations (LeetCode 990): ["a==b", "b!=a"] ...
+fun equationsPossible(equations: Array<String>): Boolean {
+    val uf = UnionFind(26)
+    for (e in equations) {
+        if (e[1] == '=') uf.union(e[0] - 'a', e[3] - 'a')   // first handle all "=="
+    }
+    for (e in equations) {
+        if (e[1] == '!' && uf.connected(e[0] - 'a', e[3] - 'a')) return false
+    }
+    return true
 }
 ```
 
-Final value gives the number of connected components.
+Checks: `findCircleNum([[1,1,0],[1,1,0],[0,0,1]])` → `2`. `findRedundantConnection([[1,2],[1,3],[2,3]])` → `[2, 3]`. `equationsPossible(["a==b","b!=a"])` → `false`.
 
-#### 13. Time & Space Complexity — Must Know
+**Accounts Merge (LeetCode 721):** give every email an id, union the emails of one account, then group the emails by root. Use a map from email to id.
 
-With:
+#### 4. Complexity
 
-```text
-Path Compression
-+
-Union by Rank / Size
-```
+| | Time | Space |
+|---|---|---|
+| `find`, `union` (with both tricks) | `O(α(n))` — almost constant | |
+| Build with `n` items | `O(n)` | `O(n)` |
+| Process `E` edges | `O(E · α(n))` | |
 
-Each operation is approximately:
+#### 5. Common Mistakes
 
-```text
-Find  → O(α(N))
-Union → O(α(N))
-```
+1. **Merging the items instead of the roots.** Always `union(find(a), find(b))`.
+2. **Forgetting to check `rootA == rootB`** before decreasing `count`.
+3. **No path compression**, so a long chain makes `find` slow.
+4. **Arrays too small** when nodes start at 1. Allocate `n + 1`.
+5. **Reading `parent[x]` as the root.** It is only the parent. Use `find(x)`.
+6. **Using it on directed problems** (it ignores direction). Use DFS/Kahn there.
 
-`α(N)` = inverse Ackermann function.
+#### 6. Say This in the Interview
 
-Practically:
+1. "Union-find keeps groups. `find` returns the group leader and `union` merges two groups."
+2. "With path compression and union by size, each operation is almost `O(1)`."
+3. "If `union` finds both nodes already in the same group, that edge makes a cycle."
 
-```text
-O(α(N)) ≈ O(1)
-```
+#### 7. Quick Check
 
-Space:
+1. How do you check whether `a` and `b` are in the same group?
+2. What does `union` return if they already are?
 
-```text
-O(N)
-```
+<details>
+<summary>Answers</summary>
 
-For interviews, remember:
+1. `find(a) == find(b)`.
+2. `false`. Nothing is merged and the group count does not change.
 
-```text
-Optimized DSU operations are nearly O(1).
-```
+</details>
 
-#### 14. DFS/BFS vs DSU — Must Know
+#### 8. Related LeetCode Questions
 
-```text
-DFS / BFS                   DSU
-
-Traverse graph              Merge components
-Explore neighbors           Process connections
-O(V + E) traversal          Near O(1) per operation
-Great for graph search      Great for connectivity
-Can find paths              Does not give actual path
-```
-
-Think:
-
-```text
-Need traversal/path
-      ↓
-   BFS / DFS
-
-Need repeated connectivity/merging
-      ↓
-      DSU
-```
-
-#### 15. Common Interview Patterns — Must Know
-
-1. **Are two nodes connected?**
-   ```text
-   find(a) == find(b)
-   ```
-
-2. **Merge groups**
-   ```text
-   union(a, b)
-   ```
-
-3. **Count components**
-   ```text
-   components--
-   ```
-
-4. **Undirected cycle detection**
-   ```text
-   union() fails → Cycle
-   ```
-
-5. **Minimum Spanning Tree**
-   ```text
-   Kruskal + DSU
-   ```
-
-#### 16. Common Mistakes — Must Know
-
-1. Forgetting path compression.
-2. Forgetting Union by Rank/Size optimization.
-3. Comparing `parent[a] == parent[b]` instead of `find(a) == find(b)`.
-4. Decreasing component count even when union fails.
-5. Using DSU when the actual path/traversal is required.
-6. Using basic DSU cycle logic directly for directed graphs.
-
-#### 17. Interview Must Remember
-
-1. DSU = **manage connected groups efficiently**.
-2. `find(x)` → find group representative.
-3. `union(a,b)` → merge groups.
-4. `find(a) == find(b)` → already connected.
-5. Use **Path Compression + Union by Rank/Size**.
-6. Optimized operations → practically `O(1)`.
-7. **Connectivity + repeated merging → think DSU**.
+| # | Question | Idea |
+|---|---|---|
+| 547 | Number of Provinces (Medium) | count groups |
+| 684 | Redundant Connection (Medium) | the edge that closes a cycle |
+| 990 | Satisfiability of Equality Equations (Medium) | union `==`, then check `!=` |
+| 721 | Accounts Merge (Medium) | union emails of one account |
+| 1319 | Number of Operations to Make Network Connected (Medium) | groups − 1 |
+| 323 | Number of Connected Components (Medium, premium) | count groups |
+| 1584 | Min Cost to Connect All Points (Medium) | Kruskal (note 27) |

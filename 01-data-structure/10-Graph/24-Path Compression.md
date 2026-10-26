@@ -1,258 +1,104 @@
 # Path Compression
 
-#### 1. Definition — Must Know
+#### 1. What Is It?
 
-1. **Path Compression** is an optimization used in **Union-Find / DSU**.
-2. It makes every visited node point closer/directly to the **root** during `find()`.
-3. This makes future `find()` operations much faster.
+**Path compression** is a small trick that makes `find` in Union-Find fast.
 
-#### 2. Why It Is Needed — Must Know
+When `find(x)` walks up from `x` to the root, it **re-points every node it passed directly to the root**. The next `find` on those nodes takes one step.
 
-Without optimization, DSU can become a long chain:
+Without it, a chain like `4 → 3 → 2 → 1 → 0` makes every `find(4)` walk 4 steps. With it, the chain flattens after the first call.
 
-```text id="pc01"
-4 → 3 → 2 → 1 → 0
+It is a very common interview follow-up: "how do you make union-find fast?".
+
+#### 2. How It Works
+
+```text
+Before find(4):                  After find(4) with path compression:
+
+0 ← 1 ← 2 ← 3 ← 4                0 ← 1,  0 ← 2,  0 ← 3,  0 ← 4
+(a long chain)                   (every node points straight to the root 0)
+
+find(4): walk 4 → 3 → 2 → 1 → 0 (root). On the way back, set parent[4], parent[3], parent[2], parent[1] = 0.
+Next find(4): 4 → 0   (one step)
 ```
 
-Finding the root of `4` requires:
+Two ways to write it:
 
-```text id="pc02"
-4 → 3 → 2 → 1 → 0
-```
+| Way | Idea |
+|---|---|
+| **Recursive** | `parent[x] = find(parent[x])` |
+| **Iterative** | walk up to find the root, then walk again and set each parent to the root |
 
-Multiple steps are required.
+(There is also "path halving": `parent[x] = parent[parent[x]]` while walking.)
 
-Path Compression reduces this depth.
+#### 3. Kotlin Code
 
-#### 3. How It Works — Must Know
-
-Call:
-
-```text id="pc03"
-find(4)
-```
-
-Before:
-
-```text id="pc04"
-4 → 3 → 2 → 1 → 0
-```
-
-Root:
-
-```text id="pc05"
-0
-```
-
-During `find()`, update each visited node to point directly to the root.
-
-After:
-
-```text id="pc06"
-    0
-  / | | \
- 1  2 3  4
-```
-
-Now:
-
-```text id="pc07"
-4 → 0
-3 → 0
-2 → 0
-1 → 0
-```
-
-Future `find()` calls become much faster.
-
-#### 4. Core Logic — Must Know
-
-Normal Find:
-
-```kotlin id="pc08"
-fun find(x: Int): Int {
-
-    if (parent[x] == x) {
-        return x
-    }
-
-    return find(parent[x])
-}
-```
-
-With Path Compression:
-
-```kotlin id="pc09"
-fun find(x: Int): Int {
-
-    if (parent[x] != x) {
-        parent[x] = find(parent[x])
-    }
-
+```kotlin
+// Recursive (the shortest)
+fun find(parent: IntArray, x: Int): Int {
+    if (parent[x] != x) parent[x] = find(parent, parent[x])   // point directly to the root
     return parent[x]
 }
+
+// Iterative (no recursion, safe for very long chains)
+fun findIterative(parent: IntArray, x: Int): Int {
+    var root = x
+    while (parent[root] != root) root = parent[root]          // 1. find the root
+    var cur = x
+    while (parent[cur] != root) {                             // 2. point everyone on the path to the root
+        val next = parent[cur]
+        parent[cur] = root
+        cur = next
+    }
+    return root
+}
+
+// Demo: a chain 0 ← 1 ← 2 ← 3 ← 4
+val parent = intArrayOf(0, 0, 1, 2, 3)
+println(find(parent, 4))          // 0
+println(parent.toList())          // [0, 0, 0, 0, 0]  (the chain is flat now)
 ```
 
-The most important line:
+Without union by size, path compression alone already gives `O(log n)` amortized per operation. Together with union by size (note 25), it gives `O(α(n))`.
 
-```kotlin id="pc10"
-parent[x] = find(parent[x])
-```
+#### 4. Complexity
 
-#### 5. What This Line Does — Must Know
+| | Time per `find` |
+|---|---|
+| No tricks | `O(n)` worst case |
+| Path compression only | `O(log n)` amortized |
+| Path compression + union by size | `O(α(n))`, almost constant |
 
-```kotlin id="pc11"
-parent[x] = find(parent[x])
-```
+#### 5. Common Mistakes
 
-Two things happen:
+1. **Writing `return find(parent[x])` without setting `parent[x]`.** Then nothing is compressed.
+2. **Compressing a copy** of the array instead of the real one.
+3. **Recursion depth** on a very long chain with the recursive version. Use the iterative one for huge inputs.
+4. **Mixing it up with union by size.** They are two different tricks.
 
-```text id="pc12"
-find(parent[x])
-        ↓
-Find actual root
+#### 6. Say This in the Interview
 
-parent[x] = root
-        ↓
-Connect x directly to root
-```
+1. "Path compression re-points each node I visit in `find` to the root, so later finds are one step."
+2. "Together with union by size, each operation is almost constant, `O(α(n))`."
 
-Example:
+#### 7. Quick Check
 
-```text id="pc13"
-parent[4] = find(parent[4])
+1. What changes in the array during `find(4)` on the chain above?
+2. Does path compression change which group a node belongs to?
 
-parent[4] = find(3)
+<details>
+<summary>Answers</summary>
 
-parent[4] = 0
-```
+1. Every node on the path now has the root as its parent.
+2. No. It only changes the tree shape, not the groups.
 
-#### 6. Before vs After
+</details>
 
-Before:
+#### 8. Related LeetCode Questions
 
-```text id="pc14"
-4
-↓
-3
-↓
-2
-↓
-1
-↓
-0
-```
-
-After `find(4)`:
-
-```text id="pc15"
-    0
-  / | | \
- 1  2 3  4
-```
-
-The DSU becomes much flatter.
-
-#### 7. Complexity — Must Know
-
-Without optimizations, worst-case `find()` can approach:
-
-```text id="pc16"
-O(N)
-```
-
-With:
-
-```text id="pc17"
-Path Compression
-+
-Union by Rank / Size
-```
-
-amortized complexity becomes:
-
-```text id="pc18"
-O(α(N))
-```
-
-Practically:
-
-```text id="pc19"
-≈ O(1)
-```
-
-`α(N)` is the inverse Ackermann function and grows extremely slowly.
-
-#### 8. Path Compression vs Union by Size — Must Know
-
-They solve related but different problems:
-
-```text id="pc20"
-Path Compression
-      ↓
-Optimizes find()
-      ↓
-Flattens paths during traversal
-
-
-Union by Size / Rank
-      ↓
-Optimizes union()
-      ↓
-Prevents deep trees when merging
-```
-
-Best practice:
-
-```text id="pc21"
-Path Compression
-      +
-Union by Size / Rank
-```
-
-Use both together.
-
-#### 9. Common Mistakes
-
-1. Returning the root without updating `parent[x]`.
-
-Wrong:
-
-```kotlin id="pc22"
-return find(parent[x])
-```
-
-Better:
-
-```kotlin id="pc23"
-parent[x] = find(parent[x])
-return parent[x]
-```
-
-2. Thinking Path Compression changes which nodes belong to the component.
-
-It only changes the **internal tree structure**, not connectivity.
-
-3. Saying every individual operation is strictly `O(1)`.
-
-More accurate:
-
-```text id="pc24"
-Amortized → O(α(N))
-Practically → nearly O(1)
-```
-
-#### 10. Interview Must Remember
-
-1. Path Compression is a **DSU optimization**.
-2. It happens during `find()`.
-3. It connects visited nodes directly/closer to the root.
-4. Key line:
-
-```kotlin id="pc25"
-parent[x] = find(parent[x])
-```
-
-5. It makes future `find()` operations faster.
-6. Combine it with **Union by Rank/Size**.
-7. Optimized DSU → `O(α(N))` amortized per operation.
+| # | Question | Idea |
+|---|---|---|
+| 684 | Redundant Connection (Medium) | union-find with compression |
+| 547 | Number of Provinces (Medium) | count groups |
+| 990 | Satisfiability of Equality Equations (Medium) | union-find |
+| 721 | Accounts Merge (Medium) | union-find on emails |

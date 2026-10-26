@@ -1,227 +1,148 @@
 # Flood Fill Pattern
 
-#### 1. Definition — Must Know
+#### 1. What Is It?
 
-1. **Flood Fill** starts from one cell and visits all connected cells having the same valid state/value.
-2. It is essentially **DFS/BFS on a grid**.
-3. Commonly used to modify or identify a connected region.
+**Flood fill** starts from one cell and **spreads to all connected cells** that satisfy a rule. It is DFS or BFS on a grid (note 11).
 
-Think:
+It is the idea behind the "paint bucket" tool in a drawing app.
 
-```text
-Start Cell → Explore Connected Same-Value Cells → Mark/Change Them
-```
+Many interview questions are flood fill with a different goal:
 
-#### 2. Example — Must Know
+| Goal | Question |
+|---|---|
+| change the colour of a region | Flood Fill |
+| count regions | Number of Islands |
+| measure a region | Max Area of Island |
+| find regions **not** touching the border | Surrounded Regions, Number of Enclaves |
+| find cells that **can reach** the border | Pacific Atlantic Water Flow |
 
-Input:
+#### 2. How It Works
 
-```text
-1 1 1
-1 1 0
-1 0 1
-```
-
-Start at `(1,1)` and change `1 → 2`.
-
-Result:
+*Flood Fill* (LeetCode 733): change the colour of the region that contains `(sr, sc)`.
 
 ```text
-2 2 2
-2 2 0
-2 0 1
+image                      sr=1, sc=1, color=2        result
+1 1 1                      start at (1,1), colour 1   2 2 2
+1 1 0          →           spread to all connected    2 2 0
+1 0 1                      cells with colour 1        2 0 1
 ```
 
-The bottom-right `1` remains unchanged because it is **not connected** to the starting region.
+Notice the bottom-right `1` is **not** connected (it only touches `0` cells), so it stays `1`.
 
-#### 3. Core Logic — Must Know
+**A very useful trick: start from the border.** *Surrounded Regions* asks to flip every `'O'` region that is **completely surrounded** by `'X'`. It is easier to find the opposite: the `'O'` cells connected to the **border** are safe.
 
 ```text
-1. Get starting cell's original value.
-2. Change the current cell.
-3. Explore its neighbors.
-4. Continue only if neighbor has the original value.
-5. Stop at boundary or different-value cells.
+1. Flood fill from every 'O' on the border, marking them 'T' (temporary).
+2. Now every remaining 'O' is surrounded → turn it into 'X'.
+3. Turn every 'T' back into 'O'.
 ```
 
-Pattern:
-
-```text
-Validate → Mark → Explore Neighbors
-```
-
-#### 4. DFS Implementation — Must Know
+#### 3. Kotlin Code
 
 ```kotlin
-fun floodFill(
-    image: Array<IntArray>,
-    sr: Int,
-    sc: Int,
-    color: Int
-): Array<IntArray> {
+private val DIRS = arrayOf(intArrayOf(1, 0), intArrayOf(-1, 0), intArrayOf(0, 1), intArrayOf(0, -1))
 
+// Flood Fill (LeetCode 733)
+fun floodFill(image: Array<IntArray>, sr: Int, sc: Int, color: Int): Array<IntArray> {
     val original = image[sr][sc]
+    if (original == color) return image                    // already the new colour: avoids an endless loop
+    val rows = image.size
+    val cols = image[0].size
 
-    if (original == color) return image
-
-    fun dfs(row: Int, col: Int) {
-
-        if (
-            row !in image.indices ||
-            col !in image[0].indices ||
-            image[row][col] != original
-        ) {
-            return
-        }
-
-        image[row][col] = color
-
-        dfs(row - 1, col)
-        dfs(row + 1, col)
-        dfs(row, col - 1)
-        dfs(row, col + 1)
+    fun dfs(r: Int, c: Int) {
+        if (r !in 0 until rows || c !in 0 until cols || image[r][c] != original) return
+        image[r][c] = color                                 // the new colour also marks "visited"
+        for (d in DIRS) dfs(r + d[0], c + d[1])
     }
 
     dfs(sr, sc)
-
     return image
 }
-```
 
-#### 5. Why `original == color` Check Matters — Must Know
+// Surrounded Regions (LeetCode 130): start from the border
+fun solve(board: Array<CharArray>) {
+    if (board.isEmpty()) return
+    val rows = board.size
+    val cols = board[0].size
 
-Without:
+    fun dfs(r: Int, c: Int) {
+        if (r !in 0 until rows || c !in 0 until cols || board[r][c] != 'O') return
+        board[r][c] = 'T'                                   // safe: connected to the border
+        for (d in DIRS) dfs(r + d[0], c + d[1])
+    }
 
-```kotlin
-if (original == color) return image
-```
+    for (r in 0 until rows) { dfs(r, 0); dfs(r, cols - 1) }       // left and right borders
+    for (c in 0 until cols) { dfs(0, c); dfs(rows - 1, c) }       // top and bottom borders
 
-changing the cell does not mark it differently.
-
-Example:
-
-```text
-Original = 1
-New      = 1
-```
-
-DFS can repeatedly revisit the same cells.
-
-#### 6. BFS Alternative — Good to Know
-
-```kotlin
-val queue = ArrayDeque<Pair<Int, Int>>()
-
-queue.addLast(sr to sc)
-image[sr][sc] = color
-
-while (queue.isNotEmpty()) {
-
-    val (row, col) = queue.removeFirst()
-
-    for ((dr, dc) in directions) {
-
-        val nr = row + dr
-        val nc = col + dc
-
-        if (
-            nr in image.indices &&
-            nc in image[0].indices &&
-            image[nr][nc] == original
-        ) {
-            image[nr][nc] = color
-            queue.addLast(nr to nc)
+    for (r in 0 until rows) for (c in 0 until cols) {
+        when (board[r][c]) {
+            'O' -> board[r][c] = 'X'                        // surrounded
+            'T' -> board[r][c] = 'O'                        // restore the safe ones
         }
     }
 }
+
+// Number of Enclaves (LeetCode 1020): land cells that cannot reach the border
+fun numEnclaves(grid: Array<IntArray>): Int {
+    val rows = grid.size
+    val cols = grid[0].size
+
+    fun dfs(r: Int, c: Int) {
+        if (r !in 0 until rows || c !in 0 until cols || grid[r][c] != 1) return
+        grid[r][c] = 0
+        for (d in DIRS) dfs(r + d[0], c + d[1])
+    }
+
+    for (r in 0 until rows) { dfs(r, 0); dfs(r, cols - 1) }
+    for (c in 0 until cols) { dfs(0, c); dfs(rows - 1, c) }
+    return grid.sumOf { row -> row.count { it == 1 } }
+}
 ```
 
-Both DFS and BFS work.
+Check: `floodFill([[1,1,1],[1,1,0],[1,0,1]], 1, 1, 2)` → `[[2,2,2],[2,2,0],[2,0,1]]`.
 
-#### 7. Time & Space Complexity — Must Know
+#### 4. Complexity
 
-For:
+| | Time | Space |
+|---|---|---|
+| Flood fill, one region | `O(R · C)` | `O(R · C)` (recursion) |
+| Whole-grid versions (Surrounded Regions) | `O(R · C)` | `O(R · C)` |
 
-```text
-Rows = R
-Columns = C
-```
+#### 5. Common Mistakes
 
-Worst case:
+1. **Flood fill with the same colour.** If the new colour equals the old one, the DFS never stops marking. Return early.
+2. **Checking bounds after the cell.** Check bounds first.
+3. **Forgetting a temporary marker** (like `'T'`) in Surrounded Regions, so you cannot tell safe cells from surrounded ones.
+4. **Not restoring** the safe cells at the end.
+5. **Starting from every cell** instead of from the border, which is slower and harder.
+6. **Deep recursion** on a big grid. Use BFS or a stack.
 
-```text
-Time  → O(R × C)
-Space → O(R × C)
-```
+#### 6. Say This in the Interview
 
-Every cell may need to be visited once.
+1. "I flood fill with DFS: change the cell, then spread to the four neighbours that match."
+2. "For 'surrounded' questions I start from the border and mark everything safe. What is left is the answer."
+3. "Time and space are `O(R · C)`."
 
-#### 8. Common Flood Fill Patterns — Must Know
+#### 7. Quick Check
 
-1. **Recolor Connected Region**
-   ```text
-   Flood Fill
-   ```
+1. Why return early when the new colour equals the old colour?
+2. In Surrounded Regions, why start from the border?
 
-2. **Count Islands**
-   ```text
-   Find land → Flood Fill → count++
-   ```
+<details>
+<summary>Answers</summary>
 
-3. **Mark Visited Region**
-   ```text
-   Valid Cell → DFS/BFS → mark entire component
-   ```
+1. The cells would never look "different" after being painted, so the DFS would keep going forever.
+2. A region is safe only if it touches the border. It is simpler to mark the border-connected cells and treat the rest as surrounded.
 
-4. **Surrounded Regions**
-   ```text
-   Flood Fill from boundary cells
-   ```
+</details>
 
-5. **Area of Island**
-   ```text
-   Flood Fill + count visited cells
-   ```
+#### 8. Related LeetCode Questions
 
-#### 9. Flood Fill vs Connected Components — Must Know
-
-Flood Fill:
-
-```text
-Start from a known cell
-        ↓
-Explore its entire connected region
-```
-
-Connected Components:
-
-```text
-Check every cell
-      ↓
-For each unvisited valid cell
-      ↓
-Run Flood Fill
-      ↓
-Count++
-```
-
-So **Flood Fill is often the operation used to discover one connected component**.
-
-#### 10. Common Mistakes — Must Know
-
-1. Forgetting boundary checks.
-2. Exploring cells with a different original value.
-3. Forgetting `original == newColor`.
-4. Marking visited **after** recursive calls instead of before.
-5. Assuming diagonal movement without checking the problem.
-6. Using a separate `visited` array when modifying the grid itself is allowed and sufficient.
-
-#### 11. Interview Must Remember
-
-1. Flood Fill = **DFS/BFS over one connected grid region**.
-2. Store the **original value** before traversal.
-3. Pattern → `Validate → Mark → Explore`.
-4. Changing the cell can act as the `visited` marker.
-5. `original == newColor` is an important edge case.
-6. Complexity → `O(R × C)`.
-7. Islands, regions, and connected-area problems often use the same pattern.
+| # | Question | Idea |
+|---|---|---|
+| 733 | Flood Fill (Easy) | this note |
+| 200 | Number of Islands (Medium) | count regions |
+| 695 | Max Area of Island (Medium) | size of a region |
+| 130 | Surrounded Regions (Medium) | start from the border |
+| 1020 | Number of Enclaves (Medium) | start from the border |
+| 417 | Pacific Atlantic Water Flow (Medium) | search from each ocean |

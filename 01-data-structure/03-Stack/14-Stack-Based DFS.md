@@ -158,9 +158,9 @@ Checks: graph above → `[0, 1, 3, 2]`. Tree `1` with children `2` and `3`: preo
 
 | # | Question | Idea |
 |---|---|---|
-| 144 | Binary Tree Preorder Traversal (Easy) | stack, push right then left |
-| 94 | Binary Tree Inorder Traversal (Easy) | go left pushing, pop, go right |
-| 145 | Binary Tree Postorder Traversal (Easy) | root-right-left, then reverse |
-| 98 | Validate Binary Search Tree (Medium) | iterative inorder must be increasing |
-| 230 | Kth Smallest Element in a BST (Medium) | iterative inorder, stop at `k` |
-| 200 | Number of Islands (Medium) | DFS with a stack on a grid |
+| 144 | [Binary Tree Preorder Traversal](https://leetcode.com/problems/binary-tree-preorder-traversal/) (Easy) | stack, push right then left |
+| 94 | [Binary Tree Inorder Traversal](https://leetcode.com/problems/binary-tree-inorder-traversal/) (Easy) | go left pushing, pop, go right |
+| 145 | [Binary Tree Postorder Traversal](https://leetcode.com/problems/binary-tree-postorder-traversal/) (Easy) | root-right-left, then reverse |
+| 98 | [Validate Binary Search Tree](https://leetcode.com/problems/validate-binary-search-tree/) (Medium) | iterative inorder must be increasing |
+| 230 | [Kth Smallest Element in a BST](https://leetcode.com/problems/kth-smallest-element-in-a-bst/) (Medium) | iterative inorder, stop at `k` |
+| 200 | [Number of Islands](https://leetcode.com/problems/number-of-islands/) (Medium) | DFS with a stack on a grid |

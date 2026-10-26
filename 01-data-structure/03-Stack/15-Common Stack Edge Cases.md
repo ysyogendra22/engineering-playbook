@@ -116,9 +116,9 @@ Edge cases do not change the time or space. They change **correctness**. An unch
 
 | # | Question | Edge case to watch |
 |---|---|---|
-| 20 | Valid Parentheses (Easy) | empty stack, leftovers |
-| 155 | Min Stack (Medium) | duplicate minimums |
-| 150 | Evaluate Reverse Polish Notation (Medium) | operand order, division |
-| 739 | Daily Temperatures (Medium) | equal temperatures |
-| 84 | Largest Rectangle in Histogram (Hard) | sentinel, `-1` limit |
-| 71 | Simplify Path (Medium) | `..` at the root |
+| 20 | [Valid Parentheses](https://leetcode.com/problems/valid-parentheses/) (Easy) | empty stack, leftovers |
+| 155 | [Min Stack](https://leetcode.com/problems/min-stack/) (Medium) | duplicate minimums |
+| 150 | [Evaluate Reverse Polish Notation](https://leetcode.com/problems/evaluate-reverse-polish-notation/) (Medium) | operand order, division |
+| 739 | [Daily Temperatures](https://leetcode.com/problems/daily-temperatures/) (Medium) | equal temperatures |
+| 84 | [Largest Rectangle in Histogram](https://leetcode.com/problems/largest-rectangle-in-histogram/) (Hard) | sentinel, `-1` limit |
+| 71 | [Simplify Path](https://leetcode.com/problems/simplify-path/) (Medium) | `..` at the root |

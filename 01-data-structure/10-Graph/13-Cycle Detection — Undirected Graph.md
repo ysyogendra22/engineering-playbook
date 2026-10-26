@@ -1,270 +1,133 @@
 # Cycle Detection — Undirected Graph
 
-#### 1. Definition — Must Know
+#### 1. What Is It?
 
-1. A cycle exists when you can start from a vertex and return to it through a different path.
-2. For an undirected graph, cycle detection commonly uses:
-   - **DFS + Parent** — Must Know.
-   - **BFS + Parent** — Good to Know.
-   - **Union-Find** — Good to Know.
+In an undirected graph, a **cycle** is a path that returns to its start without reusing an edge. Cycle detection answers: **"does this graph have a cycle?"**
 
-#### 2. Example — Must Know
+Two standard ways:
 
-Cyclic:
+| Way | Idea | Use when |
+|---|---|---|
+| **DFS with a parent** | if you reach an already visited node that is **not the node you came from**, there is a cycle | the whole graph is given |
+| **Union-Find** | if an edge joins two nodes that are **already in the same group**, it makes a cycle | edges arrive one by one |
 
-```text id="jygd4w"
-0 ----- 1
-|       |
-2 ----- 3
+Where it appears: *Graph Valid Tree* (a tree has no cycle), *Redundant Connection* (find the edge that creates a cycle).
+
+#### 2. How It Works
+
+**DFS with a parent.** In an undirected graph every edge also points back to where you came from. That back edge is *not* a cycle. So pass the `parent` down and ignore it.
+
+```text
+Graph (triangle):  0 - 1,  1 - 2,  2 - 0
+
+dfs(0, parent = -1): visit 0
+   neighbour 1: not visited → dfs(1, parent = 0)
+       neighbour 0: visited, but it is the parent → ignore
+       neighbour 2: not visited → dfs(2, parent = 1)
+           neighbour 1: parent → ignore
+           neighbour 0: visited and NOT the parent → CYCLE!
 ```
 
-Cycle:
+**Union-Find.** For each edge `(a, b)`:
 
-```text id="aifmps"
-0 → 1 → 3 → 2 → 0
+```text
+if find(a) == find(b): this edge makes a cycle
+else: union(a, b)
 ```
 
-Acyclic:
+(Union-find is explained in note 23.)
 
-```text id="km08w7"
-0 ----- 1
-|
-2 ----- 3
-```
+#### 3. Kotlin Code
 
-No cycle exists.
-
-#### 3. Why `visited` Alone Is Not Enough — Must Know
-
-Consider:
-
-```text id="nv11vq"
-0 ----- 1
-```
-
-DFS:
-
-```text id="skmb4s"
-0 → 1
-```
-
-From `1`, neighbor `0` is already visited.
-
-But this is **not a cycle** because `0` is the node we came from.
-
-Therefore track:
-
-```text id="e2l5g3"
-Current Node + Parent
-```
-
-Rule:
-
-```text id="j4gdty"
-Visited neighbor AND neighbor != parent
-                ↓
-             Cycle
-```
-
-#### 4. DFS Logic — Must Know
-
-```text id="gk8t21"
-DFS(node, parent):
-
-1. Mark node visited.
-
-2. For every neighbor:
-
-   if neighbor not visited:
-       if DFS(neighbor, node):
-           return true
-
-   else if neighbor != parent:
-       return true
-
-3. return false
-```
-
-Core pattern:
-
-```text id="3o46x4"
-Unvisited neighbor
-      ↓
-Continue DFS
-
-Visited neighbor
-      ↓
-Is it parent?
-  ↓          ↓
- Yes         No
- ↓           ↓
-Ignore      Cycle
-```
-
-#### 5. Kotlin Implementation — Must Know
-
-```kotlin id="kw4amq"
-fun hasCycle(
-    n: Int,
-    graph: Array<MutableList<Int>>
-): Boolean {
-
+```kotlin
+// DFS with a parent
+fun hasCycle(n: Int, edges: Array<IntArray>): Boolean {
+    val graph = List(n) { mutableListOf<Int>() }
+    for ((a, b) in edges) {
+        graph[a].add(b)
+        graph[b].add(a)
+    }
     val visited = BooleanArray(n)
 
     fun dfs(node: Int, parent: Int): Boolean {
-
         visited[node] = true
-
-        for (neighbor in graph[node]) {
-
-            if (!visited[neighbor]) {
-
-                if (dfs(neighbor, node)) {
-                    return true
-                }
-
-            } else if (neighbor != parent) {
-
-                return true
+        for (next in graph[node]) {
+            if (!visited[next]) {
+                if (dfs(next, node)) return true
+            } else if (next != parent) {
+                return true                                 // visited and not the parent → cycle
             }
         }
-
         return false
     }
 
-    for (node in 0 until n) {
-
-        if (!visited[node]) {
-
-            if (dfs(node, -1)) {
-                return true
-            }
-        }
+    for (s in 0 until n) {
+        if (!visited[s] && dfs(s, -1)) return true          // check every component
     }
-
     return false
 }
-```
 
-#### 6. Why Loop Through Every Node? — Must Know
+// Redundant Connection (LeetCode 684): the edge that makes a cycle, with union-find
+fun findRedundantConnection(edges: Array<IntArray>): IntArray {
+    val parent = IntArray(edges.size + 1) { it }
 
-Graph may be disconnected:
-
-```text id="79d23g"
-0 --- 1       2 --- 3
-              |     |
-              5 --- 4
-```
-
-Starting DFS from `0` never reaches the second component.
-
-Therefore:
-
-```kotlin id="qutn3c"
-for (node in 0 until n) {
-    if (!visited[node]) {
-        if (dfs(node, -1)) return true
+    fun find(x: Int): Int {
+        if (parent[x] != x) parent[x] = find(parent[x])     // path compression
+        return parent[x]
     }
+
+    for ((a, b) in edges) {
+        val rootA = find(a)
+        val rootB = find(b)
+        if (rootA == rootB) return intArrayOf(a, b)         // already connected → this edge closes a cycle
+        parent[rootA] = rootB
+    }
+    return intArrayOf()
 }
 ```
 
-A cycle in **any component** means the graph contains a cycle.
+Checks: `hasCycle(3, [[0,1],[1,2],[2,0]])` → `true`. `hasCycle(4, [[0,1],[1,2],[2,3]])` → `false`. `findRedundantConnection([[1,2],[1,3],[2,3]])` → `[2, 3]`.
 
-#### 7. BFS + Parent — Good to Know
+#### 4. Complexity
 
-Store:
+| Way | Time | Space |
+|---|---|---|
+| DFS with a parent | `O(V + E)` | `O(V)` |
+| Union-Find | `O(E · α(V))` | `O(V)` |
 
-```text id="j9p1fb"
-(node, parent)
-```
+#### 5. Common Mistakes
 
-Logic is the same:
+1. **Treating the parent as a cycle.** Every undirected edge points back to the parent, so ignore it.
+2. **Using this check on a directed graph.** It gives wrong answers. Use the 3-state DFS (note 14).
+3. **Checking only one component.** Loop over all nodes.
+4. **Parallel edges** (two edges between the same pair). The simple parent check misses this cycle. Track the edge id instead of the parent node if the problem allows parallel edges.
+5. **Union-find with 0-based arrays** when nodes are 1-based. Allocate `n + 1`.
 
-```text id="94pg2p"
-Visited neighbor != parent
-          ↓
-        Cycle
-```
+#### 6. Say This in the Interview
 
-Example structure:
+1. "In an undirected DFS, reaching a visited node that is not my parent means a cycle."
+2. "Or with union-find: if an edge joins two nodes already in the same set, that edge creates the cycle."
+3. "Time `O(V + E)`. I check every component."
 
-```kotlin id="wrb7a2"
-data class State(
-    val node: Int,
-    val parent: Int
-)
-```
+#### 7. Quick Check
 
-DFS is usually simpler to write in interviews.
+1. Why ignore the parent in the DFS?
+2. Does a tree have a cycle?
 
-#### 8. Union-Find Approach — Good to Know
+<details>
+<summary>Answers</summary>
 
-Process each edge:
+1. The edge to the parent is the edge we just came through. It is not a new path back, so it is not a cycle.
+2. No. A tree is connected and has no cycle.
 
-```text id="uxd1cb"
-(u, v)
-```
+</details>
 
-If:
+#### 8. Related LeetCode Questions
 
-```text id="35pdd4"
-find(u) == find(v)
-```
-
-they are already connected.
-
-Adding `(u, v)` creates a cycle.
-
-Otherwise:
-
-```text id="gmgw8s"
-union(u, v)
-```
-
-Useful when the problem is naturally based on **processing edges / dynamic connectivity**.
-
-#### 9. Time & Space Complexity — Must Know
-
-DFS/BFS with adjacency list:
-
-```text id="dm3xgm"
-Time  → O(V + E)
-Space → O(V)
-```
-
-1. Each vertex is visited once.
-2. Each undirected edge appears in adjacency lists twice, but this is still `O(E)`.
-3. `visited` + recursion/queue requires up to `O(V)` extra space.
-
-#### 10. Common Mistakes — Must Know
-
-1. Treating the parent edge as a cycle.
-2. Using only `visited` without tracking parent.
-3. Running DFS from only one vertex in a disconnected graph.
-4. Forgetting to add both directions when building an undirected graph.
-5. Confusing this logic with **directed graph cycle detection**.
-
-#### 11. Directed vs Undirected — Must Know
-
-```text id="8okvne"
-Undirected:
-
-DFS + visited + parent
-
-
-Directed:
-
-DFS + visited/current-path state
-```
-
-Do not use the undirected `parent` technique directly for directed graphs.
-
-#### 12. Interview Must Remember
-
-1. Undirected cycle detection → **DFS + Parent**.
-2. `visited neighbor != parent` → **cycle**.
-3. Parent itself is visited but does **not** indicate a cycle.
-4. Check every component in a disconnected graph.
-5. Complexity → `O(V + E)`.
-6. BFS can use the same parent concept.
-7. **Union-Find** is another important cycle-detection approach for undirected graphs.
+| # | Question | Idea |
+|---|---|---|
+| 261 | Graph Valid Tree (Medium, premium) | no cycle and connected |
+| 684 | Redundant Connection (Medium) | the edge that makes a cycle |
+| 685 | Redundant Connection II (Hard) | the directed version |
+| 547 | Number of Provinces (Medium) | union-find practice |
+| 1584 | Min Cost to Connect All Points (Medium) | Kruskal avoids cycles with union-find |

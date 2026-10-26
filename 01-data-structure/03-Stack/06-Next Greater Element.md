@@ -41,7 +41,31 @@ nums = [1, 2, 1]
 the last 1 wraps around and finds 2 → answer [2, -1, 2]
 ```
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| | Brute force | Optimized |
+|---|---|---|
+| Idea | for each number of `nums1`, find it in `nums2`, then scan right | stack over `nums2` + a map |
+| Time | `O(n · m)` | `O(n + m)` |
+| Space | `O(1)` extra | `O(m)` |
+
+The brute force is easy to write, and it is a good first answer to say out loud:
+
+```kotlin
+fun nextGreaterElementBrute(nums1: IntArray, nums2: IntArray): IntArray =
+    IntArray(nums1.size) { i ->
+        val start = nums2.indexOf(nums1[i])
+        var answer = -1
+        for (j in start + 1 until nums2.size) {
+            if (nums2[j] > nums1[i]) { answer = nums2[j]; break }
+        }
+        answer
+    }
+```
+
+The stack answers every number of `nums2` in one pass, and the map gives each query in `O(1)`.
+
+#### 4. Kotlin Code
 
 ```kotlin
 // Basic version
@@ -88,7 +112,7 @@ fun nextGreaterCircular(nums: IntArray): IntArray {
 
 Checks: `nextGreaterElements([2,1,2,4,3])` → `[4,2,4,-1,-1]`. `nextGreaterElement([4,1,2], [1,3,4,2])` → `[-1,3,-1]`. `nextGreaterCircular([1,2,1])` → `[2,-1,2]`.
 
-#### 4. Complexity
+#### 5. Complexity
 
 | | Time | Space |
 |---|---|---|
@@ -96,7 +120,7 @@ Checks: `nextGreaterElements([2,1,2,4,3])` → `[4,2,4,-1,-1]`. `nextGreaterElem
 | Circular version | `O(n)` (about `2n` steps) | `O(n)` |
 | Brute force | `O(n²)` | `O(1)` |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **`<=` instead of `<`.** "Greater" means strictly bigger. With `<=`, equal numbers get wrong answers.
 2. **Forgetting `-1`** as the starting value for numbers that never get an answer.
@@ -104,14 +128,14 @@ Checks: `nextGreaterElements([2,1,2,4,3])` → `[4,2,4,-1,-1]`. `nextGreaterElem
 4. **`stack.last()` on an empty stack.** Check `isNotEmpty()` first.
 5. **LeetCode 496:** it asks for answers about `nums1` only, so use a map from number to answer.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "Brute force is `O(n²)`. I can do `O(n)` with a monotonic stack."
 2. "The stack holds indexes of items still waiting for a bigger item. A bigger item pops them and becomes their answer."
 3. "Each item is pushed and popped once. Time `O(n)`, space `O(n)`."
 4. "For a circular array I loop twice, using `i % n`."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. What is the next greater element of the last item in a normal (non-circular) array?
 2. What does `[5, 4, 3]` give?
@@ -124,12 +148,12 @@ Checks: `nextGreaterElements([2,1,2,4,3])` → `[4,2,4,-1,-1]`. `nextGreaterElem
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|
-| 496 | Next Greater Element I (Easy) | stack + map |
-| 503 | Next Greater Element II (Medium) | circular array |
-| 739 | Daily Temperatures (Medium) | distance instead of value |
-| 1019 | Next Greater Node In Linked List (Medium) | same idea on a linked list |
-| 901 | Online Stock Span (Medium) | the "previous" direction |
+| 496 | [Next Greater Element I](https://leetcode.com/problems/next-greater-element-i/) (Easy) | stack + map |
+| 503 | [Next Greater Element II](https://leetcode.com/problems/next-greater-element-ii/) (Medium) | circular array |
+| 739 | [Daily Temperatures](https://leetcode.com/problems/daily-temperatures/) (Medium) | distance instead of value |
+| 1019 | [Next Greater Node In Linked List](https://leetcode.com/problems/next-greater-node-in-linked-list/) (Medium) | same idea on a linked list |
+| 901 | [Online Stock Span](https://leetcode.com/problems/online-stock-span/) (Medium) | the "previous" direction |

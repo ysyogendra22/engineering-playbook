@@ -1,230 +1,143 @@
 # Common Graph Edge Cases
 
-#### 1. Empty Graph — Must Know
+> Read this list before a graph interview. Run through it at the end of every solution.
 
-```text
-V = 0
-E = 0
-```
+#### 1. What Is It?
 
-1. No vertices or edges.
-2. Avoid accessing a start node when the graph is empty.
+These are the situations where graph solutions most often **crash**, **loop forever**, or **give a wrong answer**. Interviewers watch if you check them yourself. Most bugs come from five places:
 
-#### 2. Single Vertex — Must Know
+1. **cycles** and the `visited` set,
+2. **disconnected** graphs,
+3. **edge direction** (directed vs undirected),
+4. **weights** (negative, zero, large),
+5. **bad or tiny input** (empty, one node, self-loops, duplicates).
 
-```text
-0
-```
+#### 2. The Checklist
 
-1. `V = 1`, `E = 0`.
-2. BFS/DFS should visit exactly one node.
-3. It is also one connected component.
+| # | Edge case | What goes wrong | Fix |
+|---|---|---|---|
+| 1 | Cycle, no `visited` | infinite loop | keep a `visited` set |
+| 2 | BFS marks visited on dequeue | duplicates in the queue, slow | mark on **enqueue** |
+| 3 | Disconnected graph | only one component is processed | loop over all nodes |
+| 4 | Undirected edge stored one way | half of the graph is unreachable | add both directions |
+| 5 | Directed edge stored both ways | wrong paths and cycles | add one direction only |
+| 6 | Wrong direction from `[a, b]` | wrong order (Course Schedule) | read: is it `a → b` or `b → a`? |
+| 7 | Directed cycle check with a parent check | wrong answer | use 3 states or Kahn |
+| 8 | Undirected cycle: parent seen as a cycle | false cycle | ignore the parent |
+| 9 | BFS on a weighted graph | wrong "shortest" path | Dijkstra |
+| 10 | Dijkstra with negative weights | wrong answer | Bellman-Ford |
+| 11 | `Int.MAX_VALUE + w` | overflow | check for infinity first, or use `Long` |
+| 12 | Start equals target | wrong answer | return `0` / `true` early |
+| 13 | Target unreachable | crash following `parent` | return `-1` / empty |
+| 14 | Empty graph, one node, no edges | crash on `graph[0]` | handle early |
+| 15 | Self-loop (`a → a`) | counted as a cycle (correct) or ignored | decide from the question |
+| 16 | Parallel (duplicate) edges | wrong in-degree or a missed cycle | count every edge, or de-duplicate |
+| 17 | Node numbers from `1` | index out of range | allocate `n + 1` |
+| 18 | Grid bounds read before checking | index error | check bounds first |
+| 19 | `rows` / `cols` mixed in a cell id | wrong cells | decode with the same `cols` |
+| 20 | Very deep recursion | `StackOverflowError` | BFS or an explicit stack |
+| 21 | Changing the input graph or grid | caller's data is damaged | copy, or use a separate `visited` |
 
-#### 3. Disconnected Graph — Must Know
-
-```text
-0 --- 1       2 --- 3
-```
-
-1. One BFS/DFS does not visit the whole graph.
-2. Loop through every unvisited vertex.
+#### 3. Kotlin Code
 
 ```kotlin
-for (node in graph.indices) {
-    if (!visited[node]) {
-        dfs(node)
+// 1 and 2. visited, marked when you add to the queue
+fun bfsCount(graph: List<List<Int>>, start: Int): Int {
+    val visited = BooleanArray(graph.size)
+    val queue = ArrayDeque<Int>()
+    visited[start] = true                       // mark the start too
+    queue.addLast(start)
+    var count = 0
+    while (queue.isNotEmpty()) {
+        val node = queue.removeFirst()
+        count++
+        for (next in graph[node]) {
+            if (!visited[next]) {
+                visited[next] = true            // mark on enqueue
+                queue.addLast(next)
+            }
+        }
     }
+    return count
+}
+
+// 3. All components
+fun countComponents(graph: List<List<Int>>): Int {
+    val visited = BooleanArray(graph.size)
+    var components = 0
+    for (s in graph.indices) {
+        if (visited[s]) continue
+        components++
+        val stack = ArrayDeque<Int>()
+        visited[s] = true
+        stack.addLast(s)
+        while (stack.isNotEmpty()) {
+            val node = stack.removeLast()
+            for (next in graph[node]) if (!visited[next]) { visited[next] = true; stack.addLast(next) }
+        }
+    }
+    return components
+}
+
+// 11. Safe infinity
+val INF = Int.MAX_VALUE
+fun relax(dist: IntArray, u: Int, v: Int, w: Int) {
+    if (dist[u] != INF && dist[u] + w < dist[v]) dist[v] = dist[u] + w     // never add to INF
+}
+
+// 14. Tiny input
+fun shortest(graph: List<List<Int>>, src: Int, dst: Int): Int {
+    if (graph.isEmpty()) return -1
+    if (src == dst) return 0
+    // ... BFS ...
+    return -1
+}
+
+// 16. Parallel edges: in-degree counts every edge
+fun indegrees(n: Int, edges: Array<IntArray>): IntArray {
+    val indegree = IntArray(n)
+    for ((_, to) in edges) indegree[to]++
+    return indegree
 }
 ```
 
-#### 4. Isolated Vertex — Must Know
+#### 4. Complexity
 
-```text
-0 --- 1       2
-```
+Edge cases do not change the complexity. They change **correctness**. Two exceptions: marking visited on dequeue can make a BFS far slower, and a recursive DFS can use too much stack.
 
-1. Vertex `2` has no edges.
-2. It still exists in the graph.
-3. It counts as its own connected component.
+#### 5. Common Mistakes
 
-#### 5. Cycle — Must Know
+1. **Testing only the example from the question.** Also test: empty graph, one node, no edges, a cycle, a disconnected graph, start equals target.
+2. **Not asking** whether the graph is directed, weighted, or can have duplicates and self-loops.
+3. **Assuming node labels** are `0..n-1`.
+4. **Returning the number of nodes** when the question asks for edges (or the reverse).
 
-```text
-0 --- 1
-|     |
-3 --- 2
-```
+#### 6. Say This in the Interview
 
-1. Always consider whether cycles are possible.
-2. BFS/DFS usually needs `visited`.
-3. Without it, traversal may repeatedly revisit nodes.
+1. "Let me clarify: is the graph directed? Weighted? Can it be disconnected, or have cycles, self-loops, or duplicate edges?"
+2. "Edge cases I will check: empty input, one node, start equals target, and unreachable targets."
+3. "I mark nodes visited when I enqueue them."
 
-#### 6. Self-Loop — Must Know
+#### 7. Quick Check
 
-```text
-0 ──┐
-↑   |
-└───┘
-```
+1. A graph has two separate parts. What must your loop do?
+2. What can go wrong with `Int.MAX_VALUE + weight`?
 
-Edge:
+<details>
+<summary>Answers</summary>
 
-```text
-0 → 0
-```
+1. Start a search from every unvisited node, not only from node 0.
+2. It overflows to a negative number, so the "distance" looks tiny. Check for infinity before adding.
 
-1. A self-loop is a cycle.
-2. Important for cycle-detection problems.
+</details>
 
-#### 7. Duplicate / Parallel Edges — Good to Know
+#### 8. Related LeetCode Questions
 
-```text
-A ===== B
-```
-
-Multiple edges may connect the same vertices.
-
-Example input:
-
-```text
-(0, 1)
-(0, 1)
-```
-
-1. Don't automatically assume edges are unique.
-2. Duplicate edges may affect degree, weight, or algorithm logic depending on the problem.
-
-#### 8. Directed Edge Direction — Must Know
-
-```text
-A → B
-```
-
-does not imply:
-
-```text
-B → A
-```
-
-Common mistake:
-
-```kotlin
-graph[u].add(v)
-graph[v].add(u) // Wrong if graph is directed
-```
-
-Always confirm whether the graph is **directed or undirected**.
-
-#### 9. Unreachable Destination — Must Know
-
-```text
-0 --- 1       2
-```
-
-From `0`, vertex `2` cannot be reached.
-
-For shortest-path problems, use a clear unreachable value such as:
-
-```text
--1
-Infinity
-```
-
-Do not assume every destination is reachable.
-
-#### 10. Multiple Valid Paths — Must Know
-
-```text
-    B
-   / \
-A     D
-   \ /
-    C
-```
-
-Possible:
-
-```text
-A → B → D
-A → C → D
-```
-
-1. Graphs can have multiple paths between nodes.
-2. Traversal order may also have multiple valid answers.
-3. Topological Sort can have multiple valid orderings.
-
-#### 11. Negative Edge Weight — Must Know
-
-```text
-A --(-5)--> B
-```
-
-1. Check edge weights before choosing the shortest-path algorithm.
-2. Standard Dijkstra should **not** be used with negative weights.
-3. Negative weights → consider **Bellman-Ford** when applicable.
-
-#### 12. Zero-Weight Edge — Good to Know
-
-```text
-A --0--> B
-```
-
-1. Zero is a valid non-negative weight.
-2. Dijkstra can handle zero-weight edges.
-3. Don't confuse weight `0` with “no edge” when using a matrix.
-
-#### 13. Deep Graph / Recursion Limit — Good to Know
-
-```text
-0 → 1 → 2 → 3 → ... → N
-```
-
-Recursive DFS can become very deep.
-
-For very large graphs, iterative DFS may be safer:
-
-```text
-Explicit Stack
-```
-
-#### 14. Grid Edge Cases — Must Know
-
-For grid-as-graph problems, check:
-
-1. Empty grid.
-2. Single cell.
-3. All blocked cells.
-4. All valid cells.
-5. Start = destination.
-6. Boundary cells.
-7. Correct 4-direction vs 8-direction movement.
-8. Multiple disconnected regions.
-
-#### 15. Common Implementation Mistakes — Must Know
-
-1. Forgetting `visited`.
-2. Marking BFS nodes visited too late.
-3. Forgetting disconnected components.
-4. Adding reverse edges to a directed graph.
-5. Forgetting reverse edges in an undirected graph.
-6. Using BFS for general weighted shortest path.
-7. Using Dijkstra with negative weights.
-8. Forgetting self-loops or duplicate edges.
-9. Assuming every node is reachable.
-10. Using the wrong vertex range: `0..n` instead of `0 until n`.
-
-#### 16. Interview Must Remember
-
-Before solving a graph problem, quickly check:
-
-```text
-1. Directed or Undirected?
-2. Weighted or Unweighted?
-3. Cycles possible?
-4. Connected or Disconnected?
-5. Self-loops / Duplicate edges?
-6. Destination reachable?
-7. Need visited/state tracking?
-```
-
-These checks prevent most common graph implementation mistakes.
+| # | Question | Edge case to watch |
+|---|---|---|
+| 1971 | Find if Path Exists in Graph (Easy) | start equals target |
+| 207 | Course Schedule (Medium) | cycle, edge direction |
+| 323 | Number of Connected Components (Medium, premium) | isolated nodes |
+| 743 | Network Delay Time (Medium) | unreachable nodes, 1-based labels |
+| 133 | Clone Graph (Medium) | empty graph, cycles |
+| 200 | Number of Islands (Medium) | empty grid, bounds |

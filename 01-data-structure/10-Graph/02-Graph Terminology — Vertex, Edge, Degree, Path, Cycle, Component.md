@@ -1,147 +1,119 @@
-# Graph Terminology
+# Graph Terminology — Vertex, Edge, Degree, Path, Cycle, Component
 
-#### 1. Vertex / Node — Must Know
+> The words interviewers use. Learn them once, so every graph question is easy to read.
 
-1. A **Vertex (Node)** represents an individual object in a graph.
-2. Usually represented as `V`.
+#### 1. What Is It?
 
-```text
-A ----- B
-     	
-A and B → Vertices
-```
+These are the basic words used to describe a graph.
 
-Examples:
+| Word | Meaning | Example |
+|---|---|---|
+| **Vertex** (node) | one item | a person |
+| **Edge** | a connection between two vertices | a friendship |
+| **Adjacent / neighbour** | two vertices joined by an edge | two friends |
+| **Degree** | the number of edges at a vertex | the number of friends |
+| **In-degree / out-degree** | (directed graph) edges coming in / going out | followers / following |
+| **Path** | vertices where each is connected to the next | `A → B → D` |
+| **Cycle** | a path that returns to its start | `A → B → D → C → A` |
+| **Connected component** | a group of vertices that can reach each other | one friend circle |
+| **Self-loop** | an edge from a vertex to itself | `A → A` |
+| **Parallel edges** | two edges between the same two vertices | two roads between two cities |
 
-1. Social network → User.
-2. Map → City.
-3. Computer network → Device.
-
-#### 2. Edge — Must Know
-
-1. An **Edge** represents a connection between two vertices.
-2. Usually represented as `E`.
-
-```text
-A ----- B
-
-A-B → Edge
-```
-
-Types:
-
-1. **Undirected Edge** → `A ↔ B`.
-2. **Directed Edge** → `A → B`.
-3. **Weighted Edge** → Edge contains cost/distance/time.
-
-#### 3. Degree — Must Know
-
-1. **Degree** → Number of edges connected to a vertex.
+#### 2. How It Works
 
 ```text
-    B
-    |
-C---A---D
+Graph:   A --- B       E --- F
+         |     |
+         C --- D
+
+Vertices:     A, B, C, D, E, F                  (6)
+Edges:        A-B, A-C, B-D, C-D, E-F           (5)
+Degree of A:  2 (edges A-B and A-C)
+Path:         A → B → D
+Cycle:        A → B → D → C → A
+Components:   {A, B, C, D} and {E, F}           (2 components)
 ```
+
+Two facts worth remembering:
+
+1. **Handshake rule:** in an undirected graph, the sum of all degrees is `2 × E`. (Every edge adds 1 to the degree of each end.)
+2. A graph with `V` vertices that is connected and has no cycle has exactly `V - 1` edges. That is a **tree**.
+
+For a **directed** graph:
 
 ```text
-Degree(A) = 3
-Degree(B) = 1
+A → B       A has out-degree 1;  B has in-degree 1
 ```
 
-For a **directed graph**:
+In-degree is the key number in topological sort (Kahn's algorithm, note 16).
 
-1. **In-degree** → Number of incoming edges.
-2. **Out-degree** → Number of outgoing edges.
+#### 3. Kotlin Code
 
-```text
-A → B → C
-    ↑
-    D
+```kotlin
+// Degrees of an undirected graph given as an edge list
+fun degrees(n: Int, edges: Array<IntArray>): IntArray {
+    val degree = IntArray(n)
+    for ((a, b) in edges) {
+        degree[a]++
+        degree[b]++
+    }
+    return degree
+}
+
+// In-degree and out-degree of a directed graph
+fun inOutDegrees(n: Int, edges: Array<IntArray>): Pair<IntArray, IntArray> {
+    val inDeg = IntArray(n)
+    val outDeg = IntArray(n)
+    for ((from, to) in edges) {
+        outDeg[from]++
+        inDeg[to]++
+    }
+    return inDeg to outDeg
+}
+
+// Usage: the graph above (A=0, B=1, C=2, D=3, E=4, F=5)
+val edges = arrayOf(intArrayOf(0, 1), intArrayOf(0, 2), intArrayOf(1, 3), intArrayOf(2, 3), intArrayOf(4, 5))
+println(degrees(6, edges).toList())      // [2, 2, 2, 2, 1, 1]  → the sum is 10 = 2 × 5 edges
 ```
 
-For `B`:
+#### 4. Complexity
 
-```text
-In-degree  = 2
-Out-degree = 1
-```
+| Action | Time |
+|---|---|
+| Compute all degrees from an edge list | `O(E)` |
+| Degree of one vertex (adjacency list) | `O(1)` (the size of its list) |
 
-In-degree is especially important for **Topological Sort / Kahn's Algorithm**.
+#### 5. Common Mistakes
 
-#### 4. Path — Must Know
+1. **Confusing a path with a cycle.** A cycle must return to the start.
+2. **Counting an undirected edge once** when computing degrees. Each end gets +1.
+3. **Forgetting self-loops and parallel edges** when the question allows them.
+4. **Mixing up in-degree and out-degree** in directed problems.
 
-1. A **Path** is a sequence of vertices connected by edges.
+#### 6. Say This in the Interview
 
-```text
-A → B → C → D
-```
+1. "Let me define: nodes are ..., edges are ... and the graph is directed/undirected."
+2. "A tree is a connected graph with no cycles, so it has `V - 1` edges."
+3. "I will count in-degrees to find the nodes with no prerequisites."
 
-Path from `A` to `D`:
+#### 7. Quick Check
 
-```text
-A → B → C → D
-```
+1. A connected undirected graph has 5 vertices and 4 edges. Does it have a cycle?
+2. In an undirected graph with 6 edges, what is the sum of all degrees?
 
-2. **Path length** is commonly the number of edges in the path.
-3. In weighted graphs, path cost is usually the sum of edge weights.
+<details>
+<summary>Answers</summary>
 
-#### 5. Cycle — Must Know
+1. No. It is a tree (`V - 1 = 4` edges, connected).
+2. `12` (`2 × 6`).
 
-1. A **Cycle** exists when a path returns to a previously visited vertex.
+</details>
 
-```text
-A → B
-↑   ↓
-C ←─
-```
+#### 8. Related LeetCode Questions
 
-```text
-A → B → C → A
-```
-
-2. Graphs can be **cyclic or acyclic**.
-3. Cycle detection is a common interview pattern.
-4. Directed and undirected graphs require slightly different cycle-detection logic.
-
-#### 6. Connected Component — Must Know
-
-1. A **Connected Component** is a group of vertices connected to each other.
-2. A graph can contain multiple separate components.
-
-```text
-A --- B       D --- E
-      |       
-      C          
-
-Component 1 → A, B, C
-Component 2 → D, E
-```
-
-Number of components:
-
-```text
-2
-```
-
-3. Components are commonly found using **DFS or BFS**.
-4. For directed graphs, connectivity has more specific forms such as **strongly connected components**; study those only when needed.
-
-#### 7. Related Terms — Good to Know
-
-1. **Neighbor / Adjacent** — Vertices directly connected by an edge.
-2. **Self-loop** — Edge from a vertex to itself.
-3. **Connected Graph** — All vertices belong to one connected component.
-4. **Disconnected Graph** — Contains multiple components.
-5. **DAG** — Directed graph containing no cycles.
-
-#### 8. Key Points — Must Know
-
-1. `V` → Number of **vertices**.
-2. `E` → Number of **edges**.
-3. **Degree** → Number of connected edges.
-4. Directed graph → know **in-degree and out-degree**.
-5. **Path** → Sequence of connected vertices.
-6. **Cycle** → Path that loops back to an already visited vertex.
-7. **Component** → Connected group of vertices.
-8. These concepts appear constantly in **BFS, DFS, cycle detection, shortest path, and topological sort**.
+| # | Question | Idea |
+|---|---|---|
+| 997 | Find the Town Judge (Easy) | in-degree `n - 1`, out-degree `0` |
+| 1791 | Find Center of Star Graph (Easy) | the vertex with the highest degree |
+| 1557 | Minimum Number of Vertices to Reach All Nodes (Medium) | vertices with in-degree `0` |
+| 261 | Graph Valid Tree (Medium, premium) | connected and `V - 1` edges |

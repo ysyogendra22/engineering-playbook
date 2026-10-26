@@ -1,461 +1,164 @@
 # Dependency Graph Problems
 
-#### 1. Definition — Must Know
+> "A must happen before B." This is the topological sort pattern in disguise.
 
-1. A **Dependency Graph** represents relationships where one task/item depends on another.
-2. Usually modeled as a **Directed Graph**.
-3. An edge:
+#### 1. What Is It?
 
-```text id="dg01"
-A → B
+A **dependency graph** is a directed graph where an edge `A → B` means **"A must come before B"** (B depends on A).
+
+Typical stories:
+
+- course **prerequisites**,
+- the **build order** of software modules,
+- the order of **tasks** in a project,
+- the order of **letters** in an unknown alphabet,
+- **recipes** that need other recipes.
+
+The questions are always one of three:
+
+| Question | Method |
+|---|---|
+| **Is a valid order possible?** | cycle detection (Kahn's: did we process all nodes?) |
+| **Give one valid order** | topological sort (Kahn's or DFS) |
+| **What is the minimum time / number of rounds?** | Kahn's by levels, or the longest path in the DAG (note 34) |
+
+If the dependencies contain a **cycle**, no order exists.
+
+#### 2. How It Works
+
+Recipe for any dependency problem:
+
+1. Build the graph: an edge from "needed first" to "needed later".
+2. Count the in-degree of each node.
+3. Run Kahn's algorithm (note 16).
+4. If you processed all nodes → the order is valid. Otherwise there is a cycle.
+
+*Alien Dictionary* (LeetCode 269): you get words sorted in an alien language. Find the order of the letters.
+
+The trick: the **first different letter** of two **neighbouring** words gives one rule.
+
+```text
+words: "wrt", "wrf", "er", "ett", "rftt"
+
+wrt vs wrf  → first difference: t vs f   → t comes before f    edge t → f
+wrf vs er   → w vs e                     → w before e          edge w → e
+er  vs ett  → r vs t                     → r before t          edge r → t
+ett vs rftt → e vs r                     → e before r          edge e → r
+
+Graph: w → e → r → t → f.    Order: "wertf"
 ```
 
-usually means:
+Invalid case: if a longer word comes before its own prefix (`"abc"` then `"ab"`), no order exists. Return `""`.
 
-```text id="dg02"
-A must happen before B
-```
+#### 3. Kotlin Code
 
-4. Dependency problems commonly use **Topological Sort** and **Cycle Detection**.
-
-#### 2. Common Examples — Must Know
-
-Dependency graphs appear in:
-
-```text id="dg03"
-Course Prerequisites
-Task Scheduling
-Build Systems
-Package Dependencies
-Job Pipelines
-Deployment Order
-```
-
-Example:
-
-```text id="dg04"
-Design → Develop → Test → Deploy
-```
-
-#### 3. Core Modeling — Must Know
-
-Suppose:
-
-```text id="dg05"
-Course B requires Course A
-```
-
-Represent:
-
-```text id="dg06"
-A → B
-```
-
-Meaning:
-
-```text id="dg07"
-Complete A before B
-```
-
-The most important step is getting the **edge direction correct**.
-
-#### 4. DAG Connection — Must Know
-
-A valid dependency structure normally forms a:
-
-```text id="dg08"
-Directed Acyclic Graph
-        ↓
-       DAG
-```
-
-Why?
-
-A cycle such as:
-
-```text id="dg09"
-A → B
-↑   ↓
-└── C
-```
-
-means:
-
-```text id="dg10"
-A depends on C
-C depends on B
-B depends on A
-```
-
-No task can be completed first.
-
-Therefore:
-
-```text id="dg11"
-Cycle
-  ↓
-Invalid / Impossible Dependency Order
-```
-
-#### 5. Main Interview Questions — Must Know
-
-Dependency graph problems usually ask:
-
-```text id="dg12"
-1. Can all tasks be completed?
-
-2. What is a valid execution order?
-
-3. Does a circular dependency exist?
-
-4. Which tasks are ready now?
-```
-
-Map them to:
-
-```text id="dg13"
-Can complete?
-     ↓
-Cycle Detection
-
-
-Find valid order?
-     ↓
-Topological Sort
-
-
-Ready tasks?
-     ↓
-In-degree = 0
-```
-
-#### 6. Topological Sort — Must Know
-
-For:
-
-```text id="dg14"
-A → B
-A → C
-B → D
-C → D
-```
-
-Possible topological order:
-
-```text id="dg15"
-A → B → C → D
-```
-
-Another valid order:
-
-```text id="dg16"
-A → C → B → D
-```
-
-Topological order is **not necessarily unique**.
-
-#### 7. Kahn's Algorithm Pattern — Must Know
-
-Kahn's Algorithm is especially useful for dependency problems.
-
-```text id="dg17"
-1. Build adjacency list.
-
-2. Calculate in-degree.
-
-3. Add all in-degree 0 nodes to Queue.
-
-4. Process them.
-
-5. Reduce neighbors' in-degree.
-
-6. When neighbor becomes 0:
-      add it to Queue.
-
-7. Count processed nodes.
-```
-
-Think:
-
-```text id="dg18"
-In-degree = Number of unfinished prerequisites
-```
-
-When:
-
-```text id="dg19"
-inDegree[node] == 0
-```
-
-the task is ready.
-
-#### 8. Kotlin Implementation — Must Know
-
-```kotlin id="dg20"
-fun dependencyOrder(
-    n: Int,
-    dependencies: Array<IntArray>
-): List<Int> {
-
-    val graph = Array(n) {
-        mutableListOf<Int>()
+```kotlin
+// Alien Dictionary (LeetCode 269). Returns any valid order, or "" if there is none.
+fun alienOrder(words: List<String>): String {
+    val graph = HashMap<Char, MutableSet<Char>>()
+    val indegree = HashMap<Char, Int>()
+    for (word in words) for (c in word) {                       // every letter is a node
+        graph.getOrPut(c) { mutableSetOf() }
+        indegree.putIfAbsent(c, 0)
     }
 
-    val indegree = IntArray(n)
-
-    for (dependency in dependencies) {
-
-        val prerequisite = dependency[0]
-        val task = dependency[1]
-
-        graph[prerequisite].add(task)
-        indegree[task]++
-    }
-
-    val queue = ArrayDeque<Int>()
-
-    for (node in 0 until n) {
-        if (indegree[node] == 0) {
-            queue.addLast(node)
-        }
-    }
-
-    val order = mutableListOf<Int>()
-
-    while (queue.isNotEmpty()) {
-
-        val node = queue.removeFirst()
-        order.add(node)
-
-        for (neighbor in graph[node]) {
-
-            indegree[neighbor]--
-
-            if (indegree[neighbor] == 0) {
-                queue.addLast(neighbor)
+    for (i in 0 until words.size - 1) {                         // compare neighbouring words
+        val a = words[i]
+        val b = words[i + 1]
+        if (a.length > b.length && a.startsWith(b)) return ""   // "abc" before "ab" is invalid
+        for (j in 0 until minOf(a.length, b.length)) {
+            if (a[j] != b[j]) {                                 // the first difference gives one rule
+                if (graph.getValue(a[j]).add(b[j])) {           // add() is false for a repeated rule
+                    indegree[b[j]] = indegree.getValue(b[j]) + 1
+                }
+                break
             }
         }
     }
 
-    return if (order.size == n) {
-        order
-    } else {
-        emptyList()
+    val queue = ArrayDeque<Char>()                              // Kahn's algorithm
+    for ((c, d) in indegree) if (d == 0) queue.addLast(c)
+    val order = StringBuilder()
+    while (queue.isNotEmpty()) {
+        val c = queue.removeFirst()
+        order.append(c)
+        for (next in graph.getValue(c)) {
+            indegree[next] = indegree.getValue(next) - 1
+            if (indegree.getValue(next) == 0) queue.addLast(next)
+        }
     }
+    return if (order.length == indegree.size) order.toString() else ""      // fewer letters → a cycle
+}
+
+// Find All Possible Recipes (LeetCode 2115)
+fun findAllRecipes(recipes: Array<String>, ingredients: List<List<String>>, supplies: Array<String>): List<String> {
+    val graph = HashMap<String, MutableList<String>>()          // ingredient → recipes that need it
+    val indegree = HashMap<String, Int>()
+    for ((i, recipe) in recipes.withIndex()) {
+        indegree[recipe] = ingredients[i].size
+        for (item in ingredients[i]) graph.getOrPut(item) { mutableListOf() }.add(recipe)
+    }
+    val queue = ArrayDeque<String>(supplies.toList())           // what we can already make
+    val result = mutableListOf<String>()
+    while (queue.isNotEmpty()) {
+        val item = queue.removeFirst()
+        for (recipe in graph[item] ?: emptyList()) {
+            indegree[recipe] = indegree.getValue(recipe) - 1
+            if (indegree.getValue(recipe) == 0) {
+                result.add(recipe)
+                queue.addLast(recipe)                           // a finished recipe can be an ingredient
+            }
+        }
+    }
+    return result
 }
 ```
 
-#### 9. Cycle Detection — Must Know
+Checks: `alienOrder(["wrt","wrf","er","ett","rftt"])` → `"wertf"`. `alienOrder(["z","x","z"])` → `""` (a cycle). `alienOrder(["abc","ab"])` → `""`.
 
-After Kahn's Algorithm:
+#### 4. Complexity
 
-```text id="dg21"
-processed == V
-```
+| | Time | Space |
+|---|---|---|
+| Course Schedule style (Kahn) | `O(V + E)` | `O(V + E)` |
+| Alien Dictionary (`C` = total characters of all words) | `O(C)` | `O(1)` for a fixed alphabet (at most 26 letters) |
 
-means:
+#### 5. Common Mistakes
 
-```text id="dg22"
-No Cycle
-Dependency order possible
-```
+1. **Wrong edge direction.** Edge = "must come before".
+2. **Alien Dictionary: forgetting that every letter is a node**, even letters with no rules.
+3. **Adding the same rule twice.** The in-degree becomes too big. Use a set for the edges.
+4. **Not handling the prefix case** (`"abc"` before `"ab"`).
+5. **Comparing non-neighbouring words.** Only neighbouring words give rules.
+6. **Not checking for a cycle** at the end.
+7. **Expecting a unique answer.** Any valid order is accepted.
 
-But:
+#### 6. Say This in the Interview
 
-```text id="dg23"
-processed < V
-```
+1. "This is a dependency problem. I model 'A before B' as an edge `A → B`, then run Kahn's algorithm."
+2. "If I cannot process all nodes, there is a cycle, so no valid order exists."
+3. "Time `O(V + E)`."
 
-means:
+#### 7. Quick Check
 
-```text id="dg24"
-Cycle Exists
-Dependency order impossible
-```
+1. In Alien Dictionary, which letters of two words give a rule?
+2. When is there no valid order?
 
-Why?
+<details>
+<summary>Answers</summary>
 
-Nodes inside a cycle never reach:
+1. The first position where the two neighbouring words differ.
+2. When there is a cycle, or a longer word comes before its own prefix.
 
-```text id="dg25"
-inDegree = 0
-```
+</details>
 
-#### 10. Course Schedule Pattern — Must Know
+#### 8. Related LeetCode Questions
 
-Classic example:
-
-```text id="dg26"
-Course 1 requires Course 0
-
-0 → 1
-```
-
-Question:
-
-```text id="dg27"
-Can I finish all courses?
-```
-
-Solve using:
-
-```text id="dg28"
-Cycle Detection
-        ↓
-Kahn's Algorithm
-or
-DFS State
-```
-
-If all nodes are processed:
-
-```text id="dg29"
-true
-```
-
-Otherwise:
-
-```text id="dg30"
-false
-```
-
-#### 11. DFS Alternative — Good to Know
-
-Dependency cycles can also be detected using DFS states:
-
-```text id="dg31"
-0 → Unvisited
-1 → Visiting
-2 → Completed
-```
-
-If DFS reaches:
-
-```text id="dg32"
-Visiting → Visiting
-```
-
-there is a cycle.
-
-```text id="dg33"
-DFS + State
-     ↓
-Cycle Detection
-```
-
-For dependency ordering, Kahn's Algorithm is often easier to reason about.
-
-#### 12. Time & Space Complexity — Must Know
-
-Building graph:
-
-```text id="dg34"
-O(V + E)
-```
-
-Topological Sort:
-
-```text id="dg35"
-Time  → O(V + E)
-Space → O(V + E)
-```
-
-Extra algorithmic space:
-
-```text id="dg36"
-In-degree → O(V)
-Queue     → O(V)
-Result    → O(V)
-```
-
-#### 13. Common Interview Patterns — Must Know
-
-1. **Course prerequisites**
-   ```text
-   Topological Sort
-   ```
-
-2. **Task execution order**
-   ```text
-   Topological Sort
-   ```
-
-3. **Circular dependency**
-   ```text
-   Cycle Detection
-   ```
-
-4. **Build/package dependencies**
-   ```text
-   Directed Graph + Topological Sort
-   ```
-
-5. **Can all jobs complete?**
-   ```text
-   processed == V
-   ```
-
-6. **Currently executable tasks**
-   ```text
-   inDegree == 0
-   ```
-
-#### 14. Common Edge Cases — Must Know
-
-1. No dependencies.
-2. Single task.
-3. Multiple independent dependency chains.
-4. Circular dependency.
-5. Self-dependency:
-
-```text id="dg37"
-A → A
-```
-
-6. Multiple valid execution orders.
-7. Disconnected components.
-
-Example:
-
-```text id="dg38"
-A → B
-
-C → D
-```
-
-Both chains still belong to the dependency graph.
-
-#### 15. Common Mistakes — Must Know
-
-1. Reversing the dependency edge.
-
-If:
-
-```text id="dg39"
-B depends on A
-```
-
-usually build:
-
-```text id="dg40"
-A → B
-```
-
-2. Calculating in-degree for the wrong node.
-3. Assuming there is only one valid topological order.
-4. Forgetting cycle detection.
-5. Using normal BFS without tracking in-degree.
-6. Assuming a dependency graph is always connected.
-7. Forgetting a self-dependency is a cycle.
-
-#### 16. Interview Must Remember
-
-1. Dependency problems → usually **Directed Graph**.
-2. Valid dependency ordering → **DAG**.
-3. `A → B` → A must happen before B.
-4. Ordering → **Topological Sort**.
-5. Circular dependency → **Cycle Detection**.
-6. Kahn's Algorithm uses **In-degree + Queue**.
-7. `inDegree == 0` → task has no remaining prerequisites.
-8. `processed < V` → **cycle exists**.
-9. Complexity → **`O(V + E)`**.
+| # | Question | Idea |
+|---|---|---|
+| 207 | Course Schedule (Medium) | is an order possible? |
+| 210 | Course Schedule II (Medium) | give an order |
+| 269 | Alien Dictionary (Hard, premium) | build the graph from words |
+| 2115 | Find All Possible Recipes from Given Supplies (Medium) | ingredients are dependencies |
+| 1136 | Parallel Courses (premium) | minimum semesters |
+| 1203 | Sort Items by Groups Respecting Dependencies (Hard) | two levels of ordering |

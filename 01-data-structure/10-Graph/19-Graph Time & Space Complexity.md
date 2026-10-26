@@ -1,232 +1,128 @@
 # Graph Time & Space Complexity
 
-#### 1. Core Terms — Must Know
+> Interviewers always ask "what is the complexity?". Learn this table and the reason behind each row.
 
-1. `V` → Number of **Vertices / Nodes**.
-2. `E` → Number of **Edges**.
-3. Most graph complexity is expressed using `V` and `E`.
+#### 1. What Is It?
 
-```text
-V = Vertices
-E = Edges
-```
+Graph complexity is written with two letters:
 
-#### 2. Graph Representation — Must Know
+- **`V`** = the number of vertices,
+- **`E`** = the number of edges.
 
-**Adjacency List**
+The size of the input is `V + E`, so most graph walks are `O(V + E)`: each vertex and each edge is handled a fixed number of times.
 
-```text
-Space → O(V + E)
-```
+A graph can be:
 
-Why:
+| Kind | `E` is about | Best storage |
+|---|---|---|
+| **Sparse** (few edges) | `V` | adjacency list |
+| **Dense** (many edges) | `V²` | adjacency matrix |
 
-1. Store `V` vertices.
-2. Store their edges.
-3. In an undirected graph, each edge is stored twice, but complexity remains `O(E)`.
+For a **grid** with `R` rows and `C` columns: `V = R · C` and `E` is about `4 · R · C`, so grid walks are `O(R · C)`.
 
-**Adjacency Matrix**
+#### 2. How It Works
+
+Why BFS and DFS are `O(V + E)`:
 
 ```text
-Space → O(V²)
+for each vertex (visited once)              → V
+    for each neighbour in its list          → all lists together hold 2E (undirected) or E (directed) entries
+→ total work V + E
 ```
 
-Because every possible pair of vertices gets a matrix entry.
+The complexity table to remember:
 
-#### 3. BFS Complexity — Must Know
+| Algorithm | Time | Space | Note |
+|---|---|---|---|
+| BFS / DFS | `O(V + E)` | `O(V)` | adjacency list |
+| BFS / DFS with a matrix | `O(V²)` | `O(V)` | scanning a row costs `V` |
+| Connected components | `O(V + E)` | `O(V)` | |
+| Cycle detection (DFS) | `O(V + E)` | `O(V)` | |
+| Topological sort (DFS or Kahn) | `O(V + E)` | `O(V)` | |
+| Shortest path, unweighted (BFS) | `O(V + E)` | `O(V)` | |
+| 0-1 BFS | `O(V + E)` | `O(V)` | |
+| **Dijkstra** (binary heap) | `O((V + E) log V)` | `O(V)` | no negative weights |
+| Bellman-Ford | `O(V · E)` | `O(V)` | allows negative weights |
+| Floyd-Warshall | `O(V³)` | `O(V²)` | all pairs |
+| Union-Find (with both tricks) | `O(α(V))` per operation | `O(V)` | almost constant |
+| **Kruskal** (MST) | `O(E log E)` | `O(V)` | sorting the edges |
+| **Prim** (MST, binary heap) | `O(E log V)` | `O(V)` | |
+| Bipartite check | `O(V + E)` | `O(V)` | |
+| Clone graph | `O(V + E)` | `O(V)` | |
 
-```text
-Time  → O(V + E)
-Space → O(V)
+Memory for storing the graph:
+
+| Storage | Memory |
+|---|---|
+| Adjacency list | `O(V + E)` |
+| Adjacency matrix | `O(V²)` |
+| Edge list | `O(E)` |
+
+`α(V)` (inverse Ackermann) is below 5 for any input you will ever see, so treat it as constant.
+
+#### 3. Kotlin Code
+
+A BFS with the cost of each line written next to it:
+
+```kotlin
+fun bfs(graph: List<List<Int>>, start: Int) {
+    val visited = BooleanArray(graph.size)          // O(V) memory
+    val queue = ArrayDeque<Int>()
+    visited[start] = true
+    queue.addLast(start)
+    while (queue.isNotEmpty()) {                    // each vertex enters the queue once → V times
+        val node = queue.removeFirst()
+        for (next in graph[node]) {                 // over the whole run, the lists hold E entries → E checks
+            if (!visited[next]) {
+                visited[next] = true
+                queue.addLast(next)
+            }
+        }
+    }
+}
+// Total time: O(V + E).   Extra memory: O(V) for visited and the queue.
 ```
 
-Why:
+Dijkstra's extra `log V` comes from the heap: each of the up to `E` pushes costs `O(log V)`.
 
-1. Every vertex is visited once.
-2. Every edge is examined.
-3. Queue + visited can hold up to `V` nodes.
+#### 4. Complexity
 
-If including graph storage:
+This whole note is the complexity table above.
 
-```text
-Total Space → O(V + E)
-```
+#### 5. Common Mistakes
 
-#### 4. DFS Complexity — Must Know
+1. **Saying `O(V²)` for BFS on an adjacency list.** It is `O(V + E)`.
+2. **Forgetting the `log` in Dijkstra.**
+3. **Counting a grid as `O(V + E)` with the wrong `V`.** Use `O(R · C)`.
+4. **Forgetting recursion memory.** Recursive DFS uses `O(V)` stack space in the worst case.
+5. **Not saying what `V` and `E` are** in the answer.
+6. **Calling union-find `O(1)` without saying "amortized, almost constant".**
 
-```text
-Time  → O(V + E)
-Space → O(V)
-```
+#### 6. Say This in the Interview
 
-Why:
+1. "Let `V` be the number of nodes and `E` the number of edges. BFS and DFS are `O(V + E)` time and `O(V)` space."
+2. "Dijkstra with a binary heap is `O((V + E) log V)`."
+3. "For a grid with `R` rows and `C` columns, it is `O(R · C)`."
 
-1. Every vertex is visited once.
-2. Every edge is examined.
-3. `visited` + recursion/stack can require `O(V)`.
+#### 7. Quick Check
 
-If including graph storage:
+1. What is the time of BFS on an adjacency list?
+2. Which is bigger for a dense graph, `E` or `V`?
 
-```text
-Total Space → O(V + E)
-```
+<details>
+<summary>Answers</summary>
 
-#### 5. Connected Components — Must Know
+1. `O(V + E)`.
+2. `E` (it can be close to `V²`).
 
-Using DFS/BFS:
+</details>
 
-```text
-Time  → O(V + E)
-Space → O(V)
-```
+#### 8. Related LeetCode Questions
 
-Even though DFS/BFS may start multiple times, each vertex and edge is still processed only a constant number of times overall.
-
-#### 6. Cycle Detection — Must Know
-
-Undirected:
-
-```text
-DFS/BFS + Parent
-
-Time  → O(V + E)
-Space → O(V)
-```
-
-Directed:
-
-```text
-DFS + State/Current Path
-
-Time  → O(V + E)
-Space → O(V)
-```
-
-#### 7. Topological Sort — Must Know
-
-Kahn's Algorithm:
-
-```text
-Time  → O(V + E)
-Space → O(V)
-```
-
-DFS Topological Sort:
-
-```text
-Time  → O(V + E)
-Space → O(V)
-```
-
-Extra space comes from:
-
-```text
-Queue / DFS Stack
-In-degree / Visited
-Result
-```
-
-#### 8. Shortest Path — Must Know
-
-**Unweighted Graph — BFS**
-
-```text
-Time  → O(V + E)
-Space → O(V)
-```
-
-**Dijkstra — Adjacency List + Min-Heap**
-
-```text
-Time  → O((V + E) log V)
-Space → O(V + E)
-```
-
-Graph storage contributes `O(V + E)`.
-
-Extra algorithmic structures include the distance array and priority queue.
-
-#### 9. Grid as Graph — Must Know
-
-For:
-
-```text
-Rows = R
-Columns = C
-```
-
-Number of vertices:
-
-```text
-V = R × C
-```
-
-Each cell normally has at most 4 or 8 neighbors.
-
-Therefore DFS/BFS:
-
-```text
-Time  → O(R × C)
-Space → O(R × C)
-```
-
-Common for:
-
-1. Number of Islands.
-2. Flood Fill.
-3. Rotting Oranges.
-4. Grid shortest path.
-
-#### 10. Sparse vs Dense Graph — Good to Know
-
-**Sparse Graph**
-
-Few edges:
-
-```text
-E ≈ V
-```
-
-Adjacency List is usually preferred.
-
-**Dense Graph**
-
-Many edges:
-
-```text
-E ≈ V²
-```
-
-Adjacency Matrix may become reasonable when fast edge lookup is important.
-
-#### 11. Important Complexity Table — Must Know
-
-| Operation / Algorithm | Time | Extra Space |
-|---|---:|---:|
-| BFS | `O(V + E)` | `O(V)` |
-| DFS | `O(V + E)` | `O(V)` |
-| Connected Components | `O(V + E)` | `O(V)` |
-| Cycle Detection | `O(V + E)` | `O(V)` |
-| Topological Sort | `O(V + E)` | `O(V)` |
-| Unweighted Shortest Path | `O(V + E)` | `O(V)` |
-| Dijkstra | `O((V+E) log V)` | up to `O(V+E)` |
-| Grid DFS/BFS | `O(R × C)` | `O(R × C)` |
-
-#### 12. Common Interview Mistakes — Must Know
-
-1. Saying graph traversal is simply `O(V)` and forgetting edges.
-2. Forgetting adjacency-list storage → `O(V + E)`.
-3. Saying adjacency matrix uses `O(V + E)` instead of `O(V²)`.
-4. Forgetting recursive DFS uses stack space.
-5. Assuming running DFS multiple times for components means `O(V × (V+E))`; visited prevents that.
-6. Forgetting grid complexity is usually based on total cells: `R × C`.
-
-#### 13. Interview Must Remember
-
-1. Graph traversal → usually **`O(V + E)`**.
-2. Adjacency List → **`O(V + E)` space**.
-3. Adjacency Matrix → **`O(V²)` space**.
-4. BFS/DFS extra space → **`O(V)`**.
-5. Grid traversal → **`O(R × C)`**.
-6. Dijkstra with Min-Heap → roughly **`O((V + E) log V)`**.
-7. When stating space complexity, clarify whether you mean **extra algorithm space** or **graph storage + algorithm space**.
+| # | Question | Complexity to state |
+|---|---|---|
+| 200 | Number of Islands (Medium) | `O(R · C)` |
+| 207 | Course Schedule (Medium) | `O(V + E)` |
+| 743 | Network Delay Time (Medium) | `O((V + E) log V)` |
+| 1584 | Min Cost to Connect All Points (Medium) | `O(n² log n)` with Kruskal on all pairs |
+| 684 | Redundant Connection (Medium) | `O(E · α(V))` |

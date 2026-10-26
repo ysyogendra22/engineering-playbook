@@ -1,291 +1,145 @@
 # Multi-Source BFS
 
-#### 1. Definition — Must Know
+> The queue details and full grid examples are in `01-data-structure/04-Queue/08-Multi-Source BFS.md`. This note is the graph view.
 
-1. **Multi-Source BFS** is BFS that starts from **multiple source nodes at the same time**.
-2. Add all source nodes to the queue initially.
-3. Then run normal BFS.
-4. Used to find the minimum distance/time from the **nearest source**.
+#### 1. What Is It?
 
-```text
-Single-Source BFS:
+Normal BFS starts from **one** node. **Multi-source BFS** starts from **many nodes at the same time**.
 
-Queue → [S]
+Before the loop, put **all the sources in the queue at distance 0**. Then run the usual BFS. Each node is reached first by its **nearest source**, so its distance is the distance to the nearest source.
 
+Why it matters: "distance to the nearest X for every node" would need one BFS per node. Multi-source BFS does it in a single pass: `O(V + E)`.
 
-Multi-Source BFS:
+It fits things that **spread together**: rot, fire, water, infection, a signal.
 
-Queue → [S1, S2, S3]
-```
-
-#### 2. Why It Is Used — Must Know
-
-Use it when multiple locations start with the **same initial state/time**.
-
-Examples:
-
-1. Rotting Oranges → multiple rotten oranges spread simultaneously.
-2. Distance to nearest `0`.
-3. Distance to nearest gate.
-4. Fire/infection spreading from multiple locations.
-5. Nearest source in an unweighted graph.
-
-Think:
+#### 2. How It Works
 
 ```text
-Multiple Sources + Minimum Distance/Time
-                ↓
-         Multi-Source BFS
+Graph (a line):  0 — 1 — 2 — 3 — 4 — 5
+Sources: 0 and 5
+
+queue = [0, 5], dist[0] = 0, dist[5] = 0
+round 1: from 0 reach 1 (dist 1);  from 5 reach 4 (dist 1)
+round 2: from 1 reach 2 (dist 2);  from 4 reach 3 (dist 2)
+round 3: 2 and 3 are already reached
+
+dist = [0, 1, 2, 2, 1, 0]       each node knows its distance to the nearest source
 ```
 
-#### 3. How It Works — Must Know
+The code is the normal BFS. Only the **starting queue** is different.
 
-Example:
+Common questions and what the sources are:
 
-```text
-S . . . S
-. . . . .
-. . X . .
-```
+| Question | Sources | Spreads into |
+|---|---|---|
+| Rotting Oranges | rotten oranges | fresh oranges |
+| 01 Matrix | all `0` cells | `1` cells |
+| Walls and Gates | all gates | empty rooms |
+| As Far from Land as Possible | land cells | water cells |
+| Pacific Atlantic Water Flow | each ocean's border cells | higher cells |
 
-Both `S` nodes start at:
+Trick: **reverse the thinking**. Instead of "from each cell, find the nearest target", start from the **targets**.
 
-```text
-Distance = 0
-```
-
-Initial queue:
-
-```text
-[S1, S2]
-```
-
-BFS expands from both simultaneously:
-
-```text
-Level 0 → Sources
-Level 1 → Their neighbors
-Level 2 → Next neighbors
-...
-```
-
-Therefore, each node is reached from its **nearest source**.
-
-#### 4. Core Logic — Must Know
-
-```text
-1. Find all source nodes.
-
-2. Add ALL sources to Queue.
-
-3. Mark all sources visited / distance = 0.
-
-4. Run normal BFS.
-
-5. For every unvisited neighbor:
-
-   distance[neighbor] =
-       distance[current] + 1
-
-   add neighbor to Queue.
-```
-
-The important difference from normal BFS is only the **initialization**.
-
-#### 5. Kotlin Implementation — Must Know
+#### 3. Kotlin Code
 
 ```kotlin
-fun multiSourceBfs(
-    n: Int,
-    graph: Array<MutableList<Int>>,
-    sources: List<Int>
-): IntArray {
-
-    val distance = IntArray(n) { -1 }
+// Distance from every node to the nearest source
+fun nearestSource(graph: List<List<Int>>, sources: List<Int>): IntArray {
+    val dist = IntArray(graph.size) { -1 }
     val queue = ArrayDeque<Int>()
-
-    for (source in sources) {
-        distance[source] = 0
-        queue.addLast(source)
+    for (s in sources) {                      // every source goes in first, at distance 0
+        dist[s] = 0
+        queue.addLast(s)
     }
-
     while (queue.isNotEmpty()) {
-
         val node = queue.removeFirst()
-
-        for (neighbor in graph[node]) {
-
-            if (distance[neighbor] == -1) {
-
-                distance[neighbor] =
-                    distance[node] + 1
-
-                queue.addLast(neighbor)
+        for (next in graph[node]) {
+            if (dist[next] == -1) {
+                dist[next] = dist[node] + 1
+                queue.addLast(next)
             }
         }
     }
+    return dist
+}
 
-    return distance
+// 01 Matrix (LeetCode 542): distance from each cell to the nearest 0
+fun updateMatrix(mat: Array<IntArray>): Array<IntArray> {
+    val rows = mat.size
+    val cols = mat[0].size
+    val dist = Array(rows) { IntArray(cols) { -1 } }
+    val queue = ArrayDeque<Int>()
+    for (r in 0 until rows) for (c in 0 until cols) {
+        if (mat[r][c] == 0) {
+            dist[r][c] = 0
+            queue.addLast(r * cols + c)
+        }
+    }
+    val dirs = arrayOf(intArrayOf(1, 0), intArrayOf(-1, 0), intArrayOf(0, 1), intArrayOf(0, -1))
+    while (queue.isNotEmpty()) {
+        val id = queue.removeFirst()
+        val r = id / cols
+        val c = id % cols
+        for (d in dirs) {
+            val nr = r + d[0]
+            val nc = c + d[1]
+            if (nr in 0 until rows && nc in 0 until cols && dist[nr][nc] == -1) {
+                dist[nr][nc] = dist[r][c] + 1
+                queue.addLast(nr * cols + nc)
+            }
+        }
+    }
+    return dist
 }
 ```
 
-Here:
+Checks: `nearestSource` on the line graph with sources `[0, 5]` → `[0, 1, 2, 2, 1, 0]`. `updateMatrix([[0,0,0],[0,1,0],[1,1,1]])` → `[[0,0,0],[0,1,0],[1,2,1]]`.
 
-```text
-distance[node] == -1 → Unvisited
-```
+For Rotting Oranges (counting minutes with `repeat(queue.size)`) see the Queue folder, note 08.
 
-#### 6. Grid Pattern — Must Know
+#### 4. Complexity
 
-This pattern appears very often with grids.
+| | Time | Space |
+|---|---|---|
+| Multi-source BFS | `O(V + E)` | `O(V)` |
+| Grid `R × C` | `O(R · C)` | `O(R · C)` |
+| One BFS from every node | `O(V · (V + E))` | — |
 
-Example:
+#### 5. Common Mistakes
 
-```text
-2 1 1
-1 1 0
-0 1 2
-```
+1. **Running a separate BFS from each source.** Far too slow.
+2. **Not marking the sources as visited** when you put them in the queue.
+3. **Forgetting unreachable nodes** (they stay `-1`).
+4. **Off-by-one in time/minutes.** Count rounds with `repeat(queue.size)` and stop when nothing is left to reach.
+5. **No sources at all.** Check this case.
 
-Suppose:
+#### 6. Say This in the Interview
 
-```text
-2 → Source
-1 → Can be reached
-0 → Blocked
-```
+1. "Instead of a BFS per node, I put all sources in the queue at distance 0 and run one BFS."
+2. "Every node is reached first by its nearest source."
+3. "Time `O(V + E)`, space `O(V)`."
 
-Initial queue:
+#### 7. Quick Check
 
-```text
-[(0,0), (2,2)]
-```
+1. What goes into the queue before the loop starts?
+2. What is the distance of a source?
 
-Both sources spread simultaneously.
+<details>
+<summary>Answers</summary>
 
-#### 7. Rotting Oranges Pattern — Must Know
+1. All the sources.
+2. `0`.
 
-Instead of running BFS separately from every rotten orange:
+</details>
 
-```text
-Wrong idea:
+#### 8. Related LeetCode Questions
 
-BFS(source1)
-BFS(source2)
-BFS(source3)
-```
-
-Do:
-
-```text
-Queue = [source1, source2, source3]
-
-Run ONE BFS
-```
-
-Why?
-
-All rotten oranges start spreading at the **same time**.
-
-Each BFS level represents:
-
-```text
-1 unit of time
-```
-
-#### 8. Why Not Run BFS Separately? — Must Know
-
-Running BFS from every source independently can repeat the same work.
-
-Multi-source BFS:
-
-```text
-All Sources
-     ↓
-One BFS
-     ↓
-Each Node Processed Once
-```
-
-This is both simpler and more efficient.
-
-#### 9. Time & Space Complexity — Must Know
-
-Graph:
-
-```text
-Time  → O(V + E)
-Space → O(V)
-```
-
-Grid with `R × C` cells:
-
-```text
-Time  → O(R × C)
-Space → O(R × C)
-```
-
-Adding multiple sources does **not** change the overall BFS complexity.
-
-#### 10. Multi-Source BFS vs Single-Source BFS — Must Know
-
-```text
-Single-Source BFS            Multi-Source BFS
-
-One initial source           Multiple initial sources
-Queue = [S]                  Queue = [S1,S2,S3]
-Distance from S              Distance from nearest source
-Normal BFS afterward         Normal BFS afterward
-```
-
-The traversal logic is essentially the same.
-
-#### 11. Common Interview Patterns — Must Know
-
-1. **Multiple sources spreading**
-   ```text
-   Multi-Source BFS
-   ```
-
-2. **Nearest source**
-   ```text
-   Multi-Source BFS
-   ```
-
-3. **Minimum time to spread**
-   ```text
-   BFS Levels
-   ```
-
-4. **Distance from nearest special cell**
-   ```text
-   Initialize all special cells as sources
-   ```
-
-Common examples:
-
-```text
-Rotting Oranges
-01 Matrix
-Walls and Gates
-Fire / Infection Spread
-```
-
-#### 12. Common Mistakes — Must Know
-
-1. Running separate BFS from every source.
-2. Adding sources gradually instead of putting **all sources in the initial queue**.
-3. Forgetting to mark initial sources visited.
-4. Counting the initial level as `1` instead of `0`.
-5. Forgetting unreachable cells/nodes.
-6. Using DFS when the problem asks for minimum distance/time in an unweighted graph.
-
-#### 13. Interview Must Remember
-
-1. Multi-Source BFS = **normal BFS with multiple starting nodes**.
-2. Add **all sources to the queue initially**.
-3. All sources start at `distance = 0`.
-4. BFS gives distance from the **nearest source**.
-5. Spread/time problems → each BFS level can represent one time unit.
-6. Graph complexity → `O(V + E)`.
-7. **Multiple sources + minimum distance/time → think Multi-Source BFS**.
+| # | Question | Idea |
+|---|---|---|
+| 994 | Rotting Oranges (Medium) | sources = rotten oranges |
+| 542 | 01 Matrix (Medium) | sources = zeros |
+| 286 | Walls and Gates (Medium, premium) | sources = gates |
+| 1162 | As Far from Land as Possible (Medium) | sources = land |
+| 1765 | Map of Highest Peak (Medium) | sources = water |
+| 934 | Shortest Bridge (Medium) | find one island, then BFS from it |
+| 417 | Pacific Atlantic Water Flow (Medium) | search from the borders |

@@ -1,420 +1,118 @@
 # Minimum Spanning Tree (MST)
 
-#### 1. Definition — Must Know
+#### 1. What Is It?
 
-1. A **Minimum Spanning Tree (MST)** connects all vertices of a **weighted, undirected graph**.
-2. It uses the **minimum possible total edge weight**.
-3. It contains **no cycles**.
-4. For `V` vertices, an MST always contains:
+A **spanning tree** of a connected, undirected, weighted graph is a set of edges that:
 
-```text id="mst01"
-V - 1 edges
+- connects **all** the vertices,
+- has **no cycle**,
+- therefore has exactly **`V - 1` edges**.
+
+A **minimum spanning tree (MST)** is the spanning tree with the **smallest total weight**.
+
+Story: connect all cities with roads (or cables, or pipes) so that every city is reachable, and the total cost is as small as possible.
+
+Two algorithms find it:
+
+| Algorithm | Idea | Time | Best for |
+|---|---|---|---|
+| **Kruskal** (note 27) | sort all edges, add the cheapest edge that does not make a cycle (union-find) | `O(E log E)` | sparse graphs, edge list input |
+| **Prim** (note 28) | grow one tree from a start node, always add the cheapest edge leaving the tree (heap) | `O(E log V)` | dense graphs, adjacency list |
+
+Both give the same total weight (the tree itself may differ if several edges have equal weight).
+
+#### 2. How It Works
+
+```text
+Graph:   A —1— B      edges: A-B 1, B-C 2, A-C 3, C-D 4, B-D 5
+         |   / |
+         3  2  5      MST needs 4 - 1 = 3 edges.
+         | /   |
+         C —4— D      pick A-B (1), B-C (2), C-D (4)  → total 7
+                      skip A-C (3): A and C are already connected (cycle)
+                      skip B-D (5): B and D are already connected (cycle)
 ```
 
-#### 2. What Is a Spanning Tree? — Must Know
+The key fact: the cheapest edge that crosses between "inside the tree" and "outside the tree" is always safe to add. Both algorithms use this.
 
-A spanning tree:
+Facts to know:
 
-1. Includes **all vertices**.
-2. Keeps them connected.
-3. Contains no cycles.
-4. Has exactly `V - 1` edges.
+- An MST has `V - 1` edges. If the graph is not connected, there is no spanning tree (only a spanning forest).
+- MST is **not** the shortest path. The MST minimises the **total** weight of the whole tree. Dijkstra minimises the path to **each** node.
+- Edges with equal weights can produce different (but equally good) MSTs.
 
-Example:
+#### 3. Kotlin Code
 
-```text id="mst02"
-Original:
+A tiny check you can write in an interview: given a set of edges, is it a spanning tree, and what is its weight?
 
-A ----- B
-| \     |
-|   \   |
-C ----- D
-
-
-Possible Spanning Tree:
-
-A ----- B
-|
-C ----- D
-```
-
-An MST is the spanning tree with the **lowest total cost**.
-
-#### 3. Example — Must Know
-
-Weighted graph:
-
-```text id="mst03"
-A ----1---- B
-|           |
-4           2
-|           |
-C ----3---- D
-```
-
-One MST:
-
-```text id="mst04"
-A --1-- B
-        |
-        2
-        |
-C --3-- D
-```
-
-Total:
-
-```text id="mst05"
-1 + 2 + 3 = 6
-```
-
-We avoid the edge with weight `4`.
-
-#### 4. Core Properties — Must Know
-
-An MST:
-
-```text id="mst06"
-Connected
-+
-All Vertices
-+
-No Cycles
-+
-V - 1 Edges
-+
-Minimum Total Weight
-```
-
-Important:
-
-1. MST is mainly defined for **connected, weighted, undirected graphs**.
-2. A graph can have **multiple valid MSTs** with the same minimum cost.
-3. If all relevant edge weights are distinct, the MST is unique.
-4. Removing any MST edge disconnects the tree.
-
-#### 5. Main MST Algorithms — Must Know
-
-Two algorithms:
-
-```text id="mst07"
-Kruskal's Algorithm
-Prim's Algorithm
-```
-
-Both find an MST but use different approaches.
-
-#### 6. Kruskal's Algorithm — Must Know
-
-Core idea:
-
-```text id="mst08"
-Choose globally cheapest edges
-while avoiding cycles.
-```
-
-Steps:
-
-```text id="mst09"
-1. Sort all edges by weight.
-
-2. Start with no edges.
-
-3. Pick the smallest edge.
-
-4. If it does NOT create a cycle:
-      include it.
-
-5. Otherwise:
-      skip it.
-
-6. Stop after V - 1 edges.
-```
-
-Cycle detection is efficiently handled using:
-
-```text id="mst10"
-Union-Find / DSU
-```
-
-Think:
-
-```text id="mst11"
-Kruskal
-   =
-Sorted Edges
-   +
-DSU
-```
-
-#### 7. Kruskal Example
-
-Edges:
-
-```text id="mst12"
-A-B → 1
-B-D → 2
-C-D → 3
-A-C → 4
-```
-
-Already sorted.
-
-Pick:
-
-```text id="mst13"
-A-B → 1   ✓
-B-D → 2   ✓
-C-D → 3   ✓
-```
-
-Now:
-
-```text id="mst14"
-Edges = V - 1
-```
-
-Done.
-
-Total:
-
-```text id="mst15"
-6
-```
-
-#### 8. Kotlin — Kruskal — Must Know
-
-```kotlin id="mst16"
-data class Edge(
-    val u: Int,
-    val v: Int,
-    val weight: Int
-)
-
-class DSU(n: Int) {
-
-    private val parent = IntArray(n) { it }
-    private val size = IntArray(n) { 1 }
-
+```kotlin
+// edges are [a, b, weight]. Returns the total weight if the edges form a spanning tree, otherwise -1.
+fun spanningTreeWeight(n: Int, edges: List<IntArray>): Int {
+    if (edges.size != n - 1) return -1                     // a spanning tree has exactly n - 1 edges
+    val parent = IntArray(n) { it }
     fun find(x: Int): Int {
-
-        if (parent[x] != x) {
-            parent[x] = find(parent[x])
-        }
-
+        if (parent[x] != x) parent[x] = find(parent[x])
         return parent[x]
     }
-
-    fun union(a: Int, b: Int): Boolean {
-
-        var rootA = find(a)
-        var rootB = find(b)
-
-        if (rootA == rootB) return false
-
-        if (size[rootA] < size[rootB]) {
-            val temp = rootA
-            rootA = rootB
-            rootB = temp
-        }
-
-        parent[rootB] = rootA
-        size[rootA] += size[rootB]
-
-        return true
+    var total = 0
+    for ((a, b, w) in edges) {
+        val ra = find(a)
+        val rb = find(b)
+        if (ra == rb) return -1                            // a cycle
+        parent[ra] = rb
+        total += w
     }
+    return total                                           // n - 1 edges and no cycle → connected
 }
 
-fun kruskal(
-    n: Int,
-    edges: List<Edge>
-): Int {
-
-    val sortedEdges = edges.sortedBy { it.weight }
-
-    val dsu = DSU(n)
-
-    var totalWeight = 0
-    var edgeCount = 0
-
-    for (edge in sortedEdges) {
-
-        if (dsu.union(edge.u, edge.v)) {
-
-            totalWeight += edge.weight
-            edgeCount++
-
-            if (edgeCount == n - 1) {
-                break
-            }
-        }
-    }
-
-    return totalWeight
-}
+// Usage: the MST of the example graph (A=0, B=1, C=2, D=3)
+val mst = listOf(intArrayOf(0, 1, 1), intArrayOf(1, 2, 2), intArrayOf(2, 3, 4))
+println(spanningTreeWeight(4, mst))                        // 7
 ```
 
-#### 9. Prim's Algorithm — Must Know
+The full Kruskal and Prim code is in notes 27 and 28.
 
-Core idea:
+#### 4. Complexity
 
-```text id="mst17"
-Start from one vertex
-        ↓
-Grow one connected tree
-        ↓
-Always choose cheapest edge
-connecting tree to an unvisited vertex
-```
+| Algorithm | Time | Space |
+|---|---|---|
+| Kruskal | `O(E log E)` | `O(V)` |
+| Prim (binary heap) | `O(E log V)` | `O(V)` |
+| Prim (array, dense graph) | `O(V²)` | `O(V)` |
 
-Uses:
+#### 5. Common Mistakes
 
-```text id="mst18"
-Adjacency List
-+
-Min-Heap / Priority Queue
-+
-Visited
-```
+1. **Confusing MST with shortest path.**
+2. **Using MST on a directed graph.** The usual MST algorithms are for undirected graphs.
+3. **Expecting a result when the graph is disconnected.** There is no spanning tree. Detect it (fewer than `V - 1` edges were added).
+4. **Forgetting that the MST has `V - 1` edges.**
+5. **Assuming the MST is unique.** Equal weights can give different trees.
 
-Think:
+#### 6. Say This in the Interview
 
-```text id="mst19"
-Prim
- =
-Graph Traversal
- +
-Min-Heap
-```
+1. "I need to connect everything at the lowest total cost with no cycle, which is a minimum spanning tree."
+2. "I will use Kruskal's algorithm with union-find: sort the edges and add each edge that joins two different groups. Time `O(E log E)`."
+3. "The MST has `V - 1` edges. If I cannot add that many, the graph is disconnected."
 
-#### 10. Prim vs Kruskal — Must Know
+#### 7. Quick Check
 
-```text id="mst20"
-Kruskal                     Prim
+1. How many edges does an MST of 6 vertices have?
+2. Does the MST give the shortest path between two nodes?
 
-Works edge-by-edge           Grows from a vertex
+<details>
+<summary>Answers</summary>
 
-Sort all edges               Uses Min-Heap
+1. `5`.
+2. No. It minimises the total weight of all edges, not the distance between two nodes.
 
-Uses DSU                     Uses Visited
+</details>
 
-Avoid cycles using DSU       Avoid revisiting vertices
+#### 8. Related LeetCode Questions
 
-Great with edge list         Great with adjacency list
-```
-
-For interviews, know both.
-
-#### 11. Complexity — Must Know
-
-**Kruskal**
-
-Sorting edges dominates:
-
-```text id="mst21"
-Time  → O(E log E)
-Space → O(V + E)
-```
-
-DSU operations are nearly constant amortized.
-
-**Prim with Min-Heap**
-
-```text id="mst22"
-Time  → O(E log V)
-Space → O(V + E)
-```
-
-#### 12. MST vs Shortest Path — Must Know
-
-Do not confuse these.
-
-```text id="mst23"
-MST                         Shortest Path
-
-Connect all vertices        Find shortest route
-
-Minimize total tree cost    Minimize path distance
-
-Kruskal / Prim              BFS / Dijkstra
-
-No source required          Usually starts from source
-```
-
-Example:
-
-```text id="mst24"
-"Connect all cities with minimum cable cost"
-                 ↓
-                MST
-
-
-"Find cheapest route from A to B"
-                 ↓
-          Shortest Path
-```
-
-#### 13. Disconnected Graph — Good to Know
-
-If the graph is disconnected:
-
-```text id="mst25"
-No single spanning tree exists.
-```
-
-Instead, you can get a:
-
-```text id="mst26"
-Minimum Spanning Forest
-```
-
-One minimum spanning tree for each connected component.
-
-#### 14. Common Interview Patterns — Must Know
-
-1. **Connect all cities with minimum cost**
-   ```text
-   MST
-   ```
-
-2. **Connect computers/networks with minimum cable**
-   ```text
-   MST
-   ```
-
-3. **Minimum cost to connect points**
-   ```text
-   MST
-   ```
-
-4. **Choose cheapest connections without cycles**
-   ```text
-   Kruskal + DSU
-   ```
-
-5. **Grow cheapest network from a starting node**
-   ```text
-   Prim
-   ```
-
-#### 15. Common Mistakes — Must Know
-
-1. Confusing MST with shortest path.
-2. Forgetting MST needs all vertices connected.
-3. Forgetting an MST has exactly `V - 1` edges.
-4. Allowing cycles.
-5. Using Kruskal without sorting edges.
-6. Forgetting DSU cycle detection in Kruskal.
-7. Assuming MST is always unique.
-8. Assuming a disconnected graph has one MST.
-
-#### 16. Interview Must Remember
-
-1. MST → connect **all vertices with minimum total cost**.
-2. MST contains **no cycles**.
-3. `V` vertices → exactly **`V - 1` edges**.
-4. **Kruskal = Sorted Edges + DSU**.
-5. **Prim = Adjacency List + Min-Heap + Visited**.
-6. Kruskal → `O(E log E)`.
-7. Prim → `O(E log V)`.
-8. **MST minimizes total network cost; Dijkstra minimizes path distance.**
+| # | Question | Idea |
+|---|---|---|
+| 1584 | Min Cost to Connect All Points (Medium) | MST on points (Kruskal or Prim) |
+| 1135 | Connecting Cities With Minimum Cost (Medium, premium) | Kruskal |
+| 1489 | Find Critical and Pseudo-Critical Edges in MST (Hard) | MST with forced/skipped edges |
+| 1168 | Optimize Water Distribution in a Village (Hard, premium) | MST with a virtual node |
+| 261 | Graph Valid Tree (Medium, premium) | a tree has `n - 1` edges |

@@ -141,7 +141,7 @@ println(s.isEmpty())// true
 
 | # | Question | Idea |
 |---|---|---|
-| 155 | Min Stack (Medium) | stack that also returns the minimum in `O(1)` |
-| 1381 | Design a Stack With Increment Operation (Medium) | array stack with a `size` counter |
-| 232 | Implement Queue using Stacks (Easy) | build one structure from another |
-| 225 | Implement Stack using Queues (Easy) | rotate the queue |
+| 155 | [Min Stack](https://leetcode.com/problems/min-stack/) (Medium) | stack that also returns the minimum in `O(1)` |
+| 1381 | [Design a Stack With Increment Operation](https://leetcode.com/problems/design-a-stack-with-increment-operation/) (Medium) | array stack with a `size` counter |
+| 232 | [Implement Queue using Stacks](https://leetcode.com/problems/implement-queue-using-stacks/) (Easy) | build one structure from another |
+| 225 | [Implement Stack using Queues](https://leetcode.com/problems/implement-stack-using-queues/) (Easy) | rotate the queue |

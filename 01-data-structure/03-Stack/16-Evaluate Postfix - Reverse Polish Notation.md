@@ -110,8 +110,8 @@ Each token is handled once.
 
 | # | Question | Idea |
 |---|---|---|
-| 150 | Evaluate Reverse Polish Notation (Medium) | this note |
-| 227 | Basic Calculator II (Medium) | evaluate infix with a stack |
-| 224 | Basic Calculator (Hard) | brackets |
-| 772 | Basic Calculator III (Hard, premium) | brackets and `* /` |
-| 1628 | Design an Expression Tree With Evaluate Function (Medium) | build a tree from postfix |
+| 150 | [Evaluate Reverse Polish Notation](https://leetcode.com/problems/evaluate-reverse-polish-notation/) (Medium) | this note |
+| 227 | [Basic Calculator II](https://leetcode.com/problems/basic-calculator-ii/) (Medium) | evaluate infix with a stack |
+| 224 | [Basic Calculator](https://leetcode.com/problems/basic-calculator/) (Hard) | brackets |
+| 772 | [Basic Calculator III](https://leetcode.com/problems/basic-calculator-iii/) (Hard, premium) | brackets and `* /` |
+| 1628 | [Design an Expression Tree With Evaluate Function](https://leetcode.com/problems/design-an-expression-tree-with-evaluate-function/) (Medium) | build a tree from postfix |

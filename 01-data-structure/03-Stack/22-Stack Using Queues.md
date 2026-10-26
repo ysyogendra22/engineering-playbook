@@ -97,7 +97,7 @@ You may also be asked for the other choice: `push` is `O(1)` and `pop` rotates `
 
 | # | Question | Idea |
 |---|---|---|
-| 225 | Implement Stack using Queues (Easy) | this note |
-| 232 | Implement Queue using Stacks (Easy) | the mirror |
-| 155 | Min Stack (Medium) | store extra data with each item |
-| 1381 | Design a Stack With Increment Operation (Medium) | stack design |
+| 225 | [Implement Stack using Queues](https://leetcode.com/problems/implement-stack-using-queues/) (Easy) | this note |
+| 232 | [Implement Queue using Stacks](https://leetcode.com/problems/implement-queue-using-stacks/) (Easy) | the mirror |
+| 155 | [Min Stack](https://leetcode.com/problems/min-stack/) (Medium) | store extra data with each item |
+| 1381 | [Design a Stack With Increment Operation](https://leetcode.com/problems/design-a-stack-with-increment-operation/) (Medium) | stack design |

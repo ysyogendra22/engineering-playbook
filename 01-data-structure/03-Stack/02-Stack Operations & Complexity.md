@@ -123,8 +123,8 @@ Many stack solutions have a `while` loop inside a `for` loop. That is still `O(n
 
 | # | Question | Pattern |
 |---|---|---|
-| 20 | Valid Parentheses (Easy) | C — match and pop |
-| 1047 | Remove All Adjacent Duplicates In String (Easy) | C — pop to undo |
-| 844 | Backspace String Compare (Easy) | C — `#` pops |
-| 150 | Evaluate Reverse Polish Notation (Medium) | B — pop two, push one |
-| 739 | Daily Temperatures (Medium) | A — pop while smaller |
+| 20 | [Valid Parentheses](https://leetcode.com/problems/valid-parentheses/) (Easy) | C — match and pop |
+| 1047 | [Remove All Adjacent Duplicates In String](https://leetcode.com/problems/remove-all-adjacent-duplicates-in-string/) (Easy) | C — pop to undo |
+| 844 | [Backspace String Compare](https://leetcode.com/problems/backspace-string-compare/) (Easy) | C — `#` pops |
+| 150 | [Evaluate Reverse Polish Notation](https://leetcode.com/problems/evaluate-reverse-polish-notation/) (Medium) | B — pop two, push one |
+| 739 | [Daily Temperatures](https://leetcode.com/problems/daily-temperatures/) (Medium) | A — pop while smaller |

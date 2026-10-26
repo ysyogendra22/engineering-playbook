@@ -1,237 +1,127 @@
 # Graph Representation
 
-#### 1. Definition — Must Know
+> In an interview you must decide how to store the graph before you write any algorithm. The usual answer is the adjacency list.
 
-1. Graph representation means **how vertices and edges are stored in memory**.
-2. Two main representations:
-   - **Adjacency List** — Must Know.
-   - **Adjacency Matrix** — Must Know.
-3. **Edge List** — Good to Know.
+#### 1. What Is It?
 
-#### 2. Adjacency List — Must Know
+There are three standard ways to store a graph in code.
 
-Stores each vertex with its neighbors.
+| Way | What it is | Memory |
+|---|---|---|
+| **Adjacency list** | for each vertex, a list of its neighbours | `O(V + E)` |
+| **Adjacency matrix** | a `V × V` table; cell `[a][b]` says if an edge exists | `O(V²)` |
+| **Edge list** | one list of all edges `[a, b]` (or `[a, b, weight]`) | `O(E)` |
 
-Graph:
+#### 2. How It Works
 
-```text
-0 ----- 1
-|       |
-2 ----- 3
-```
-
-Representation:
+The graph: edges `0-1`, `0-2`, `1-3`, `2-3`.
 
 ```text
-0 → [1, 2]
-1 → [0, 3]
-2 → [0, 3]
-3 → [1, 2]
+Adjacency list:           Adjacency matrix:            Edge list:
+0: [1, 2]                     0  1  2  3               [0, 1]
+1: [0, 3]                 0   0  1  1  0               [0, 2]
+2: [0, 3]                 1   1  0  0  1               [1, 3]
+3: [1, 2]                 2   1  0  0  1               [2, 3]
+                          3   0  1  1  0
 ```
 
-Kotlin:
+How to choose:
+
+| Question | Best choice |
+|---|---|
+| Walk the graph (BFS / DFS / Dijkstra / topological sort) | **adjacency list** |
+| "Is there an edge between `a` and `b`?" many times, small graph | adjacency matrix (`O(1)`) |
+| The input already comes as pairs, or you sort edges (Kruskal) | edge list |
+| Dense graph (many edges, `E` close to `V²`) | adjacency matrix |
+| Sparse graph (few edges) | **adjacency list** |
+
+Most interview graphs are **sparse**, so use the adjacency list. For a grid, you do not build anything: the neighbours are computed from the row and column (note 11).
+
+A weighted adjacency list stores `(neighbour, weight)`.
+
+#### 3. Kotlin Code
 
 ```kotlin
-val graph = Array(4) { mutableListOf<Int>() }
-
-fun addEdge(u: Int, v: Int) {
-    graph[u].add(v)
-    graph[v].add(u)
+// Adjacency list (undirected)
+fun adjacencyList(n: Int, edges: Array<IntArray>): List<List<Int>> {
+    val graph = List(n) { mutableListOf<Int>() }
+    for ((a, b) in edges) {
+        graph[a].add(b)
+        graph[b].add(a)
+    }
+    return graph
 }
-```
 
-For a directed graph:
-
-```kotlin
-fun addEdge(u: Int, v: Int) {
-    graph[u].add(v)
+// Weighted adjacency list: edges are [a, b, weight]
+fun weightedList(n: Int, edges: Array<IntArray>): List<List<Pair<Int, Int>>> {
+    val graph = List(n) { mutableListOf<Pair<Int, Int>>() }
+    for ((a, b, w) in edges) {
+        graph[a].add(b to w)
+        graph[b].add(a to w)
+    }
+    return graph
 }
-```
 
-#### 3. Adjacency List Complexity — Must Know
-
-```text
-Space                  → O(V + E)
-Iterate neighbors      → O(degree(V))
-Check specific edge    → O(degree(V))
-```
-
-1. Best choice for **sparse graphs**.
-2. Most common representation in FAANG graph problems.
-3. Works naturally with **BFS and DFS**.
-
-#### 4. Weighted Adjacency List — Must Know
-
-Store both neighbor and weight.
-
-```text
-0 --5-- 1
-|
-2
-|
-2
-```
-
-Representation:
-
-```text
-0 → [(1,5), (2,2)]
-```
-
-Kotlin:
-
-```kotlin
-data class Edge(
-    val to: Int,
-    val weight: Int
-)
-
-val graph = Array(4) { mutableListOf<Edge>() }
-
-fun addEdge(u: Int, v: Int, weight: Int) {
-    graph[u].add(Edge(v, weight))
-    graph[v].add(Edge(u, weight))
+// Adjacency matrix
+fun adjacencyMatrix(n: Int, edges: Array<IntArray>): Array<BooleanArray> {
+    val matrix = Array(n) { BooleanArray(n) }
+    for ((a, b) in edges) {
+        matrix[a][b] = true
+        matrix[b][a] = true
+    }
+    return matrix
 }
+
+// Usage
+val edges = arrayOf(intArrayOf(0, 1), intArrayOf(0, 2), intArrayOf(1, 3), intArrayOf(2, 3))
+println(adjacencyList(4, edges))                  // [[1, 2], [0, 3], [0, 3], [1, 2]]
+println(adjacencyMatrix(4, edges)[0][1])          // true: edge 0-1 exists, checked in O(1)
 ```
 
-Common with:
+Sometimes the input is **already** a matrix or a list (e.g. `isConnected[i][j] == 1` in *Number of Provinces*, or `graph[i]` = neighbours of `i` in *Is Graph Bipartite?*). Use it directly. Do not convert it.
 
-```text
-Dijkstra
-Prim's Algorithm
-Weighted graph traversal
-```
+#### 4. Complexity
 
-#### 5. Adjacency Matrix — Must Know
+| | Adjacency list | Adjacency matrix | Edge list |
+|---|---|---|---|
+| Memory | `O(V + E)` | `O(V²)` | `O(E)` |
+| Is there an edge `a-b`? | `O(degree)` | `O(1)` | `O(E)` |
+| All neighbours of `a` | `O(degree)` | `O(V)` | `O(E)` |
+| Walk the whole graph | `O(V + E)` | `O(V²)` | — |
 
-Uses a `V × V` matrix.
+#### 5. Common Mistakes
 
-Graph:
+1. **Using a matrix for a big sparse graph.** `V = 100,000` needs 10 billion cells.
+2. **Forgetting the reverse edge** for an undirected graph.
+3. **Building the graph when the input is already usable.**
+4. **Using `Array(n) { mutableListOf<Int>() }` incorrectly as `Array(n, mutableListOf())`.** That shares one list between all nodes. Use the lambda form.
+5. **Node numbers that start at `1`** while the array starts at `0`. Allocate `n + 1` or subtract 1.
 
-```text
-0 ----- 1
-|
-2
-```
+#### 6. Say This in the Interview
 
-Representation:
+1. "I will use an adjacency list, because the graph is sparse. Memory is `O(V + E)` and a full walk is `O(V + E)`."
+2. "An adjacency matrix would need `O(V²)` memory, which is too much here."
+3. "For Kruskal's algorithm I keep an edge list so I can sort it."
 
-```text
-    0  1  2
+#### 7. Quick Check
 
-0   0  1  1
-1   1  0  0
-2   1  0  0
-```
+1. Which representation gives an `O(1)` check for an edge between `a` and `b`?
+2. Why is `Array(n, mutableListOf<Int>())` a bug?
 
-Kotlin:
+<details>
+<summary>Answers</summary>
 
-```kotlin
-val graph = Array(3) { IntArray(3) }
+1. The adjacency matrix.
+2. It puts the same list object in every slot, so all nodes share one neighbour list.
 
-fun addEdge(u: Int, v: Int) {
-    graph[u][v] = 1
-    graph[v][u] = 1
-}
-```
+</details>
 
-For directed:
+#### 8. Related LeetCode Questions
 
-```kotlin
-graph[u][v] = 1
-```
-
-#### 6. Adjacency Matrix Complexity — Must Know
-
-```text
-Space                  → O(V²)
-Check specific edge    → O(1)
-Iterate neighbors      → O(V)
-```
-
-Best when:
-
-1. Graph is **dense**.
-2. Fast edge lookup is important.
-3. Number of vertices is relatively small.
-
-#### 7. Edge List — Good to Know
-
-Simply store all edges.
-
-```text
-0 ----- 1
-|
-2
-```
-
-Representation:
-
-```text
-(0,1)
-(0,2)
-```
-
-Kotlin:
-
-```kotlin
-data class Edge(
-    val from: Int,
-    val to: Int,
-    val weight: Int
-)
-
-val edges = mutableListOf<Edge>()
-```
-
-Useful for algorithms that primarily process edges.
-
-Examples:
-
-```text
-Kruskal's Algorithm
-Bellman-Ford
-```
-
-#### 8. Comparison — Must Know
-
-```text
-                    Adjacency List     Adjacency Matrix
-
-Space               O(V + E)           O(V²)
-Edge lookup          O(degree)          O(1)
-Neighbor traversal   O(degree)          O(V)
-Sparse graph         Best               Wasteful
-Dense graph          Good               Good
-BFS / DFS            Preferred          Possible
-```
-
-#### 9. Common Interview Choice — Must Know
-
-For most problems, start with:
-
-```kotlin
-val graph = Array(n) { mutableListOf<Int>() }
-```
-
-Then build:
-
-```kotlin
-for ((u, v) in edges) {
-    graph[u].add(v)
-    graph[v].add(u)
-}
-```
-
-For directed graphs, remove the reverse edge.
-
-#### 10. Key Points — Must Know
-
-1. **Adjacency List** → default choice for most interview problems.
-2. Adjacency List space → `O(V + E)`.
-3. Adjacency Matrix space → `O(V²)`.
-4. Matrix gives `O(1)` edge lookup.
-5. Undirected graph → normally store edge in **both directions**.
-6. Directed graph → store only the given direction.
-7. Weighted graph → store **neighbor + weight**.
-8. **Edge List** is useful when the algorithm works directly with edges.
+| # | Question | Idea |
+|---|---|---|
+| 1971 | Find if Path Exists in Graph (Easy) | edge list → adjacency list |
+| 547 | Number of Provinces (Medium) | the input is already a matrix |
+| 997 | Find the Town Judge (Easy) | only degree arrays are needed |
+| 133 | Clone Graph (Medium) | the graph is given as node objects |
+| 1584 | Min Cost to Connect All Points (Medium) | complete graph, no list needed |

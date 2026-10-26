@@ -36,7 +36,33 @@ push (75, 4)    Stack: (100,1) (80,1) (75,4)
 
 Adding the popped spans lets us skip days we have already counted. We never walk back one day at a time.
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| | Brute force | Optimized |
+|---|---|---|
+| Idea | on every call, walk back through all earlier prices | stack of `(price, span)` |
+| Time per call | `O(n)` | `O(1)` on average |
+| Space | `O(n)` | `O(n)` |
+
+The brute force is easy to write, and it is a good first answer to say out loud:
+
+```kotlin
+class StockSpannerBrute {
+    private val prices = mutableListOf<Int>()
+
+    fun next(price: Int): Int {
+        prices.add(price)
+        var span = 0
+        var i = prices.size - 1
+        while (i >= 0 && prices[i] <= price) { span++; i-- }     // walk back one day at a time
+        return span
+    }
+}
+```
+
+The optimized version adds the spans of the popped entries, so it never walks back day by day.
+
+#### 4. Kotlin Code
 
 ```kotlin
 class StockSpanner {
@@ -73,7 +99,7 @@ fun stockSpans(prices: IntArray): IntArray {
 }
 ```
 
-#### 4. Complexity
+#### 5. Complexity
 
 | | Time | Space |
 |---|---|---|
@@ -83,7 +109,7 @@ fun stockSpans(prices: IntArray): IntArray {
 
 Each price is pushed once and popped once. That is why the average is `O(1)` per call.
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Using `<` instead of `<=`.** Days with an **equal** price must count.
 2. **Starting `span` at 0.** Today always counts, so start at 1.
@@ -91,13 +117,13 @@ Each price is pushed once and popped once. That is why the average is `O(1)` per
 4. **Keeping the stack as a local variable.** It must live in the class between calls.
 5. **`if` instead of `while`.** Several entries may need to be popped.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "Span is today's index minus the index of the previous greater price."
 2. "I keep a stack of price and span. I pop prices that are `<=` today and add their spans."
 3. "Each price is pushed and popped once, so each call is `O(1)` on average."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. What is the span of the very first price?
 2. Prices `10, 20, 30`. What are the spans?
@@ -110,11 +136,11 @@ Each price is pushed once and popped once. That is why the average is `O(1)` per
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|
-| 901 | Online Stock Span (Medium) | this note |
-| 739 | Daily Temperatures (Medium) | next greater, distance forward |
-| 1944 | Number of Visible People in a Queue (Hard) | stack with both sides |
-| 84 | Largest Rectangle in Histogram (Hard) | previous smaller bars |
+| 901 | [Online Stock Span](https://leetcode.com/problems/online-stock-span/) (Medium) | this note |
+| 739 | [Daily Temperatures](https://leetcode.com/problems/daily-temperatures/) (Medium) | next greater, distance forward |
+| 1944 | [Number of Visible People in a Queue](https://leetcode.com/problems/number-of-visible-people-in-a-queue/) (Hard) | stack with both sides |
+| 84 | [Largest Rectangle in Histogram](https://leetcode.com/problems/largest-rectangle-in-histogram/) (Hard) | previous smaller bars |

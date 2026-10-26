@@ -1,257 +1,185 @@
 # Graph Fundamentals
 
-#### 1. Definition — Must Know
+> Start here. Graphs appear in many FAANG interview questions, often hidden inside a grid, a list of courses, or a word puzzle. Read this note slowly once.
 
-1. A **Graph** is a non-linear data structure representing relationships between objects.
-2. It consists of:
-   - **Vertices (Nodes)** → Objects.
-   - **Edges** → Connections between objects.
-3. Graphs are more general than trees and can contain **cycles, multiple paths, and disconnected components**.
+#### 1. What Is a Graph?
 
-#### 2. Why It Is Used — Must Know
+A **graph** is a set of **things** and the **connections** between them.
 
-1. Used when data represents **connections or relationships**.
-2. Common examples:
-   - Social networks → users + connections.
-   - Maps → locations + roads.
-   - Computer networks → devices + connections.
-   - Dependencies → tasks/services + dependencies.
-   - Recommendation systems → users/items + relationships.
+- The things are called **vertices** (or **nodes**).
+- The connections are called **edges**.
 
-#### 3. How It Works — Must Know
-
-Example:
+Real-life examples: people and friendships, cities and roads, web pages and links, courses and prerequisites.
 
 ```text
-A ----- B
-|       |
-|       |
+A ----- B            Vertices: A, B, C, D
+|       |            Edges:    A-B, A-C, B-D, C-D
 C ----- D
 ```
 
-```text
-Vertices → A, B, C, D
+Unlike a tree, a graph can have **cycles** (a way back to the start), **many paths** between two nodes, and **separate pieces**.
 
-Edges →
-A-B
-A-C
-B-D
-C-D
-```
+#### 2. Words You Must Know
 
-Unlike a tree, multiple paths can exist:
+| Word | Meaning |
+|---|---|
+| **Vertex / node** | one item (a person, a city, a course) |
+| **Edge** | a connection between two vertices |
+| **Neighbour** | a vertex directly connected to another |
+| **Path** | a list of vertices where each is connected to the next |
+| **Cycle** | a path that comes back to where it started |
+| **Directed** | edges have a direction (`A → B` is not `B → A`) |
+| **Weighted** | edges have a cost (distance, time, price) |
+| **Connected** | you can reach every vertex from every other vertex |
+| **`V`, `E`** | the number of vertices, the number of edges |
 
-```text
-A → B → D
+#### 3. How It Works
 
-A → C → D
-```
-
-#### 4. Core Terminology — Must Know
-
-1. **Vertex / Node** — Individual element in a graph.
-2. **Edge** — Connection between two vertices.
-3. **Adjacent / Neighbor** — Directly connected vertices.
-4. **Path** — Sequence of connected vertices.
-5. **Cycle** — Path that eventually returns to a previously visited node.
-6. **Degree** — Number of edges connected to a vertex.
-7. **Connected Graph** — Every vertex is reachable from every other vertex.
-8. **Connected Component** — Connected section of a potentially disconnected graph.
-
-#### 5. Graph Types — Must Know
-
-**Undirected Graph**
+In an interview you almost never draw the graph. You store it in code. The standard way is an **adjacency list**: for each vertex, a list of its neighbours.
 
 ```text
-A ----- B
+Edges: 0-1, 0-2, 1-3, 2-3
+
+0: [1, 2]
+1: [0, 3]
+2: [0, 3]
+3: [1, 2]
 ```
 
-Connection works both ways:
+Then you **walk** the graph:
 
-```text
-A ↔ B
-```
+| Walk | Uses | Good for |
+|---|---|---|
+| **DFS** (go deep first) | stack or recursion | cycles, components, paths, all possibilities |
+| **BFS** (go level by level) | queue | shortest path with equal steps, nearest target |
 
-Example → Facebook-style friendship.
+Both need a **visited** set, because a graph can have cycles. Without it, you walk in circles forever.
 
-**Directed Graph**
+Graph vs tree: a tree is a graph that is **connected** and has **no cycles**. A tree with `n` nodes always has `n - 1` edges.
 
-```text
-A ----> B
-```
-
-Direction matters:
-
-```text
-A → B ≠ B → A
-```
-
-Example → dependencies or social-media following.
-
-**Weighted Graph**
-
-```text
-A --5-- B
-```
-
-Edge contains a cost/weight.
-
-Examples:
-
-```text
-Distance
-Time
-Price
-Network cost
-```
-
-**Unweighted Graph**
-
-```text
-A ----- B
-```
-
-Edges have no meaningful cost or are treated equally.
-
-#### 6. Cyclic vs Acyclic — Must Know
-
-**Cyclic**
-
-```text
-A → B
-↑   ↓
-└── C
-```
-
-Contains a cycle.
-
-**Acyclic**
-
-```text
-A → B → C
-```
-
-Contains no cycle.
-
-A **DAG** is a:
-
-```text
-Directed Acyclic Graph
-```
-
-DAGs are important for dependency and scheduling problems.
-
-#### 7. Tree vs Graph — Must Know
-
-```text
-Tree                         Graph
-
-Connected                    May be disconnected
-No cycles                    May contain cycles
-N nodes → N-1 edges          No such restriction
-Unique path between nodes    Multiple paths may exist
-Hierarchical                 General relationships
-```
-
-A tree is a **special type of graph**.
-
-#### 8. Basic Graph Representation — Must Know
-
-The most common interview representation is an **Adjacency List**.
-
-Graph:
-
-```text
-A ----- B
-|
-C
-```
-
-Representation:
-
-```text
-A → [B, C]
-B → [A]
-C → [A]
-```
-
-Kotlin:
+#### 4. Kotlin Code
 
 ```kotlin
-val graph = mutableMapOf<Int, MutableList<Int>>()
-
-fun addEdge(u: Int, v: Int) {
-    graph.getOrPut(u) { mutableListOf() }.add(v)
-    graph.getOrPut(v) { mutableListOf() }.add(u)
+// Build an undirected graph from an edge list
+fun buildGraph(n: Int, edges: Array<IntArray>): List<List<Int>> {
+    val graph = List(n) { mutableListOf<Int>() }
+    for ((a, b) in edges) {
+        graph[a].add(b)
+        graph[b].add(a)              // undirected: add both directions
+    }
+    return graph
 }
+
+// Walk the graph with BFS and return the nodes you can reach from start
+fun reachable(graph: List<List<Int>>, start: Int): List<Int> {
+    val visited = BooleanArray(graph.size)
+    val order = mutableListOf<Int>()
+    val queue = ArrayDeque<Int>()
+    visited[start] = true
+    queue.addLast(start)
+    while (queue.isNotEmpty()) {
+        val node = queue.removeFirst()
+        order.add(node)
+        for (next in graph[node]) {
+            if (!visited[next]) {
+                visited[next] = true
+                queue.addLast(next)
+            }
+        }
+    }
+    return order
+}
+
+// Usage
+val graph = buildGraph(4, arrayOf(intArrayOf(0, 1), intArrayOf(0, 2), intArrayOf(1, 3), intArrayOf(2, 3)))
+println(graph)                       // [[1, 2], [0, 3], [0, 3], [1, 2]]
+println(reachable(graph, 0))         // [0, 1, 2, 3]
 ```
 
-For a **directed graph**, add only:
+#### 5. How to Spot a Graph Problem
 
-```kotlin
-graph.getOrPut(u) { mutableListOf() }.add(v)
-```
+| If the question has... | Think... | Note |
+|---|---|---|
+| "connections", "friends", "network", "islands" | connected components | 10, 23 |
+| a grid of cells (up, down, left, right) | grid as a graph | 11, 12 |
+| "prerequisites", "dependencies", "order of tasks" | topological sort | 15, 16 |
+| "minimum number of steps/moves" | BFS | 9, 17 |
+| "cheapest route", "minimum cost/time" with different costs | Dijkstra | 18 |
+| "does this create a cycle?" | cycle detection or DSU | 13, 14, 23 |
+| "split into two groups" | bipartite check | 22 |
+| "connect everything at the lowest cost" | minimum spanning tree | 26 – 28 |
+| "words/states you can change one step at a time" | implicit graph + BFS | 30 |
 
-#### 9. Adjacency List vs Matrix — Must Know
+#### 6. Complexity
 
-**Adjacency List**
+| Action | Time |
+|---|---|
+| DFS or BFS over the whole graph | `O(V + E)` |
+| Memory for an adjacency list | `O(V + E)` |
+| Check if an edge `a-b` exists (adjacency list) | `O(degree of a)` |
 
-```text
-A → B, C
-B → A
-C → A
-```
+#### 7. Common Mistakes
 
-Space:
+1. **No `visited` check.** The program loops forever on a cycle.
+2. **Marking visited too late in BFS.** Mark when you add to the queue.
+3. **Forgetting the reverse edge** in an undirected graph.
+4. **Missing disconnected parts.** Start a search from every unvisited node.
+5. **Mixing `0`-based and `1`-based node numbers.**
 
-```text
-O(V + E)
-```
+#### 8. Say This in the Interview
 
-Usually preferred for interview problems.
+1. "I will model this as a graph. The nodes are ... and the edges are ..."
+2. "I store it as an adjacency list, so a full walk is `O(V + E)`."
+3. "I use BFS (or DFS) with a visited set."
+4. "I will check disconnected parts, cycles and an empty input."
 
-**Adjacency Matrix**
+#### 9. Quick Check
 
-```text
-    A B C
-A   0 1 1
-B   1 0 0
-C   1 0 0
-```
+1. How many edges does a tree with 7 nodes have?
+2. Why do we need a `visited` set?
 
-Space:
+<details>
+<summary>Answers</summary>
 
-```text
-O(V²)
-```
+1. `6` (`n - 1`).
+2. A graph can have cycles. Without `visited` you would go around a cycle forever.
 
-Useful when quick edge-existence lookup matters or the graph is dense.
+</details>
 
-#### 10. Graph Traversal — Must Know
+#### 10. Related LeetCode Questions (Often Asked)
 
-Two fundamental algorithms:
+Solve them in this order. Search by title if a number looks wrong.
 
-```text
-DFS → Depth-First Search
-BFS → Breadth-First Search
-```
+**Start here — Easy**
 
-Typical traversal complexity with adjacency lists:
+| # | Question | Main idea | Note |
+|---|---|---|---|
+| 1971 | Find if Path Exists in Graph | BFS or DFS | 8, 9 |
+| 997 | Find the Town Judge | in-degree and out-degree | 32 |
+| 733 | Flood Fill | DFS on a grid | 12 |
+| 463 | Island Perimeter | count borders of cells | 11 |
 
-```text
-Time  → O(V + E)
-Space → O(V)
-```
+**Most often asked — Medium**
 
-Study BFS and DFS separately in depth.
+| # | Question | Main idea | Note |
+|---|---|---|---|
+| 200 | Number of Islands | grid DFS/BFS | 11 |
+| 133 | Clone Graph | map old → clone | 29 |
+| 207 | Course Schedule | cycle in a directed graph | 14, 16 |
+| 210 | Course Schedule II | topological order | 15, 16 |
+| 547 | Number of Provinces | connected components | 10, 23 |
+| 994 | Rotting Oranges | multi-source BFS | 21 |
+| 785 | Is Graph Bipartite? | 2-colouring | 22 |
+| 743 | Network Delay Time | Dijkstra | 18 |
+| 684 | Redundant Connection | union-find | 23 |
+| 399 | Evaluate Division | weighted graph DFS | 33 |
 
-#### 11. Key Points — Must Know
+**Hard — these separate strong candidates**
 
-1. Graph = **Vertices + Edges**.
-2. First identify: **directed or undirected**.
-3. Check whether edges are **weighted or unweighted**.
-4. Graphs may contain **cycles**, so traversal usually needs a `visited` structure.
-5. Graphs may be **disconnected**, so one BFS/DFS may not visit every vertex.
-6. **Adjacency List** is the most common graph representation for interviews.
-7. Graph traversal complexity is typically `O(V + E)`.
-8. **BFS and DFS** are the foundation for most graph algorithms.
+| # | Question | Main idea | Note |
+|---|---|---|---|
+| 127 | Word Ladder | BFS on words | 30 |
+| 269 | Alien Dictionary | topological sort | 31 |
+| 778 | Swim in Rising Water | Dijkstra or union-find | 18 |
+
+**If you have little time, do these 8 first:** 200, 133, 207, 210, 547, 994, 743, 127.

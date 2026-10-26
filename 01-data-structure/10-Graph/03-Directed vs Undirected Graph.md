@@ -1,213 +1,104 @@
 # Directed vs Undirected Graph
 
-#### 1. Definition — Must Know
+#### 1. What Is It?
 
-1. **Directed Graph** → Edges have a direction.
-2. **Undirected Graph** → Edges have no direction and work both ways.
+| | Undirected | Directed |
+|---|---|---|
+| Edge | works **both ways**: `A — B` | works **one way**: `A → B` |
+| Example | friendship on Facebook | following on Twitter, course prerequisites, web links |
+| Picture | `A ----- B` | `A -----> B` |
+| Stored as | add `B` to `A`'s list **and** `A` to `B`'s list | add `B` to `A`'s list only |
+| Degree | one number | in-degree and out-degree |
 
-```text id="du001"
-Directed:
+Always find out which kind it is. It changes the code and the algorithms:
 
-A → B
+| Task | Undirected | Directed |
+|---|---|---|
+| Cycle detection | DFS with a parent, or union-find | DFS with 3 states, or Kahn's algorithm |
+| Connected parts | components | strongly connected components (advanced) |
+| Ordering tasks | not possible | topological sort |
 
-Undirected:
+#### 2. How It Works
 
-A — B
+Edges `[[0,1],[1,2]]`:
+
+```text
+Undirected:                    Directed:
+0: [1]                         0: [1]
+1: [0, 2]                      1: [2]
+2: [1]                         2: []
+
+You can go 0→1, 1→0, 1→2, 2→1.     You can go only 0→1 and 1→2.
 ```
 
-#### 2. Directed Graph — Must Know
+**An undirected edge is the same as two directed edges** (`A → B` and `B → A`). That is how you store it.
 
-```text id="du002"
-A → B → C
-```
+Example of why it matters: *Course Schedule* gives pairs `[course, prerequisite]`. The edge is **one-way** (prerequisite → course). Treating it as undirected hides the real order.
 
-1. `A → B` means A can reach B directly.
-2. It does **not** automatically mean `B → A`.
-3. Relationships are one-way unless the reverse edge also exists.
+#### 3. Kotlin Code
 
-Examples:
+```kotlin
+// One function for both kinds
+fun buildGraph(n: Int, edges: Array<IntArray>, directed: Boolean): List<List<Int>> {
+    val graph = List(n) { mutableListOf<Int>() }
+    for ((a, b) in edges) {
+        graph[a].add(b)
+        if (!directed) graph[b].add(a)       // the reverse edge only for undirected graphs
+    }
+    return graph
+}
 
-1. Social media following.
-2. Task dependencies.
-3. Course prerequisites.
-4. Web page links.
+val edges = arrayOf(intArrayOf(0, 1), intArrayOf(1, 2))
+println(buildGraph(3, edges, directed = false))   // [[1], [0, 2], [1]]
+println(buildGraph(3, edges, directed = true))    // [[1], [2], []]
 
-#### 3. Undirected Graph — Must Know
-
-```text id="du003"
-A — B — C
-```
-
-An edge:
-
-```text id="du004"
-A — B
-```
-
-means:
-
-```text id="du005"
-A → B
-B → A
-```
-
-Examples:
-
-1. Friendship relationships.
-2. Two-way roads.
-3. Physical network connections.
-
-#### 4. Adjacency List Representation — Must Know
-
-For:
-
-```text id="du006"
-A → B
-```
-
-Directed:
-
-```text id="du007"
-A → [B]
-B → []
-```
-
-Only one direction is stored.
-
-For:
-
-```text id="du008"
-A — B
-```
-
-Undirected:
-
-```text id="du009"
-A → [B]
-B → [A]
-```
-
-Store the edge in **both directions**.
-
-#### 5. Kotlin Implementation — Must Know
-
-Directed:
-
-```kotlin id="du010"
-fun addDirectedEdge(
-    graph: MutableMap<Int, MutableList<Int>>,
-    from: Int,
-    to: Int
-) {
-    graph.getOrPut(from) { mutableListOf() }.add(to)
+// Course Schedule input: [course, prerequisite] → edge prerequisite → course
+fun buildCourseGraph(n: Int, prerequisites: Array<IntArray>): List<List<Int>> {
+    val graph = List(n) { mutableListOf<Int>() }
+    for ((course, pre) in prerequisites) graph[pre].add(course)
+    return graph
 }
 ```
 
-Undirected:
+#### 4. Complexity
 
-```kotlin id="du011"
-fun addUndirectedEdge(
-    graph: MutableMap<Int, MutableList<Int>>,
-    u: Int,
-    v: Int
-) {
-    graph.getOrPut(u) { mutableListOf() }.add(v)
-    graph.getOrPut(v) { mutableListOf() }.add(u)
-}
-```
+| | Undirected | Directed |
+|---|---|---|
+| Memory (adjacency list) | `O(V + 2E)` | `O(V + E)` |
+| Walk the whole graph | `O(V + E)` | `O(V + E)` |
 
-#### 6. Degree — Must Know
+#### 5. Common Mistakes
 
-Undirected:
+1. **Forgetting the reverse edge** in an undirected graph. Half of the graph becomes unreachable.
+2. **Adding the reverse edge** in a directed graph. You create wrong paths.
+3. **Getting the edge direction wrong** when the input is `[a, b]`. Read the statement: is it `a → b` or `b → a`?
+4. **Using the undirected cycle check** (parent check) on a directed graph. It gives wrong answers.
 
-```text id="du012"
-Degree = Number of connected edges
-```
+#### 6. Say This in the Interview
 
-Directed:
+1. "Is the graph directed? It decides how I store the edges and which cycle check I use."
+2. "For an undirected edge I add it in both directions."
+3. "In Course Schedule the edge goes from the prerequisite to the course."
 
-```text id="du013"
-In-degree  → Incoming edges
-Out-degree → Outgoing edges
-```
+#### 7. Quick Check
 
-Example:
+1. How many entries does an undirected edge add to an adjacency list?
+2. For `[course, prerequisite] = [1, 0]`, which way does the edge point?
 
-```text id="du014"
-A → B ← C
-    |
-    ↓
-    D
-```
+<details>
+<summary>Answers</summary>
 
-For `B`:
+1. `2` (one for each end).
+2. `0 → 1` (from the prerequisite to the course).
 
-```text id="du015"
-In-degree  = 2
-Out-degree = 1
-```
+</details>
 
-#### 7. Traversal Difference — Must Know
+#### 8. Related LeetCode Questions
 
-Consider:
-
-```text id="du016"
-A → B
-```
-
-Directed:
-
-```text id="du017"
-From A → B reachable
-From B → A not necessarily reachable
-```
-
-Undirected:
-
-```text id="du018"
-A — B
-
-From A → B reachable
-From B → A reachable
-```
-
-BFS and DFS algorithms are largely the same; the **stored edges determine where traversal can move**.
-
-#### 8. Cycle Detection Difference — Must Know
-
-Cycle detection logic differs.
-
-**Undirected Graph**
-
-1. During DFS, track the **parent**.
-2. A visited neighbor that is not the parent indicates a cycle.
-
-**Directed Graph**
-
-1. A simple `visited` set alone is not enough.
-2. Common DFS approach tracks nodes in the **current recursion path/state**.
-3. Encountering a node already in the current path indicates a cycle.
-
-Study the implementations separately under **Cycle Detection**.
-
-#### 9. Key Differences — Must Know
-
-```text id="du019"
-                     Directed            Undirected
-
-Edge                 A → B               A — B
-Direction            One-way             Both ways
-Adjacency List       Store once          Store both ways
-Degree                In / Out degree     Degree
-Reachability          Direction matters   Bidirectional
-Cycle Detection       DFS state/path       DFS + parent
-```
-
-#### 10. Key Points — Must Know
-
-1. First identify whether the graph is **directed or undirected**.
-2. Directed → `A → B` does not imply `B → A`.
-3. Undirected → store every edge in **both adjacency lists**.
-4. Directed graphs have **in-degree and out-degree**.
-5. BFS/DFS fundamentals remain similar, but **reachability changes with direction**.
-6. Cycle-detection logic is different for directed and undirected graphs.
+| # | Question | Idea |
+|---|---|---|
+| 1971 | Find if Path Exists in Graph (Easy) | undirected |
+| 997 | Find the Town Judge (Easy) | directed, in and out degrees |
+| 207 | Course Schedule (Medium) | directed, cycle detection |
+| 785 | Is Graph Bipartite? (Medium) | undirected |
+| 802 | Find Eventual Safe States (Medium) | directed |

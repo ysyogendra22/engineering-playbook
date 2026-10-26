@@ -152,7 +152,7 @@ Prefix is evaluated the same way, but you scan from the **right** and the first 
 
 | # | Question | Idea |
 |---|---|---|
-| 150 | Evaluate Reverse Polish Notation (Medium) | evaluate postfix |
-| 227 | Basic Calculator II (Medium) | evaluate infix directly |
-| 224 | Basic Calculator (Hard) | brackets |
-| 1628 | Design an Expression Tree With Evaluate Function (Medium) | postfix to tree |
+| 150 | [Evaluate Reverse Polish Notation](https://leetcode.com/problems/evaluate-reverse-polish-notation/) (Medium) | evaluate postfix |
+| 227 | [Basic Calculator II](https://leetcode.com/problems/basic-calculator-ii/) (Medium) | evaluate infix directly |
+| 224 | [Basic Calculator](https://leetcode.com/problems/basic-calculator/) (Hard) | brackets |
+| 1628 | [Design an Expression Tree With Evaluate Function](https://leetcode.com/problems/design-an-expression-tree-with-evaluate-function/) (Medium) | postfix to tree |

@@ -1,247 +1,161 @@
 # DFS — Depth First Search
 
-#### 1. Definition — Must Know
+> One of the two core graph walks. Many interview problems (islands, cycles, paths, components) are a DFS.
 
-1. **DFS** explores a graph by going as deep as possible before backtracking.
-2. Implement using:
-   - **Recursion** → most common in interviews.
-   - **Stack** → iterative approach.
-3. Use a `visited` structure to avoid revisiting nodes.
+#### 1. What Is It?
 
-#### 2. How It Works — Must Know
+**DFS** goes **as deep as possible** along one path. When it cannot go further, it goes back (**backtracks**) and tries the next path.
 
-Graph:
+It uses **recursion** (the call stack) or your **own stack**. It needs a **visited** set, so it does not walk in circles on a cycle.
 
-```text
-0 ----- 1
-|       |
-2 ----- 3
-```
+Think of exploring a maze: walk down a corridor until you hit a dead end, then go back to the last junction and try another corridor.
 
-Starting from `0`, one possible DFS:
+#### 2. How It Works
 
 ```text
-0 → 1 → 3 → 2
+Graph:  0 → [1, 2]    1 → [3]    2 → [3]    3 → []
+
+dfs(0): visit 0
+   dfs(1): visit 1
+      dfs(3): visit 3          (3 has no neighbours → return)
+   back in 0: next neighbour 2
+   dfs(2): visit 2
+      3 is already visited → skip
+
+visit order: 0, 1, 3, 2
 ```
 
-Flow:
+The recipe:
 
 ```text
-Visit 0
-  ↓
-Visit 1
-  ↓
-Visit 3
-  ↓
-Visit 2
-  ↓
-No unvisited neighbor
-  ↓
-Backtrack
+dfs(node):
+    mark node visited
+    process node
+    for each neighbour:
+        if not visited: dfs(neighbour)
 ```
 
-> DFS order can vary depending on adjacency-list order.
+Use DFS when you need to: find **any** path, **count/mark components**, detect **cycles**, explore **all possibilities** (backtracking), or process a **grid region**. Use BFS (note 9) when you need the **shortest** path.
 
-#### 3. Core Logic — Must Know
-
-```text
-DFS(node):
-
-1. Mark node as visited.
-2. Process node.
-3. For every neighbor:
-      if not visited:
-          DFS(neighbor)
-4. Backtrack.
-```
-
-The core pattern:
-
-```text
-Visit → Explore → Backtrack
-```
-
-#### 4. Recursive DFS — Must Know
-
-Kotlin:
+#### 3. Kotlin Code
 
 ```kotlin
-fun dfs(
-    node: Int,
-    graph: Array<MutableList<Int>>,
-    visited: BooleanArray
-) {
-    visited[node] = true
+// Recursive DFS: returns the visit order
+fun dfs(graph: List<List<Int>>, start: Int): List<Int> {
+    val visited = BooleanArray(graph.size)
+    val order = mutableListOf<Int>()
 
-    for (neighbor in graph[node]) {
-        if (!visited[neighbor]) {
-            dfs(neighbor, graph, visited)
+    fun visit(node: Int) {
+        visited[node] = true
+        order.add(node)
+        for (next in graph[node]) {
+            if (!visited[next]) visit(next)
         }
     }
+
+    visit(start)
+    return order
 }
-```
 
-Usage:
-
-```kotlin
-val graph = Array(4) { mutableListOf<Int>() }
-
-graph[0].addAll(listOf(1, 2))
-graph[1].addAll(listOf(0, 3))
-graph[2].addAll(listOf(0, 3))
-graph[3].addAll(listOf(1, 2))
-
-val visited = BooleanArray(4)
-
-dfs(0, graph, visited)
-```
-
-#### 5. Iterative DFS — Good to Know
-
-Use an explicit **Stack**.
-
-```kotlin
-fun dfs(
-    start: Int,
-    graph: Array<MutableList<Int>>
-) {
+// Iterative DFS with your own stack (safe for very deep graphs)
+fun dfsIterative(graph: List<List<Int>>, start: Int): List<Int> {
     val visited = BooleanArray(graph.size)
+    val order = mutableListOf<Int>()
     val stack = ArrayDeque<Int>()
-
     stack.addLast(start)
-
     while (stack.isNotEmpty()) {
         val node = stack.removeLast()
-
         if (visited[node]) continue
-
         visited[node] = true
-
-        for (neighbor in graph[node]) {
-            if (!visited[neighbor]) {
-                stack.addLast(neighbor)
-            }
+        order.add(node)
+        for (next in graph[node].asReversed()) {        // reversed: same order as the recursive version
+            if (!visited[next]) stack.addLast(next)
         }
     }
+    return order
 }
-```
 
-Recursive DFS uses the **call stack**; iterative DFS uses an **explicit stack**.
+// All Paths From Source to Target in a DAG (LeetCode 797)
+fun allPathsSourceTarget(graph: Array<IntArray>): List<List<Int>> {
+    val result = mutableListOf<List<Int>>()
+    val path = mutableListOf(0)
 
-#### 6. Disconnected Graph — Must Know
-
-Calling:
-
-```kotlin
-dfs(0, graph, visited)
-```
-
-only visits nodes reachable from `0`.
-
-For a disconnected graph:
-
-```text
-0 --- 1       2 --- 3
-```
-
-Run DFS from every unvisited node:
-
-```kotlin
-for (node in graph.indices) {
-    if (!visited[node]) {
-        dfs(node, graph, visited)
+    fun go(node: Int) {
+        if (node == graph.size - 1) {
+            result.add(path.toList())                    // save a copy
+            return
+        }
+        for (next in graph[node]) {
+            path.add(next)
+            go(next)
+            path.removeAt(path.size - 1)                 // backtrack
+        }
     }
+
+    go(0)
+    return result
+}
+
+// Keys and Rooms (LeetCode 841): can you visit every room?
+fun canVisitAllRooms(rooms: List<List<Int>>): Boolean {
+    val visited = BooleanArray(rooms.size)
+    fun visit(room: Int) {
+        visited[room] = true
+        for (key in rooms[room]) if (!visited[key]) visit(key)
+    }
+    visit(0)
+    return visited.all { it }
 }
 ```
 
-This pattern is commonly used for **connected-component counting**.
+Checks: `dfs([[1,2],[3],[3],[]], 0)` → `[0, 1, 3, 2]`. `allPathsSourceTarget([[1,2],[3],[3],[]])` → `[[0,1,3],[0,2,3]]`.
 
-#### 7. Time & Space Complexity — Must Know
+For a DAG you do not need `visited` in `allPathsSourceTarget`, because there are no cycles.
 
-With an adjacency list:
+#### 4. Complexity
 
-```text
-Time  → O(V + E)
-Space → O(V)
-```
+For `V` nodes and `E` edges:
 
-1. Every vertex is visited once.
-2. Every edge is examined during traversal.
-3. `visited` requires `O(V)`.
-4. Recursion/stack can require up to `O(V)`.
+| | Time | Space |
+|---|---|---|
+| DFS (adjacency list) | `O(V + E)` | `O(V)` (visited + the call stack) |
+| All paths in a DAG | exponential in the worst case | `O(V)` for the path + the answer |
 
-#### 8. Common DFS Patterns — Must Know
+#### 5. Common Mistakes
 
-1. **Graph Traversal**
-   ```text
-   DFS + visited
-   ```
+1. **No `visited` set.** Infinite loop on a cycle.
+2. **`StackOverflowError`** on very deep graphs. Use the iterative version.
+3. **Marking visited after the recursive call** instead of before. A neighbour may visit the node again.
+4. **Forgetting to backtrack** (`removeAt`) when collecting paths, or forgetting to **copy** the path (`path.toList()`) before saving it.
+5. **Forgetting disconnected parts.** Start a DFS from every unvisited node.
 
-2. **Connected Components**
-   ```text
-   For every unvisited node → DFS
-   ```
+#### 6. Say This in the Interview
 
-3. **Cycle Detection**
-   ```text
-   Undirected → DFS + parent
-   Directed   → DFS + recursion path/state
-   ```
+1. "I will use DFS with a visited set. Time `O(V + E)`, space `O(V)` for the recursion."
+2. "If the graph can be very deep, I would use an explicit stack to avoid a stack overflow."
+3. "For all paths I add the node, recurse, then remove it (backtracking)."
 
-4. **Path / Reachability**
-   ```text
-   Can A reach B?
-   ```
+#### 7. Quick Check
 
-5. **Grid Problems**
-   ```text
-   DFS in 4/8 directions
-   ```
+1. When is DFS a better choice than BFS?
+2. What goes wrong if you forget to copy the path before saving it?
 
-6. **Backtracking**
-   ```text
-   Choose → Explore → Undo
-   ```
+<details>
+<summary>Answers</summary>
 
-#### 9. Common Interview Problems — Must Know
+1. For cycles, components, all paths, and backtracking. BFS is better for the shortest path.
+2. The saved list is the same object you keep changing, so it ends up empty or wrong. Save `path.toList()`.
 
-1. Number of Islands.
-2. Number of Connected Components.
-3. Clone Graph.
-4. Detect Cycle.
-5. Path Exists Between Two Nodes.
-6. Flood Fill.
+</details>
 
-Focus on the **patterns**, not memorizing individual solutions.
+#### 8. Related LeetCode Questions
 
-#### 10. Edge Cases / Common Mistakes — Must Know
-
-1. Forgetting `visited` can cause infinite traversal when cycles exist.
-2. Mark a node visited **before recursively exploring its neighbors**.
-3. One DFS does not necessarily cover a disconnected graph.
-4. Recursive DFS can cause stack overflow on very deep graphs.
-5. DFS traversal order is not guaranteed unless neighbor order is controlled.
-6. Directed and undirected cycle detection require different logic.
-
-#### 11. DFS vs BFS — Must Know
-
-```text
-DFS                         BFS
-
-Uses Stack                  Uses Queue
-Goes deep first             Goes level-by-level
-Great for components        Great for shortest path
-Great for cycle/path DFS    Great for minimum-edge distance
-```
-
-For an **unweighted shortest-path problem**, usually prefer BFS.
-
-#### 12. Interview Must Remember
-
-1. DFS → **go deep, then backtrack**.
-2. Core tools → `visited + recursion/stack`.
-3. Complexity → `O(V + E)`.
-4. Disconnected graph → DFS from **every unvisited node**.
-5. Always think about **cycles** before traversing a graph.
-6. DFS is heavily used for **components, reachability, cycle detection, and grid problems**.
-7. Recursive DFS is usually the simplest interview implementation.
+| # | Question | Idea |
+|---|---|---|
+| 1971 | Find if Path Exists in Graph (Easy) | DFS from the source |
+| 841 | Keys and Rooms (Medium) | can DFS reach every node? |
+| 797 | All Paths From Source to Target (Medium) | DFS + backtracking |
+| 200 | Number of Islands (Medium) | DFS on a grid |
+| 133 | Clone Graph (Medium) | DFS + map |
+| 207 | Course Schedule (Medium) | DFS cycle detection |
+| 332 | Reconstruct Itinerary (Hard) | DFS on an Euler path |

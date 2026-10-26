@@ -131,7 +131,7 @@ In Asteroid Collision each asteroid is pushed once and popped at most once.
 
 | # | Question | Idea |
 |---|---|---|
-| 735 | Asteroid Collision (Medium) | this note |
-| 853 | Car Fleet (Medium) | stack of arrival times |
-| 1047 | Remove All Adjacent Duplicates In String (Easy) | cancel neighbours |
-| 2751 | Robot Collisions (Hard) | sort by position, then the same stack idea |
+| 735 | [Asteroid Collision](https://leetcode.com/problems/asteroid-collision/) (Medium) | this note |
+| 853 | [Car Fleet](https://leetcode.com/problems/car-fleet/) (Medium) | stack of arrival times |
+| 1047 | [Remove All Adjacent Duplicates In String](https://leetcode.com/problems/remove-all-adjacent-duplicates-in-string/) (Easy) | cancel neighbours |
+| 2751 | [Robot Collisions](https://leetcode.com/problems/robot-collisions/) (Hard) | sort by position, then the same stack idea |

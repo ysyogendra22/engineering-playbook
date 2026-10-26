@@ -1,359 +1,149 @@
 # In-degree / Out-degree Patterns
 
-#### 1. Definition — Must Know
+#### 1. What Is It?
 
-For a **directed graph**:
+In a **directed** graph:
 
-```text
-A → B
-```
+- **In-degree** of a node = the number of edges **coming into** it.
+- **Out-degree** of a node = the number of edges **going out** of it.
 
-1. **Out-degree of A** → number of edges leaving `A`.
-2. **In-degree of B** → number of edges entering `B`.
+Just counting these two numbers solves a surprising number of interview questions **without any DFS or BFS**.
 
-```text
-In-degree  = Incoming edges
-Out-degree = Outgoing edges
-```
+| Degree | Meaning in stories |
+|---|---|
+| in-degree `0` | nothing points to it: a "start" node, a task with no prerequisites, a source |
+| out-degree `0` | it points to nothing: an "end" node, a leaf, a sink |
+| in-degree `n - 1` and out-degree `0` | everyone points to it and it points to nobody: the **town judge** |
 
-#### 2. Example — Must Know
+For an **undirected** graph the same idea uses the plain **degree**: a node with degree `1` is a **leaf**.
 
-```text
-A → B
-A → C
-B → C
-```
+Where else degrees are used: Kahn's algorithm (note 16) is built on in-degrees. Peeling leaves finds the centre of a tree.
 
-Degrees:
+#### 2. How It Works
+
+Count the degrees in one pass over the edge list:
 
 ```text
-Node    In-degree    Out-degree
-
-A          0             2
-B          1             1
-C          2             0
+for each edge (from, to):  outDegree[from]++,  inDegree[to]++
 ```
 
-#### 3. How to Calculate — Must Know
-
-For every directed edge:
+*Find the Town Judge* (LeetCode 997): the judge trusts nobody (out-degree 0) and everybody else trusts the judge (in-degree `n - 1`).
 
 ```text
-u → v
+n = 3, trust = [[1,3],[2,3]]     edge a → b means "a trusts b"
+
+out-degree: 1→1, 2→1, 3→0
+in-degree:  3→2
+Node 3: out-degree 0 and in-degree 2 = n - 1  → the judge
 ```
 
-Update:
+*Minimum Number of Vertices to Reach All Nodes* (LeetCode 1557): in a DAG, you must start from every node with **in-degree 0**. Nothing can reach them. Every other node is reachable from one of them.
+
+*Minimum Height Trees* (LeetCode 310): the best root is at the **centre** of the tree. Remove the leaves (degree 1) layer by layer. The last one or two nodes are the centres.
+
+#### 3. Kotlin Code
 
 ```kotlin
-outdegree[u]++
-indegree[v]++
-```
-
-Implementation:
-
-```kotlin
-val indegree = IntArray(n)
-val outdegree = IntArray(n)
-
-for ((u, v) in edges) {
-    outdegree[u]++
-    indegree[v]++
-}
-```
-
-#### 4. Source and Sink — Must Know
-
-**Source**
-
-```text
-In-degree = 0
-```
-
-No incoming dependency.
-
-**Sink**
-
-```text
-Out-degree = 0
-```
-
-No outgoing edge.
-
-Example:
-
-```text
-A → B → C
-```
-
-```text
-A → Source
-C → Sink
-```
-
-#### 5. Topological Sort Pattern — Must Know
-
-In dependency graphs:
-
-```text
-inDegree[node] = number of prerequisites
-```
-
-Nodes with:
-
-```text
-inDegree == 0
-```
-
-are ready to process.
-
-This is the core of:
-
-```text
-Kahn's Algorithm
-```
-
-Pattern:
-
-```text
-Find In-degree 0
-       ↓
-Process Node
-       ↓
-Remove Its Edges
-       ↓
-Decrease Neighbor In-degree
-       ↓
-New In-degree 0 Nodes
-```
-
-#### 6. Kahn's Algorithm Logic — Must Know
-
-```kotlin
-for (node in 0 until n) {
-    if (indegree[node] == 0) {
-        queue.addLast(node)
+// Find the Town Judge (LeetCode 997): people are 1..n
+fun findJudge(n: Int, trust: Array<IntArray>): Int {
+    val inDegree = IntArray(n + 1)
+    val outDegree = IntArray(n + 1)
+    for ((a, b) in trust) {
+        outDegree[a]++
+        inDegree[b]++
     }
+    for (person in 1..n) {
+        if (inDegree[person] == n - 1 && outDegree[person] == 0) return person
+    }
+    return -1
 }
 
-while (queue.isNotEmpty()) {
+// Minimum Number of Vertices to Reach All Nodes (LeetCode 1557)
+fun findSmallestSetOfVertices(n: Int, edges: List<List<Int>>): List<Int> {
+    val hasIncoming = BooleanArray(n)
+    for (edge in edges) hasIncoming[edge[1]] = true
+    return (0 until n).filter { !hasIncoming[it] }          // the nodes with in-degree 0
+}
 
-    val node = queue.removeFirst()
+// Find Center of Star Graph (LeetCode 1791): the centre appears in every edge
+fun findCenter(edges: Array<IntArray>): Int {
+    val (a, b) = edges[0]
+    val (c, d) = edges[1]
+    return if (a == c || a == d) a else b
+}
 
-    for (neighbor in graph[node]) {
+// Minimum Height Trees (LeetCode 310): peel the leaves
+fun findMinHeightTrees(n: Int, edges: Array<IntArray>): List<Int> {
+    if (n == 1) return listOf(0)
+    val graph = List(n) { mutableListOf<Int>() }
+    val degree = IntArray(n)
+    for ((a, b) in edges) {
+        graph[a].add(b); graph[b].add(a)
+        degree[a]++; degree[b]++
+    }
+    val queue = ArrayDeque<Int>()
+    for (i in 0 until n) if (degree[i] == 1) queue.addLast(i)        // the leaves
 
-        indegree[neighbor]--
-
-        if (indegree[neighbor] == 0) {
-            queue.addLast(neighbor)
+    var remaining = n
+    while (remaining > 2) {                                           // 1 or 2 nodes are the centres
+        val size = queue.size
+        remaining -= size
+        repeat(size) {
+            val leaf = queue.removeFirst()
+            for (next in graph[leaf]) {
+                degree[next]--
+                if (degree[next] == 1) queue.addLast(next)            // it became a leaf
+            }
         }
     }
+    return queue.toList()
 }
 ```
 
-#### 7. Cycle Detection Pattern — Must Know
+Checks: `findJudge(3, [[1,3],[2,3]])` → `3`. `findSmallestSetOfVertices(6, [[0,1],[0,2],[2,5],[3,4],[4,2]])` → `[0, 3]`. `findCenter([[1,2],[2,3],[4,2]])` → `2`. `findMinHeightTrees(4, [[1,0],[1,2],[1,3]])` → `[1]`.
 
-After Kahn's Algorithm:
+#### 4. Complexity
 
-```text
-processed == V
-      ↓
-No Cycle
-```
+| | Time | Space |
+|---|---|---|
+| Count degrees | `O(V + E)` | `O(V)` |
+| Minimum Height Trees | `O(V + E)` | `O(V + E)` |
+| Find Center of Star Graph | `O(1)` | `O(1)` |
 
-If:
+#### 5. Common Mistakes
 
-```text
-processed < V
-      ↓
-Cycle Exists
-```
+1. **Mixing up in-degree and out-degree** (the direction of the edge).
+2. **Town judge:** forgetting that the judge must have out-degree `0`, or the case `n = 1` (the judge is person 1 when there are no trust edges).
+3. **Arrays too small** when people are numbered from 1.
+4. **Minimum Height Trees:** forgetting `n == 1`, and stopping at `remaining > 2` (not `> 0`).
+5. **Using degrees on a graph with cycles** and expecting a "start" node. A cycle has no node with in-degree 0.
 
-Why?
+#### 6. Say This in the Interview
 
-Nodes inside a dependency cycle never reach:
+1. "I only need counts, so I count in-degree and out-degree in one pass over the edges. That is `O(V + E)` with no search."
+2. "The judge has in-degree `n - 1` and out-degree 0."
+3. "For a tree centre I peel leaves layer by layer, which is Kahn's idea on an undirected tree."
 
-```text
-inDegree = 0
-```
+#### 7. Quick Check
 
-#### 8. Common In-degree Patterns — Must Know
+1. A node has in-degree 0 in a DAG. What does that tell you?
+2. What is the in-degree of the town judge?
 
-1. **Course prerequisites**
-   ```text
-   In-degree = remaining prerequisites
-   ```
+<details>
+<summary>Answers</summary>
 
-2. **Task scheduling**
-   ```text
-   In-degree = unfinished dependencies
-   ```
+1. Nothing points to it, so it has no prerequisites. It can go first.
+2. `n - 1`.
 
-3. **Topological Sort**
-   ```text
-   Start with In-degree 0
-   ```
+</details>
 
-4. **Cycle detection**
-   ```text
-   processed < V
-   ```
+#### 8. Related LeetCode Questions
 
-5. **Find starting/source nodes**
-   ```text
-   In-degree = 0
-   ```
-
-#### 9. Common Out-degree Patterns — Good to Know
-
-Out-degree is useful for finding:
-
-1. Terminal/sink nodes.
-
-```text
-outDegree == 0
-```
-
-2. Nodes with no outgoing dependency.
-
-3. Graph problems processed **backwards**.
-
-4. Reverse-graph patterns such as eventual safe states.
-
-Example:
-
-```text
-A → B → C
-```
-
-`C`:
-
-```text
-outDegree = 0
-```
-
-so `C` is a terminal node.
-
-#### 10. Reverse Graph Pattern — Good to Know
-
-Sometimes a problem becomes easier by reversing edges.
-
-Original:
-
-```text
-A → B
-```
-
-Reverse:
-
-```text
-B → A
-```
-
-Then original:
-
-```text
-outDegree
-```
-
-can behave like:
-
-```text
-inDegree
-```
-
-in the reversed graph.
-
-This allows Kahn-style processing from terminal nodes.
-
-#### 11. Important Property — Good to Know
-
-For any directed graph:
-
-```text
-Sum of In-degrees = E
-
-Sum of Out-degrees = E
-```
-
-Therefore:
-
-```text
-Sum of In-degrees
-=
-Sum of Out-degrees
-=
-Number of Edges
-```
-
-Useful as a basic graph property/check.
-
-#### 12. Undirected Graph Degree
-
-For an undirected graph:
-
-```text
-A — B
-```
-
-we normally just say:
-
-```text
-Degree
-```
-
-not in-degree/out-degree.
-
-Important property:
-
-```text
-Sum of Degrees = 2E
-```
-
-because every edge touches two vertices.
-
-#### 13. Complexity — Must Know
-
-Calculating all degrees:
-
-```text
-Time  → O(V + E)
-Space → O(V)
-```
-
-If only processing an edge list:
-
-```text
-Time → O(E)
-```
-
-Degree arrays:
-
-```text
-Space → O(V)
-```
-
-#### 14. Common Mistakes — Must Know
-
-1. Mixing up incoming and outgoing edges.
-2. For `u → v`, incrementing `indegree[u]` instead of `indegree[v]`.
-3. Treating undirected graphs as having in/out-degree.
-4. Forgetting to decrement in-degree during Kahn's Algorithm.
-5. Assuming there is only one in-degree `0` node.
-6. Assuming every graph has an in-degree `0` node — a directed cycle may have none.
-
-#### 15. Interview Must Remember
-
-1. `In-degree` → **incoming edges**.
-2. `Out-degree` → **outgoing edges**.
-3. For `u → v`:
-
-```text
-outDegree[u]++
-inDegree[v]++
-```
-
-4. `inDegree == 0` → source / no remaining prerequisite.
-5. `outDegree == 0` → sink / terminal node.
-6. **Kahn's Algorithm heavily depends on in-degree**.
-7. `processed < V` in Kahn → **cycle exists**.
-8. Directed graph → `Σ in-degree = Σ out-degree = E`.
+| # | Question | Idea |
+|---|---|---|
+| 997 | Find the Town Judge (Easy) | in-degree `n - 1`, out-degree `0` |
+| 1791 | Find Center of Star Graph (Easy) | the node in every edge |
+| 1557 | Minimum Number of Vertices to Reach All Nodes (Medium) | in-degree `0` nodes |
+| 310 | Minimum Height Trees (Medium) | peel leaves |
+| 207 | Course Schedule (Medium) | Kahn uses in-degrees |
+| 2285 | Maximum Total Importance of Roads (Medium) | assign the biggest values to the highest degrees |

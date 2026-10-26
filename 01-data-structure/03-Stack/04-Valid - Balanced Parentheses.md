@@ -47,7 +47,31 @@ Three ways to fail:
 2. The top is the **wrong** type.
 3. The loop ends and the stack is **not empty**.
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| | Brute force | Optimized |
+|---|---|---|
+| Idea | keep deleting `()`, `[]`, `{}` until nothing changes | one stack, match on the fly |
+| Time | `O(n²)` | `O(n)` |
+| Space | `O(n)` (new strings) | `O(n)` |
+
+The brute force is easy to write, and it is a good first answer to say out loud:
+
+```kotlin
+fun isValidBrute(s: String): Boolean {
+    var t = s
+    while (true) {
+        val r = t.replace("()", "").replace("[]", "").replace("{}", "")
+        if (r == t) break                  // nothing was removed
+        t = r
+    }
+    return t.isEmpty()                      // valid only if everything was removed
+}
+```
+
+The stack version does each match once instead of scanning the string again and again.
+
+#### 4. Kotlin Code
 
 ```kotlin
 fun isValid(s: String): Boolean {
@@ -120,14 +144,14 @@ fun longestValidParentheses(s: String): Int {
 }
 ```
 
-#### 4. Complexity
+#### 5. Complexity
 
 | Solution | Time | Space |
 |---|---|---|
 | Stack (`isValid`) | `O(n)` | `O(n)` |
 | Counter (one bracket type) | `O(n)` | `O(1)` |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Popping an empty stack** (input starts with `)`). Check `stack.isEmpty()` first.
 2. **Forgetting the final `stack.isEmpty()`** check. `"(("` would pass.
@@ -135,14 +159,14 @@ fun longestValidParentheses(s: String): Int {
 4. **Using one counter for several bracket types.** `"([)]"` would wrongly pass.
 5. **Longest Valid Parentheses:** forgetting the `-1` at the bottom.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "I push opening brackets and match each closing bracket against the top."
 2. "It fails if the stack is empty on a closing bracket, if the types differ, or if the stack is not empty at the end."
 3. "Time `O(n)`, space `O(n)`. With one bracket type a counter gives `O(1)` space."
 4. "An odd length can never be valid, so I can return false immediately."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. Is `"(()"` valid? Why?
 2. Is `"{[}]"` valid? Why?
@@ -155,13 +179,13 @@ fun longestValidParentheses(s: String): Int {
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|
-| 20 | Valid Parentheses (Easy) | this note |
-| 921 | Minimum Add to Make Parentheses Valid (Medium) | counter |
-| 1249 | Minimum Remove to Make Valid Parentheses (Medium) | stack of indexes |
-| 32 | Longest Valid Parentheses (Hard) | stack of indexes with `-1` |
-| 22 | Generate Parentheses (Medium) | backtracking, not a stack |
-| 678 | Valid Parenthesis String (Medium) | counter with a range for `*` |
+| 20 | [Valid Parentheses](https://leetcode.com/problems/valid-parentheses/) (Easy) | this note |
+| 921 | [Minimum Add to Make Parentheses Valid](https://leetcode.com/problems/minimum-add-to-make-parentheses-valid/) (Medium) | counter |
+| 1249 | [Minimum Remove to Make Valid Parentheses](https://leetcode.com/problems/minimum-remove-to-make-valid-parentheses/) (Medium) | stack of indexes |
+| 32 | [Longest Valid Parentheses](https://leetcode.com/problems/longest-valid-parentheses/) (Hard) | stack of indexes with `-1` |
+| 22 | [Generate Parentheses](https://leetcode.com/problems/generate-parentheses/) (Medium) | backtracking, not a stack |
+| 678 | [Valid Parenthesis String](https://leetcode.com/problems/valid-parenthesis-string/) (Medium) | counter with a range for `*` |

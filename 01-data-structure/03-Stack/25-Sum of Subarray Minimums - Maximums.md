@@ -44,7 +44,33 @@ index 1: left 2, right 1 → 2 subarrays
 total 3 subarrays, sum = 2×1 + 2×2 = 6   ✓ (the three minimums are 2, 2, 2)
 ```
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| | Brute force | Optimized |
+|---|---|---|
+| Idea | for each start, extend the end and keep a running minimum | count the subarrays each element is the minimum of |
+| Time | `O(n²)` | `O(n)` |
+| Space | `O(1)` | `O(n)` |
+
+The brute force is easy to write, and it is a good first answer to say out loud:
+
+```kotlin
+fun sumSubarrayMinsBrute(arr: IntArray): Long {
+    var total = 0L
+    for (i in arr.indices) {
+        var minimum = Int.MAX_VALUE
+        for (j in i until arr.size) {
+            minimum = minOf(minimum, arr[j])      // the minimum of arr[i..j]
+            total += minimum
+        }
+    }
+    return total
+}
+```
+
+This is already `O(n²)`, which times out for large `n`. The contribution method needs only one pass.
+
+#### 4. Kotlin Code
 
 ```kotlin
 private const val MOD = 1_000_000_007L
@@ -100,14 +126,14 @@ fun sumSubarrayMaxs(arr: IntArray): Int {
 
 Checks: `sumSubarrayMins([3,1,2,4])` → `17`. `sumSubarrayMins([11,81,94,43,3])` → `444`. `sumSubarrayMins([2,2])` → `6`. `sumSubarrayMaxs([3,1,2,4])` → `30` (the maximums are `3, 1, 2, 4, 3, 2, 4, 3, 4, 4`).
 
-#### 4. Complexity
+#### 5. Complexity
 
 | | Time | Space |
 |---|---|---|
 | Contribution + monotonic stack | `O(n)` | `O(n)` |
 | Check every subarray | `O(n²)` | `O(1)` |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Ties.** Strict on one side, non-strict on the other. Never the same on both.
 2. **Forgetting `right[j] = n - j`** for the numbers left in the stack.
@@ -116,14 +142,14 @@ Checks: `sumSubarrayMins([3,1,2,4])` → `17`. `sumSubarrayMins([11,81,94,43,3])
 5. **Mixing `left` as a distance (`i - prev`) with `left` as an index (`prev`).**
 6. **Using the minimum code for the maximum** without flipping both comparisons.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "For each element I count the subarrays where it is the minimum. That is `left × right`, so it adds `value × left × right` to the answer."
 2. "I find the previous strictly smaller and the next smaller-or-equal element with one monotonic stack pass."
 3. "Strict on one side and non-strict on the other makes each subarray count once, even with duplicates."
 4. "Time `O(n)`, space `O(n)`. I use `Long` and take the modulo."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. What is `sumSubarrayMins([5])`?
 2. In `[1, 2]`, what are the subarray minimums, and their sum?
@@ -136,12 +162,12 @@ Checks: `sumSubarrayMins([3,1,2,4])` → `17`. `sumSubarrayMins([11,81,94,43,3])
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|
-| 907 | Sum of Subarray Minimums (Medium) | this note |
-| 2104 | Sum of Subarray Ranges (Medium) | maximums minus minimums |
-| 1856 | Maximum Subarray Min-Product (Medium) | same limits + prefix sums |
-| 2281 | Sum of Total Strength of Wizards (Hard) | contribution + prefix sums of prefix sums |
-| 84 | Largest Rectangle in Histogram (Hard) | same left and right limits |
+| 907 | [Sum of Subarray Minimums](https://leetcode.com/problems/sum-of-subarray-minimums/) (Medium) | this note |
+| 2104 | [Sum of Subarray Ranges](https://leetcode.com/problems/sum-of-subarray-ranges/) (Medium) | maximums minus minimums |
+| 1856 | [Maximum Subarray Min-Product](https://leetcode.com/problems/maximum-subarray-min-product/) (Medium) | same limits + prefix sums |
+| 2281 | [Sum of Total Strength of Wizards](https://leetcode.com/problems/sum-of-total-strength-of-wizards/) (Hard) | contribution + prefix sums of prefix sums |
+| 84 | [Largest Rectangle in Histogram](https://leetcode.com/problems/largest-rectangle-in-histogram/) (Hard) | same left and right limits |

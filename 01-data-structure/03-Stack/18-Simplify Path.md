@@ -109,7 +109,7 @@ class Navigator {
 
 | # | Question | Idea |
 |---|---|---|
-| 71 | Simplify Path (Medium) | this note |
-| 1598 | Crawler Log Folder (Easy) | only the depth counter is needed |
-| 1472 | Design Browser History (Medium) | back and forward stacks |
-| 844 | Backspace String Compare (Easy) | pop to undo |
+| 71 | [Simplify Path](https://leetcode.com/problems/simplify-path/) (Medium) | this note |
+| 1598 | [Crawler Log Folder](https://leetcode.com/problems/crawler-log-folder/) (Easy) | only the depth counter is needed |
+| 1472 | [Design Browser History](https://leetcode.com/problems/design-browser-history/) (Medium) | back and forward stacks |
+| 844 | [Backspace String Compare](https://leetcode.com/problems/backspace-string-compare/) (Easy) | pop to undo |

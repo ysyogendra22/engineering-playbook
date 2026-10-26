@@ -1,331 +1,138 @@
 # Union by Rank / Size
 
-#### 1. Definition — Must Know
+#### 1. What Is It?
 
-1. **Union by Rank / Size** is an optimization used in **Union-Find / DSU**.
-2. It prevents DSU trees from becoming unnecessarily deep.
-3. When merging two components, attach the **smaller/shorter tree under the larger/taller tree**.
+**Union by size** (or **union by rank**) is the second trick that keeps Union-Find fast.
 
-```text id="urs01"
-Smaller Tree
-     ↓
-Larger Tree
+When you merge two groups, attach the **smaller** tree under the **bigger** tree's root. This stops the trees from becoming tall chains.
+
+- **Size:** the number of nodes in the tree.
+- **Rank:** an upper bound of the tree's height.
+
+Both work. **Size** is easier to explain and also lets you read the size of a group. Most interview solutions use size.
+
+#### 2. How It Works
+
+```text
+Group A (root 0, size 3):  0 ← 1, 0 ← 2          Group B (root 5, size 1): just 5
+
+union(0, 5):
+   size[A] = 3, size[B] = 1 → attach B under A
+
+Result: root 0, size 4.     find(5) = 5 → 0   (2 steps)
+
+If we had attached A under B instead, then 0, 1 and 2 would be deeper (3 steps each).
 ```
 
-#### 2. Why It Is Needed — Must Know
+Rule: the root with the smaller size gets a new parent: the root with the bigger size.
 
-Without optimization, unions may create a deep tree:
+With union by size, the height of any tree is at most `log n`. So `find` costs `O(log n)` even without path compression. With both tricks, `O(α(n))`.
 
-```text id="urs02"
-4 → 3 → 2 → 1 → 0
-```
+#### 3. Kotlin Code
 
-Deep trees make:
-
-```text id="urs03"
-find()
-```
-
-slower.
-
-Union by Rank/Size keeps the tree shallow.
-
-#### 3. Union by Size — Must Know
-
-`size[root]` stores the number of nodes in that component.
-
-Example:
-
-```text id="urs04"
-Component A        Component B
-
-    0                  3
-   / \                 |
-  1   2                4
-
-Size = 3           Size = 2
-```
-
-When merging:
-
-```text id="urs05"
-union(0, 3)
-```
-
-Attach the smaller component under the larger:
-
-```text id="urs06"
-      0
-    / | \
-   1  2  3
-         |
-         4
-```
-
-Then:
-
-```text id="urs07"
-size[0] = 3 + 2 = 5
-```
-
-#### 4. Union by Size Logic — Must Know
-
-```text id="urs08"
-1. Find rootA.
-2. Find rootB.
-3. If same root → already connected.
-4. Compare their sizes.
-5. Attach smaller root under larger root.
-6. Update size of larger component.
-```
-
-#### 5. Kotlin — Union by Size — Recommended
-
-```kotlin id="urs09"
-class DSU(n: Int) {
-
+```kotlin
+class UnionFindBySize(n: Int) {
     private val parent = IntArray(n) { it }
     private val size = IntArray(n) { 1 }
+    var count = n
+        private set
 
     fun find(x: Int): Int {
-
-        if (parent[x] != x) {
-            parent[x] = find(parent[x])
-        }
-
+        if (parent[x] != x) parent[x] = find(parent[x])      // path compression (note 24)
         return parent[x]
     }
 
     fun union(a: Int, b: Int): Boolean {
-
         var rootA = find(a)
         var rootB = find(b)
-
-        if (rootA == rootB) {
-            return false
+        if (rootA == rootB) return false
+        if (size[rootA] < size[rootB]) {                     // make A the bigger one
+            val temp = rootA; rootA = rootB; rootB = temp
         }
-
-        if (size[rootA] < size[rootB]) {
-            val temp = rootA
-            rootA = rootB
-            rootB = temp
-        }
-
-        parent[rootB] = rootA
+        parent[rootB] = rootA                                // the smaller goes under the bigger
         size[rootA] += size[rootB]
-
+        count--
         return true
     }
-}
-```
 
-Important part:
-
-```kotlin id="urs10"
-if (size[rootA] < size[rootB]) {
-    val temp = rootA
-    rootA = rootB
-    rootB = temp
+    fun sizeOf(x: Int) = size[find(x)]                       // size of the group that contains x
 }
 
-parent[rootB] = rootA
-size[rootA] += size[rootB]
-```
-
-#### 6. Union by Rank — Must Know
-
-`rank` represents an estimate of the tree's **height/depth**.
-
-Rule:
-
-```text id="urs11"
-Lower Rank
-    ↓
-Higher Rank
-```
-
-If both ranks are equal:
-
-```text id="urs12"
-Attach one under the other
-          ↓
-Increase new root's rank by 1
-```
-
-#### 7. Kotlin — Union by Rank
-
-```kotlin id="urs13"
-class DSU(n: Int) {
-
+// Union by rank (the other version)
+class UnionFindByRank(n: Int) {
     private val parent = IntArray(n) { it }
     private val rank = IntArray(n)
 
     fun find(x: Int): Int {
-
-        if (parent[x] != x) {
-            parent[x] = find(parent[x])
-        }
-
+        if (parent[x] != x) parent[x] = find(parent[x])
         return parent[x]
     }
 
     fun union(a: Int, b: Int): Boolean {
-
         val rootA = find(a)
         val rootB = find(b)
-
-        if (rootA == rootB) {
-            return false
+        if (rootA == rootB) return false
+        when {
+            rank[rootA] < rank[rootB] -> parent[rootA] = rootB
+            rank[rootA] > rank[rootB] -> parent[rootB] = rootA
+            else -> { parent[rootB] = rootA; rank[rootA]++ }     // equal ranks: the new root grows by 1
         }
-
-        if (rank[rootA] < rank[rootB]) {
-
-            parent[rootA] = rootB
-
-        } else if (rank[rootA] > rank[rootB]) {
-
-            parent[rootB] = rootA
-
-        } else {
-
-            parent[rootB] = rootA
-            rank[rootA]++
-        }
-
         return true
     }
 }
+
+// Largest group size (e.g. Largest Component Size, biggest friend circle)
+fun largestGroup(n: Int, pairs: Array<IntArray>): Int {
+    val uf = UnionFindBySize(n)
+    for ((a, b) in pairs) uf.union(a, b)
+    return (0 until n).maxOf { uf.sizeOf(it) }
+}
 ```
 
-#### 8. Rank vs Size — Must Know
+Check: `largestGroup(5, [[0,1],[1,2],[3,4]])` → `3`.
 
-```text id="urs14"
-Union by Size              Union by Rank
+#### 4. Complexity
 
-Tracks node count          Tracks tree height/rank
-size[root]                 rank[root]
+| Tricks used | Time per operation |
+|---|---|
+| none | `O(n)` |
+| union by size only | `O(log n)` |
+| path compression only | `O(log n)` amortized |
+| **both** | **`O(α(n))`** (almost constant) |
 
-Smaller → Larger           Shorter → Taller
+#### 5. Common Mistakes
 
-Update size after merge    Increase rank only
-                           when ranks are equal
-```
+1. **Comparing the sizes of the nodes** and not of their roots. Always `find` first.
+2. **Updating the size of the wrong root.** Add to the root that stays.
+3. **Forgetting to update `size`** after a union.
+4. **Mixing up size and rank.** Pick one and keep it consistent.
+5. **Using only this trick** and thinking it makes `find` constant. You also want path compression.
 
-Both solve the same main problem:
+#### 6. Say This in the Interview
 
-```text id="urs15"
-Keep DSU trees shallow
-```
+1. "When I union two groups, I attach the smaller tree under the bigger one, so trees stay shallow."
+2. "With path compression as well, each operation is `O(α(n))`, which is practically constant."
+3. "Tracking size also lets me answer 'how big is this group?' directly."
 
-#### 9. Which One Should You Use?
+#### 7. Quick Check
 
-For interviews, choose **one**.
+1. Which root becomes the parent in a union by size?
+2. What is the height of a tree with union by size, at most?
 
-Recommended:
+<details>
+<summary>Answers</summary>
 
-```text id="urs16"
-Path Compression
-      +
-Union by Size
-```
+1. The root of the bigger group.
+2. About `log n`.
 
-Why?
+</details>
 
-1. Easy to understand.
-2. Easy to implement.
-3. Size can also tell you how many nodes are in a component.
-4. Same practical performance as Union by Rank.
+#### 8. Related LeetCode Questions
 
-You do **not** need to implement both Rank and Size together.
-
-#### 10. Path Compression vs Union by Rank/Size
-
-```text id="urs17"
-Path Compression
-      ↓
-Optimizes find()
-      ↓
-Flattens existing paths
-
-
-Union by Rank/Size
-      ↓
-Optimizes union()
-      ↓
-Prevents deep paths from forming
-```
-
-Best combination:
-
-```text id="urs18"
-Path Compression
-        +
-Union by Rank / Size
-        ↓
-Efficient DSU
-```
-
-#### 11. Complexity — Must Know
-
-With:
-
-```text id="urs19"
-Path Compression
-+
-Union by Rank / Size
-```
-
-amortized complexity:
-
-```text id="urs20"
-Find  → O(α(N))
-Union → O(α(N))
-```
-
-Practically:
-
-```text id="urs21"
-≈ O(1)
-```
-
-Space:
-
-```text id="urs22"
-O(N)
-```
-
-#### 12. Common Mistakes — Must Know
-
-1. Comparing `size[a]` and `size[b]` instead of their roots.
-
-Correct:
-
-```kotlin id="urs23"
-val rootA = find(a)
-val rootB = find(b)
-```
-
-2. Updating size on the wrong root.
-
-3. Increasing rank after every union.
-
-Rank increases only when:
-
-```text id="urs24"
-rank[rootA] == rank[rootB]
-```
-
-4. Using both Rank and Size unnecessarily.
-
-5. Forgetting Path Compression in `find()`.
-
-#### 13. Interview Must Remember
-
-1. Union by Rank/Size is a **DSU optimization**.
-2. Goal → keep trees **shallow**.
-3. Size → attach **smaller component under larger**.
-4. Rank → attach **lower-rank tree under higher-rank tree**.
-5. If ranks are equal → merge and increment the new root's rank.
-6. Use **Rank OR Size**, not both.
-7. Recommended interview implementation → **Path Compression + Union by Size**.
-8. Optimized DSU operations → `O(α(N))` amortized.
+| # | Question | Idea |
+|---|---|---|
+| 684 | Redundant Connection (Medium) | union-find |
+| 721 | Accounts Merge (Medium) | union-find on emails |
+| 947 | Most Stones Removed with Same Row or Column (Medium) | union rows and columns |
+| 952 | Largest Component Size by Common Factor (Hard) | group size with union-find |
+| 1319 | Number of Operations to Make Network Connected (Medium) | groups − 1 |

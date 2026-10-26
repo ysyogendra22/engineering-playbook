@@ -1,390 +1,150 @@
 # Graph Cloning
 
-#### 1. Definition — Must Know
+#### 1. What Is It?
 
-1. **Graph Cloning** means creating a **deep copy** of a graph.
-2. Every original node gets a new cloned node.
-3. All connections between nodes must be recreated using the **cloned nodes**.
-4. The cloned graph must not reference original nodes.
+**Graph cloning** means making a **deep copy** of a graph: new node objects with the same values and the same connections. Changing the copy must not change the original.
 
-```text id="gc01"
-Original Graph        Cloned Graph
+It is *Clone Graph* (LeetCode 133). Its trick is simple:
 
-1 --- 2               1' --- 2'
-|     |               |      |
-4 --- 3               4' --- 3'
+> Keep a **map from each original node to its clone**. The map is also your **visited** set.
+
+Why a map?
+
+- A node can be reached from many neighbours. You must create its clone **only once**.
+- Graphs have cycles. Without the map you would clone the same nodes forever.
+
+The same idea copies a linked list with random pointers (LeetCode 138).
+
+#### 2. How It Works
+
+Graph: `1 — 2`, `2 — 3`, `3 — 1` (a triangle). Each node stores its neighbours.
+
+```text
+clone(1):
+   no clone of 1 yet → create 1', put 1 → 1' in the map            (before visiting neighbours!)
+   neighbours of 1: 2 and 3
+      clone(2): create 2', map 2 → 2'
+         neighbours of 2: 1 (already in the map → use 1'), 3
+         clone(3): create 3', map 3 → 3'
+            neighbours of 3: 2 (in the map → 2'), 1 (in the map → 1')
+         ...
 ```
 
-#### 2. Why It Is Tricky — Must Know
+Two rules:
 
-Graphs can contain:
+1. **Put the clone in the map before visiting the neighbours.** Otherwise a cycle sends you back to the same node with no clone yet.
+2. **If the node is already in the map, return its clone** without creating a new one.
 
-```text id="gc02"
-Cycles
-Shared Neighbors
-Multiple Paths
-```
+Works with DFS (recursion) or BFS (queue).
 
-Example:
+#### 3. Kotlin Code
 
-```text id="gc03"
-1 → 2 → 3
-↑       |
-└───────┘
-```
-
-Without tracking already-cloned nodes, recursion can continue forever or create duplicate clones.
-
-Therefore we need:
-
-```text id="gc04"
-Original Node → Cloned Node
-```
-
-Usually:
-
-```text id="gc05"
-HashMap<Node, Node>
-```
-
-#### 3. Core Pattern — Must Know
-
-The most important idea:
-
-```text id="gc06"
-Map<Original, Clone>
-```
-
-The map does two jobs:
-
-1. Acts like `visited`.
-2. Stores the corresponding cloned node.
-
-Example:
-
-```text id="gc07"
-Original     Clone
-
-Node 1   →   Node 1'
-Node 2   →   Node 2'
-Node 3   →   Node 3'
-```
-
-#### 4. Node Structure
-
-Typical graph node:
-
-```kotlin id="gc08"
-class Node(
-    val value: Int
-) {
-    val neighbors = mutableListOf<Node>()
+```kotlin
+class Node(var `val`: Int) {
+    var neighbors: MutableList<Node> = mutableListOf()
 }
-```
 
-#### 5. DFS Logic — Must Know
-
-```text id="gc09"
-clone(node):
-
-1. If node already exists in map:
-      return existing clone
-
-2. Create clone of current node.
-
-3. Store it in map immediately.
-
-4. Visit every neighbor.
-
-5. Clone each neighbor recursively.
-
-6. Add cloned neighbors to cloned node.
-
-7. Return cloned node.
-```
-
-Important:
-
-```text id="gc10"
-Create Clone
-     ↓
-Store in Map
-     ↓
-Clone Neighbors
-```
-
-Store the clone **before** exploring neighbors because the graph may contain cycles.
-
-#### 6. Kotlin DFS Implementation — Must Know
-
-```kotlin id="gc11"
+// DFS
 fun cloneGraph(node: Node?): Node? {
+    if (node == null) return null
+    val clones = HashMap<Node, Node>()                 // original → clone
 
-    if (node == null) {
-        return null
-    }
-
-    val clones = HashMap<Node, Node>()
-
-    fun dfs(current: Node): Node {
-
-        if (clones.containsKey(current)) {
-            return clones[current]!!
+    fun dfs(original: Node): Node {
+        clones[original]?.let { return it }            // already cloned → reuse it
+        val clone = Node(original.`val`)
+        clones[original] = clone                       // register BEFORE visiting the neighbours
+        for (neighbour in original.neighbors) {
+            clone.neighbors.add(dfs(neighbour))
         }
-
-        val clone = Node(current.value)
-
-        clones[current] = clone
-
-        for (neighbor in current.neighbors) {
-
-            clone.neighbors.add(
-                dfs(neighbor)
-            )
-        }
-
         return clone
     }
 
     return dfs(node)
 }
-```
 
-#### 7. Why Store Before DFS? — Must Know
-
-Suppose:
-
-```text id="gc12"
-1 --- 2
-|     |
-└─────┘
-```
-
-During:
-
-```text id="gc13"
-clone(1)
-   ↓
-clone(2)
-   ↓
-clone(1)
-```
-
-If `1` was not already stored in the map:
-
-```text id="gc14"
-1 → 2 → 1 → 2 → ...
-```
-
-Infinite recursion.
-
-Correct:
-
-```text id="gc15"
-Create clone(1)
-Store clone(1)
-Then explore node 2
-```
-
-#### 8. BFS Approach — Good to Know
-
-Graph cloning can also use BFS.
-
-Core logic:
-
-```text id="gc16"
-1. Create clone of start node.
-
-2. Store original → clone in map.
-
-3. Add original node to Queue.
-
-4. For every neighbor:
-
-   if neighbor not cloned:
-       create clone
-       store in map
-       add original neighbor to Queue
-
-5. Connect current clone to neighbor clone.
-```
-
-#### 9. Kotlin BFS Implementation
-
-```kotlin id="gc17"
-fun cloneGraph(node: Node?): Node? {
-
-    if (node == null) {
-        return null
-    }
-
+// BFS
+fun cloneGraphBfs(node: Node?): Node? {
+    if (node == null) return null
     val clones = HashMap<Node, Node>()
+    clones[node] = Node(node.`val`)
     val queue = ArrayDeque<Node>()
-
-    clones[node] = Node(node.value)
     queue.addLast(node)
-
     while (queue.isNotEmpty()) {
-
-        val current = queue.removeFirst()
-
-        for (neighbor in current.neighbors) {
-
-            if (!clones.containsKey(neighbor)) {
-
-                clones[neighbor] = Node(neighbor.value)
-                queue.addLast(neighbor)
+        val original = queue.removeFirst()
+        for (neighbour in original.neighbors) {
+            if (neighbour !in clones) {
+                clones[neighbour] = Node(neighbour.`val`)     // create the clone when first seen
+                queue.addLast(neighbour)
             }
-
-            clones[current]!!.neighbors.add(
-                clones[neighbor]!!
-            )
+            clones.getValue(original).neighbors.add(clones.getValue(neighbour))
         }
     }
-
-    return clones[node]
+    return clones.getValue(node)
 }
 ```
 
-#### 10. Time & Space Complexity — Must Know
+Check: for the triangle `1—2—3—1`, the clone has 3 new nodes, each with 2 neighbours, none of them an original node.
 
-Every node is cloned once and every edge is processed.
+Copy a linked list with random pointers (LeetCode 138) in the same way:
 
-```text id="gc18"
-Time → O(V + E)
+```kotlin
+class ListNode(var `val`: Int) { var next: ListNode? = null; var random: ListNode? = null }
+
+fun copyRandomList(head: ListNode?): ListNode? {
+    if (head == null) return null
+    val copy = HashMap<ListNode, ListNode>()
+    var cur: ListNode? = head
+    while (cur != null) { copy[cur] = ListNode(cur.`val`); cur = cur.next }     // pass 1: create copies
+    cur = head
+    while (cur != null) {                                                        // pass 2: connect them
+        val c = copy.getValue(cur)
+        c.next = cur.next?.let { copy[it] }
+        c.random = cur.random?.let { copy[it] }
+        cur = cur.next
+    }
+    return copy[head]
+}
 ```
 
-Map stores up to `V` nodes.
+#### 4. Complexity
 
-DFS recursion / BFS queue:
+| | Time | Space |
+|---|---|---|
+| Clone Graph | `O(V + E)` | `O(V)` (the map + the recursion or queue) |
+| Copy List with Random Pointer | `O(n)` | `O(n)` |
 
-```text id="gc19"
-Extra Space → O(V)
-```
+#### 5. Common Mistakes
 
-The cloned graph itself requires:
+1. **Adding the clone to the map after visiting the neighbours.** A cycle loops forever.
+2. **Creating a new clone for a node that already has one.**
+3. **Giving the clone the original's neighbour objects.** That is a shallow copy.
+4. **Giving the node class an `equals()` based on the value.** Two different nodes with the same value would share one map entry. Keep identity equality.
+5. **Forgetting the empty graph** (`null`).
 
-```text id="gc20"
-O(V + E)
-```
+#### 6. Say This in the Interview
 
-#### 11. Shallow Copy vs Deep Copy — Must Know
+1. "I use a HashMap from each original node to its clone. It also works as my visited set."
+2. "I put the clone in the map before visiting the neighbours, so cycles do not cause an infinite loop."
+3. "Time `O(V + E)`, space `O(V)`."
 
-Wrong:
+#### 7. Quick Check
 
-```text id="gc21"
-Clone Node
-   ↓
-Reuse original neighbors
-```
+1. Why do we need the map?
+2. When must the clone be stored in the map?
 
-That is not a proper graph clone.
+<details>
+<summary>Answers</summary>
 
-Correct:
+1. To create each clone only once and to avoid looping forever on cycles.
+2. Before visiting the neighbours.
 
-```text id="gc22"
-Original Node → New Node
+</details>
 
-Original Neighbor → New Neighbor
-```
+#### 8. Related LeetCode Questions
 
-Every node must be newly created.
-
-#### 12. DFS vs BFS
-
-```text id="gc23"
-DFS                         BFS
-
-Recursion / Stack           Queue
-
-Simple implementation       Avoids deep recursion
-
-Map required                Map required
-
-O(V + E)                    O(V + E)
-```
-
-For interviews:
-
-```text id="gc24"
-DFS + HashMap
-```
-
-is usually the simplest approach.
-
-#### 13. Common Interview Patterns — Must Know
-
-Graph cloning mainly tests whether you understand:
-
-1. Graph traversal.
-2. Cycles.
-3. Deep copy.
-4. HashMap mapping.
-5. DFS/BFS.
-6. Shared references.
-
-Core pattern:
-
-```text id="gc25"
-Traversal
-+
-Original → Clone Map
-```
-
-#### 14. Common Edge Cases — Must Know
-
-1. `node == null`.
-2. Single node.
-3. Self-loop.
-4. Cyclic graph.
-5. Multiple nodes sharing the same neighbor.
-6. Duplicate connections if allowed by the input.
-
-Self-loop:
-
-```text id="gc26"
-A ──┐
-↑   |
-└───┘
-```
-
-The cloned node must point to **itself**, not the original node.
-
-#### 15. Common Mistakes — Must Know
-
-1. Creating multiple clones for the same node.
-2. Not using a HashMap.
-3. Storing the clone only after processing neighbors.
-4. Infinite recursion because of cycles.
-5. Connecting cloned nodes to original neighbors.
-6. Using node value as the map key when values are not guaranteed unique.
-
-Prefer:
-
-```kotlin id="gc27"
-HashMap<Node, Node>()
-```
-
-instead of:
-
-```kotlin id="gc28"
-HashMap<Int, Node>()
-```
-
-unless node values are guaranteed unique.
-
-#### 16. Interview Must Remember
-
-1. Graph Cloning = **deep copy of a graph**.
-2. Use **DFS or BFS**.
-3. Maintain:
-
-```text id="gc29"
-Original Node → Cloned Node
-```
-
-4. HashMap also acts as `visited`.
-5. **Store clone before exploring neighbors**.
-6. Never connect cloned nodes to original nodes.
-7. Complexity → **`O(V + E)`**.
-8. Core interview pattern → **Graph Traversal + HashMap**.
+| # | Question | Idea |
+|---|---|---|
+| 133 | Clone Graph (Medium) | map original → clone |
+| 138 | Copy List with Random Pointer (Medium) | map original → copy |
+| 1485 | Clone Binary Tree With Random Pointer (Medium, premium) | map original → clone |
+| 1490 | Clone N-ary Tree (Medium, premium) | map original → clone |

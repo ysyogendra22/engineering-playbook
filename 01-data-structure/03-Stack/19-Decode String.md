@@ -146,8 +146,8 @@ The output can be much longer than the input, for example `"100[100[a]]"` gives 
 
 | # | Question | Idea |
 |---|---|---|
-| 394 | Decode String (Medium) | this note |
-| 726 | Number of Atoms (Hard) | the same idea with a stack of maps |
-| 224 | Basic Calculator (Hard) | save and restore at brackets |
-| 1190 | Reverse Substrings Between Each Pair of Parentheses (Medium) | stack of partial strings |
-| 385 | Mini Parser (Medium) | nested lists |
+| 394 | [Decode String](https://leetcode.com/problems/decode-string/) (Medium) | this note |
+| 726 | [Number of Atoms](https://leetcode.com/problems/number-of-atoms/) (Hard) | the same idea with a stack of maps |
+| 224 | [Basic Calculator](https://leetcode.com/problems/basic-calculator/) (Hard) | save and restore at brackets |
+| 1190 | [Reverse Substrings Between Each Pair of Parentheses](https://leetcode.com/problems/reverse-substrings-between-each-pair-of-parentheses/) (Medium) | stack of partial strings |
+| 385 | [Mini Parser](https://leetcode.com/problems/mini-parser/) (Medium) | nested lists |

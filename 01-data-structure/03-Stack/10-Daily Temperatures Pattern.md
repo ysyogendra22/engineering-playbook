@@ -36,7 +36,31 @@ i=7 (73): 73 < 76 → push                               waiting: [6, 7]
 Days 6 and 7 never get popped → answer stays 0.
 ```
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| | Brute force | Optimized |
+|---|---|---|
+| Idea | for each day, look ahead for a warmer day | stack of waiting days |
+| Time | `O(n²)` | `O(n)` |
+| Space | `O(1)` extra | `O(n)` |
+
+The brute force is easy to write, and it is a good first answer to say out loud:
+
+```kotlin
+fun dailyTemperaturesBrute(temps: IntArray): IntArray {
+    val answer = IntArray(temps.size)
+    for (i in temps.indices) {
+        for (j in i + 1 until temps.size) {
+            if (temps[j] > temps[i]) { answer[i] = j - i; break }
+        }
+    }
+    return answer
+}
+```
+
+Say it in the interview: "brute force is `O(n²)`; a monotonic stack makes it `O(n)`."
+
+#### 4. Kotlin Code
 
 ```kotlin
 fun dailyTemperatures(temperatures: IntArray): IntArray {
@@ -55,14 +79,14 @@ fun dailyTemperatures(temperatures: IntArray): IntArray {
 
 Checks: `dailyTemperatures([73,74,75,71,69,72,76,73])` → `[1,1,4,2,1,1,0,0]`. `dailyTemperatures([30,40,50,60])` → `[1,1,1,0]`. `dailyTemperatures([30,60,90])` → `[1,1,0]`.
 
-#### 4. Complexity
+#### 5. Complexity
 
 | | Time | Space |
 |---|---|---|
 | Monotonic stack | `O(n)` | `O(n)` |
 | Brute force | `O(n²)` | `O(1)` |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Storing temperatures in the stack.** You then cannot compute `i - day`. Store **indexes**.
 2. **Writing the temperature as the answer.** The answer is a **distance**: `i - day`.
@@ -70,14 +94,14 @@ Checks: `dailyTemperatures([73,74,75,71,69,72,76,73])` → `[1,1,4,2,1,1,0,0]`. 
 4. **Forgetting that waiting days stay `0`.**
 5. **Reading `stack.last()` on an empty stack.** Check `isNotEmpty()`.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "Brute force is `O(n²)`. I will use a monotonic stack of day indexes."
 2. "When today is warmer than the top day, I pop it and set its answer to the difference of indexes."
 3. "Each day is pushed and popped once. Time `O(n)`, space `O(n)`."
 4. "Days left in the stack have no warmer day, so they stay `0`."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. What is the answer for `[50, 40, 30]`?
 2. What is the answer for `[30, 30, 30]`?
@@ -90,12 +114,12 @@ Checks: `dailyTemperatures([73,74,75,71,69,72,76,73])` → `[1,1,4,2,1,1,0,0]`. 
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|
-| 739 | Daily Temperatures (Medium) | this note |
-| 496 | Next Greater Element I (Easy) | value instead of distance |
-| 503 | Next Greater Element II (Medium) | circular array |
-| 1475 | Final Prices With a Special Discount in a Shop (Easy) | next smaller or equal |
-| 901 | Online Stock Span (Medium) | the previous direction |
+| 739 | [Daily Temperatures](https://leetcode.com/problems/daily-temperatures/) (Medium) | this note |
+| 496 | [Next Greater Element I](https://leetcode.com/problems/next-greater-element-i/) (Easy) | value instead of distance |
+| 503 | [Next Greater Element II](https://leetcode.com/problems/next-greater-element-ii/) (Medium) | circular array |
+| 1475 | [Final Prices With a Special Discount in a Shop](https://leetcode.com/problems/final-prices-with-a-special-discount-in-a-shop/) (Easy) | next smaller or equal |
+| 901 | [Online Stock Span](https://leetcode.com/problems/online-stock-span/) (Medium) | the previous direction |

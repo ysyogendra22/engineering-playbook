@@ -48,7 +48,33 @@ num = "1432219", k = 3
 
 **Backspace String Compare**: `#` means "delete the previous character". Build each string with a stack. `#` pops.
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| | Brute force | Optimized |
+|---|---|---|
+| Idea (Remove K Digits) | remove one digit at a time, `k` times | one pass with an increasing stack |
+| Time | `O(n · k)` | `O(n)` |
+| Space | `O(n)` | `O(n)` |
+
+The brute force is easy to write, and it is a good first answer to say out loud:
+
+```kotlin
+fun removeKdigitsBrute(num: String, k: Int): String {
+    var s = num
+    repeat(k) {
+        if (s.isEmpty()) return "0"
+        var idx = 0
+        while (idx < s.length - 1 && s[idx] <= s[idx + 1]) idx++       // the first digit bigger than the next one
+        s = s.removeRange(idx, idx + 1)
+    }
+    val result = s.trimStart('0')
+    return if (result.isEmpty()) "0" else result
+}
+```
+
+The stack removes the same digits, but each digit is pushed and popped only once.
+
+#### 4. Kotlin Code
 
 ```kotlin
 // Basic Calculator II: non-negative integers, + - * /, spaces allowed
@@ -139,7 +165,7 @@ fun backspaceCompare(s: String, t: String): Boolean {
 
 Checks: `calculate("3+2*2")` → `7`. `calculate(" 3/2 ")` → `1`. `calculateWithBrackets("1-(2+3)")` → `-4`. `calculateWithBrackets("(1+(4+5+2)-3)+(6+8)")` → `23`. `removeKdigits("1432219", 3)` → `"1219"`. `removeKdigits("10200", 1)` → `"200"`. `removeKdigits("10", 2)` → `"0"`. `backspaceCompare("ab#c", "ad#c")` → `true`.
 
-#### 4. Complexity
+#### 5. Complexity
 
 | Problem | Time | Space |
 |---|---|---|
@@ -148,7 +174,7 @@ Checks: `calculate("3+2*2")` → `7`. `calculate(" 3/2 ")` → `1`. `calculateWi
 | Remove K Digits | `O(n)` | `O(n)` |
 | Backspace String Compare | `O(n)` | `O(n)` |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Forgetting the last number.** No operator follows it, so process it when `i` is the last index.
 2. **Multi-digit numbers.** Use `num = num * 10 + digit`, not `num = digit`.
@@ -158,14 +184,14 @@ Checks: `calculate("3+2*2")` → `7`. `calculate(" 3/2 ")` → `1`. `calculateWi
 6. **Backspace on an empty stack.** Check `isNotEmpty()`.
 7. **Brackets:** the sign before `(` is popped first, then the old result.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "`*` and `/` bind tighter, so I apply them immediately to the last number. I push `+` and `-` terms and add everything at the end."
 2. "For brackets I save the current result and sign on `(`, and restore them on `)`."
 3. "For Remove K Digits I keep an increasing stack: a smaller digit pops bigger digits before it."
 4. "Everything is one pass: `O(n)` time."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. What does `"2*3+4"` give in Calculator II? Show the stack.
 2. What does `removeKdigits("112", 1)` give?
@@ -178,13 +204,13 @@ Checks: `calculate("3+2*2")` → `7`. `calculate(" 3/2 ")` → `1`. `calculateWi
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|
-| 227 | Basic Calculator II (Medium) | numbers stack, `*` `/` first |
-| 224 | Basic Calculator (Hard) | save and restore at brackets |
-| 402 | Remove K Digits (Medium) | increasing stack |
-| 844 | Backspace String Compare (Easy) | `#` pops |
-| 316 | Remove Duplicate Letters (Medium) | increasing stack with extra rules |
-| 150 | Evaluate Reverse Polish Notation (Medium) | next note group |
+| 227 | [Basic Calculator II](https://leetcode.com/problems/basic-calculator-ii/) (Medium) | numbers stack, `*` `/` first |
+| 224 | [Basic Calculator](https://leetcode.com/problems/basic-calculator/) (Hard) | save and restore at brackets |
+| 402 | [Remove K Digits](https://leetcode.com/problems/remove-k-digits/) (Medium) | increasing stack |
+| 844 | [Backspace String Compare](https://leetcode.com/problems/backspace-string-compare/) (Easy) | `#` pops |
+| 316 | [Remove Duplicate Letters](https://leetcode.com/problems/remove-duplicate-letters/) (Medium) | increasing stack with extra rules |
+| 150 | [Evaluate Reverse Polish Notation](https://leetcode.com/problems/evaluate-reverse-polish-notation/) (Medium) | next note group |

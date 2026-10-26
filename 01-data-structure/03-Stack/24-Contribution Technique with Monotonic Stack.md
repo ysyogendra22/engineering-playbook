@@ -122,8 +122,8 @@ Checks: `sumOfSubarrayExtremes([3,1,2,4], isMin = true)` → `17`. `subArrayRang
 
 | # | Question | Idea |
 |---|---|---|
-| 907 | Sum of Subarray Minimums (Medium) | next note |
-| 2104 | Sum of Subarray Ranges (Medium) | maximums minus minimums |
-| 795 | Number of Subarrays with Bounded Maximum (Medium) | counting with maximum limits |
-| 2281 | Sum of Total Strength of Wizards (Hard) | contribution + prefix sums |
-| 84 | Largest Rectangle in Histogram (Hard) | same left and right limits |
+| 907 | [Sum of Subarray Minimums](https://leetcode.com/problems/sum-of-subarray-minimums/) (Medium) | next note |
+| 2104 | [Sum of Subarray Ranges](https://leetcode.com/problems/sum-of-subarray-ranges/) (Medium) | maximums minus minimums |
+| 795 | [Number of Subarrays with Bounded Maximum](https://leetcode.com/problems/number-of-subarrays-with-bounded-maximum/) (Medium) | counting with maximum limits |
+| 2281 | [Sum of Total Strength of Wizards](https://leetcode.com/problems/sum-of-total-strength-of-wizards/) (Hard) | contribution + prefix sums |
+| 84 | [Largest Rectangle in Histogram](https://leetcode.com/problems/largest-rectangle-in-histogram/) (Hard) | same left and right limits |

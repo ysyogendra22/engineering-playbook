@@ -1,380 +1,156 @@
 # DAG Problems
 
-#### 1. Definition — Must Know
+> A DAG (directed acyclic graph) can be processed in topological order. That makes many "longest / count / earliest" problems easy.
 
-1. **DAG = Directed Acyclic Graph**.
-2. Edges have direction.
-3. The graph contains **no directed cycle**.
+#### 1. What Is It?
 
-```text id="dag01"
-A → B → D
- \→ C →/
+A **DAG** is a directed graph with **no cycle**. Because there is no cycle, you can line the nodes up in **topological order** (note 15 or 16), so every edge goes from left to right.
+
+That gives a powerful method:
+
+> **Process the nodes in topological order. When you reach a node, all its predecessors are already done, so its answer can be computed from theirs.**
+
+It works like dynamic programming on a graph.
+
+| Problem type | Example |
+|---|---|
+| **Longest path** / earliest finish time | Parallel Courses III |
+| **Count the paths** from A to B | All Paths From Source to Target |
+| **Shortest path** with negative weights, in a DAG | one pass in topological order |
+| **Minimum rounds** / levels | Parallel Courses |
+
+(In a general graph the longest path is very hard. In a DAG it is easy.)
+
+#### 2. How It Works
+
+*Parallel Courses III* (LeetCode 2050): each course takes some months. You may take several courses at the same time, but a course can start only after all its prerequisites have **finished**. What is the **minimum total time**?
+
+For each course keep `finish[course]` = the earliest month it can be finished.
+
+```text
+courses: 1 (3 months), 2 (2 months), 3 (5 months)       relations: 1 → 3,  2 → 3
+
+finish[1] = 3,  finish[2] = 2          (no prerequisites)
+course 3 can start when both 1 and 2 are done: max(3, 2) = 3
+finish[3] = 3 + 5 = 8
+
+answer = the largest finish time = 8
 ```
 
-This is a DAG because no path returns to an earlier node.
+Process with Kahn's algorithm (note 16): when you take a course from the queue, for each course `next` it unlocks, update `finish[next] = max(finish[next], finish[course] + time[next])`.
 
-#### 2. Why DAG Is Important — Must Know
+*All Paths From Source to Target* (LeetCode 797): because the graph is a DAG, plain DFS with backtracking works and **needs no visited set** (note 8).
 
-DAGs naturally represent:
+#### 3. Kotlin Code
 
-```text id="dag02"
-Dependencies
-Prerequisites
-Task Scheduling
-Build Systems
-Workflows
-Job Pipelines
-```
-
-Example:
-
-```text id="dag03"
-Design → Develop → Test → Deploy
-```
-
-#### 3. Core Property — Must Know
-
-Every DAG has at least one valid:
-
-```text id="dag04"
-Topological Ordering
-```
-
-Example:
-
-```text id="dag05"
-A → B
-A → C
-B → D
-C → D
-```
-
-Possible orders:
-
-```text id="dag06"
-A → B → C → D
-
-A → C → B → D
-```
-
-Topological ordering may **not be unique**.
-
-#### 4. How to Recognize DAG Problems — Must Know
-
-Look for:
-
-```text id="dag07"
-Prerequisites
-Dependencies
-Before / After
-Execution Order
-Build Order
-Task Scheduling
-No Circular Dependency
-```
-
-Then think:
-
-```text id="dag08"
-Directed Graph
-      ↓
-Cycle Detection
-      ↓
-Topological Sort
-```
-
-#### 5. Topological Sort — Must Know
-
-Two standard approaches:
-
-```text id="dag09"
-1. Kahn's Algorithm
-   → BFS + In-degree
-
-2. DFS
-   → Postorder + Reverse
-```
-
-For dependency problems, Kahn's Algorithm is often the easiest approach.
-
-#### 6. Kahn's Algorithm — Must Know
-
-Core idea:
-
-```text id="dag10"
-In-degree = number of prerequisites
-```
-
-Steps:
-
-```text id="dag11"
-1. Calculate in-degree.
-
-2. Add all in-degree 0 nodes to Queue.
-
-3. Process a node.
-
-4. Reduce neighbors' in-degree.
-
-5. If neighbor becomes 0:
-      add to Queue.
-
-6. Continue until Queue is empty.
-```
-
-#### 7. Cycle Detection in DAG Problems — Must Know
-
-If Kahn processes:
-
-```text id="dag12"
-processed == V
-```
-
-then:
-
-```text id="dag13"
-No Cycle
-→ Graph is a DAG
-```
-
-If:
-
-```text id="dag14"
-processed < V
-```
-
-then:
-
-```text id="dag15"
-Cycle Exists
-→ Not a DAG
-```
-
-Nodes inside a cycle never reach `inDegree = 0`.
-
-#### 8. Kotlin — Check DAG + Topological Order
-
-```kotlin id="dag16"
-fun topologicalSort(
-    n: Int,
-    graph: Array<MutableList<Int>>
-): List<Int> {
-
+```kotlin
+// Parallel Courses III (LeetCode 2050): courses are 1..n, relations[i] = [prev, next], time[i] = months for course i + 1
+fun minimumTime(n: Int, relations: Array<IntArray>, time: IntArray): Int {
+    val graph = List(n) { mutableListOf<Int>() }
     val indegree = IntArray(n)
-
-    for (node in 0 until n) {
-        for (neighbor in graph[node]) {
-            indegree[neighbor]++
-        }
+    for ((prev, next) in relations) {
+        graph[prev - 1].add(next - 1)
+        indegree[next - 1]++
     }
 
+    val finish = IntArray(n) { time[it] }                       // earliest finish, at least its own time
     val queue = ArrayDeque<Int>()
-
-    for (node in 0 until n) {
-        if (indegree[node] == 0) {
-            queue.addLast(node)
-        }
-    }
-
-    val order = mutableListOf<Int>()
+    for (i in 0 until n) if (indegree[i] == 0) queue.addLast(i)
 
     while (queue.isNotEmpty()) {
+        val course = queue.removeFirst()
+        for (next in graph[course]) {
+            finish[next] = maxOf(finish[next], finish[course] + time[next])
+            indegree[next]--
+            if (indegree[next] == 0) queue.addLast(next)
+        }
+    }
+    return finish.max()
+}
 
-        val node = queue.removeFirst()
-        order.add(node)
+// All Paths From Source to Target (LeetCode 797): graph[i] = nodes you can go to from i
+fun allPathsSourceTarget(graph: Array<IntArray>): List<List<Int>> {
+    val result = mutableListOf<List<Int>>()
+    val path = mutableListOf(0)
 
-        for (neighbor in graph[node]) {
-
-            indegree[neighbor]--
-
-            if (indegree[neighbor] == 0) {
-                queue.addLast(neighbor)
-            }
+    fun go(node: Int) {
+        if (node == graph.size - 1) {
+            result.add(path.toList())
+            return
+        }
+        for (next in graph[node]) {
+            path.add(next)
+            go(next)
+            path.removeAt(path.size - 1)                        // backtrack
         }
     }
 
-    return if (order.size == n) {
-        order
-    } else {
-        emptyList() // Cycle exists
+    go(0)
+    return result
+}
+
+// Count the paths from 0 to n - 1 in a DAG with memoization (no need to list them)
+fun countPaths(graph: Array<IntArray>): Int {
+    val memo = IntArray(graph.size) { -1 }
+    fun count(node: Int): Int {
+        if (node == graph.size - 1) return 1
+        if (memo[node] != -1) return memo[node]
+        var total = 0
+        for (next in graph[node]) total += count(next)
+        memo[node] = total
+        return total
     }
+    return count(0)
 }
 ```
 
-#### 9. DFS DAG Pattern — Good to Know
+Checks: `minimumTime(3, [[1,3],[2,3]], [3,2,5])` → `8`. `allPathsSourceTarget([[1,2],[3],[3],[]])` → `[[0,1,3],[0,2,3]]`. `countPaths([[1,2],[3],[3],[]])` → `2`.
 
-DFS can also detect cycles using:
+`finish.max()` needs a recent Kotlin version (1.7+). On older versions use `finish.maxOrNull()!!`.
 
-```text id="dag17"
-0 → Unvisited
-1 → Visiting
-2 → Completed
-```
+#### 4. Complexity
 
-If DFS finds an edge to:
+| | Time | Space |
+|---|---|---|
+| Longest path / DP in topological order | `O(V + E)` | `O(V)` |
+| Count paths with memo | `O(V + E)` | `O(V)` |
+| List all paths | exponential in the worst case | `O(V)` + the answer |
 
-```text id="dag18"
-Visiting Node
-```
+#### 5. Common Mistakes
 
-then:
+1. **Using DP on a graph with a cycle.** The order does not exist.
+2. **Updating `finish[next]` with `finish[course]` only**, forgetting to add `time[next]`.
+3. **Taking the sum instead of the maximum** over prerequisites. A course waits for the slowest prerequisite.
+4. **1-based course numbers** with 0-based arrays.
+5. **Answering with `finish[last]`** instead of the maximum over all courses.
+6. **Listing all paths** when only the count is needed. Use memoization.
 
-```text id="dag19"
-Cycle Exists
-→ Not DAG
-```
+#### 6. Say This in the Interview
 
-If no cycle exists, reverse DFS postorder to get a topological order.
+1. "This is a DAG, so I process nodes in topological order. When I reach a node, all its prerequisites are done."
+2. "A course can start when its slowest prerequisite finishes, so `finish[next] = max(finish[next], finish[course] + time[next])`."
+3. "Time `O(V + E)`."
 
-#### 10. Shortest Path in DAG — Good to Know
+#### 7. Quick Check
 
-A DAG allows an efficient shortest-path approach:
+1. Why does a DAG make the longest path easy?
+2. In Parallel Courses III, what is the total time of independent courses taken at the same time?
 
-```text id="dag20"
-Topological Sort
-      ↓
-Process nodes in order
-      ↓
-Relax outgoing edges
-```
+<details>
+<summary>Answers</summary>
 
-Complexity:
+1. In topological order, each node's predecessors are already computed, so one pass is enough. There is no cycle to go around.
+2. The **maximum** of their times, not the sum, because they run in parallel.
 
-```text id="dag21"
-O(V + E)
-```
+</details>
 
-Important advantage:
+#### 8. Related LeetCode Questions
 
-Unlike Dijkstra, DAG shortest path can handle **negative edge weights** because there are no cycles.
-
-#### 11. DAG Shortest Path Logic
-
-```text id="dag22"
-1. Topologically sort graph.
-
-2. distance[source] = 0.
-
-3. Process vertices in topological order.
-
-4. Relax outgoing edges.
-
-5. Continue until all vertices processed.
-```
-
-Relaxation:
-
-```text id="dag23"
-newDistance =
-    distance[u] + weight(u, v)
-```
-
-If smaller:
-
-```text id="dag24"
-distance[v] = newDistance
-```
-
-#### 12. Common DAG Patterns — Must Know
-
-1. **Course prerequisites**
-   ```text
-   Topological Sort
-   ```
-
-2. **Task scheduling**
-   ```text
-   Topological Sort
-   ```
-
-3. **Can all tasks finish?**
-   ```text
-   Cycle Detection
-   ```
-
-4. **Build order**
-   ```text
-   Topological Sort
-   ```
-
-5. **Shortest path in DAG**
-   ```text
-   Topological Sort + Relaxation
-   ```
-
-6. **Dependency processing**
-   ```text
-   In-degree / Kahn
-   ```
-
-#### 13. DAG vs Tree — Good to Know
-
-```text id="dag25"
-Tree                         DAG
-
-Usually hierarchical        Dependency structure
-
-Unique parent except root   Node can have many parents
-
-Connected                   May be disconnected
-
-No cycles                   No directed cycles
-
-V - 1 edges                 Can have many edges
-```
-
-A DAG is **not necessarily a tree**.
-
-#### 14. Complexity — Must Know
-
-Topological Sort:
-
-```text id="dag26"
-Time  → O(V + E)
-Space → O(V)
-```
-
-excluding graph storage.
-
-Including adjacency list:
-
-```text id="dag27"
-Space → O(V + E)
-```
-
-DAG shortest path:
-
-```text id="dag28"
-Time → O(V + E)
-```
-
-#### 15. Common Edge Cases — Must Know
-
-1. Single node.
-2. No edges.
-3. Multiple source nodes (`inDegree = 0`).
-4. Multiple valid topological orders.
-5. Disconnected DAG.
-6. Self-loop → not DAG.
-7. Circular dependency → not DAG.
-
-#### 16. Common Mistakes — Must Know
-
-1. Thinking every directed graph is a DAG.
-2. Forgetting to check for cycles.
-3. Reversing dependency edge direction.
-4. Assuming topological order is unique.
-5. Trying Topological Sort on an undirected graph.
-6. Assuming a DAG must be connected.
-7. Assuming DAG shortest path requires Dijkstra.
-
-#### 17. Interview Must Remember
-
-1. **DAG = Directed + No Cycle**.
-2. DAG always has a **Topological Ordering**.
-3. Dependencies/prerequisites → think **DAG**.
-4. Kahn → **In-degree + Queue**.
-5. `processed < V` → cycle → **not a DAG**.
-6. Multiple topological orders may exist.
-7. DAG shortest path → **Topological Sort + Relaxation**.
-8. Topological Sort complexity → **`O(V + E)`**.
+| # | Question | Idea |
+|---|---|---|
+| 797 | All Paths From Source to Target (Medium) | DFS + backtracking in a DAG |
+| 2050 | Parallel Courses III (Hard) | longest path with Kahn |
+| 1136 | Parallel Courses (premium) | levels = semesters |
+| 329 | Longest Increasing Path in a Matrix (Hard) | DFS + memo on an implicit DAG |
+| 1857 | Largest Color Value in a Directed Graph (Hard) | DP over a topological order |
+| 210 | Course Schedule II (Medium) | the order itself |

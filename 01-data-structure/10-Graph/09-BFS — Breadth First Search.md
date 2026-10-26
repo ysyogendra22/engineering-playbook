@@ -1,305 +1,156 @@
 # BFS — Breadth First Search
 
-#### 1. Definition — Must Know
+> The other core graph walk, and the tool for "fewest steps" questions. The queue details are also in `01-data-structure/04-Queue/05-BFS.md`.
 
-1. **BFS** explores a graph **level by level**.
-2. It visits all immediate neighbors before moving deeper.
-3. BFS uses a **Queue (FIFO)**.
-4. Use `visited` to prevent processing nodes repeatedly.
+#### 1. What Is It?
 
-#### 2. How It Works — Must Know
+**BFS** visits nodes in **rings around the start**: first the start, then all nodes 1 step away, then all nodes 2 steps away, and so on.
 
-Graph:
+It uses a **queue** and a **visited** set.
 
-```text
-    0
-   / \
-  1   2
- / \
-3   4
-```
+Because closer nodes are always handled first, BFS finds the **shortest path** (fewest edges) in an **unweighted** graph.
 
-BFS from `0`:
+#### 2. How It Works
 
 ```text
-0 → 1 → 2 → 3 → 4
+Graph:  0 — 1 — 3          0: [1, 2]    1: [0, 3]    2: [0, 3]    3: [1, 2]
+        |       |
+        2 ——————┘
+
+queue [0]            visited {0}
+take 0 → add 1, 2    queue [1, 2]     visited {0, 1, 2}
+take 1 → add 3       queue [2, 3]     visited {0, 1, 2, 3}
+take 2 → 3 is seen   queue [3]
+take 3               queue []
+
+visit order: 0, 1, 2, 3          distance: 0→0, 1→1, 2→1, 3→2
 ```
 
-Flow:
+**The rule that avoids most bugs:** mark a node visited **when you add it to the queue**, not when you take it out.
 
-```text
-Visit 0
-  ↓
-Visit 1, 2
-  ↓
-Visit 3, 4
-```
+To get **levels** (distances), process the queue one round at a time: `repeat(queue.size) { ... }` and increase `steps` after each round.
 
-Think:
+BFS or DFS?
 
-```text
-Level 0 → 0
-Level 1 → 1, 2
-Level 2 → 3, 4
-```
+| | BFS | DFS |
+|---|---|---|
+| Finds the shortest path (equal steps) | **yes** | no |
+| Uses | queue | stack / recursion |
+| Memory | wide graphs use more | deep graphs use more |
+| Good for | nearest target, levels | cycles, all paths, components |
 
-#### 3. Core Logic — Must Know
-
-```text
-BFS(start):
-
-1. Add start to Queue.
-2. Mark start as visited.
-3. While Queue is not empty:
-   - Remove front node.
-   - Process it.
-   - Add all unvisited neighbors.
-   - Mark them visited.
-```
-
-Core pattern:
-
-```text
-Queue → Remove Front → Visit Neighbors → Add Back
-```
-
-#### 4. Kotlin Implementation — Must Know
+#### 3. Kotlin Code
 
 ```kotlin
-fun bfs(
-    start: Int,
-    graph: Array<MutableList<Int>>
-) {
+// BFS order
+fun bfs(graph: List<List<Int>>, start: Int): List<Int> {
+    val visited = BooleanArray(graph.size)
+    val order = mutableListOf<Int>()
+    val queue = ArrayDeque<Int>()
+    visited[start] = true
+    queue.addLast(start)
+    while (queue.isNotEmpty()) {
+        val node = queue.removeFirst()
+        order.add(node)
+        for (next in graph[node]) {
+            if (!visited[next]) {
+                visited[next] = true              // mark when you ADD
+                queue.addLast(next)
+            }
+        }
+    }
+    return order
+}
+
+// Distance (number of edges) from start to every node; -1 if unreachable
+fun distances(graph: List<List<Int>>, start: Int): IntArray {
+    val dist = IntArray(graph.size) { -1 }
+    val queue = ArrayDeque<Int>()
+    dist[start] = 0
+    queue.addLast(start)
+    while (queue.isNotEmpty()) {
+        val node = queue.removeFirst()
+        for (next in graph[node]) {
+            if (dist[next] == -1) {
+                dist[next] = dist[node] + 1
+                queue.addLast(next)
+            }
+        }
+    }
+    return dist
+}
+
+// Level by level: the number of edges from start to target (-1 if unreachable)
+fun shortestSteps(graph: List<List<Int>>, start: Int, target: Int): Int {
     val visited = BooleanArray(graph.size)
     val queue = ArrayDeque<Int>()
-
-    queue.addLast(start)
     visited[start] = true
-
-    while (queue.isNotEmpty()) {
-        val node = queue.removeFirst()
-
-        println(node)
-
-        for (neighbor in graph[node]) {
-            if (!visited[neighbor]) {
-                visited[neighbor] = true
-                queue.addLast(neighbor)
-            }
-        }
-    }
-}
-```
-
-#### 5. Why Mark Visited Before Enqueue? — Must Know
-
-Prefer:
-
-```kotlin
-visited[neighbor] = true
-queue.addLast(neighbor)
-```
-
-Not after removing it from the queue.
-
-Otherwise, the same node can be added multiple times by different neighbors.
-
-#### 6. Level-by-Level BFS — Must Know
-
-When the problem requires processing each level separately:
-
-```kotlin
-while (queue.isNotEmpty()) {
-
-    val levelSize = queue.size
-
-    repeat(levelSize) {
-        val node = queue.removeFirst()
-
-        for (neighbor in graph[node]) {
-            if (!visited[neighbor]) {
-                visited[neighbor] = true
-                queue.addLast(neighbor)
-            }
-        }
-    }
-}
-```
-
-`levelSize` represents the number of nodes in the **current level**.
-
-Useful for:
-
-1. Minimum steps.
-2. Distance from source.
-3. Level-based processing.
-
-#### 7. Shortest Path — Must Know
-
-BFS finds the shortest path in an **unweighted graph**.
-
-Example:
-
-```text
-A ----- B ----- D
- \             /
-  ----- C ----
-```
-
-BFS explores:
-
-```text
-Distance 0 → A
-Distance 1 → B, C
-Distance 2 → D
-```
-
-The first time BFS reaches a node gives its minimum number of edges from the source.
-
-#### 8. Distance Using BFS — Must Know
-
-```kotlin
-fun shortestDistance(
-    start: Int,
-    graph: Array<MutableList<Int>>
-): IntArray {
-
-    val distance = IntArray(graph.size) { -1 }
-    val queue = ArrayDeque<Int>()
-
     queue.addLast(start)
-    distance[start] = 0
-
+    var steps = 0
     while (queue.isNotEmpty()) {
-        val node = queue.removeFirst()
-
-        for (neighbor in graph[node]) {
-            if (distance[neighbor] == -1) {
-                distance[neighbor] = distance[node] + 1
-                queue.addLast(neighbor)
+        repeat(queue.size) {
+            val node = queue.removeFirst()
+            if (node == target) return steps
+            for (next in graph[node]) {
+                if (!visited[next]) {
+                    visited[next] = true
+                    queue.addLast(next)
+                }
             }
         }
+        steps++
     }
-
-    return distance
+    return -1
 }
 ```
 
-Here `distance != -1` also acts as the `visited` check.
+Checks (graph above): `bfs` → `[0, 1, 2, 3]`. `distances(graph, 0)` → `[0, 1, 1, 2]`. `shortestSteps(graph, 0, 3)` → `2`.
 
-#### 9. Disconnected Graph — Must Know
+#### 4. Complexity
 
-One BFS only visits nodes reachable from the starting node.
+For `V` nodes and `E` edges:
 
-```text
-0 --- 1       2 --- 3
-```
+| | Time | Space |
+|---|---|---|
+| BFS (adjacency list) | `O(V + E)` | `O(V)` |
+| BFS (adjacency matrix) | `O(V²)` | `O(V)` |
 
-To visit the entire graph:
+#### 5. Common Mistakes
 
-```kotlin
-for (node in graph.indices) {
-    if (!visited[node]) {
-        // Run BFS from node
-    }
-}
-```
+1. **Marking visited when taking the node out** of the queue. The same node enters many times.
+2. **Forgetting to mark the start node.**
+3. **Missing disconnected parts.**
+4. **Using BFS for the shortest path on a weighted graph.** Use Dijkstra.
+5. **Reading `queue.size` in a `while` condition** for levels. Use `repeat(queue.size)`.
+6. **Using a list with `removeAt(0)`** as the queue (`O(n)`).
 
-Same concept as DFS.
+#### 6. Say This in the Interview
 
-#### 10. Time & Space Complexity — Must Know
+1. "I need the fewest steps, and every step costs the same, so I use BFS."
+2. "I mark nodes visited when I enqueue them."
+3. "Time `O(V + E)`, space `O(V)`. For different edge costs I would switch to Dijkstra."
 
-Using adjacency list:
+#### 7. Quick Check
 
-```text
-Time  → O(V + E)
-Space → O(V)
-```
+1. In BFS, when do you mark a node visited?
+2. What is the BFS distance from a node to itself?
 
-1. Each vertex is visited once.
-2. Each edge is examined during traversal.
-3. Queue + visited can require `O(V)` space.
+<details>
+<summary>Answers</summary>
 
-#### 11. Common BFS Patterns — Must Know
+1. When you add it to the queue.
+2. `0`.
 
-1. **Graph Traversal**
-   ```text
-   Queue + visited
-   ```
+</details>
 
-2. **Shortest Path — Unweighted Graph**
-   ```text
-   BFS + distance
-   ```
+#### 8. Related LeetCode Questions
 
-3. **Level / Minimum Steps**
-   ```text
-   Level-by-level BFS
-   ```
-
-4. **Connected Components**
-   ```text
-   BFS from every unvisited node
-   ```
-
-5. **Grid BFS**
-   ```text
-   Explore neighboring cells
-   ```
-
-6. **Multi-Source BFS — Good to Know**
-   ```text
-   Add multiple starting nodes to Queue initially
-   ```
-
-Common for problems where something spreads simultaneously from multiple locations.
-
-#### 12. Common Interview Problems
-
-1. Shortest Path in Unweighted Graph.
-2. Number of Islands.
-3. Rotting Oranges.
-4. Word Ladder.
-5. Minimum steps in a grid.
-6. Graph connectivity / components.
-
-#### 13. BFS vs DFS — Must Know
-
-```text
-BFS                         DFS
-
-Queue                       Stack / Recursion
-Level-by-level              Goes deep first
-Shortest unweighted path    Path exploration
-Minimum steps               Backtracking
-O(V + E)                    O(V + E)
-```
-
-Use:
-
-```text
-Shortest / Minimum / Nearest → Think BFS
-
-Explore / Components / Cycle → Often DFS
-```
-
-This is a guideline, not a strict rule.
-
-#### 14. Edge Cases / Common Mistakes
-
-1. Forgetting `visited` can cause infinite processing with cycles.
-2. Prefer marking visited **when adding to the queue**.
-3. One BFS does not cover a disconnected graph.
-4. BFS does **not** solve general weighted shortest-path problems.
-5. Traversal order depends on adjacency-list order.
-6. Check empty graph / invalid starting node when required.
-
-#### 15. Interview Must Remember
-
-1. BFS = **level-by-level traversal**.
-2. BFS uses a **Queue (FIFO)**.
-3. Mark nodes visited when **enqueuing**.
-4. Complexity → `O(V + E)`.
-5. **Unweighted shortest path → BFS**.
-6. Minimum steps / nearest / level problems → strongly consider BFS.
-7. Multiple starting points → think **Multi-Source BFS**.
+| # | Question | Idea |
+|---|---|---|
+| 1971 | Find if Path Exists in Graph (Easy) | BFS reachability |
+| 102 | Binary Tree Level Order Traversal (Medium) | BFS by levels |
+| 133 | Clone Graph (Medium) | BFS + map |
+| 785 | Is Graph Bipartite? (Medium) | BFS colouring |
+| 1091 | Shortest Path in Binary Matrix (Medium) | grid BFS |
+| 752 | Open the Lock (Medium) | BFS on states |
+| 127 | Word Ladder (Hard) | BFS on words |

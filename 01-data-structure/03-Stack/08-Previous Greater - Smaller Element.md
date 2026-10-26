@@ -33,7 +33,31 @@ result: [-1, 3, -1, 4]
 
 Previous **smaller**: same idea, but pop everything **bigger than or equal to** the number.
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| | Brute force | Optimized |
+|---|---|---|
+| Idea | for each item, scan to the left | stack, read the top after popping |
+| Time | `O(n²)` | `O(n)` |
+| Space | `O(1)` extra | `O(n)` |
+
+The brute force is easy to write, and it is a good first answer to say out loud:
+
+```kotlin
+fun previousGreaterBrute(nums: IntArray): IntArray {
+    val result = IntArray(nums.size) { -1 }
+    for (i in nums.indices) {
+        for (j in i - 1 downTo 0) {
+            if (nums[j] > nums[i]) { result[i] = nums[j]; break }
+        }
+    }
+    return result
+}
+```
+
+The stack throws away items that can never be an answer, so nothing is scanned twice.
+
+#### 4. Kotlin Code
 
 ```kotlin
 // Index of the previous greater element (-1 if none)
@@ -82,14 +106,14 @@ fun smallerBounds(nums: IntArray): Pair<IntArray, IntArray> {
 }
 ```
 
-#### 4. Complexity
+#### 5. Complexity
 
 | | Time | Space |
 |---|---|---|
 | Monotonic stack | `O(n)` | `O(n)` |
 | Brute force | `O(n²)` | `O(1)` |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Reading the top before popping.** First pop, then read the top.
 2. **Wrong direction.** Previous greater pops `<=`. Previous smaller pops `>=`.
@@ -97,12 +121,12 @@ fun smallerBounds(nums: IntArray): Pair<IntArray, IntArray> {
 4. **Equal values.** Be consistent: strict on one side and non-strict on the other (explained in the contribution note).
 5. **Mixing "previous" (left) with "next" (right).**
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "I scan left to right with a monotonic stack. After popping the useless items, the top is the nearest bigger item on the left."
 2. "Each index is pushed and popped once, so it is `O(n)`."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. What is the previous greater of the first item?
 2. For `[5, 3, 4]`, what is the previous greater of `4`?
@@ -115,11 +139,11 @@ fun smallerBounds(nums: IntArray): Pair<IntArray, IntArray> {
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|
-| 901 | Online Stock Span (Medium) | previous greater, as a count |
-| 84 | Largest Rectangle in Histogram (Hard) | previous and next smaller bars |
-| 907 | Sum of Subarray Minimums (Medium) | previous and next smaller |
-| 1944 | Number of Visible People in a Queue (Hard) | stack with both sides |
+| 901 | [Online Stock Span](https://leetcode.com/problems/online-stock-span/) (Medium) | previous greater, as a count |
+| 84 | [Largest Rectangle in Histogram](https://leetcode.com/problems/largest-rectangle-in-histogram/) (Hard) | previous and next smaller bars |
+| 907 | [Sum of Subarray Minimums](https://leetcode.com/problems/sum-of-subarray-minimums/) (Medium) | previous and next smaller |
+| 1944 | [Number of Visible People in a Queue](https://leetcode.com/problems/number-of-visible-people-in-a-queue/) (Hard) | stack with both sides |

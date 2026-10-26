@@ -38,7 +38,31 @@ Rule:
 
 > **While the top of the stack is bigger than the new item, pop it. The new item is the answer for the popped one.**
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| | Brute force | Optimized |
+|---|---|---|
+| Idea | for each item, scan to the right for a smaller one | increasing stack of indexes |
+| Time | `O(n²)` | `O(n)` |
+| Space | `O(1)` extra | `O(n)` |
+
+The brute force is easy to write, and it is a good first answer to say out loud:
+
+```kotlin
+fun nextSmallerBrute(nums: IntArray): IntArray {
+    val result = IntArray(nums.size) { -1 }
+    for (i in nums.indices) {
+        for (j in i + 1 until nums.size) {
+            if (nums[j] < nums[i]) { result[i] = nums[j]; break }
+        }
+    }
+    return result
+}
+```
+
+Same idea as Next Greater with the comparison flipped.
+
+#### 4. Kotlin Code
 
 ```kotlin
 // Next smaller element (value), -1 if none
@@ -73,14 +97,14 @@ Checks: `nextSmallerElements([4,5,2,10,8])` → `[2,2,-1,8,-1]`. `finalPrices([8
 
 **Where this idea is used next:** in *Largest Rectangle in Histogram*, the next smaller bar on the right and the previous smaller bar on the left decide how wide a rectangle can be.
 
-#### 4. Complexity
+#### 5. Complexity
 
 | | Time | Space |
 |---|---|---|
 | Monotonic stack | `O(n)` | `O(n)` |
 | Brute force | `O(n²)` | `O(1)` |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Mixing up greater and smaller.** Next smaller pops when `top > new`. Next greater pops when `top < new`.
 2. **Wrong rule for equal values.** "Smaller" is strict (`>`). "Smaller or equal" (like the shop discount) uses `>=`.
@@ -88,13 +112,13 @@ Checks: `nextSmallerElements([4,5,2,10,8])` → `[2,2,-1,8,-1]`. `finalPrices([8
 4. **`stack.last()` on an empty stack.** Check `isNotEmpty()` first.
 5. **Forgetting `-1`** for numbers left in the stack.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "This is the mirror of next greater, so I use an increasing monotonic stack of indexes."
 2. "When the new item is smaller than the top, the top has found its next smaller element."
 3. "Each index is pushed and popped once. Time `O(n)`, space `O(n)`."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. What does `[1, 2, 3]` give for next smaller?
 2. In *Final Prices*, why use `>=` and not `>`?
@@ -107,12 +131,12 @@ Checks: `nextSmallerElements([4,5,2,10,8])` → `[2,2,-1,8,-1]`. `finalPrices([8
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|
-| 1475 | Final Prices With a Special Discount in a Shop (Easy) | next smaller or equal |
-| 84 | Largest Rectangle in Histogram (Hard) | next and previous smaller bars |
-| 907 | Sum of Subarray Minimums (Medium) | next and previous smaller |
-| 402 | Remove K Digits (Medium) | pop bigger digits before a smaller one |
-| 316 | Remove Duplicate Letters (Medium) | increasing stack with extra rules |
+| 1475 | [Final Prices With a Special Discount in a Shop](https://leetcode.com/problems/final-prices-with-a-special-discount-in-a-shop/) (Easy) | next smaller or equal |
+| 84 | [Largest Rectangle in Histogram](https://leetcode.com/problems/largest-rectangle-in-histogram/) (Hard) | next and previous smaller bars |
+| 907 | [Sum of Subarray Minimums](https://leetcode.com/problems/sum-of-subarray-minimums/) (Medium) | next and previous smaller |
+| 402 | [Remove K Digits](https://leetcode.com/problems/remove-k-digits/) (Medium) | pop bigger digits before a smaller one |
+| 316 | [Remove Duplicate Letters](https://leetcode.com/problems/remove-duplicate-letters/) (Medium) | increasing stack with extra rules |

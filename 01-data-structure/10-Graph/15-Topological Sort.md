@@ -1,344 +1,127 @@
 # Topological Sort
 
-#### 1. Definition — Must Know
+> A top FAANG graph topic. Course Schedule II and Alien Dictionary are classics.
 
-1. **Topological Sort** gives a linear ordering of vertices based on dependencies.
-2. For every directed edge:
+#### 1. What Is It?
 
-```text
-A → B
-```
+A **topological sort** puts the vertices of a **directed acyclic graph (DAG)** in a line, so that for every edge `A → B`, **A comes before B**.
 
-`A` must appear **before** `B`.
-
-3. Topological Sort works only on a:
+Think of it as an order in which you can do tasks when some tasks must be done first.
 
 ```text
-DAG = Directed Acyclic Graph
+Edges: shirt → tie → jacket,  pants → shoes,  pants → belt → jacket
+
+A valid order: shirt, pants, tie, belt, shoes, jacket
+(Many valid orders can exist. Any one is accepted.)
 ```
 
-#### 2. Why It Is Used — Must Know
+Facts to remember:
 
-Used when something must happen **before something else**.
+- It only exists if the graph has **no cycle**. If there is a cycle, no valid order exists.
+- There are two ways to find it: **DFS** (this note) and **Kahn's algorithm** with a queue (note 16).
 
-Examples:
+Typical stories: course prerequisites, build order, task scheduling, package dependencies.
 
-1. Course prerequisites.
-2. Task scheduling.
-3. Build dependencies.
-4. Package dependencies.
-5. Workflow execution.
+#### 2. How It Works
 
-Think:
+**DFS method:** do a DFS. When a node is **finished** (all its descendants are done), add it to a list. The finish list is in reverse topological order. Reverse it at the end.
 
 ```text
-Dependencies + Ordering
-        ↓
-Topological Sort
+Graph: 0 → 1, 0 → 2, 1 → 3, 2 → 3
+
+dfs(0)
+   dfs(1)
+      dfs(3)  finished → add 3
+   1 finished → add 1
+   dfs(2)
+      3 already done
+   2 finished → add 2
+0 finished → add 0
+
+finish list: [3, 1, 2, 0]   → reversed: [0, 2, 1, 3]   a valid order
 ```
 
-#### 3. Example — Must Know
+Why it works: a node is added only after everything it points to has been added. So after reversing, a node always comes before the nodes it points to.
 
-Dependencies:
+To detect a cycle, use the 3 states from note 14. Seeing a "visiting" node means no valid order.
 
-```text
-A → C
-B → C
-C → D
-```
-
-Valid topological orders:
-
-```text
-A → B → C → D
-```
-
-or:
-
-```text
-B → A → C → D
-```
-
-Topological order is **not necessarily unique**.
-
-But `C` must appear after `A` and `B`.
-
-#### 4. Two Main Approaches — Must Know
-
-1. **Kahn's Algorithm**
-   - BFS.
-   - Uses **In-degree + Queue**.
-
-2. **DFS Topological Sort**
-   - Uses DFS.
-   - Add node after processing all dependencies.
-   - Reverse the result.
-
-For interviews, know both, but **Kahn's Algorithm is especially useful because cycle detection is straightforward**.
-
----
-
-#### 5. Kahn's Algorithm — Must Know
-
-In-degree:
-
-```text
-Number of incoming edges
-```
-
-Example:
-
-```text
-A → C ← B
-    ↓
-    D
-```
-
-```text
-A → 0
-B → 0
-C → 2
-D → 1
-```
-
-Start with nodes having:
-
-```text
-in-degree = 0
-```
-
-because they have no remaining prerequisites.
-
-#### 6. Kahn's Algorithm Logic — Must Know
-
-```text
-1. Calculate in-degree of every node.
-
-2. Add all nodes with in-degree 0 to Queue.
-
-3. While Queue is not empty:
-
-   Remove node.
-
-   Add node to result.
-
-   For every neighbor:
-       decrease in-degree.
-
-       if in-degree becomes 0:
-           add neighbor to Queue.
-
-4. Return result.
-```
-
-Core pattern:
-
-```text
-In-degree 0
-     ↓
-Process
-     ↓
-Remove its dependency edges
-     ↓
-New in-degree 0 nodes
-```
-
-#### 7. Kotlin — Kahn's Algorithm
+#### 3. Kotlin Code
 
 ```kotlin
-fun topologicalSort(
-    n: Int,
-    graph: Array<MutableList<Int>>
-): List<Int> {
+// Returns a valid order, or an empty list if there is a cycle
+fun topologicalSort(n: Int, graph: List<List<Int>>): List<Int> {
+    val state = IntArray(n)                       // 0 = unvisited, 1 = visiting, 2 = done
+    val finished = mutableListOf<Int>()
 
-    val indegree = IntArray(n)
-
-    for (node in 0 until n) {
-        for (neighbor in graph[node]) {
-            indegree[neighbor]++
+    fun dfs(node: Int): Boolean {                 // returns false if a cycle is found
+        state[node] = 1
+        for (next in graph[node]) {
+            if (state[next] == 1) return false
+            if (state[next] == 0 && !dfs(next)) return false
         }
+        state[node] = 2
+        finished.add(node)                        // added AFTER all its descendants
+        return true
     }
 
-    val queue = ArrayDeque<Int>()
-
-    for (node in 0 until n) {
-        if (indegree[node] == 0) {
-            queue.addLast(node)
-        }
+    for (s in 0 until n) {
+        if (state[s] == 0 && !dfs(s)) return emptyList()
     }
+    return finished.reversed()
+}
 
-    val result = mutableListOf<Int>()
-
-    while (queue.isNotEmpty()) {
-
-        val node = queue.removeFirst()
-        result.add(node)
-
-        for (neighbor in graph[node]) {
-
-            indegree[neighbor]--
-
-            if (indegree[neighbor] == 0) {
-                queue.addLast(neighbor)
-            }
-        }
-    }
-
-    return result
+// Course Schedule II (LeetCode 210)
+fun findOrder(numCourses: Int, prerequisites: Array<IntArray>): IntArray {
+    val graph = List(numCourses) { mutableListOf<Int>() }
+    for ((course, pre) in prerequisites) graph[pre].add(course)     // pre → course
+    return topologicalSort(numCourses, graph).toIntArray()
 }
 ```
 
-#### 8. Cycle Detection with Kahn's — Must Know
+Checks: `topologicalSort(4, [[1,2],[3],[3],[]])` → `[0, 2, 1, 3]`. `findOrder(2, [[1,0]])` → `[0, 1]`. `findOrder(2, [[1,0],[0,1]])` → `[]`.
 
-If the graph contains a cycle:
+Any valid order is accepted. Your answer may differ from another correct answer.
 
-```text
-A → B
-↑   ↓
-└── C
-```
+#### 4. Complexity
 
-nodes in the cycle cannot all become `in-degree = 0`.
+| | Time | Space |
+|---|---|---|
+| Topological sort | `O(V + E)` | `O(V)` |
 
-Therefore:
+#### 5. Common Mistakes
 
-```text
-result.size == V
-      ↓
-Valid Topological Order
+1. **Adding the node to the list before visiting its neighbours** (preorder). It must be added **after** (postorder).
+2. **Forgetting to reverse** the list.
+3. **Not detecting cycles.** The order is meaningless if there is a cycle.
+4. **Wrong edge direction** from `[course, prerequisite]`.
+5. **Not starting a DFS from every unvisited node.**
+6. **Assuming the answer is unique.** There can be many valid orders.
 
-result.size < V
-      ↓
-Cycle Exists
-```
+#### 6. Say This in the Interview
 
-Interview version:
+1. "I model tasks as nodes and 'A before B' as an edge `A → B`. A valid order exists only if there is no cycle."
+2. "I do a DFS, add each node after its descendants, and reverse the list. Or I use Kahn's algorithm with in-degrees."
+3. "Time `O(V + E)`."
 
-```kotlin
-if (result.size != n) {
-    // Cycle exists
-}
-```
+#### 7. Quick Check
 
-#### 9. DFS Topological Sort — Must Know
+1. When does a topological order not exist?
+2. Is the topological order unique?
 
-Core idea:
+<details>
+<summary>Answers</summary>
 
-```text
-Visit Node
-   ↓
-Visit all neighbors
-   ↓
-Add node after neighbors
-   ↓
-Reverse result
-```
+1. When the graph has a cycle.
+2. No. Several orders can be valid.
 
-Why?
+</details>
 
-A node is added only after everything reachable from it has been processed.
+#### 8. Related LeetCode Questions
 
-#### 10. Kotlin — DFS Approach
-
-```kotlin
-fun topologicalSort(
-    n: Int,
-    graph: Array<MutableList<Int>>
-): List<Int> {
-
-    val visited = BooleanArray(n)
-    val result = mutableListOf<Int>()
-
-    fun dfs(node: Int) {
-
-        visited[node] = true
-
-        for (neighbor in graph[node]) {
-            if (!visited[neighbor]) {
-                dfs(neighbor)
-            }
-        }
-
-        result.add(node)
-    }
-
-    for (node in 0 until n) {
-        if (!visited[node]) {
-            dfs(node)
-        }
-    }
-
-    return result.reversed()
-}
-```
-
-> This simple DFS version assumes the graph is already known to be a DAG. If cycles are possible, add DFS cycle-state detection.
-
-#### 11. Time & Space Complexity — Must Know
-
-Both approaches:
-
-```text
-Time  → O(V + E)
-Space → O(V)
-```
-
-Excluding the graph storage itself.
-
-#### 12. Common Interview Patterns — Must Know
-
-1. **Course Schedule**
-   ```text
-   Can all courses be completed?
-   ```
-
-2. **Course Schedule II**
-   ```text
-   Return valid course order.
-   ```
-
-3. **Task Scheduling**
-   ```text
-   Dependency → execution order
-   ```
-
-4. **Build / Package Dependencies**
-   ```text
-   Dependency ordering
-   ```
-
-5. **Cycle Detection**
-   ```text
-   Kahn's processed count < V
-   ```
-
-#### 13. Common Mistakes — Must Know
-
-1. Using Topological Sort on an **undirected graph**.
-2. Forgetting that the graph must be **acyclic** for a valid ordering.
-3. Assuming the topological order is unique.
-4. Building dependency edges in the wrong direction.
-5. Forgetting to decrease neighbors' in-degree.
-6. Returning Kahn's result without checking `result.size == V` when cycles are possible.
-
-#### 14. Kahn's vs DFS — Must Know
-
-```text
-Kahn's Algorithm             DFS
-
-BFS based                    DFS based
-Uses Queue                   Uses recursion/stack
-Uses In-degree               Uses postorder
-Easy cycle detection         Needs DFS state for cycle
-O(V + E)                     O(V + E)
-```
-
-#### 15. Interview Must Remember
-
-1. Topological Sort → **dependency ordering**.
-2. Works only for a **DAG**.
-3. Edge `A → B` means `A` comes before `B`.
-4. Kahn's → **In-degree + Queue**.
-5. Kahn's: `processed < V` → **cycle exists**.
-6. DFS → process neighbors first, then node, then reverse.
-7. Topological ordering can have **multiple valid answers**.
+| # | Question | Idea |
+|---|---|---|
+| 207 | Course Schedule (Medium) | is an order possible? |
+| 210 | Course Schedule II (Medium) | give an order |
+| 269 | Alien Dictionary (Hard, premium) | build the graph from words (note 31) |
+| 2115 | Find All Possible Recipes from Given Supplies (Medium) | dependencies |
+| 1203 | Sort Items by Groups Respecting Dependencies (Hard) | two levels of ordering |

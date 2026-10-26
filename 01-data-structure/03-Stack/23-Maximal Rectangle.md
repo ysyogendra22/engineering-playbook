@@ -40,7 +40,17 @@ row 3: [4,0,0,3,0] → 4
 answer = 6
 ```
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| | Brute force | Optimized |
+|---|---|---|
+| Idea | try every rectangle and check that it has only `1`s | row histograms + a stack |
+| Time | `O(R² · C²)` or worse | `O(R · C)` |
+| Space | `O(1)` | `O(C)` |
+
+No brute-force code is needed here. Just say: "checking every rectangle is far too slow, so I reduce each row to a histogram and reuse the `O(C)` stack solution."
+
+#### 4. Kotlin Code
 
 ```kotlin
 fun maximalRectangle(matrix: Array<CharArray>): Int {
@@ -86,7 +96,7 @@ println(maximalRectangle(matrix))     // 6
 
 Checks: the matrix above → `6`. `[['0']]` → `0`. `[['1']]` → `1`. `[]` → `0`.
 
-#### 4. Complexity
+#### 5. Complexity
 
 For `R` rows and `C` columns:
 
@@ -95,7 +105,7 @@ For `R` rows and `C` columns:
 | Heights + stack per row | `O(R · C)` | `O(C)` |
 | Brute force | far too slow | — |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Not resetting the height to `0`** when the cell is `0`.
 2. **Creating a new `heights` array for every row.** The heights must carry over.
@@ -104,13 +114,13 @@ For `R` rows and `C` columns:
 5. **Missing the extra height-`0` bar** inside the histogram function.
 6. **Empty matrix.**
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "I treat each row as the base of a histogram. `heights[c]` counts consecutive 1s going up."
 2. "For every row I run the stack solution for Largest Rectangle in Histogram and keep the best."
 3. "Time `O(R · C)`, space `O(C)`."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. What is `heights` after row 1 if row 0 is `[1, 1]` and row 1 is `[1, 0]`?
 2. Why do we reset a height to `0` for a `0` cell?
@@ -123,12 +133,12 @@ For `R` rows and `C` columns:
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|
-| 84 | Largest Rectangle in Histogram (Hard) | the building block |
-| 85 | Maximal Rectangle (Hard) | this note |
-| 221 | Maximal Square (Medium) | dynamic programming |
-| 1504 | Count Submatrices With All Ones (Medium) | heights + counting |
-| 1727 | Largest Submatrix With Rearrangements (Medium) | heights + sorting |
+| 84 | [Largest Rectangle in Histogram](https://leetcode.com/problems/largest-rectangle-in-histogram/) (Hard) | the building block |
+| 85 | [Maximal Rectangle](https://leetcode.com/problems/maximal-rectangle/) (Hard) | this note |
+| 221 | [Maximal Square](https://leetcode.com/problems/maximal-square/) (Medium) | dynamic programming |
+| 1504 | [Count Submatrices With All Ones](https://leetcode.com/problems/count-submatrices-with-all-ones/) (Medium) | heights + counting |
+| 1727 | [Largest Submatrix With Rearrangements](https://leetcode.com/problems/largest-submatrix-with-rearrangements/) (Medium) | heights + sorting |
