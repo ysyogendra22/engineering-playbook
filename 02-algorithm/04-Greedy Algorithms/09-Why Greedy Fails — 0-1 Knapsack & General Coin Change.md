@@ -1,90 +1,144 @@
 # Why Greedy Fails — 0/1 Knapsack & General Coin Change
 
-#### 1. Definition — Must Know
+> Interviewers often give a problem that *looks* greedy but is not. This note shows the traps.
 
-1. **0/1 Knapsack**: same setup as Fractional Knapsack (topic 5), but each item must be taken **whole or not at all** — no fractions.
-2. **General coin change**: coin change (topic 6) with a coin set that is **not canonical** — greedy no longer guarantees the minimum number of coins.
-3. Both are the standard examples used to show that greedy is not a universal tool.
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+Greedy fails when a locally best choice **blocks a better choice later**. Two classic examples:
 
-1. Interviewers use these two problems specifically to check whether you blindly apply greedy everywhere, or actually verify the greedy choice property (topic 1) first.
-2. Recognising *why* greedy fails here is what points you toward Dynamic Programming instead.
+1. **0/1 Knapsack.** Each item is taken whole or not at all.
+2. **Coin Change** with a coin set like `{1, 3, 4}`.
 
-#### 3. How It Works — Must Know
+The cure is **Dynamic Programming**: remember the best answer for smaller subproblems and build up.
 
-**0/1 Knapsack counter-example:**
+#### 2. How It Works
 
-```text
-Capacity = 50
-Items (value, weight): (60, 10)  (100, 20)  (120, 30)
-
-Greedy by value/weight ratio (same idea as topic 5):
-Ratios: 6, 5, 4 → take item 1 (value/weight 6) fully: weight 10, value 60
-        take item 2 fully: weight 30, value 160
-        item 3 doesn't fit whole (needs 30, only 20 capacity left) → skip
-Greedy total = 160
-
-But the actual best choice is item 2 + item 3: weight 20 + 30 = 50, value 100 + 120 = 220
-
-Greedy (160) < Optimal (220) — greedy is wrong here.
-```
-
-**General coin change counter-example** (already shown in topic 1): coins {1, 3, 4}, target 6 — greedy gives 4+1+1 = 3 coins, but 3+3 = 2 coins is better.
-
-#### 4. Algorithm — Must Know
-
-There's no greedy algorithm to give here — that's the point. The correct approach for both is Dynamic Programming:
+**0/1 Knapsack.** Items (value, weight): `(60, 10)`, `(100, 20)`, `(120, 30)`. Capacity 50. Items cannot be split.
 
 ```text
-0/1 Knapsack (DP):
-  dp[i][w] = best value using the first i items with capacity w
-  dp[i][w] = max(
-      dp[i-1][w],                                  # skip item i
-      dp[i-1][w - weight[i]] + value[i]             # take item i, if it fits
-  )
+Greedy by value/weight (6, 5, 4):
+  take item 1 (w10) → value 60,  left 40
+  take item 2 (w20) → value 160, left 20
+  item 3 (w30) does not fit      → total 160
+
+Best answer: items 2 + 3 (w50) → 100 + 120 = 220
 ```
 
-#### 5. Kotlin Implementation — Must Know
+Greedy filled the bag with items that leave 20 unused. A fraction would fix this, but fractions are not allowed.
+
+**Coin Change.** Coins `{1, 3, 4}`, amount 6.
+
+```text
+Greedy: 4 + 1 + 1 = 3 coins
+Best:   3 + 3     = 2 coins
+```
+
+**More traps to remember:**
+
+| Problem | Tempting greedy | Why it fails |
+|---|---|---|
+| House Robber | rob the biggest house | `[3, 5, 3]`: greedy 5, best 3 + 3 = 6 |
+| Dijkstra with negative edges | closest node is final | a negative edge can shorten it later |
+| Longest path / TSP | go to the nearest next | local choice blocks the global tour |
+
+**How DP fixes it.** For 0/1 knapsack, `dp[w]` = best value with capacity `w`. For each item, decide "take it" or "skip it" using results of smaller capacities.
+
+#### 3. Brute Force vs Optimized
+
+| | Brute force | Greedy | DP |
+|---|---|---|---|
+| 0/1 Knapsack | try all subsets `O(2^n)` | `O(n log n)`, **wrong** | `O(n · W)`, correct |
+| Coin Change | try all coin sequences, exponential | `O(c)`, **wrong** for `{1,3,4}` | `O(amount · c)` |
 
 ```kotlin
-fun knapsack01(capacity: Int, weights: IntArray, values: IntArray): Int {
-    val n = weights.size
-    val dp = Array(n + 1) { IntArray(capacity + 1) }
-    for (i in 1..n) {
-        for (w in 0..capacity) {
-            dp[i][w] = dp[i - 1][w]                                   // skip item i
-            if (weights[i - 1] <= w) {
-                dp[i][w] = maxOf(dp[i][w], dp[i - 1][w - weights[i - 1]] + values[i - 1])
-            }
+// Greedy by value/weight, whole items only: WRONG for 0/1 knapsack
+fun knapsackGreedy(values: IntArray, weights: IntArray, capacity: Int): Int {
+    var left = capacity
+    var total = 0
+    for (i in values.indices.sortedByDescending { values[it].toDouble() / weights[it] }) {
+        if (weights[i] <= left) { total += values[i]; left -= weights[i] }
+    }
+    return total
+}
+
+// DP: correct
+fun knapsackDP(values: IntArray, weights: IntArray, capacity: Int): Int {
+    val dp = IntArray(capacity + 1)
+    for (i in values.indices) {
+        for (w in capacity downTo weights[i]) {            // go downward so each item is used once
+            dp[w] = maxOf(dp[w], dp[w - weights[i]] + values[i])
         }
     }
-    return dp[n][capacity]
+    return dp[capacity]
 }
 ```
 
-#### 6. Complexity — Must Know
+Checks: with values `[60, 100, 120]`, weights `[10, 20, 30]`, capacity `50`: `knapsackGreedy` → `160`, `knapsackDP` → `220`.
 
-| Problem | Greedy | Correct approach |
+#### 4. Kotlin Code
+
+The code is above. A tiny way to **find a counter-example** during practice:
+
+```kotlin
+fun coinGreedyFails(coins: IntArray, limit: Int): Int? {
+    for (amount in 1..limit) {
+        var remaining = amount
+        var count = 0
+        for (c in coins.sortedDescending()) { count += remaining / c; remaining %= c }
+        val dp = IntArray(amount + 1) { Int.MAX_VALUE }
+        dp[0] = 0
+        for (a in 1..amount) for (c in coins) {
+            if (c <= a && dp[a - c] != Int.MAX_VALUE) dp[a] = minOf(dp[a], dp[a - c] + 1)
+        }
+        if (remaining == 0 && count != dp[amount]) return amount
+    }
+    return null
+}
+```
+
+Checks: `coinGreedyFails([1, 3, 4], 10)` → `6`. `coinGreedyFails([1, 5, 10, 25], 100)` → `null`.
+
+#### 5. Complexity
+
+| | Time | Space |
 |---|---|---|
-| 0/1 Knapsack | Wrong answer, O(n log n) | DP, O(n × capacity) |
-| General coin change | Wrong answer, O(k) | DP, O(target × k) |
+| 0/1 Knapsack DP | `O(n · W)` | `O(W)` |
+| Coin Change DP | `O(amount · c)` | `O(amount)` |
 
-#### 7. Common Mistakes — Must Know
+(`W` is the capacity. This is "pseudo-polynomial": it depends on the size of the number, not only the count of items.)
 
-1. Reusing the Fractional Knapsack greedy idea for 0/1 Knapsack because the problems "look similar" — they need different techniques.
-2. Assuming a coin set is canonical without checking — always ask or verify with a small counter-example.
-3. Giving up on the problem instead of switching to DP once greedy is shown to fail — the failure is the *signal* to switch, not a dead end.
+#### 6. Common Mistakes
 
-#### 8. Related Topics
+1. **Using the fractional knapsack greedy** on 0/1 knapsack.
+2. **Looping capacity upward** in 0/1 DP (it then uses an item many times, which is the *unbounded* version).
+3. **Trusting greedy** because the sample passes.
+4. **Switching to DP without a state definition.** Say what `dp[i]` means first.
+5. **Not saying why greedy fails.** Show the small counter-example.
 
-1. `5` Fractional Knapsack — the version where greedy *does* work
-2. `6` Coin Change with Canonical Coin Systems — the version where greedy *does* work
-3. `10` Greedy vs Dynamic Programming — How to Tell — the general decision process
-4. `5` Dynamic Programming (its own folder) — the correct technique for both problems here
+#### 7. Say This in the Interview
 
-#### 9. Interview Must Remember
+1. "Greedy looks natural here, but with coins 1, 3, 4 and amount 6 it returns 3 coins instead of 2, so I will use DP."
+2. "dp[a] is the fewest coins to make amount a. I build it from smaller amounts."
 
-1. **0/1 Knapsack and non-canonical coin change are the two go-to examples of "greedy looks right but isn't".**
-2. The fix for both is Dynamic Programming — build a table of best answers to subproblems, don't just scan once.
-3. If you can construct a counter-example (even a tiny one, by hand), that's proof enough to abandon greedy and switch approach.
+#### 8. Quick Check
+
+1. Why does ratio-greedy fail for 0/1 knapsack?
+2. In the 0/1 DP, which direction do you loop over capacity, and why?
+
+<details>
+<summary>Answers</summary>
+
+1. It leaves unused space that a different mix of whole items could fill.
+2. Downward, so an item is not used twice.
+
+</details>
+
+#### 9. Related LeetCode Questions
+
+| # | Question | Idea |
+|---|---|---|
+| 198 | [House Robber](https://leetcode.com/problems/house-robber/) (Medium) | greedy fails, DP |
+| 322 | [Coin Change](https://leetcode.com/problems/coin-change/) (Medium) | DP |
+| 416 | [Partition Equal Subset Sum](https://leetcode.com/problems/partition-equal-subset-sum/) (Medium) | 0/1 knapsack |
+| 494 | [Target Sum](https://leetcode.com/problems/target-sum/) (Medium) | 0/1 knapsack style |
+| 1049 | [Last Stone Weight II](https://leetcode.com/problems/last-stone-weight-ii/) (Medium) | knapsack, not the greedy heap |

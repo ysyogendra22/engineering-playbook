@@ -16,5 +16,11 @@ Algorithm topic `4` in `02-algorithm`. Make the locally best choice at each step
 | 8 | Huffman Coding — Name & Idea | 🟡 |
 | 9 | Why Greedy Fails — 0/1 Knapsack & General Coin Change | 🟡 |
 | 10 | Greedy vs Dynamic Programming — How to Tell | 🟡 |
+| 11 | Jump Game | 🟢 |
+| 12 | Gas Station | 🟢 |
+| 13 | Task Scheduler & Reorganize String | 🟢 |
+| 14 | Candy — Two-Pass Greedy | 🟡 |
+| 15 | Partition Labels & Stock Profit | 🟢 |
+| 99 | Greedy Cheat Sheet | 🟢 |
 
 **Related:** `5` Dynamic Programming (what to use when greedy fails) · `7` Graph Algorithms (Dijkstra, Kruskal, Prim in full) · `1` Sorting (the usual first step) · `LC 19` Greedy patterns and problems

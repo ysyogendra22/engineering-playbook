@@ -1,68 +1,118 @@
 # Proving Correctness with an Exchange Argument
 
-#### 1. Definition — Must Know
+> You do not need a math proof in an interview. You need a short, clear reason. This note gives you the reason in plain words.
 
-1. An **exchange argument** proves a greedy algorithm is correct by showing that any other (non-greedy) solution can be turned into the greedy one, step by step, without ever making it worse.
-2. In plain words: "if a better solution existed, I could swap in my greedy choice and the answer wouldn't get worse — so greedy is at least as good as anything else."
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+An **exchange argument** shows that a greedy choice is safe:
 
-1. It's the standard way to justify a greedy algorithm properly, instead of just saying "it seemed to work on my examples".
-2. In an interview, giving even a short version of this argument makes your greedy answer far more convincing.
+> Take **any** optimal answer. If it does not use the greedy choice, **swap** the greedy choice in. The answer does not get worse. So some optimal answer uses the greedy choice.
 
-#### 3. How It Works — Must Know
+Repeat this for every step and the greedy answer is optimal.
 
-Worked example: Activity Selection, proving "always pick the meeting that ends earliest" is correct.
+#### 2. How It Works
 
-```text
-Claim: picking the activity that ends earliest is always part of some optimal solution.
-
-Suppose an optimal solution picks some other first activity, X, instead of the
-earliest-ending activity, E (where E.end <= X.end).
-
-Since E ends no later than X, swapping X for E in that solution cannot cause any
-conflict with whatever came after X — E frees up at least as much time as X did.
-
-So we can exchange X for E, and the solution is still valid and no smaller.
-
-This means an optimal solution containing E always exists — so the greedy choice
-(pick E first) is safe.
-```
-
-#### 4. Algorithm — Must Know
-
-*(A proof method, not code.)* The general shape of an exchange argument:
+**Example: pick the most non-overlapping meetings.** Greedy rule: always pick the meeting that **ends first**.
 
 ```text
-1. Assume some optimal solution does NOT make the greedy choice at step one.
-2. Show that swapping in the greedy choice keeps the solution valid.
-3. Show the swap doesn't make the solution worse (it stays the same size or cost, or improves).
-4. Conclude: an optimal solution exists that DOES start with the greedy choice.
-5. Repeat the same argument for the remaining steps (often by induction).
+Take any optimal schedule. Look at its first meeting X.
+Let G be the meeting that ends earliest of all.
+
+If X = G: nothing to do.
+If X ≠ G: G ends no later than X, so replace X with G.
+          Everything after X still fits, because G ends even earlier.
+          The schedule has the same size, so it is still optimal.
+
+So an optimal schedule that starts with G exists.
+Remove G and the meetings that overlap it, and repeat on the rest.
 ```
 
-#### 5. Kotlin Implementation — Must Know
+Why other rules fail (try to break them with small cases):
 
-*(Nothing to implement — this section explains why the code in topic 2 and topic 4 is correct, not a new algorithm.)*
+| Rule | Counter-example | Result |
+|---|---|---|
+| earliest **start** | `[0,10]`, `[1,2]`, `[3,4]` | picks 1 meeting, best is 2 |
+| **shortest** meeting | `[0,5]`, `[4,6]`, `[5,10]` (the short `[4,6]` overlaps both others) | picks 1 meeting, best is 2 |
+| earliest **end** | none (proved above) | optimal |
 
-#### 6. Complexity — Must Know
+The three-line template to say out loud:
 
-Not applicable — an exchange argument is about **correctness**, not the running time of the algorithm.
+1. "Suppose an optimal answer does not use my greedy choice."
+2. "I swap my choice in."
+3. "The result is still valid and no worse, so my choice is safe."
 
-#### 7. Common Mistakes — Must Know
+#### 3. Brute Force vs Optimized (Test Your Greedy)
 
-1. Skipping this step entirely and only testing a couple of examples — examples can't prove a greedy algorithm always works.
-2. Writing an exchange argument that only shows the swap is *valid*, without also showing it isn't *worse* — both parts are needed.
-3. Trying to force an exchange argument onto a problem that genuinely doesn't have the greedy choice property (topic 1) — if you can't complete the argument, that's a signal greedy may be wrong.
+You can also **test** a greedy idea by comparing it to a brute force on small random inputs. This is a good habit when you practise.
 
-#### 8. Related Topics
+```kotlin
+fun greedyCount(intervals: Array<IntArray>): Int {
+    var count = 0
+    var lastEnd = Int.MIN_VALUE
+    for (iv in intervals.sortedBy { it[1] }) {
+        if (iv[0] >= lastEnd) { count++; lastEnd = iv[1] }
+    }
+    return count
+}
 
-1. `1` The Greedy Choice Property — what the exchange argument is proving
-2. `4` Activity / Interval Selection — the example used here in full
-3. `9` Why Greedy Fails — 0/1 Knapsack & General Coin Change — where the argument breaks down
+// Brute force: try every subset (n must be small)
+fun bruteCount(intervals: Array<IntArray>): Int {
+    val n = intervals.size
+    var best = 0
+    for (mask in 0 until (1 shl n)) {
+        val chosen = (0 until n).filter { mask and (1 shl it) != 0 }
+            .map { intervals[it] }
+            .sortedBy { it[0] }
+        var ok = true
+        for (i in 1 until chosen.size) {
+            if (chosen[i][0] < chosen[i - 1][1]) { ok = false; break }
+        }
+        if (ok) best = maxOf(best, chosen.size)
+    }
+    return best
+}
+```
 
-#### 9. Interview Must Remember
+Check: for `[[1,3],[2,4],[3,5]]` both return `2`. If the two ever disagree on a random small input, your greedy rule is wrong.
 
-1. The short version to say out loud: **"if a better solution didn't include my greedy choice, I could swap it in without making things worse — so it's safe to make greedily."**
-2. You don't need a formal proof in an interview — a clear one- or two-sentence version of this argument is usually enough.
-3. If you can't construct this argument, that's a warning sign your greedy idea might be wrong.
+#### 4. Complexity
+
+| | Time | Space |
+|---|---|---|
+| Greedy | `O(n log n)` | `O(1)` extra |
+| Brute force subsets | `O(2^n · n log n)` | `O(n)` |
+
+#### 5. Common Mistakes
+
+1. **"It works on the examples, so it is correct."** Examples are not proof.
+2. **A proof that never uses an optimal answer.** The argument must start from *any* optimal answer.
+3. **Forgetting to show the swap keeps the answer valid** (no new overlap, same size).
+4. **Over-explaining.** In an interview, 3 to 4 sentences are enough.
+
+#### 6. Say This in the Interview
+
+1. "Here is why it is safe: if an optimal answer picked something else first, I can swap in the earliest-ending meeting and nothing breaks."
+2. "I also tried a few small counter-examples and none broke it."
+
+#### 7. Quick Check
+
+1. What do you start from in an exchange argument?
+2. Why does "earliest start" fail for meetings?
+
+<details>
+<summary>Answers</summary>
+
+1. Any optimal answer.
+2. A long meeting that starts early can block many short ones. `[0,10]` blocks `[1,2]` and `[3,4]`.
+
+</details>
+
+#### 8. Related LeetCode Questions
+
+| # | Question | Idea |
+|---|---|---|
+| 435 | [Non-overlapping Intervals](https://leetcode.com/problems/non-overlapping-intervals/) (Medium) | earliest end first |
+| 452 | [Minimum Number of Arrows to Burst Balloons](https://leetcode.com/problems/minimum-number-of-arrows-to-burst-balloons/) (Medium) | shoot at the earliest end |
+| 455 | [Assign Cookies](https://leetcode.com/problems/assign-cookies/) (Easy) | smallest fitting cookie |
+| 1029 | [Two City Scheduling](https://leetcode.com/problems/two-city-scheduling/) (Medium) | sort by difference |
+| 763 | [Partition Labels](https://leetcode.com/problems/partition-labels/) (Medium) | cut as early as possible |

@@ -1,71 +1,156 @@
 # Greedy vs Dynamic Programming — How to Tell
 
-#### 1. Definition — Must Know
+> The decision you make in the first two minutes of an interview. This note gives you a checklist.
 
-1. Both greedy and Dynamic Programming solve optimisation problems ("find the minimum/maximum/best"), but they work differently: greedy makes one pass with irreversible choices; DP considers subproblems and remembers their best answers.
-2. Telling them apart quickly is a core interview skill — most "optimize this" problems are one or the other.
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+Both greedy and DP solve **optimization** problems (min, max, count). The difference:
 
-1. Trying greedy first is usually faster to reason about, but using it on a problem that needs DP gives a wrong answer with no warning.
-2. Knowing the checklist below turns "let me just try something" into a deliberate, explainable decision.
+| | Greedy | Dynamic Programming |
+|---|---|---|
+| Choice | one choice per step, never reconsidered | tries all choices, keeps the best |
+| Needs | greedy choice property | overlapping subproblems + optimal substructure |
+| Speed | usually `O(n)` or `O(n log n)` | usually `O(n²)` or `O(n · k)` |
+| Risk | wrong answer if the rule is wrong | slower, more memory |
 
-#### 3. How It Works — Must Know
+If a greedy rule is correct, it is almost always simpler and faster than DP.
+
+#### 2. How It Works
+
+Ask this one question:
+
+> "If I take the locally best choice now, can it **lock me out** of something better later?"
 
 ```text
-Ask: "If I make the locally best choice now, could a different choice earlier
-      have opened up a better option later that I've now locked out?"
-
-If NO  (the greedy choice never closes off a better future option)  → try greedy
-If YES (an earlier choice can trap you into a worse later outcome)  → use DP
+NO  (nothing is lost by choosing the best now)   → try greedy
+YES (an early choice can trap me)                → use DP
 ```
 
 | Signal | Points to |
 |---|---|
-| Sorting the input makes the answer obvious | Greedy |
-| You can prove correctness with an exchange argument (topic 3) | Greedy |
-| A small example breaks the "obvious" greedy rule | Dynamic Programming |
-| The problem says "items can't be split" or "each item used once" | Often DP (0/1 Knapsack shape) |
-| The same subproblem clearly gets solved more than once | Dynamic Programming |
-| The problem is about *counting ways*, not just the best single value | Dynamic Programming |
+| sorting the input makes the answer obvious | greedy |
+| you can explain an exchange argument (note 03) | greedy |
+| intervals, meetings, "earliest end" | greedy |
+| single scan with a running max / min | greedy |
+| a small example breaks the obvious rule | DP |
+| "count the number of ways" | DP |
+| "each item used once, cannot be split" | usually DP (0/1 knapsack shape) |
+| choices depend on earlier choices (`dp[i-1]`, `dp[i-2]`) | DP |
 
-#### 4. Algorithm — Must Know
+**Same problem, both views — Jump Game (LeetCode 55):** "can you reach the last index?" Greedy keeps the farthest reach: `O(n)`. DP asks "can I reach `i` from any earlier `j`?": `O(n²)`. Greedy works because reaching *farther* never hurts.
 
-```text
-1. Propose the obvious greedy rule.
-2. Try to break it with a small, deliberately tricky example (topic 1).
-3. If it breaks: switch to DP — define the state and recurrence (see `05-Dynamic Programming`).
-4. If it survives a few attempts: try to justify it with an exchange argument (topic 3).
-5. Say your reasoning out loud either way — that's the actual skill being tested.
+**Not the same — House Robber (LeetCode 198):** "rob the biggest house" fails (`[3, 5, 3]`: greedy 5, best 6). The early choice blocks the neighbours. Use DP.
+
+#### 3. Brute Force vs Optimized
+
+Three levels for most of these problems:
+
+| Level | Idea | Time |
+|---|---|---|
+| Brute force | try every choice (recursion) | exponential |
+| DP | remember subproblem answers | polynomial |
+| Greedy | prove one choice is always safe | linear or `n log n` |
+
+```kotlin
+// Jump Game, DP version: O(n²)
+fun canJumpDP(nums: IntArray): Boolean {
+    val n = nums.size
+    val good = BooleanArray(n)
+    good[n - 1] = true
+    for (i in n - 2 downTo 0) {
+        for (j in 1..minOf(nums[i], n - 1 - i)) {
+            if (good[i + j]) { good[i] = true; break }
+        }
+    }
+    return good[0]
+}
+
+// Jump Game, greedy version: O(n)
+fun canJumpGreedy(nums: IntArray): Boolean {
+    var farthest = 0
+    for (i in nums.indices) {
+        if (i > farthest) return false
+        farthest = maxOf(farthest, i + nums[i])
+    }
+    return true
+}
 ```
 
-#### 5. Kotlin Implementation — Must Know
+#### 4. Kotlin Code
 
-*(Nothing to implement — this is a decision process, not an algorithm.)*
+A greedy that fails, next to its DP, on House Robber:
 
-#### 6. Complexity — Must Know
+```kotlin
+// Greedy: always rob the biggest house that is still allowed. WRONG.
+fun robGreedy(nums: IntArray): Int {
+    val blocked = BooleanArray(nums.size)
+    var total = 0
+    while (true) {
+        var best = -1
+        for (i in nums.indices) {
+            if (!blocked[i] && (best == -1 || nums[i] > nums[best])) best = i
+        }
+        if (best == -1) return total
+        total += nums[best]
+        for (j in maxOf(0, best - 1)..minOf(nums.size - 1, best + 1)) blocked[j] = true
+    }
+}
 
-| | Typical complexity |
-|---|---|
-| Greedy (when correct) | O(n log n) |
-| Dynamic Programming | O(n × states), often much larger |
+// DP: correct
+fun robDP(nums: IntArray): Int {
+    var prev2 = 0                                         // best up to i − 2
+    var prev1 = 0                                         // best up to i − 1
+    for (x in nums) {
+        val cur = maxOf(prev1, prev2 + x)                 // skip this house, or rob it
+        prev2 = prev1
+        prev1 = cur
+    }
+    return prev1
+}
+```
 
-This is part of why it's worth checking for greedy first — it's usually cheaper, when it's actually correct.
+Checks: `canJumpDP([2,3,1,1,4])` and `canJumpGreedy([2,3,1,1,4])` → `true`. `canJumpGreedy([3,2,1,0,4])` → `false`. `robGreedy([3,5,3])` → `5`, but `robDP([3,5,3])` → `6`.
 
-#### 7. Common Mistakes — Must Know
+#### 5. Complexity
 
-1. Committing to greedy without testing a counter-example, then running out of time when it turns out wrong.
-2. Assuming a problem needs DP just because it sounds hard — many "hard-sounding" problems are simple greedy once sorted correctly.
-3. Not noticing the tell-tale DP phrases: "each item can be used once", "count the number of ways", "subsequence" (as opposed to "subarray" or "substring", which are often greedy or sliding-window).
+| | Time | Space |
+|---|---|---|
+| Greedy (typical) | `O(n)` / `O(n log n)` | `O(1)` |
+| DP (typical) | `O(n²)` / `O(n · k)` | `O(n)`, often reducible |
 
-#### 8. Related Topics
+#### 6. Common Mistakes
 
-1. `1` The Greedy Choice Property
-2. `9` Why Greedy Fails — 0/1 Knapsack & General Coin Change
-3. `5` Dynamic Programming (its own folder) — full topic index
+1. **Greedy by default** without a counter-example check.
+2. **DP by default** when a simple scan works (slower, harder to explain).
+3. **Mixing up the problems**: "minimum number of coins" is DP for general coins, greedy only for canonical ones.
+4. **Not stating the choice** to the interviewer. Say "I think this is greedy because ...".
+5. **Skipping the proof.** Even one sentence helps.
 
-#### 9. Interview Must Remember
+#### 7. Say This in the Interview
 
-1. **Try greedy first, but always test it with a counter-example before committing.**
-2. "Can't be split" / "used once" / "count the ways" are strong signals for DP.
-3. Saying "let me check if the greedy choice can trap me into a worse option later" is the exact reasoning interviewers want to hear.
+1. "My first idea is greedy: pick ... each time. Let me try to break it with a small example."
+2. "It breaks on ..., so a locally best choice can hurt later. I will use DP with state ..."
+3. "If it survives, I have an exchange argument: ..."
+
+#### 8. Quick Check
+
+1. Which is faster for Jump Game: greedy or DP?
+2. Why does greedy fail for House Robber?
+
+<details>
+<summary>Answers</summary>
+
+1. Greedy, `O(n)` against `O(n²)`.
+2. Robbing the biggest house blocks its two neighbours, and two smaller houses can add up to more.
+
+</details>
+
+#### 9. Related LeetCode Questions
+
+| # | Question | Idea |
+|---|---|---|
+| 55 | [Jump Game](https://leetcode.com/problems/jump-game/) (Medium) | greedy (DP also works) |
+| 122 | [Best Time to Buy and Sell Stock II](https://leetcode.com/problems/best-time-to-buy-and-sell-stock-ii/) (Medium) | greedy |
+| 198 | [House Robber](https://leetcode.com/problems/house-robber/) (Medium) | DP |
+| 322 | [Coin Change](https://leetcode.com/problems/coin-change/) (Medium) | DP |
+| 435 | [Non-overlapping Intervals](https://leetcode.com/problems/non-overlapping-intervals/) (Medium) | greedy (DP also works) |

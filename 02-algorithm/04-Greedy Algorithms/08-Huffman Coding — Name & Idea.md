@@ -1,84 +1,139 @@
 # Huffman Coding — Name & Idea
 
-#### 1. Definition — Must Know
+> Rarely asked as "write Huffman coding". Often asked in disguise (*Minimum Cost to Connect Sticks*). Know the idea and the heap loop.
 
-1. **Huffman coding** is a greedy algorithm that builds the smallest possible encoding for a set of characters, based on how often each one appears.
-2. Characters that appear more often get shorter codes; characters that appear rarely get longer codes.
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
-
-1. It's a real compression technique (used in formats like ZIP and JPEG), and a good example of greedy applied to building a tree, not just scanning a list.
-2. Interviews usually only expect you to know the **idea** and be able to describe the process — not implement it from memory.
-
-#### 3. How It Works — Must Know
+**Huffman coding** compresses data by giving **short bit codes to frequent characters** and **long codes to rare ones**. It is the best possible prefix code (no code is the start of another code).
 
 ```text
-Characters and frequencies: a:5  b:9  c:12  d:13  e:16  f:45
-
-Repeatedly take the two least frequent nodes and merge them into a new node
-(whose frequency is their sum), until only one node (the root) remains.
-
-Step 1: merge a(5) + b(9)  → new node(14)
-Step 2: merge c(12) + d(13) → new node(25)
-Step 3: merge node(14) + e(16) → new node(30)
-Step 4: merge node(25) + node(30) → new node(55)
-Step 5: merge node(55) + f(45) → root(100)
-
-Reading the path from the root to each character (left = 0, right = 1)
-gives that character's code. Frequent characters end up near the root
-(short codes); rare ones end up deep (long codes).
+character:  f   c   d   e   a   b
+frequency:  45  12  13  16  5   9
+code:       0   100 101 111 1100 1101
 ```
 
-#### 4. Algorithm — Must Know
+The greedy idea: **always merge the two smallest frequencies.**
+
+#### 2. How It Works
+
+1. Put all frequencies in a **min-heap**.
+2. Remove the two smallest, merge them into a new node (sum of the two), and push it back.
+3. Repeat until one node is left. That is the root of the code tree.
+4. Left edge = `0`, right edge = `1`. A character's code is the path to it.
 
 ```text
-put every character in a min-heap, keyed by frequency
-while more than one node remains in the heap:
-    take the two smallest nodes out
-    merge them into a new node (frequency = sum of the two)
-    put the new node back in the heap
-the last remaining node is the root of the Huffman tree
+heap: 5 9 12 13 16 45
+5 + 9   = 14   heap: 12 13 14 16 45
+12 + 13 = 25   heap: 14 16 25 45
+14 + 16 = 30   heap: 25 30 45
+25 + 30 = 55   heap: 45 55
+45 + 55 = 100  heap: 100
+
+total cost of merges = 14 + 25 + 30 + 55 + 100 = 224 = total bits needed
 ```
 
-#### 5. Kotlin Implementation — Must Know
+Why it works: the rarest characters go deepest in the tree (longest codes), the most frequent stay near the root (shortest codes).
+
+**The interview version** is *Minimum Cost to Connect Sticks* (LeetCode 1167): joining two sticks costs their sum. Join all sticks with the least total cost. It is exactly the merge loop above. *Last Stone Weight* (LeetCode 1046) uses the same heap pattern.
+
+#### 3. Brute Force vs Optimized
+
+| | Brute force | Greedy + heap |
+|---|---|---|
+| Idea | try every order of merges | always merge the two smallest |
+| Time | exponential | `O(n log n)` |
+| Space | recursion | `O(n)` |
+
+Joining sticks in the **given order** (e.g. left to right) is a tempting wrong answer:
+
+```text
+sticks [1, 8, 3, 5]
+in order:   1+8 = 9, 9+3 = 12, 12+5 = 17     cost 38
+greedy:     1+3 = 4, 4+5 = 9, 9+8 = 17       cost 30
+```
+
+#### 4. Kotlin Code
 
 ```kotlin
-// The shape of it, using a min-heap — full tree-building and code assignment
-// is usually beyond what's expected to reproduce from memory.
-data class Node(val freq: Int, val char: Char? = null, val left: Node? = null, val right: Node? = null)
+import java.util.PriorityQueue
 
-fun buildHuffmanTree(frequencies: Map<Char, Int>): Node {
-    val heap = java.util.PriorityQueue<Node>(compareBy { it.freq })
-    frequencies.forEach { (c, f) -> heap.add(Node(f, c)) }
+// Minimum Cost to Connect Sticks (LeetCode 1167): the Huffman merge loop
+fun connectSticks(sticks: IntArray): Int {
+    val heap = PriorityQueue<Int>()
+    for (s in sticks) heap.add(s)
+    var cost = 0
+    while (heap.size > 1) {
+        val merged = heap.poll() + heap.poll()
+        cost += merged
+        heap.add(merged)
+    }
+    return cost
+}
+
+// Huffman codes
+class HNode(val freq: Int, val ch: Char? = null, val left: HNode? = null, val right: HNode? = null)
+
+fun huffmanCodes(freq: Map<Char, Int>): Map<Char, String> {
+    val heap = PriorityQueue<HNode>(compareBy<HNode> { it.freq })
+    for ((c, f) in freq) heap.add(HNode(f, c))
+    if (heap.size == 1) return mapOf(heap.poll().ch!! to "0")      // one distinct character
     while (heap.size > 1) {
         val a = heap.poll()
         val b = heap.poll()
-        heap.add(Node(a.freq + b.freq, left = a, right = b))
+        heap.add(HNode(a.freq + b.freq, null, a, b))
     }
-    return heap.poll()
+    val codes = HashMap<Char, String>()
+    fun walk(node: HNode, path: String) {
+        if (node.ch != null) { codes[node.ch] = path; return }
+        walk(node.left!!, path + "0")
+        walk(node.right!!, path + "1")
+    }
+    walk(heap.poll(), "")
+    return codes
 }
 ```
 
-#### 6. Complexity — Must Know
+Checks: `connectSticks([2,4,3])` → `14`. `connectSticks([1,8,3,5])` → `30`. `connectSticks([5])` → `0`. For `huffmanCodes(f=45, c=12, d=13, e=16, a=5, b=9)` the code lengths are `f:1, c:3, d:3, e:3, a:4, b:4`, so the total bits are `45·1 + (12+13+16)·3 + (5+9)·4 = 224`. The exact bit strings can differ when frequencies tie, but the lengths stay optimal.
 
-| | Cost |
-|---|---|
-| Building the tree | O(n log n), n = number of distinct characters |
+#### 5. Complexity
 
-#### 7. Common Mistakes — Must Know
+| | Time | Space |
+|---|---|---|
+| Build the tree (`n` characters) | `O(n log n)` | `O(n)` |
+| Connect sticks | `O(n log n)` | `O(n)` |
 
-1. Expecting to write the full tree-building **and** code-assignment logic from memory in an interview — this is usually "know the idea", not "implement it cold" (see the mark on this topic).
-2. Forgetting the min-heap detail — always merging the two *least* frequent nodes is what makes the result optimal.
-3. Confusing this with a fixed-length encoding — the whole point of Huffman coding is **variable-length** codes.
+#### 6. Common Mistakes
 
-#### 8. Related Topics
+1. **Merging in the given order** instead of the two smallest.
+2. **Using a max-heap.** You need a **min**-heap.
+3. **Not pushing the merged node back.**
+4. **One distinct character** (a tree with one node needs a code like `"0"`).
+5. **Mixing up the merge cost and the tree** (cost is the sum of all merge results).
 
-1. `DS Heap` — the min-heap this algorithm is built on
-2. `1` The Greedy Choice Property — why "always merge the two smallest" works here
-3. `7` Greedy Graph Algorithms — Dijkstra, Kruskal, Prim — another greedy algorithm that also uses a min-heap
+#### 7. Say This in the Interview
 
-#### 9. Interview Must Remember
+1. "Huffman is greedy: merge the two least frequent nodes until one is left. The rare characters end up deepest."
+2. "I use a min-heap, so each step is `O(log n)` and the total is `O(n log n)`."
 
-1. Huffman coding = **repeatedly merge the two least frequent nodes** using a min-heap, until one tree remains.
-2. Frequent characters end up with **short codes**; rare characters end up with **long codes**.
-3. This is a name-and-idea topic — know what it does and why, not necessarily the full implementation.
+#### 8. Quick Check
+
+1. Which two nodes does Huffman merge?
+2. What is the cost to connect sticks `[2, 4, 3]`?
+
+<details>
+<summary>Answers</summary>
+
+1. The two with the smallest frequency.
+2. `14` (2+3 = 5, then 5+4 = 9, total 5 + 9).
+
+</details>
+
+#### 9. Related LeetCode Questions
+
+| # | Question | Idea |
+|---|---|---|
+| 1046 | [Last Stone Weight](https://leetcode.com/problems/last-stone-weight/) (Easy) | heap, take the two largest |
+| 1167 | [Minimum Cost to Connect Sticks](https://leetcode.com/problems/minimum-cost-to-connect-sticks/) (Medium, premium) | Huffman merge loop |
+| 2208 | [Minimum Operations to Halve Array Sum](https://leetcode.com/problems/minimum-operations-to-halve-array-sum/) (Medium) | always halve the largest |
+| 1642 | [Furthest Building You Can Reach](https://leetcode.com/problems/furthest-building-you-can-reach/) (Medium) | heap of the biggest jumps |
+| 621 | [Task Scheduler](https://leetcode.com/problems/task-scheduler/) (Medium) | heap by frequency (note 13) |
