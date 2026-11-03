@@ -69,9 +69,30 @@ for node in 0..n-1:
 | Cheapest flights ≤ K stops | DFS over all routes | Bellman-Ford with K+1 rounds |
 
 ```kotlin
-// Brute force idea: a node is its own component unless some DFS from an earlier node reaches it.
-// Instead of that, the visited set makes every node cost O(1) after the first visit.
+// Brute force: BFS from every node. A node counts as a new component only when it is the
+// smallest label in everything it can reach. O(V * (V + E)).
+fun countComponentsBrute(n: Int, edges: Array<IntArray>): Int {
+    val graph = Array(n) { mutableListOf<Int>() }
+    for ((a, b) in edges) { graph[a].add(b); graph[b].add(a) }
+    var count = 0
+    for (start in 0 until n) {
+        val seen = BooleanArray(n)
+        val queue = ArrayDeque<Int>()
+        queue.addLast(start)
+        seen[start] = true
+        var smallest = start
+        while (queue.isNotEmpty()) {
+            val node = queue.removeFirst()
+            smallest = minOf(smallest, node)
+            for (next in graph[node]) if (!seen[next]) { seen[next] = true; queue.addLast(next) }
+        }
+        if (smallest == start) count++
+    }
+    return count
+}
 ```
+
+The `visited` set removes the repeated work: after the first search, every node of that component is skipped.
 
 #### 4. Kotlin Code
 
