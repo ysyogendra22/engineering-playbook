@@ -29,7 +29,32 @@ If extra memory is a problem there are two other tools:
 - **Sort first**, then equal values sit next to each other (`O(n log n)`, little extra space).
 - For *Find the Duplicate Number* (values `1..n`, one repeated), Floyd's cycle detection finds it in `O(1)` space.
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Approach | Time | Space |
+|---|---|---|
+| Compare every pair | `O(n²)` | `O(1)` |
+| Sort, then compare neighbours | `O(n log n)` | `O(1)` extra |
+| **HashSet / HashMap of seen values** | **`O(n)`** | `O(n)` |
+
+```kotlin
+// Brute force: check every pair
+fun hasDuplicateBrute(nums: IntArray): Boolean {
+    for (i in nums.indices) for (j in i + 1 until nums.size) if (nums[i] == nums[j]) return true
+    return false
+}
+
+// Sort: no extra space, changes the order
+fun hasDuplicateSort(nums: IntArray): Boolean {
+    val a = nums.sortedArray()
+    for (i in 1 until a.size) if (a[i] == a[i - 1]) return true
+    return false
+}
+```
+
+Both return `true` for `[1, 2, 3, 1]` and `false` for `[1, 2, 3, 4]`. Choose the set for speed, or sorting when memory is tight.
+
+#### 4. Kotlin Code
 
 ```kotlin
 // Duplicate values with their counts
@@ -81,7 +106,7 @@ fun findDuplicate(nums: IntArray): Int {
 
 Check: `findDuplicate([1,3,4,2,2])` → `2`.
 
-#### 4. Complexity
+#### 5. Complexity
 
 | Way | Time | Space |
 |---|---|---|
@@ -93,7 +118,7 @@ Check: `findDuplicate([1,3,4,2,2])` → `2`.
 
 `u` = number of different values.
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Using a count map** when a set is enough (more memory).
 2. **Calling something a duplicate at count `1`.** The test is `count > 1`.
@@ -101,13 +126,13 @@ Check: `findDuplicate([1,3,4,2,2])` → `2`.
 4. **Forgetting to update the last index** when there is no match.
 5. **Not mentioning** the sort or Floyd's alternatives when asked for `O(1)` space.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "A yes/no question needs only a set. Counts, positions or distances need a map."
 2. "For duplicates within `k` positions I keep the last index of each value."
 3. "If memory is limited I can sort first, or for values `1..n` use Floyd's cycle detection."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. Which structure tells you **where** duplicates are?
 2. Which keeps the closest earlier equal value?
@@ -120,7 +145,7 @@ Check: `findDuplicate([1,3,4,2,2])` → `2`.
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

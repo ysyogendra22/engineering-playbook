@@ -45,7 +45,27 @@ The same idea in other problems:
 | Difference `k` | look for `x - k` and `x + k` |
 | Two Sum design | `add(x)` and `find(sum)` with a count map |
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Approach | Time | Space |
+|---|---|---|
+| Check every pair | `O(n²)` | `O(1)` |
+| Sort + two pointers (loses indexes) | `O(n log n)` | `O(1)` |
+| **HashMap: value → index** | **`O(n)`** | `O(n)` |
+
+```kotlin
+// Brute force: every pair
+fun twoSumBrute(nums: IntArray, target: Int): IntArray {
+    for (i in nums.indices) for (j in i + 1 until nums.size) {
+        if (nums[i] + nums[j] == target) return intArrayOf(i, j)
+    }
+    return intArrayOf()
+}
+```
+
+`twoSumBrute(intArrayOf(2, 7, 11, 15), 9)` → `[0, 1]`. The map version asks "is `target − x` already in the map?" once per element.
+
+#### 4. Kotlin Code
 
 ```kotlin
 fun twoSum(nums: IntArray, target: Int): IntArray {
@@ -106,7 +126,7 @@ fun hasPairSorted(nums: IntArray, target: Int): Boolean {
 }
 ```
 
-#### 4. Complexity
+#### 5. Complexity
 
 | Way | Time | Space |
 |---|---|---|
@@ -115,7 +135,7 @@ fun hasPairSorted(nums: IntArray, target: Int): Boolean {
 | Sorted array, two pointers | `O(n)` | `O(1)` |
 | 4Sum II with a map | `O(n²)` | `O(n²)` |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Storing before checking.** A number can pair with itself.
 2. **Using a set when you need indexes.**
@@ -125,13 +145,13 @@ fun hasPairSorted(nums: IntArray, target: Int): Boolean {
 6. **Not handling "no answer".** Return an empty array or `null` (or the question guarantees one answer).
 7. **Two Sum design:** forgetting that `x + x == target` needs **two** copies of `x`.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "Brute force is `O(n²)`. For each number I need `target - x`, so I keep a map of value to index for numbers I have seen."
 2. "I check the complement first, then store the current number."
 3. "That is one pass: `O(n)` time and `O(n)` space. If the array were sorted I would use two pointers with `O(1)` space."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. For `nums = [2, 7, 11, 15]` and `target = 9`, what is returned?
 2. Why check before storing?
@@ -144,7 +164,7 @@ fun hasPairSorted(nums: IntArray, target: Int): Boolean {
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

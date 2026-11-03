@@ -33,7 +33,28 @@ For every operation:
 
 **Resizing:** when `size > bucketCount × 0.75`, create a bucket array twice as big and place every pair again (this is called **rehashing**). This keeps the lists short.
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Design | Memory | Operations | Note |
+|---|---|---|---|
+| **Direct address table** (`IntArray(1_000_001)`) | huge, mostly empty | `O(1)` | only works for small integer keys |
+| One list of pairs | `O(n)` | `O(n)` | no hashing at all |
+| **Array of buckets + hash function + chaining** | `O(buckets + n)` | `O(1)` average | the real design |
+| Open addressing | `O(table size)` | `O(1)` average | harder to delete from |
+
+```kotlin
+// Direct addressing: fine for LeetCode's key range, but wastes memory and fails for large keys
+class DirectMap {
+    private val values = IntArray(1_000_001) { -1 }
+    fun put(key: Int, value: Int) { values[key] = value }
+    fun get(key: Int): Int = values[key]
+    fun remove(key: Int) { values[key] = -1 }
+}
+```
+
+`put(5, 50)`, `get(5)` → `50`, `get(6)` → `-1`. A bucket array (for example 1024 buckets) uses far less memory and handles any key by `key % buckets`.
+
+#### 4. Kotlin Code
 
 **The LeetCode version (Int keys, a fixed number of buckets)**
 
@@ -128,7 +149,7 @@ m.remove("a")
 println(m["a"])       // null
 ```
 
-#### 4. Complexity
+#### 5. Complexity
 
 | Action | Average | Worst |
 |---|---|---|
@@ -136,7 +157,7 @@ println(m["a"])       // null
 | Resize | `O(n)`, but rare | — |
 | Memory | `O(n + buckets)` | — |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Negative indexes** from `hashCode() % n`. Mask the sign bit first.
 2. **`put` adds a second pair for an existing key.** Search the bucket first.
@@ -146,14 +167,14 @@ println(m["a"])       // null
 6. **Never resizing.** The lists grow and everything becomes `O(n)`.
 7. **Not saying how you treat `null` keys.** Say "not supported" and move on.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "I use an array of buckets. The index is the hash code, with the sign removed, modulo the bucket count."
 2. "Each bucket is a list. `put` searches the list first and replaces or appends."
 3. "When the load factor passes 0.75 I double the buckets and rehash. That keeps operations `O(1)` on average."
 4. "Collisions are handled by chaining. The worst case is `O(n)`."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. Why search the bucket before adding in `put`?
 2. Why resize at a load factor of 0.75?
@@ -166,7 +187,7 @@ println(m["a"])       // null
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

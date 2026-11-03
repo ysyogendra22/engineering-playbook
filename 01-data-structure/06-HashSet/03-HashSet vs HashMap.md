@@ -1,163 +1,165 @@
 # HashSet vs HashMap
 
-#### 1. Definition — Must Know
+> A set stores **keys only**. A map stores **keys with values**. Pick the set when you only need "is it there?", and the map when you need to attach information.
 
-1. A **HashSet** stores **keys only**. It answers "is this key present?".
-2. A **HashMap** stores **key → value pairs**. It answers "what is the value for this key?".
-3. Both use hashing and both give `O(1)` average operations.
-4. In Java, a `HashSet` is actually built on top of a `HashMap`. The set's values are the map's keys.
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
-
-1. Choosing the right one is the first decision in many interview problems.
-2. The wrong choice either wastes memory (a map when a set is enough) or cannot solve the problem (a set when a value is needed).
-3. Interviewers often ask: "Why a set here and not a map?".
-
-#### 3. How It Works — Must Know
-
-```text
-HashSet<String>           HashMap<String, Int>
-
-"apple"                   "apple"  → 3
-"banana"                  "banana" → 1
-"cherry"                  "cherry" → 7
-
-question: "is apple here?"     question: "how many apples?"  /  "where is apple?"
-```
-
-Inside the JVM:
-
-```text
-HashSet<E>  ≈  HashMap<E, PRESENT>     (every key has the same dummy value)
-```
-
-#### 4. Core Concepts — Must Know
-
-| | HashSet | HashMap |
+| | `HashSet<T>` | `HashMap<K, V>` |
 |---|---|---|
-| Stores | keys | key + value |
-| Main question | exists? | what value? |
-| Add | `add(x)` → Boolean | `put(k, v)` → old value or null |
-| Lookup | `x in set` | `map[k]` → value or null |
-| Duplicates | ignored | overwrites the old value |
-| Memory | lower | higher (stores values too) |
-| Typical use | seen, visited, unique | count, index, group, cache |
+| Stores | items | key → value pairs |
+| Question answered | "is `x` present?" | "what is the value for `k`?" |
+| Duplicates | none | none for keys (values may repeat) |
+| Main operations | `add`, `contains`, `remove` | `put`, `get`, `containsKey`, `remove` |
+| Cost | `O(1)` average | `O(1)` average |
+| Memory | one entry per item | one entry per key, plus the value |
 
-**How to choose:**
+Under the hood, Java's `HashSet` **is a `HashMap`** where every key maps to the same dummy value.
 
-```text
-Do I only need to know "seen it or not"?          → HashSet
-Do I need a count?                                → HashMap<K, Int>
-Do I need the index or position of a value?       → HashMap<K, Int>
-Do I need to group items under a key?             → HashMap<K, MutableList<V>>
-Do I need to store extra data for each key?       → HashMap
+#### 2. How It Works
+
+**The decision**
+
+```mermaid
+flowchart TD
+    Q["I need fast lookup. What do I need back?"] --> A{"Only: is it there?"}
+    A -->|"yes"| S["HashSet"]
+    A -->|"no"| B{"A count, an index,<br/>a list, a flag per key?"}
+    B -->|"yes"| M["HashMap"]
 ```
 
-#### 5. Algorithm — Must Know
+| Task | Use | Why |
+|---|---|---|
+| Has this value appeared? | `HashSet` | only presence matters |
+| How many times did it appear? | `HashMap<K, Int>` | needs a count |
+| At which index? | `HashMap<K, Int>` | needs an index |
+| Group items by a key | `HashMap<K, MutableList<V>>` | needs a list per key |
+| Visited nodes in a graph | `HashSet` | only presence |
+| Distance to each node | `HashMap` (or array) | needs a value |
 
-Decision rule used in interviews:
+**Example: Two Sum.**
+
+- *Does a pair exist?* → `HashSet` of values seen (note 7).
+- *Return the indices.* → `HashMap<value, index>`.
 
 ```text
-1. Write what you look up (the key).
-2. Write what you need back.
-3. If the answer to step 2 is "just yes or no" → HashSet.
-4. If it is a number, index, list or object → HashMap.
+nums = [2, 7, 11, 15], target 9
+set:  after 2 → {2};  at 7, complement 2 is in the set → "yes, a pair exists"   (but which indices? the set doesn't know)
+map:  after 2 → {2: 0}; at 7, complement 2 → index 0 → answer [0, 1]
 ```
 
-#### 6. Kotlin Implementation — Must Know
+**Converting between them**
 
-Same problem family, different tool:
+| Need | Code |
+|---|---|
+| Set of a map's keys | `map.keys` (a `Set`) |
+| Map from a set (flag per item) | `set.associateWith { true }` |
+| Count distinct from counts | `map.size` |
+
+A `HashMap<K, Boolean>` used only as a set is a code smell: use a `HashSet<K>`.
+
+#### 3. Brute Force vs Optimized
+
+| Task | Brute force | Hash |
+|---|---|---|
+| Does a pair sum to `target`? | all pairs `O(n²)` | set, `O(n)` |
+| Indices of the pair | all pairs `O(n²)` | map, `O(n)` |
+| Count of each value | nested loops `O(n²)` | map, `O(n)` |
 
 ```kotlin
-// Contains Duplicate → a set is enough
-fun containsDuplicate(nums: IntArray): Boolean {
+// Brute force: count occurrences with nested loops
+fun countBrute(nums: IntArray): Map<Int, Int> {
+    val result = HashMap<Int, Int>()
+    for (x in nums) {
+        var c = 0
+        for (y in nums) if (x == y) c++
+        result[x] = c
+    }
+    return result
+}
+```
+
+#### 4. Kotlin Code
+
+```kotlin
+// Set: does a pair exist?
+fun hasPair(nums: IntArray, target: Int): Boolean {
     val seen = HashSet<Int>()
-    for (n in nums) if (!seen.add(n)) return true
+    for (x in nums) {
+        if (target - x in seen) return true       // check first
+        seen.add(x)                                // then add
+    }
     return false
 }
 
-// Two Sum (return INDICES) → needs a map, because we must give back the index
+// Map: return the indices (Two Sum, LeetCode 1)
 fun twoSum(nums: IntArray, target: Int): IntArray {
-    val indexOf = HashMap<Int, Int>()          // value → index
-    for ((i, n) in nums.withIndex()) {
-        val j = indexOf[target - n]
+    val indexOf = HashMap<Int, Int>()              // value -> index
+    for ((i, x) in nums.withIndex()) {
+        val j = indexOf[target - x]
         if (j != null) return intArrayOf(j, i)
-        indexOf[n] = i
+        indexOf[x] = i
     }
     return intArrayOf()
 }
 
-// Intersection II (each value as many times as it appears in BOTH) → needs counts → map
-fun intersect(a: IntArray, b: IntArray): IntArray {
+// Map: count occurrences
+fun countValues(nums: IntArray): Map<Int, Int> {
     val count = HashMap<Int, Int>()
-    for (n in a) count[n] = (count[n] ?: 0) + 1
-    val result = mutableListOf<Int>()
-    for (n in b) {
-        val c = count[n] ?: 0
-        if (c > 0) { result.add(n); count[n] = c - 1 }
-    }
-    return result.toIntArray()
+    for (x in nums) count[x] = (count[x] ?: 0) + 1
+    return count
 }
+
+// Set: the distinct count is the size
+fun distinctCount(nums: IntArray): Int = nums.toHashSet().size
 ```
 
-You can turn a map into a set of its keys: `map.keys`. You can turn a set into a map with a default: `set.associateWith { 0 }`.
+Checks: `hasPair(intArrayOf(2, 7, 11, 15), 9)` → `true`. `hasPair(intArrayOf(3), 6)` → `false`. `hasPair(intArrayOf(3, 3), 6)` → `true`. `twoSum(intArrayOf(2, 7, 11, 15), 9)` → `[0, 1]`. `countValues(intArrayOf(1, 2, 1, 3, 1))` → `{1=3, 2=1, 3=1}`. `distinctCount(intArrayOf(1, 2, 1, 3, 1))` → `3`. `countBrute(...)` gives the same map.
 
-#### 7. Time & Space Complexity — Must Know
+#### 5. Complexity
 
-| | HashSet | HashMap |
-|---|---:|---:|
-| Add / put | `O(1)` avg | `O(1)` avg |
-| Contains / get | `O(1)` avg | `O(1)` avg |
-| Remove | `O(1)` avg | `O(1)` avg |
-| Space | `O(n)` | `O(n)`, larger constant |
-
-#### 8. Common Choice Patterns — Must Know
-
-| Problem | Choice | Why |
+| | Time | Space |
 |---|---|---|
-| Contains Duplicate | Set | Only need seen / not seen |
-| Longest Consecutive Sequence | Set | Only need "is `x+1` present?" |
-| Intersection of Two Arrays (unique) | Set | Only need membership |
-| Two Sum (indices) | Map | Need the index |
-| Intersection of Two Arrays II | Map | Need counts |
-| Valid Anagram | Map / array | Need counts |
-| Group Anagrams | Map | Need a list per key |
-| Visited in BFS | Set | Only need seen / not seen |
-| Distance in BFS | Map | Need the distance per node |
+| Set / map build | `O(n)` | `O(n)` |
+| `contains` / `get` | `O(1)` average | |
+| Map uses about | | 1.5 to 2 times the set's memory for the same keys |
 
-#### 9. Edge Cases / Common Mistakes
+#### 6. Common Mistakes
 
-1. Using `HashMap<Int, Boolean>` when `HashSet<Int>` is enough.
-2. Using a set when duplicates need counting.
-3. Using a set for Two Sum when indices are required.
-4. Forgetting that `map[k]` returns `null` for a missing key (`Int?`).
-5. Treating `map.put` as "ignore if present". It overwrites. Use `putIfAbsent` or `getOrPut`.
-6. Using a `HashMap` when a `BooleanArray`/`IntArray` would do for small ranges (such as 26 letters).
+1. **Using a map when a set is enough** (extra memory, extra code).
+2. **Using a set when you need the index or a count** and then scanning the array again.
+3. **A `HashMap<K, Boolean>` as a set.**
+4. **Forgetting `?: 0`** when counting with `map[k]`.
+5. **Adding before checking** in Two Sum (an element pairs with itself).
+6. **Using `map[k]!!`** without checking the key exists.
 
-#### 10. When to Use / When Not to Use
+#### 7. Say This in the Interview
 
-**Use a HashSet when:**
+1. "I only need to know if a value was seen, so a `HashSet` is enough. If I needed the index or the count, I'd use a `HashMap`."
+2. "Both give `O(1)` average lookups and `O(n)` space. The set is a bit lighter."
+3. "In Two Sum, the set tells me a pair exists, and the map gives me the indices."
 
-1. Only existence or uniqueness matters.
+#### 8. Quick Check
 
-**Use a HashMap when:**
+1. Which one for "count how many times each word appears"?
+2. Which one for "has this node been visited?"
+3. Which one for "return the indices of the two numbers"?
 
-1. You need counts, positions, groups, or stored data.
+<details>
+<summary>Answers</summary>
 
-**Use neither when:**
+1. `HashMap<String, Int>`.
+2. `HashSet`.
+3. `HashMap<Int, Int>` (value to index).
 
-1. Keys are small integers in a known range. A plain array is faster and lighter.
+</details>
 
-#### 11. Related Topics
+#### 9. Related LeetCode Questions
 
-1. HashSet Fundamentals
-2. Fast Membership / Lookup Pattern
-3. HashMap (`01-data-structure/05-HashMap`)
-4. Two Sum / Complement Lookup with HashSet
-
-#### 12. Interview Must Remember
-
-1. **Set: "is it there?" Map: "what goes with it?"**
-2. A Java `HashSet` is a `HashMap` with dummy values.
-3. If you need a count, an index, or a list per key → `HashMap`.
-4. Say your choice and the reason: "I only need existence, so a set."
+| # | Question | Idea |
+|---|---|---|
+| 1 | [Two Sum](https://leetcode.com/problems/two-sum/) (Easy) | map: value to index |
+| 217 | [Contains Duplicate](https://leetcode.com/problems/contains-duplicate/) (Easy) | set |
+| 242 | [Valid Anagram](https://leetcode.com/problems/valid-anagram/) (Easy) | counts (map or array) |
+| 49 | [Group Anagrams](https://leetcode.com/problems/group-anagrams/) (Medium) | map of lists |
+| 387 | [First Unique Character in a String](https://leetcode.com/problems/first-unique-character-in-a-string/) (Easy) | counts |
+| 202 | [Happy Number](https://leetcode.com/problems/happy-number/) (Easy) | set |

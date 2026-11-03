@@ -1,153 +1,145 @@
-# Heap Sort — Concept
+# Heap Sort: Concept
 
-#### 1. Definition — Must Know
+> Sort with a heap: build a max-heap, then repeatedly move the largest item to the end. `O(n log n)` time, `O(1)` extra space. Know the idea, and why it is not the default sort.
 
-1. **Heap Sort** sorts an array using a heap.
-2. Two phases:
-   - **Build a max-heap** from the array.
-   - **Repeatedly move the maximum to the end**, shrink the heap by one, and restore the heap.
-3. It sorts **in place**, with no extra array.
-4. This note covers the concept. The full algorithm notes are in `02-algorithm/01-sorting/06-Heap Sort.md`.
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+**Heap sort** sorts an array in place using a **max-heap**.
 
-1. It guarantees `O(n log n)` time in every case, with `O(1)` extra space.
-2. It is a good example of how a heap gives sorted output.
-3. It is a common interview question about sorting algorithms and their trade-offs.
+1. **Build** a max-heap from the array (`O(n)`).
+2. **Repeat `n − 1` times:** swap the root (the largest) with the **last item of the heap part**, shrink the heap by one, and sift the new root down.
 
-#### 3. How It Works — Must Know
+After each round, the largest remaining item sits in its final place at the end.
 
-Sort `[4, 10, 3, 5, 1]` in ascending order. `|` separates the heap (left) from the sorted part (right).
+**Where it fits:** `O(n log n)` in the worst case, **no extra memory**, but **not stable** and slower in practice than quicksort (poor cache use). Interviews ask about it as a concept and as a comparison with merge sort and quicksort.
+
+#### 2. How It Works
 
 ```text
-start             [4, 10, 3, 5, 1]
-build a max-heap  [10, 5, 3, 4, 1]
-
-swap 10 to the end   [1, 5, 3, 4 | 10]   restore heap → [5, 4, 3, 1 | 10]
-swap 5  to the end   [1, 4, 3 | 5, 10]   restore heap → [4, 1, 3 | 5, 10]
-swap 4  to the end   [3, 1 | 4, 5, 10]   restore heap → [3, 1 | 4, 5, 10]
-swap 3  to the end   [1 | 3, 4, 5, 10]
-
-sorted               [1, 3, 4, 5, 10]
+array [5, 3, 8, 1, 9]
+1. build max-heap:                 [9, 5, 8, 1, 3]
+2. swap root with the last:        [3, 5, 8, 1 | 9]     9 is final.  sift down 3 in the first 4:  [8, 5, 3, 1 | 9]
+3. swap root with the last of 4:   [1, 5, 3 | 8, 9]     8 is final.  sift down 1 in the first 3:  [5, 1, 3 | 8, 9]
+4. swap root with the last of 3:   [3, 1 | 5, 8, 9]     5 is final.  sift down 3 in the first 2:  [3, 1 | 5, 8, 9]
+5. swap root with the last of 2:   [1 | 3, 5, 8, 9]     done
+result: [1, 3, 5, 8, 9]
 ```
 
-The root of a max-heap is always the largest remaining item. Swapping it to the end places it in its final position.
-
-#### 4. Core Concepts — Must Know
-
-1. **Ascending order → max-heap.** The largest goes to the end.
-2. **The array is split** into a shrinking heap (front) and a growing sorted part (back).
-3. **Each round:** swap root with the last heap item, reduce the heap size by one, heapify down from the root.
-4. **Build phase** is `O(n)`. **Sort phase** is `n - 1` rounds of `O(log n)`.
-
-| Property | Heap Sort |
-|---|---|
-| Time (best, average, worst) | `O(n log n)` |
-| Extra space | `O(1)` |
-| Stable? | **No** |
-| Adaptive (faster on nearly sorted data)? | No |
-
-#### 5. Algorithm — Must Know
-
-```text
-heapSort(array):
-    buildMaxHeap(array)
-    for end from n-1 down to 1:
-        swap(array[0], array[end])        // largest goes to its place
-        heapifyDown(array, 0, size = end) // heap is now array[0 until end]
+```mermaid
+flowchart LR
+    A["Unsorted array"] --> B["Build a max-heap<br/>O(n)"]
+    B --> C["Swap root with the last heap item<br/>the largest goes to its final place"]
+    C --> D["Shrink the heap by 1<br/>sift the new root down"]
+    D -->|"repeat n - 1 times"| C
+    D --> E["Sorted array"]
 ```
 
-#### 6. Kotlin Implementation — Must Know
+**Why a max-heap for ascending order?** The largest item is moved to the end, so the array fills from the back.
+
+**Comparison**
+
+| | Heap sort | Merge sort | Quicksort |
+|---|---|---|---|
+| Time (worst) | `O(n log n)` | `O(n log n)` | `O(n²)` |
+| Time (average) | `O(n log n)` | `O(n log n)` | `O(n log n)` |
+| Extra space | **`O(1)`** | `O(n)` | `O(log n)` |
+| Stable | no | **yes** | no |
+| Cache friendly | no | yes | **yes** |
+
+#### 3. Brute Force vs Optimized
+
+| Approach | Time | Space |
+|---|---|---|
+| Selection sort (find max each time) | `O(n²)` | `O(1)` |
+| **Heap sort** (find max with a heap) | `O(n log n)` | `O(1)` |
+| Using a separate `PriorityQueue` | `O(n log n)` | `O(n)` extra |
+
+Heap sort is selection sort where "find the max" costs `O(log n)` instead of `O(n)`.
 
 ```kotlin
-fun heapSort(arr: IntArray) {
-    val n = arr.size
+// Selection sort: the O(n^2) idea that heap sort speeds up
+fun selectionSort(a: IntArray) {
+    for (end in a.size - 1 downTo 1) {
+        var maxIdx = 0
+        for (i in 1..end) if (a[i] > a[maxIdx]) maxIdx = i
+        val t = a[end]; a[end] = a[maxIdx]; a[maxIdx] = t
+    }
+}
+```
 
-    // 1. Build a max-heap
-    for (i in n / 2 - 1 downTo 0) siftDown(arr, i, n)
+#### 4. Kotlin Code
 
-    // 2. Move the maximum to the end, shrink the heap, restore it
+```kotlin
+// Heap sort, in place, ascending
+fun heapSort(a: IntArray) {
+    val n = a.size
+    for (i in n / 2 - 1 downTo 0) siftDownMax(a, n, i)        // 1. build a max-heap
     for (end in n - 1 downTo 1) {
-        swap(arr, 0, end)
-        siftDown(arr, 0, end)
+        val t = a[0]; a[0] = a[end]; a[end] = t               // 2. largest goes to its final place
+        siftDownMax(a, end, 0)                                // 3. restore the heap in a[0 until end]
     }
 }
 
-private fun siftDown(arr: IntArray, start: Int, size: Int) {
+fun siftDownMax(a: IntArray, size: Int, start: Int) {
     var i = start
     while (true) {
-        val left = 2 * i + 1
-        val right = left + 1
+        val l = 2 * i + 1
+        val r = 2 * i + 2
         var largest = i
-        if (left < size && arr[left] > arr[largest]) largest = left
-        if (right < size && arr[right] > arr[largest]) largest = right
+        if (l < size && a[l] > a[largest]) largest = l
+        if (r < size && a[r] > a[largest]) largest = r
         if (largest == i) return
-        swap(arr, i, largest)
+        val t = a[i]; a[i] = a[largest]; a[largest] = t
         i = largest
     }
 }
-
-private fun swap(arr: IntArray, a: Int, b: Int) {
-    val temp = arr[a]; arr[a] = arr[b]; arr[b] = temp
-}
 ```
 
-#### 7. Time & Space Complexity — Must Know
+Checks: `val a = intArrayOf(5, 3, 8, 1, 9); heapSort(a)` → `[1, 3, 5, 8, 9]`. `heapSort(intArrayOf(2, 2, 1, 1))` → `[1, 1, 2, 2]`. `heapSort(intArrayOf())` and `heapSort(intArrayOf(7))` leave the array unchanged. Already sorted `[1, 2, 3]` → `[1, 2, 3]`. Reverse sorted `[3, 2, 1]` → `[1, 2, 3]`. `selectionSort` gives the same results.
 
-| Phase | Time |
-|---|---:|
-| Build the heap | `O(n)` |
-| `n - 1` extractions | `O(n log n)` |
-| **Total** | **`O(n log n)`** |
-| Space | `O(1)` |
+#### 5. Complexity
 
-Compare with other sorts:
+| | Time | Space |
+|---|---|---|
+| Build the heap | `O(n)` | `O(1)` |
+| `n − 1` sift downs | `O(n log n)` | `O(1)` |
+| Total | **`O(n log n)`** in every case | **`O(1)`** |
 
-| Sort | Time (worst) | Space | Stable |
-|---|---:|---:|---|
-| Heap Sort | `O(n log n)` | `O(1)` | No |
-| Merge Sort | `O(n log n)` | `O(n)` | Yes |
-| Quick Sort | `O(n²)` | `O(log n)` | No |
+#### 6. Common Mistakes
 
-#### 8. Common Heap Sort Patterns — Must Know
+1. **Using a min-heap** and expecting an ascending sort in place. (A min-heap gives a descending array with this method.)
+2. **Sifting down in the whole array** instead of `a[0 until end]` (the sorted tail must stay untouched).
+3. **Forgetting that heap sort is not stable.**
+4. **Saying it is the fastest sort.** In practice quicksort is faster.
+5. **Building the heap with `n` inserts** (`O(n log n)` extra). Use bottom-up heapify.
 
-1. Explaining it as "build a heap, then extract `n` times".
-2. A priority-queue version: add everything to a `PriorityQueue`, then `poll()` into a list. It is simpler but uses `O(n)` extra space.
-3. Partial sort: `k` extractions give the `k` smallest items in `O(n + k log n)`.
+#### 7. Say This in the Interview
 
-#### 9. Edge Cases / Common Mistakes
+1. "Heap sort builds a max-heap in `O(n)`, then repeatedly swaps the root to the end and sifts down. It's `O(n log n)` in every case with `O(1)` extra space."
+2. "It's not stable, and it has worse cache behaviour than quicksort, so it's rarely the first choice. It's useful when I need guaranteed `O(n log n)` without extra memory."
+3. "It's the same as selection sort, except finding the maximum costs `O(log n)`."
 
-1. Using a min-heap and expecting ascending order in place. A min-heap in place gives descending order.
-2. Forgetting to shrink the heap size after each swap, so the sorted items get moved again.
-3. Not building the heap first.
-4. Claiming it is stable. It is not.
-5. Claiming it is faster than quicksort in practice. It is usually slower because of poor cache behaviour.
-6. Empty or one-element arrays. Both are already sorted, and the loops do nothing.
+#### 8. Quick Check
 
-#### 10. When to Use / When Not to Use
+1. Which heap type gives an ascending in-place heap sort?
+2. Is heap sort stable?
+3. What is its extra space?
 
-**Use when:**
+<details>
+<summary>Answers</summary>
 
-1. You need a guaranteed `O(n log n)` worst case with `O(1)` extra space.
-2. You only need the smallest or largest `k` items (partial sort).
+1. A **max**-heap.
+2. No.
+3. `O(1)`.
 
-**Avoid when:**
+</details>
 
-1. Stability matters. Use merge sort or a stable library sort.
-2. Speed in practice matters most. Library sorts or quicksort are usually faster.
+#### 9. Related LeetCode Questions
 
-In everyday Kotlin code, call `sort()` or `sortedBy { ... }`. You will rarely write heap sort by hand.
-
-#### 11. Related Topics
-
-1. Build Heap
-2. Heapify — Basic Concept
-3. Heap Sort notes (`02-algorithm/01-sorting/06-Heap Sort.md`)
-4. Sorting overview (`02-algorithm/01-sorting/00-Contents.md`)
-
-#### 12. Interview Must Remember
-
-1. **Build a max-heap, then swap the root to the end and shrink.**
-2. `O(n log n)` always, `O(1)` space, **not stable**.
-3. Ascending order uses a **max**-heap.
-4. Mention that quicksort and merge sort are usually preferred in practice.
+| # | Question | Idea |
+|---|---|---|
+| 912 | [Sort an Array](https://leetcode.com/problems/sort-an-array/) (Medium) | implement heap sort |
+| 215 | [Kth Largest Element in an Array](https://leetcode.com/problems/kth-largest-element-in-an-array/) (Medium) | partial heap sort |
+| 75 | [Sort Colors](https://leetcode.com/problems/sort-colors/) (Medium) | other in-place sort ideas |
+| 148 | [Sort List](https://leetcode.com/problems/sort-list/) (Medium) | merge sort comparison |
+| 976 | [Largest Perimeter Triangle](https://leetcode.com/problems/largest-perimeter-triangle/) (Easy) | sort or max-heap |

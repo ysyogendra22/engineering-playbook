@@ -63,7 +63,22 @@ Common questions and what the sources are:
 
 Trick: **reverse the thinking**. Instead of "from each cell, find the nearest target", start from the **targets**.
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Approach | Time | Note |
+|---|---|---|
+| BFS from **each** vertex, take the nearest source | `O(V · (V + E))` | repeated work |
+| For each vertex, scan all sources | `O(V · S)` | `S` = number of sources |
+| **One BFS with all sources in the queue at distance 0** | **`O(V + E)`** | the first source to reach a vertex is its nearest |
+| Reverse the question: BFS **from the targets** | `O(V + E)` | instead of searching from every vertex |
+
+```text
+line graph 0-1-2-3-4-5, sources 0 and 5:   dist = [0, 1, 2, 2, 1, 0]   in one pass
+```
+
+The trick is to **reverse the thinking**: do not ask each vertex for its nearest target, start from all targets at once.
+
+#### 4. Kotlin Code
 
 ```kotlin
 // Distance from every node to the nearest source
@@ -120,7 +135,7 @@ Checks: `nearestSource` on the line graph with sources `[0, 5]` → `[0, 1, 2, 2
 
 For Rotting Oranges (counting minutes with `repeat(queue.size)`) see the Queue folder, note 08.
 
-#### 4. Complexity
+#### 5. Complexity
 
 | | Time | Space |
 |---|---|---|
@@ -128,7 +143,7 @@ For Rotting Oranges (counting minutes with `repeat(queue.size)`) see the Queue f
 | Grid `R × C` | `O(R · C)` | `O(R · C)` |
 | One BFS from every node | `O(V · (V + E))` | — |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Running a separate BFS from each source.** Far too slow.
 2. **Not marking the sources as visited** when you put them in the queue.
@@ -136,13 +151,13 @@ For Rotting Oranges (counting minutes with `repeat(queue.size)`) see the Queue f
 4. **Off-by-one in time/minutes.** Count rounds with `repeat(queue.size)` and stop when nothing is left to reach.
 5. **No sources at all.** Check this case.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "Instead of a BFS per node, I put all sources in the queue at distance 0 and run one BFS."
 2. "Every node is reached first by its nearest source."
 3. "Time `O(V + E)`, space `O(V)`."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. What goes into the queue before the loop starts?
 2. What is the distance of a source?
@@ -155,7 +170,7 @@ For Rotting Oranges (counting minutes with `repeat(queue.size)`) see the Queue f
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

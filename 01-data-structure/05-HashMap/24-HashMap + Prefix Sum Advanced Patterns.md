@@ -38,7 +38,33 @@ Which state for which question:
 | Binary Subarrays With Sum | running sum | sum → count | `sum - goal` |
 | Equal 0s and 1s | balance | balance → first index | the same balance |
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Question | Brute force | Prefix state + map |
+|---|---|---|
+| Subarrays with a balanced count (equal 0s and 1s) | `O(n²)` | `O(n)` with a balance in the map |
+| Subarrays with XOR `k` | `O(n²)` | `O(n)` with a prefix XOR |
+| Subarrays divisible by `k` | `O(n²)` | `O(n)` with remainders |
+| Subarrays with an odd count of 1s | `O(n²)` | `O(n)` with a parity bit |
+
+```kotlin
+// Brute force: Subarray Sums Divisible by K, O(n^2)
+fun subarraysDivByKBrute(nums: IntArray, k: Int): Int {
+    var count = 0
+    for (i in nums.indices) {
+        var sum = 0
+        for (j in i until nums.size) {
+            sum += nums[j]
+            if (sum % k == 0) count++
+        }
+    }
+    return count
+}
+```
+
+`subarraysDivByKBrute(intArrayOf(4, 5, 0, -2, -3, 1), 5)` → `7`. The map version stores how many earlier prefixes had each remainder.
+
+#### 4. Kotlin Code
 
 ```kotlin
 // Count subarrays whose XOR equals k
@@ -106,7 +132,7 @@ fun numSubarraysWithSum(nums: IntArray, goal: Int): Int {
 
 Checks: `countSubarraysXor([4,2,2,6,4], 6)` → `4`. `numberOfSubarrays([1,1,2,1,1], 3)` → `2`. `findTheLongestSubstring("eleetminicoworoep")` → `13`.
 
-#### 4. Complexity
+#### 5. Complexity
 
 | Problem | Time | Space |
 |---|---|---|
@@ -115,7 +141,7 @@ Checks: `countSubarraysXor([4,2,2,6,4], 6)` → `4`. `numberOfSubarrays([1,1,2,1
 | Nice subarrays | `O(n)` | `O(n)` |
 | Brute force | `O(n²)` | — |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Choosing a state that loses information** the question needs.
 2. **Forgetting the empty prefix** (`0` with count `1`, or index `-1`).
@@ -125,13 +151,13 @@ Checks: `countSubarraysXor([4,2,2,6,4], 6)` → `4`. `numberOfSubarrays([1,1,2,1
 6. **Looking up after storing.**
 7. **Using it for subsequences.** It only works for **contiguous** parts.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "The answer needs two equal prefix states, so I keep a map from state to first index (or count)."
 2. "For 'every count even' the state is a bitmask of parities. For XOR questions I look up `state xor k`."
 3. "One pass: `O(n)` time."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. What is the XOR of `a` with itself?
 2. In the vowel problem, what does a repeated mask tell you?
@@ -144,7 +170,7 @@ Checks: `countSubarraysXor([4,2,2,6,4], 6)` → `4`. `numberOfSubarrays([1,1,2,1
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

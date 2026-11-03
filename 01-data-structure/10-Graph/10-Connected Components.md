@@ -63,7 +63,40 @@ groups = 3
 
 **Number of Provinces** (LeetCode 547) gives an `n × n` matrix where `isConnected[i][j] == 1` means `i` and `j` are connected. Run the same loop; the neighbours of `i` are the `j` with `isConnected[i][j] == 1`.
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Approach | Time | Note |
+|---|---|---|
+| BFS from **every** vertex, group by the smallest label reached | `O(V · (V + E))` | repeats searches |
+| Merge lists of vertices by hand until nothing changes | `O(V · E)` | easy to get wrong |
+| **One loop with `visited`:** start a DFS/BFS from each unvisited vertex | **`O(V + E)`** | each vertex is visited once |
+| Union-find | `O((V + E) α(V))` | best when edges arrive one by one |
+
+```kotlin
+// Brute force: a vertex starts a component only if it is the smallest label in everything it can reach
+fun countComponentsBrute(n: Int, edges: Array<IntArray>): Int {
+    val g = Array(n) { mutableListOf<Int>() }
+    for ((a, b) in edges) { g[a].add(b); g[b].add(a) }
+    var count = 0
+    for (start in 0 until n) {
+        val seen = BooleanArray(n)
+        val queue = ArrayDeque<Int>()
+        queue.addLast(start); seen[start] = true
+        var smallest = start
+        while (queue.isNotEmpty()) {
+            val u = queue.removeFirst()
+            smallest = minOf(smallest, u)
+            for (v in g[u]) if (!seen[v]) { seen[v] = true; queue.addLast(v) }
+        }
+        if (smallest == start) count++
+    }
+    return count
+}
+```
+
+`countComponentsBrute(5, arrayOf(intArrayOf(0, 1), intArrayOf(1, 2), intArrayOf(3, 4)))` → `2`. Same answer as the single loop, but it searches from every vertex.
+
+#### 4. Kotlin Code
 
 ```kotlin
 // Number of Provinces (LeetCode 547): DFS on an adjacency matrix
@@ -123,7 +156,7 @@ fun makeConnected(n: Int, connections: Array<IntArray>): Int {
 
 Checks: `findCircleNum([[1,1,0],[1,1,0],[0,0,1]])` → `2`. `maxAreaOfIsland([[1,1,0],[0,1,0],[0,0,1]])` → `3`. `makeConnected(4, [[0,1],[0,2],[1,2]])` → `1`.
 
-#### 4. Complexity
+#### 5. Complexity
 
 | | Time | Space |
 |---|---|---|
@@ -132,7 +165,7 @@ Checks: `findCircleNum([[1,1,0],[1,1,0],[0,0,1]])` → `2`. `maxAreaOfIsland([[1
 | Grid `R × C` | `O(R · C)` | `O(R · C)` worst case (recursion) |
 | Union-find | `O(E · α(V))` | `O(V)` |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Counting after the search instead of before it.** Increase the counter when you *start* a new search.
 2. **Forgetting isolated nodes.** Each is its own component.
@@ -140,13 +173,13 @@ Checks: `findCircleNum([[1,1,0],[1,1,0],[0,0,1]])` → `2`. `maxAreaOfIsland([[1
 4. **Recursion depth** on a huge grid. Use BFS or an explicit stack.
 5. **Modifying the input grid** when the caller still needs it.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "Each connected component is one group, so I loop over all nodes and start a DFS from every unvisited one. The number of starts is the answer."
 2. "If edges arrive one by one, I use union-find and decrease the group count on each successful union."
 3. "Time `O(V + E)`."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. A graph of 5 nodes has 3 edges and no cycle. How many components?
 2. When do you prefer union-find over DFS?
@@ -159,7 +192,7 @@ Checks: `findCircleNum([[1,1,0],[1,1,0],[0,0,1]])` → `2`. `maxAreaOfIsland([[1
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

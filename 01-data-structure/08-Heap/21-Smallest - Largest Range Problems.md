@@ -1,154 +1,157 @@
 # Smallest / Largest Range Problems
 
-#### 1. Definition — Must Know
+> "The smallest range that contains one number from each list." A K-way merge heap, plus one extra variable: the current **maximum**.
 
-1. These problems ask for a **range `[a, b]`** that satisfies a rule across several lists or items.
-2. The main example is **Smallest Range Covering Elements from K Lists** (LeetCode 632): find the smallest range `[a, b]` that contains **at least one number from each of `k` sorted lists**. If a number and a title ever disagree, trust the title.
-3. The heap tracks the **current minimum** of one element per list. A separate variable tracks the **current maximum**.
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+You have `K` sorted lists. Find the **smallest range `[a, b]`** such that every list has at least one number inside it. (LeetCode 632.)
 
-1. It extends K-way merge. The same heap of "one element per list" now answers a range question.
-2. It shows a useful pattern: **heap for the minimum, a variable for the maximum.**
-3. It is a common "hard" heap question, so it is worth knowing the idea.
+**Signals:** "smallest range covering elements from K lists", "range that contains one from each", "minimize max − min".
 
-#### 3. How It Works — Must Know
+A similar idea appears in questions about the **difference between the largest and smallest** of a chosen set of items.
 
-Lists: `A = [4, 10, 15]`, `B = [0, 9, 12]`, `C = [5, 18, 22]`.
+#### 2. How It Works
 
-```text
-Take the first element of each list:  4, 0, 5      min = 0, max = 5     range [0, 5]  (size 5)
+Pick **one number from each list**. The range of that choice is `[min, max]` of the chosen numbers. We want to minimise `max − min`.
 
-The range must include one number from every list.
-To make it smaller we must raise the minimum, so move the list that owns the minimum.
+- Keep a **min-heap** with the **current chosen number of each list** (so the heap root is the current `min`).
+- Track the **current maximum** (`curMax`) of the chosen numbers.
+- The range is `[heap.peek(), curMax]`. Record it if it is smaller than the best range.
+- **Advance the list whose number is the minimum**: pop it and push the next number from that list (update `curMax` if needed). The minimum can only grow, so this is the only move that can shrink the range.
+- **Stop** when one list has no next number (the minimum can no longer move).
 
-Remove 0 (list B), take B's next → 9:   4, 9, 5    min = 4, max = 9     range [4, 9]   (size 5)
-Remove 4 (list A), take A's next → 10:  10, 9, 5   min = 5, max = 10    range [5, 10]  (size 5)
-Remove 5 (list C), take C's next → 18:  10, 9, 18  min = 9, max = 18    range [9, 18]  (size 9)
-...keep going, remember the smallest range seen...
-Stop when the list that owns the minimum has no next element.
+```mermaid
+flowchart LR
+    S["Start: take the first number<br/>of every list<br/>curMax = largest of them"] --> R["range = [heap min, curMax]<br/>keep the smallest range seen"]
+    R --> P["pop the minimum<br/>push the next number of that list<br/>update curMax"]
+    P --> T{"that list<br/>ended?"}
+    T -->|"no"| R
+    T -->|"yes"| E["answer = best range"]
 ```
 
-The range is always `[current min, current max]`. A smaller range can only come from moving the minimum up.
-
-#### 4. Core Concepts — Must Know
-
-1. **Min-heap** holds one element from each list: `[value, listIndex, elementIndex]`.
-2. **`currentMax`** is the largest value among the elements in the heap. It only increases (lists are sorted).
-3. **Range now = `[heap.peek().value, currentMax]`.** Compare its size to the best so far.
-4. **Move forward only the list that owns the minimum.** Any other move cannot shrink the range.
-5. **Stop** when that list has no more elements, because the range could no longer include every list.
-
-#### 5. Algorithm — Must Know
-
 ```text
-heap = min-heap by value
-currentMax = -infinity
-for each list i:
-    push (list[i][0], i, 0)
-    currentMax = max(currentMax, list[i][0])
-best = [heap.peek().value, currentMax]
-
-loop:
-    (value, i, j) = heap.poll()
-    if currentMax - value < best size: best = [value, currentMax]
-    if j + 1 == list[i].size: stop
-    push (list[i][j+1], i, j+1)
-    currentMax = max(currentMax, list[i][j+1])
-return best
+lists: A = [4,10,15,24,26]   B = [0,9,12,20]   C = [5,18,22,30]
+start: heap {4A, 0B, 5C}  curMax = 5     range [0, 5]  size 5      best [0,5]
+pop 0 (B) → push 9      heap {4,9,5}   curMax 9      range [4, 9]   size 5  (not smaller)
+pop 4 (A) → push 10     heap {10,9,5}  curMax 10     range [5, 10]  size 5
+pop 5 (C) → push 18     heap {10,9,18} curMax 18     range [9, 18]  size 9
+pop 9 (B) → push 12     heap {10,12,18} curMax 18    range [10, 18] size 8
+pop 10 (A) → push 15    heap {15,12,18} curMax 18    range [12, 18] size 6
+pop 12 (B) → push 20    heap {15,20,18} curMax 20    range [15, 20] size 5
+pop 15 (A) → push 24    heap {24,20,18} curMax 24    range [18, 24] size 6
+pop 18 (C) → push 22    heap {24,20,22} curMax 24    range [20, 24] size 4  ← new best
+pop 20 (B) → list B has no next → stop
+answer [20, 24]
 ```
 
-#### 6. Kotlin Implementation — Must Know
+#### 3. Brute Force vs Optimized
+
+| Approach | Time | Space |
+|---|---|---|
+| Merge all numbers with their list id, sort, then a sliding window that covers all lists | `O(N log N)` | `O(N)` |
+| **Min-heap of the current choice from each list** | `O(N log K)` | `O(K)` |
+| Try every combination of one number per list | `O(L^K)` | |
+
+```kotlin
+// Brute force: sort all (value, list) pairs and slide a window that covers every list
+fun smallestRangeBrute(lists: List<List<Int>>): IntArray {
+    val pairs = mutableListOf<IntArray>()
+    for ((i, list) in lists.withIndex()) for (v in list) pairs.add(intArrayOf(v, i))
+    pairs.sortBy { it[0] }
+    val need = lists.size
+    val have = IntArray(lists.size)
+    var covered = 0
+    var left = 0
+    var bestL = 0
+    var bestR = Int.MAX_VALUE
+    for (right in pairs.indices) {
+        if (have[pairs[right][1]]++ == 0) covered++
+        while (covered == need) {
+            if (pairs[right][0].toLong() - pairs[left][0] < bestR.toLong() - bestL) {
+                bestL = pairs[left][0]; bestR = pairs[right][0]
+            }
+            if (--have[pairs[left][1]] == 0) covered--
+            left++
+        }
+    }
+    return intArrayOf(bestL, bestR)
+}
+```
+
+#### 4. Kotlin Code
 
 ```kotlin
 import java.util.PriorityQueue
 
-fun smallestRange(nums: List<List<Int>>): IntArray {
-    // Each entry: [value, listIndex, elementIndex]
-    val heap = PriorityQueue<IntArray>(compareBy<IntArray> { it[0] })
-    var currentMax = Int.MIN_VALUE
-
-    for ((i, list) in nums.withIndex()) {
+// Smallest Range Covering Elements from K Lists (LeetCode 632)
+fun smallestRange(lists: List<List<Int>>): IntArray {
+    val heap = PriorityQueue<IntArray>(compareBy<IntArray> { it[0] })      // [value, list index, position]
+    var curMax = Int.MIN_VALUE
+    for ((i, list) in lists.withIndex()) {
         heap.add(intArrayOf(list[0], i, 0))
-        currentMax = maxOf(currentMax, list[0])
+        curMax = maxOf(curMax, list[0])
     }
-
-    var bestLow = heap.peek()[0]
-    var bestHigh = currentMax
-
+    var bestL = Int.MIN_VALUE / 2
+    var bestR = Int.MAX_VALUE / 2
     while (true) {
-        val (value, listIndex, elementIndex) = heap.poll()
-
-        // Long avoids overflow when values are near Int limits
-        if (currentMax.toLong() - value < bestHigh.toLong() - bestLow) {
-            bestLow = value
-            bestHigh = currentMax
-        }
-
-        val next = elementIndex + 1
-        if (next == nums[listIndex].size) break        // this list is used up
-
-        val nextValue = nums[listIndex][next]
-        heap.add(intArrayOf(nextValue, listIndex, next))
-        currentMax = maxOf(currentMax, nextValue)
+        val (value, listIndex, pos) = heap.poll()
+        if (curMax - value < bestR - bestL) { bestL = value; bestR = curMax }   // a smaller range
+        if (pos + 1 == lists[listIndex].size) break                              // one list ran out
+        val next = lists[listIndex][pos + 1]
+        heap.add(intArrayOf(next, listIndex, pos + 1))
+        curMax = maxOf(curMax, next)
     }
-    return intArrayOf(bestLow, bestHigh)
+    return intArrayOf(bestL, bestR)
 }
 ```
 
-Example: `[[4,10,15,24,26], [0,9,12,20], [5,18,22,30]]` → `[20, 24]`.
+Checks: `smallestRange(listOf(listOf(4, 10, 15, 24, 26), listOf(0, 9, 12, 20), listOf(5, 18, 22, 30)))` → `[20, 24]`. `smallestRange(listOf(listOf(1, 2, 3), listOf(1, 2, 3), listOf(1, 2, 3)))` → `[1, 1]`. `smallestRange(listOf(listOf(5)))` → `[5, 5]`. `smallestRangeBrute(...)` gives `[20, 24]` on the first example.
 
-The strict `<` keeps the **first** range found on a tie. The minimum only rises, so that is the one with the smaller start, as the problem asks.
+(Assume no list is empty, as in the problem.)
 
-#### 7. Time & Space Complexity — Must Know
+#### 5. Complexity
 
-Let `N` = total number of elements in all lists, `k` = number of lists.
+| | Time | Space |
+|---|---|---|
+| Heap version | `O(N log K)` for `N` total numbers | `O(K)` |
+| Sort + sliding window | `O(N log N)` | `O(N)` |
 
-| Part | Cost |
-|---|---:|
-| Each element is pushed and popped once | `O(N log k)` |
-| Heap size | `O(k)` |
-| **Total** | **Time `O(N log k)`, Space `O(k)`** |
+#### 6. Common Mistakes
 
-#### 8. Common Range Variations — Must Know
+1. **Forgetting `curMax`.** The heap only knows the minimum.
+2. **Advancing the wrong list** (it must be the list of the **minimum**).
+3. **Not stopping** when a list runs out. Continuing would use a number from a finished list.
+4. **Initial best range** set to `Int.MAX_VALUE` and then computing `bestR − bestL` with overflow. Use halves, `Long`, or compare differently.
+5. **Updating `curMax` only when it grows** is correct. Do not recompute it from the heap.
+6. **Ties:** if two ranges have the same size, the problem asks for the smaller start. The strict `<` keeps the first one found, which has the smaller start.
 
-1. **Smallest range covering `k` lists** (LeetCode 632) — this note.
-2. **Smallest window in one array that contains all needed values** — sliding window with a `HashMap` (`03-leetcode-patterns`, topic 5).
-3. **Largest range / longest consecutive run** (LeetCode 128, Longest Consecutive Sequence) — a `HashSet` solves it in `O(n)`. No heap is needed.
-4. **Minimum difference between any two values from different lists** — the same heap idea, or sort and use two pointers.
-5. **Smallest range after changes** — usually sorting and greedy. Do not force a heap.
+#### 7. Say This in the Interview
 
-#### 9. Edge Cases / Common Mistakes
+1. "I take one number from each list. A min-heap gives me the smallest chosen number, and I track the largest. That pair is a valid range."
+2. "To shrink the range I must raise the minimum, so I advance only the list that gave the minimum. I stop when that list is exhausted."
+3. "Every number is pushed once, so it's `O(N log K)` with `O(K)` extra space."
 
-1. Moving the wrong list. Only the list with the **minimum** moves.
-2. Forgetting to update `currentMax` after pushing the next element.
-3. Not stopping when a list is exhausted, and reading past the end.
-4. Overflow in `max - min` when values are near `Int` limits. Use `Long`.
-5. An empty list in the input. The problem usually promises none; check.
-6. Using a max-heap. The minimum is the item that must be replaced.
-7. Replacing the best range on ties with `<=`, which gives a larger start.
+#### 8. Quick Check
 
-#### 10. When to Use / When Not to Use
+1. For `[[1,5],[2,3]]`, what is the smallest range?
+2. Why advance the list with the **minimum** and not the maximum?
+3. When does the loop stop?
 
-**Use when:**
+<details>
+<summary>Answers</summary>
 
-1. You have `k` sorted sources and need a range that touches all of them.
+1. `[1, 2]`: take `1` from the first list and `2` from the second. The range size is 1. (`[2, 3]` also has size 1, but the smaller start wins.)
+2. The range shrinks only if the minimum goes up. Advancing the list with the maximum cannot make the range smaller.
+3. As soon as the list that supplied the minimum has no next number.
 
-**Avoid when:**
+</details>
 
-1. There is a single array. A sliding window is simpler.
-2. The task is about consecutive numbers. A `HashSet` is enough.
+#### 9. Related LeetCode Questions
 
-#### 11. Related Topics
-
-1. K-Way Merge Pattern
-2. Merge K Sorted Lists / Arrays
-3. Sliding Window (`03-leetcode-patterns`)
-4. Heap + HashMap Pattern
-
-#### 12. Interview Must Remember
-
-1. **Min-heap of one element per list, plus a `currentMax` variable.**
-2. **Advance the list that owns the minimum.** Stop when it runs out.
-3. `O(N log k)` time, `O(k)` space.
-4. "Largest range" style problems (consecutive numbers) use a `HashSet`, not a heap.
+| # | Question | Idea |
+|---|---|---|
+| 632 | [Smallest Range Covering Elements from K Lists](https://leetcode.com/problems/smallest-range-covering-elements-from-k-lists/) (Hard) | heap + current max |
+| 23 | [Merge k Sorted Lists](https://leetcode.com/problems/merge-k-sorted-lists/) (Hard) | the K-way merge base (note 10) |
+| 1675 | [Minimize Deviation in Array](https://leetcode.com/problems/minimize-deviation-in-array/) (Hard) | max-heap + track the minimum |
+| 1439 | [Find the Kth Smallest Sum of a Matrix With Sorted Rows](https://leetcode.com/problems/find-the-kth-smallest-sum-of-a-matrix-with-sorted-rows/) (Hard) | merge row by row |
+| 910 | [Smallest Range II](https://leetcode.com/problems/smallest-range-ii/) (Medium) | sort, then min and max |

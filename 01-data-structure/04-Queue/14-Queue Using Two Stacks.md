@@ -32,7 +32,29 @@ pop() → outStack is empty → move [4] over → pop → 4
 
 **The key rule: move only when `outStack` is empty.** If you move while it still has items, the order breaks.
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Design | `enqueue` | `dequeue` |
+|---|---|---|
+| Move everything between the two stacks on **every** operation | `O(n)` | `O(n)` |
+| Move on `enqueue` (keep one stack in queue order) | `O(n)` | `O(1)` |
+| **Lazy transfer:** push to `in`; on `dequeue`, if `out` is empty move all of `in` to `out` | `O(1)` | `O(1)` amortised |
+
+Each item is moved **at most once** from `in` to `out`, so `n` operations cost `O(n)` in total.
+
+```kotlin
+// Naive: transfer back and forth on every operation, O(n) each
+class SlowQueue {
+    private val a = ArrayDeque<Int>()
+    private val b = ArrayDeque<Int>()
+    fun enqueue(x: Int) { while (a.isNotEmpty()) b.addLast(a.removeLast()); a.addLast(x); while (b.isNotEmpty()) a.addLast(b.removeLast()) }
+    fun dequeue(): Int = a.removeLast()
+}
+```
+
+Enqueue `1, 2, 3` then `dequeue()` gives `1`, `2`, `3`: same behaviour as a real queue.
+
+#### 4. Kotlin Code
 
 ```kotlin
 class MyQueue {
@@ -76,7 +98,7 @@ println(q.pop())     // 4
 println(q.empty())   // true
 ```
 
-#### 4. Complexity
+#### 5. Complexity
 
 | Action | One call (worst) | Average over many calls |
 |---|---|---|
@@ -86,7 +108,7 @@ println(q.empty())   // true
 
 **Why the average is `O(1)`:** each item is moved from `inStack` to `outStack` **at most once** and popped once. So `n` operations cost `O(n)` in total. This is called **amortized** `O(1)`.
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Moving items on every `pop`**, even when `outStack` still has items. This breaks the order.
 2. **Moving the items back** to `inStack` after the pop. Not needed.
@@ -94,13 +116,13 @@ println(q.empty())   // true
 4. **Forgetting that `peek` also needs the move step.**
 5. **Saying `pop` is always `O(1)`.** Say "amortized `O(1)`".
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "A stack reverses order, so two stacks give FIFO."
 2. "I push to `inStack`. For pop and peek, if `outStack` is empty I move everything over from `inStack`."
 3. "Each item moves at most once, so every operation is amortized `O(1)`, even though one pop can take `O(n)`."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. When do you move items from `inStack` to `outStack`?
 2. After `push 1, push 2, pop`, which item is left and where is it?
@@ -113,7 +135,7 @@ println(q.empty())   // true
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

@@ -1,89 +1,94 @@
 # Intersection / Common Elements
 
-#### 1. Definition — Must Know
+> Elements that are in **both** collections. Put one in a set, check the other. Use a **count map** if duplicates matter.
 
-1. The **intersection** of two collections is the set of values that appear in **both**.
-2. With a HashSet: put one collection in a set, then keep the values from the other that are in that set.
-3. The main problem is *Intersection of Two Arrays* (LeetCode 349). The version with repeats is *Intersection of Two Arrays II* (LeetCode 350). If a number and a title ever disagree, trust the title.
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+| Question | Result | Tool |
+|---|---|---|
+| **Intersection of Two Arrays** (349) | each common value **once** | two sets |
+| **Intersection of Two Arrays II** (350) | each common value as many times as it appears in **both** | `HashMap` of counts (or sort + two pointers) |
+| Common elements of **sorted** arrays | | two pointers, `O(1)` space |
+| Common elements of **many** lists | | intersect set by set |
 
-1. It is a common easy-level question that tests whether you reach for a set.
-2. The brute force check (`O(n × m)`) becomes `O(n + m)`.
-3. In apps: shared friends, common tags, overlapping permissions.
+**Signals:** "common", "in both", "intersection", "shared", "appears in all".
 
-#### 3. How It Works — Must Know
+#### 2. How It Works
 
-`a = [1, 2, 2, 1]`, `b = [2, 2]`
-
-```text
-Step 1: setA = {1, 2}
-Step 2: go through b:
-        2 → in setA → add to result
-        2 → in setA → already in result (result is a set) → no change
-Step 3: result = {2}
+```mermaid
+flowchart LR
+    subgraph A["nums1 = 1, 2, 2, 1"]
+        a["{1, 2}"]
+    end
+    subgraph B["nums2 = 2, 2"]
+        b["{2}"]
+    end
+    a --> I["intersection set = {2}"]
+    b --> I
 ```
 
-With repeats (LeetCode 350) the answer is `[2, 2]` because `2` appears twice in **both** arrays. A set cannot count, so use a map of counts:
+**Version I (unique).** Build a set from `nums1`. Walk `nums2`; if the value is in the set, add it to the result set.
 
 ```text
-count of a:  {1: 2, 2: 2}
-go through b:
-   2 → count 2 > 0 → add 2, count becomes 1
-   2 → count 1 > 0 → add 2, count becomes 0
-result = [2, 2]
+nums1 = [1, 2, 2, 1] → set {1, 2}
+nums2 = [2, 2]       → 2 is in the set → result {2}
+answer [2]
 ```
 
-#### 4. Core Concepts — Must Know
-
-1. **Unique common values → HashSet.**
-2. **Common values with repeats → HashMap of counts** (or sorted arrays and two pointers).
-3. **Build the set from the smaller array** to save memory.
-4. **Result as a set** removes repeated matches for free.
-5. Kotlin already has `intersect`, which does the same work in one call.
-
-| Version | Best approach | Time |
-|---|---|---:|
-| Unique common values | Two sets | `O(n + m)` |
-| With repeats | Count map | `O(n + m)` |
-| Both arrays sorted | Two pointers | `O(n + m)`, `O(1)` space |
-| One array is huge, one is small | Set of the small one | `O(n + m)` |
-
-#### 5. Algorithm — Must Know
+**Version II (with multiplicity).** Count `nums1` in a map. Walk `nums2`; for each value with a count `> 0`, add it to the result and **decrement** the count.
 
 ```text
-setA = set of array A
-result = empty set
-for each x in B:
-    if x in setA → add x to result
-return result
+nums1 = [4, 9, 5]  → counts {4:1, 9:1, 5:1}
+nums2 = [9, 4, 9, 8, 4]
+9 → count 1 → take, now 0     4 → take, now 0     9 → count 0 → skip     8 → absent     4 → count 0 → skip
+answer [9, 4]
 ```
 
-#### 6. Kotlin Implementation — Must Know
+**Sorted arrays (two pointers).** Walk both with pointers `i`, `j`. Equal → add, move both. Otherwise move the smaller one. `O(m + n)` time, `O(1)` extra space.
+
+**Follow-ups interviewers ask**
+
+| Follow-up | Answer |
+|---|---|
+| Arrays are already sorted | two pointers, no set |
+| `nums1` is much smaller than `nums2` | put the **smaller** one in the map |
+| `nums2` is on disk, too big for memory | load the smaller array in a map and stream the big one; or sort externally and merge |
+
+#### 3. Brute Force vs Optimized
+
+| Approach | Time | Space |
+|---|---|---|
+| Nested loops | `O(m · n)` | `O(1)` |
+| **Set / map** | `O(m + n)` | `O(min(m, n))` if you load the smaller one |
+| Sort + two pointers | `O(m log m + n log n)` | `O(1)` extra |
 
 ```kotlin
-// Intersection of Two Arrays (unique values)
-fun intersection(a: IntArray, b: IntArray): IntArray {
-    val setA = a.toHashSet()
+// Brute force: for each value of nums1, scan nums2
+fun intersectionBrute(nums1: IntArray, nums2: IntArray): List<Int> =
+    nums1.filter { it in nums2 }.distinct()                    // 'in' on an IntArray scans it
+```
+
+#### 4. Kotlin Code
+
+```kotlin
+// Intersection of Two Arrays (LeetCode 349)
+fun intersection(nums1: IntArray, nums2: IntArray): IntArray {
+    val set1 = nums1.toHashSet()
     val result = HashSet<Int>()
-    for (x in b) if (x in setA) result.add(x)
+    for (x in nums2) if (x in set1) result.add(x)
     return result.toIntArray()
 }
 
-// Built-in
-fun intersectionShort(a: IntArray, b: IntArray): IntArray =
-    a.toSet().intersect(b.toSet()).toIntArray()
-```
+// Same idea with the built-in set operation
+fun intersectionBuiltIn(nums1: IntArray, nums2: IntArray): IntArray =
+    nums1.toSet().intersect(nums2.toSet()).toIntArray()
 
-**Intersection II (repeats count)**
-
-```kotlin
-fun intersect(a: IntArray, b: IntArray): IntArray {
+// Intersection of Two Arrays II (LeetCode 350): with counts
+fun intersect(nums1: IntArray, nums2: IntArray): IntArray {
     val count = HashMap<Int, Int>()
-    for (x in a) count[x] = (count[x] ?: 0) + 1
-
-    val result = mutableListOf<Int>()
-    for (x in b) {
+    for (x in nums1) count[x] = (count[x] ?: 0) + 1
+    val result = ArrayList<Int>()
+    for (x in nums2) {
         val c = count[x] ?: 0
         if (c > 0) {
             result.add(x)
@@ -92,15 +97,12 @@ fun intersect(a: IntArray, b: IntArray): IntArray {
     }
     return result.toIntArray()
 }
-```
 
-**Both arrays sorted (two pointers, no extra map)**
-
-```kotlin
+// Sorted arrays: two pointers, O(1) extra space
 fun intersectSorted(a: IntArray, b: IntArray): IntArray {
+    val result = ArrayList<Int>()
     var i = 0
     var j = 0
-    val result = mutableListOf<Int>()
     while (i < a.size && j < b.size) {
         when {
             a[i] == b[j] -> { result.add(a[i]); i++; j++ }
@@ -112,58 +114,54 @@ fun intersectSorted(a: IntArray, b: IntArray): IntArray {
 }
 ```
 
-#### 7. Time & Space Complexity — Must Know
+Checks: `intersection(intArrayOf(1, 2, 2, 1), intArrayOf(2, 2))` → `[2]`. `intersection(intArrayOf(4, 9, 5), intArrayOf(9, 4, 9, 8, 4))` → `[9, 4]` (any order). `intersectionBuiltIn(...)` agrees. `intersect(intArrayOf(1, 2, 2, 1), intArrayOf(2, 2))` → `[2, 2]`. `intersect(intArrayOf(4, 9, 5), intArrayOf(9, 4, 9, 8, 4))` → `[9, 4]`. `intersectSorted(intArrayOf(1, 2, 2, 3), intArrayOf(2, 2, 4))` → `[2, 2]`. `intersection(intArrayOf(), intArrayOf(1))` → `[]`. `intersectionBrute(intArrayOf(1, 2, 2, 1), intArrayOf(2, 2))` → `[2]`.
 
-| Approach | Time | Space |
-|---|---:|---:|
-| Set | `O(n + m)` | `O(min(n, m))` if the smaller side is stored |
-| Count map | `O(n + m)` | `O(n)` |
-| Sorted + two pointers | `O(n + m)` | `O(1)` extra |
-| Sort both first | `O(n log n + m log m)` | `O(1)` extra |
-| Brute force | `O(n × m)` | `O(1)` |
+#### 5. Complexity
 
-#### 8. Common Intersection Patterns — Must Know
+| | Time | Space |
+|---|---|---|
+| Sets (I) | `O(m + n)` | `O(m)` |
+| Count map (II) | `O(m + n)` | `O(m)` |
+| Two pointers (sorted) | `O(m + n)` | `O(1)` extra |
+| Sort first, then two pointers | `O(m log m + n log n)` | `O(1)` extra |
 
-1. **Intersection of Two Arrays** (LeetCode 349) — sets.
-2. **Intersection of Two Arrays II** (LeetCode 350) — counts, or sorted + two pointers.
-3. **Common characters** across words (LeetCode 1002) — minimum counts per letter.
-4. **Intersection of three arrays** — three sets, or count how many arrays contain each value.
-5. **Find the difference of two arrays** (LeetCode 2215) — set minus set.
-6. **Follow-ups:** "arrays are sorted" → two pointers. "One array is huge or on disk" → put the small one in memory.
+#### 6. Common Mistakes
 
-#### 9. Edge Cases / Common Mistakes
+1. **Using a list for the result in version I** and getting duplicates. Use a set.
+2. **Version II:** not decrementing the count (returns too many).
+3. **Version II:** using a set (loses multiplicity).
+4. **Two pointers on unsorted arrays.**
+5. **Building the set from the bigger array** when the smaller one would use less memory.
+6. **Forgetting empty arrays.**
 
-1. Using a set when the answer needs repeats (LeetCode 350).
-2. Forgetting to decrease the count in the map version, so extra repeats are added.
-3. Returning duplicates in the unique version because the result was a list.
-4. Empty arrays. The answer is empty.
-5. Result order: a `HashSet` has no order. The problem usually allows any order.
-6. Storing the larger array in the set when memory is a concern.
+#### 7. Say This in the Interview
 
-#### 10. When to Use / When Not to Use
+1. "I put one array in a set and scan the other. That's `O(m + n)` time. I'd load the smaller array to save memory."
+2. "If duplicates must be counted, I use a map of counts and decrement as I match."
+3. "If both arrays are sorted, two pointers need no extra memory."
 
-**Use sets when:**
+#### 8. Quick Check
 
-1. Only distinct common values are needed.
+1. Version I result for `[1, 1]` and `[1, 1, 1]`?
+2. Version II result for the same?
+3. When do two pointers beat a set?
 
-**Use a count map when:**
+<details>
+<summary>Answers</summary>
 
-1. Repeats matter.
+1. `[1]`.
+2. `[1, 1]` (the smaller count).
+3. When both arrays are sorted, since they use `O(1)` extra space.
 
-**Use two pointers when:**
+</details>
 
-1. Inputs are already sorted, or you want `O(1)` extra space.
+#### 9. Related LeetCode Questions
 
-#### 11. Related Topics
-
-1. Set Union / Intersection / Difference
-2. Unique Elements Pattern
-3. HashSet + Two Pointers
-4. HashSet vs HashMap
-
-#### 12. Interview Must Remember
-
-1. **Set of A, scan B, keep what is in the set.**
-2. Repeats matter → count map. Sorted → two pointers.
-3. `O(n + m)` time. Put the smaller array in the set.
-4. `a.toSet().intersect(b.toSet())` is the Kotlin shortcut.
+| # | Question | Idea |
+|---|---|---|
+| 349 | [Intersection of Two Arrays](https://leetcode.com/problems/intersection-of-two-arrays/) (Easy) | sets |
+| 350 | [Intersection of Two Arrays II](https://leetcode.com/problems/intersection-of-two-arrays-ii/) (Easy) | count map |
+| 1213 | [Intersection of Three Sorted Arrays](https://leetcode.com/problems/intersection-of-three-sorted-arrays/) (Easy, premium) | three pointers |
+| 160 | [Intersection of Two Linked Lists](https://leetcode.com/problems/intersection-of-two-linked-lists/) (Easy) | set of nodes, or two pointers |
+| 2215 | [Find the Difference of Two Arrays](https://leetcode.com/problems/find-the-difference-of-two-arrays/) (Easy) | the other set operation |
+| 1002 | [Find Common Characters](https://leetcode.com/problems/find-common-characters/) (Easy) | minimum counts |

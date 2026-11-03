@@ -27,7 +27,29 @@ Rotate exactly **`size - 1`** times. Rotating `size` times brings you back to wh
 
 The other choice is **cheap push, costly pop**: `push` just adds at the back. `pop` first rotates `size - 1` items, so the newest reaches the front, and then removes it. Both are valid. Rotate-on-push is the usual answer because `pop` and `top` become `O(1)`.
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Design | `push` | `pop` | `top` |
+|---|---|---|---|
+| Two queues, expensive `pop` | `O(1)` | `O(n)` | `O(n)` |
+| Two queues, expensive `push` | `O(n)` | `O(1)` | `O(1)` |
+| **One queue, rotate after each `push`** | `O(n)` | `O(1)` | `O(1)` |
+
+A queue and a stack have opposite orders, so one operation must reverse the items and costs `O(n)`.
+
+```kotlin
+// One queue: after adding x, rotate the older items behind it
+class MyStack {
+    private val q = ArrayDeque<Int>()
+    fun push(x: Int) { q.addLast(x); repeat(q.size - 1) { q.addLast(q.removeFirst()) } }
+    fun pop(): Int = q.removeFirst()
+    fun top(): Int = q.first()
+}
+```
+
+Push `1, 2, 3`: `top()` → `3`, `pop()` → `3`, `pop()` → `2`.
+
+#### 4. Kotlin Code
 
 ```kotlin
 class MyStack {
@@ -59,7 +81,7 @@ println(s.pop())     // 1
 println(s.empty())   // true
 ```
 
-#### 4. Complexity
+#### 5. Complexity
 
 | Action | Time |
 |---|---|
@@ -67,7 +89,7 @@ println(s.empty())   // true
 | `pop`, `top`, `empty` | `O(1)` |
 | Memory | `O(n)` |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Rotating `size` times** instead of `size - 1`.
 2. **Rotating before adding** the new item.
@@ -75,13 +97,13 @@ println(s.empty())   // true
 4. **Pop or top on an empty stack.** Say how you handle it.
 5. **Saying `push` is `O(1)`** in the rotate-on-push design.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "A queue gives the oldest item first, so after each push I rotate the queue to put the newest item at the front."
 2. "Push is `O(n)`. Pop and top are `O(1)`."
 3. "In real code I would use a real stack, which is `O(1)` for everything."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. The queue is `[2, 1]` and you push `3`. What is the queue after the rotation?
 2. How many rotations after pushing into a queue that now holds 5 items?
@@ -94,7 +116,7 @@ println(s.empty())   // true
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

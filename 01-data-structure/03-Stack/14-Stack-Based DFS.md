@@ -41,7 +41,27 @@ order: 1, 2, 3
 
 **Tree inorder (left, root, right).** Go left as far as you can, pushing each node. Pop one, visit it, then move to its right child.
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Approach | Time | Space | Risk |
+|---|---|---|---|
+| Recursive DFS | `O(V + E)` | call stack `O(depth)` | `StackOverflowError` on very deep graphs |
+| **Explicit stack** DFS | `O(V + E)` | `O(V)` (the stack) | none; you control the memory |
+| Try every path (no `visited`) | exponential | | loops forever on a cycle |
+
+```kotlin
+// Brute force flavour: recursion without a visited set explores every path (exponential, and infinite on a cycle)
+fun countPathsNoVisited(graph: Array<List<Int>>, node: Int, target: Int): Int {
+    if (node == target) return 1
+    var total = 0
+    for (next in graph[node]) total += countPathsNoVisited(graph, next, target)
+    return total
+}
+```
+
+On a DAG this counts paths and ends. On a graph with a cycle it never stops. The explicit stack with a `visited` set visits each node once.
+
+#### 4. Kotlin Code
 
 ```kotlin
 class TreeNode(var `val`: Int) {
@@ -118,14 +138,14 @@ fun postorder(root: TreeNode?): List<Int> {
 
 Checks: graph above → `[0, 1, 3, 2]`. Tree `1` with children `2` and `3`: preorder `[1,2,3]`, inorder `[2,1,3]`, postorder `[2,3,1]`.
 
-#### 4. Complexity
+#### 5. Complexity
 
 | | Time | Space |
 |---|---|---|
 | Graph DFS (`V` nodes, `E` edges) | `O(V + E)` | `O(V)` |
 | Tree traversal (`n` nodes) | `O(n)` | `O(h)`, `h` = height of the tree (up to `O(n)`) |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Pushing left before right in preorder.** Then the right side is visited first.
 2. **No `visited` check in a graph.** A cycle makes the loop run forever.
@@ -134,14 +154,14 @@ Checks: graph above → `[0, 1, 3, 2]`. Tree `1` with children `2` and `3`: preo
 5. **Expecting the same order as recursion** without pushing neighbours in reverse.
 6. **Empty tree** (`root == null`).
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "Recursion uses the call stack. For very deep input I use my own stack to avoid `StackOverflowError`."
 2. "Pop a node, visit it, push its children. For preorder I push right first so left is processed first."
 3. "Time `O(V + E)` for a graph, `O(n)` for a tree. Space is the stack size."
 4. "For a graph I keep a `visited` set to avoid cycles."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. In iterative preorder, which child do you push first: left or right?
 2. Why does a graph DFS need a `visited` set but a tree DFS does not?
@@ -154,7 +174,7 @@ Checks: graph above → `[0, 1, 3, 2]`. Tree `1` with children `2` and `3`: preo
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

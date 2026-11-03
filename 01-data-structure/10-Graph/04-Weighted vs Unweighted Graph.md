@@ -43,7 +43,34 @@ A weighted edge is stored as **(neighbour, weight)**:
 2: [(0, 5), (1, 1)]
 ```
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Approach | Time | Result |
+|---|---|---|
+| Try every simple path and keep the cheapest | exponential | correct, impractical |
+| BFS (counts edges) | `O(V + E)` | **wrong** when weights differ |
+| **Dijkstra** (non-negative weights) | `O((V + E) log V)` | cheapest path |
+| Bellman-Ford (negative weights allowed) | `O(V · E)` | cheapest path |
+
+```kotlin
+// Brute force: try every simple path from node to target, return the cheapest total weight
+fun cheapestBrute(graph: Array<List<IntArray>>, node: Int, target: Int, seen: BooleanArray): Int {
+    if (node == target) return 0
+    seen[node] = true
+    var best = Int.MAX_VALUE
+    for ((next, w) in graph[node]) {
+        if (seen[next]) continue
+        val rest = cheapestBrute(graph, next, target, seen)
+        if (rest != Int.MAX_VALUE) best = minOf(best, w + rest)
+    }
+    seen[node] = false
+    return best
+}
+```
+
+For the weighted triangle `A-B 1`, `B-C 1`, `A-C 5` (nodes `0, 1, 2`), `cheapestBrute(...)` from `0` to `2` → `2` (via `1`), not `5`. BFS would pick the direct 1-edge route and return the wrong cost.
+
+#### 4. Kotlin Code
 
 ```kotlin
 // Weighted undirected graph: each entry is a Pair(neighbour, weight)
@@ -80,14 +107,14 @@ Do costs differ and none is negative? → Dijkstra
 Are there negative costs?             → Bellman-Ford
 ```
 
-#### 4. Complexity
+#### 5. Complexity
 
 | | Unweighted (BFS) | Weighted (Dijkstra) |
 |---|---|---|
 | Time | `O(V + E)` | `O((V + E) log V)` |
 | Memory | `O(V)` | `O(V)` |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Using BFS on a weighted graph.** It finds the fewest edges, not the lowest cost.
 2. **Using Dijkstra with negative weights.** It can give wrong answers.
@@ -95,13 +122,13 @@ Are there negative costs?             → Bellman-Ford
 4. **Overflow.** A sum of weights may be bigger than `Int`. Use `Long` when the limits are big.
 5. **Using `Int.MAX_VALUE` as infinity and then adding to it.** It overflows. Check before adding.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "Are the edges weighted? If all moves cost 1, BFS is enough and gives `O(V + E)`."
 2. "With different non-negative weights I use Dijkstra with a priority queue."
 3. "If there could be negative weights I would use Bellman-Ford."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. Which algorithm for the fewest moves in a maze?
 2. Why does BFS fail on a weighted graph?
@@ -114,7 +141,7 @@ Are there negative costs?             → Bellman-Ford
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

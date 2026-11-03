@@ -33,7 +33,29 @@ Kotlin tools:
 | `groupingBy { key }.eachCount()` | `Map<K, Int>` — only the counts |
 | `partition { condition }` | two lists: matching and not matching |
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Approach | Time | Note |
+|---|---|---|
+| Compare every item with every group | `O(n² · k)` | `k` = cost of one comparison |
+| **Compute a key for each item, group with a map** | `O(n · k)` | `getOrPut(key) { mutableListOf() }.add(item)` |
+
+```kotlin
+// Brute force: for each word, look for an existing group whose first word is an anagram
+fun groupAnagramsBrute(words: List<String>): List<List<String>> {
+    fun sameLetters(a: String, b: String) = a.toCharArray().sorted() == b.toCharArray().sorted()
+    val groups = mutableListOf<MutableList<String>>()
+    for (w in words) {
+        val g = groups.firstOrNull { sameLetters(it[0], w) }
+        if (g != null) g.add(w) else groups.add(mutableListOf(w))
+    }
+    return groups
+}
+```
+
+`groupAnagramsBrute(listOf("eat", "tea", "tan", "ate", "nat", "bat"))` → `[[eat, tea, ate], [tan, nat], [bat]]`. The map approach computes the key (sorted letters) once per word.
+
+#### 4. Kotlin Code
 
 ```kotlin
 // Manual grouping by length
@@ -68,7 +90,7 @@ val biggestKey = byLength.maxByOrNull { it.value.size }?.key
 
 The most famous grouping question is **Group Anagrams** (note 20).
 
-#### 4. Complexity
+#### 5. Complexity
 
 | | Time | Space |
 |---|---|---|
@@ -77,7 +99,7 @@ The most famous grouping question is **Group Anagrams** (note 20).
 
 The cost of computing the key is what changes. A simple key is `O(1)`.
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **`getOrDefault(key, mutableListOf()).add(x)`.** The new list is never stored, so `x` is lost. Use `getOrPut`.
 2. **`associateBy` when you need all items.** It keeps only the last.
@@ -86,13 +108,13 @@ The cost of computing the key is what changes. A simple key is `O(1)`.
 5. **Expecting sorted groups from a `HashMap`.** Sort the keys yourself, or use `groupBy` (which keeps first-seen order).
 6. **`groupBy` returns read-only lists.** Call `toMutableList()` if you need to edit them.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "I group with `key → list`. The key is ... for each item."
 2. "I use `getOrPut` so the list is created the first time a key appears."
 3. "One pass: `O(n)` plus the cost of building each key."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. What does `listOf(1, 2, 3, 4).groupBy { it % 2 }` give?
 2. Why is `getOrDefault(key, mutableListOf())` a bug for grouping?
@@ -105,7 +127,7 @@ The cost of computing the key is what changes. A simple key is `O(1)`.
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

@@ -44,7 +44,30 @@ Rules:
 result: "accaccacc"
 ```
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Approach | Idea | Time |
+|---|---|---|
+| Repeatedly expand the **innermost** `k[...]` with a regex | find a pattern with no brackets inside, replace it, repeat | `O(n · depth)` and many string copies |
+| **Stack** (counts and strings) | push the current string and count at `[`, pop and repeat at `]` | `O(output length)` |
+
+```kotlin
+// Brute force: expand the first "k[letters]" until none are left
+fun decodeBrute(s: String): String {
+    var cur = s
+    val re = Regex("(\d+)\[([a-zA-Z]*)\]")
+    while (true) {
+        val m = re.find(cur) ?: break
+        val expanded = m.groupValues[2].repeat(m.groupValues[1].toInt())
+        cur = cur.replaceRange(m.range, expanded)
+    }
+    return cur
+}
+```
+
+`decodeBrute("3[a2[c]]")` → `"accaccacc"`. `decodeBrute("2[abc]3[cd]ef")` → `"abcabccdcdcdef"`. Each replacement builds a new string, which is slow for deep nesting. The stack builds the answer once.
+
+#### 4. Kotlin Code
 
 ```kotlin
 fun decodeString(s: String): String {
@@ -105,7 +128,7 @@ fun decodeStringRecursive(s: String): String {
 }
 ```
 
-#### 4. Complexity
+#### 5. Complexity
 
 Let `L` be the length of the **decoded** result.
 
@@ -115,7 +138,7 @@ Let `L` be the length of the **decoded** result.
 
 The output can be much longer than the input, for example `"100[100[a]]"` gives 10,000 characters.
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Reading only one digit.** `"12[a]"` is 12 repeats. Use `k = k * 10 + digit`.
 2. **Not resetting `k = 0`** after `[`. The old number leaks into the next group.
@@ -123,13 +146,13 @@ The output can be much longer than the input, for example `"100[100[a]]"` gives 
 4. **Letters after a `]`** (like `ef` in `"2[abc]3[cd]ef"`). They must be added to the outer text. The code does this because `current = outer` after `]`.
 5. **Pushing `k` as a character** instead of an `Int`.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "Brackets are nested, so I use a stack. On `[` I save the count and the text so far. On `]` I restore them and repeat the inner text."
 2. "Digits build `k`, so multi-digit counts work."
 3. "Time and space are `O(L)`, where `L` is the length of the decoded string."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. Decode `"2[a2[b]]"`.
 2. What happens to `k` after you read `[`?
@@ -142,7 +165,7 @@ The output can be much longer than the input, for example `"100[100[a]]"` gives 
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

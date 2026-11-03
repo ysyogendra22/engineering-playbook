@@ -85,7 +85,23 @@ flowchart TD
     end
 ```
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Approach | Finds | Time |
+|---|---|---|
+| DFS over all paths | the shortest path only after exploring every path | exponential |
+| DFS with `visited` | **a** path, not necessarily the shortest | `O(V + E)` |
+| **BFS with `visited`** | the **shortest** path (equal edge costs) | `O(V + E)` |
+| BFS from every vertex | all-pairs shortest paths | `O(V · (V + E))` |
+
+BFS reaches every vertex at distance `d` before any vertex at distance `d + 1`, so the **first arrival is the shortest**. Mark a vertex visited when you add it to the queue, not when you remove it, or the same vertex can sit in the queue many times.
+
+```text
+queue [0]  →  take 0, add 1 2  →  take 1, add 3  →  take 2 (3 already seen)  →  take 3
+distance:  0 → 0,  1 → 1,  2 → 1,  3 → 2
+```
+
+#### 4. Kotlin Code
 
 ```kotlin
 // BFS order
@@ -152,7 +168,7 @@ fun shortestSteps(graph: List<List<Int>>, start: Int, target: Int): Int {
 
 Checks (graph above): `bfs` → `[0, 1, 2, 3]`. `distances(graph, 0)` → `[0, 1, 1, 2]`. `shortestSteps(graph, 0, 3)` → `2`.
 
-#### 4. Complexity
+#### 5. Complexity
 
 For `V` nodes and `E` edges:
 
@@ -161,7 +177,7 @@ For `V` nodes and `E` edges:
 | BFS (adjacency list) | `O(V + E)` | `O(V)` |
 | BFS (adjacency matrix) | `O(V²)` | `O(V)` |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Marking visited when taking the node out** of the queue. The same node enters many times.
 2. **Forgetting to mark the start node.**
@@ -170,13 +186,13 @@ For `V` nodes and `E` edges:
 5. **Reading `queue.size` in a `while` condition** for levels. Use `repeat(queue.size)`.
 6. **Using a list with `removeAt(0)`** as the queue (`O(n)`).
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "I need the fewest steps, and every step costs the same, so I use BFS."
 2. "I mark nodes visited when I enqueue them."
 3. "Time `O(V + E)`, space `O(V)`. For different edge costs I would switch to Dijkstra."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. In BFS, when do you mark a node visited?
 2. What is the BFS distance from a node to itself?
@@ -189,7 +205,7 @@ For `V` nodes and `E` edges:
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

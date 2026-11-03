@@ -1,144 +1,171 @@
 # Heap for Scheduling / Processing by Priority
 
-#### 1. Definition — Must Know
+> "Always do the most important thing next" is a heap. This note covers the greedy-with-a-heap questions: schedulers, stones, and "save your best resource for later".
 
-1. **Scheduling with a heap** means keeping tasks in a priority queue and always processing the **most important** one next.
-2. "Important" can mean highest priority, earliest deadline, shortest duration, or earliest start time.
-3. New tasks can arrive at any time. The heap puts them in the right place in `O(log n)`.
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+In scheduling problems you **repeatedly choose the best available item**, and the set of available items changes. A heap picks the best in `O(log n)` and accepts new items in `O(log n)`.
 
-1. It is the direct, real-world use of a priority queue: job queues, operating system schedulers, event loops, simulations.
-2. It avoids re-sorting the whole list every time a new task arrives.
-3. In interviews it is the base for problems such as Task Scheduler, Meeting Rooms II, and Dijkstra.
+| Question | Heap | Rule |
+|---|---|---|
+| **Last Stone Weight** (1046) | max-heap | smash the two heaviest |
+| **Task Scheduler** (621) | max-heap of counts | run the most frequent task next |
+| **Furthest Building You Can Reach** (1642) | min-heap of climbs | use ladders for the biggest climbs |
+| **Single-Threaded CPU** (1834) | min-heap by (processing time, index) | run the shortest available task |
+| **Meeting Rooms II** (253) | min-heap of end times | note 20 |
 
-#### 3. How It Works — Must Know
+**Signals:** "process in order of priority", "the most / least X first", "simulate a CPU", "greedy but the best item changes".
 
-Tasks have a priority (higher number = more important) and arrive in this order:
+#### 2. How It Works
 
-```text
-add("A", priority 1)
-add("B", priority 5)
-add("C", priority 5)
-add("D", priority 3)
-
-next() → B     (priority 5, added before C)
-next() → C     (priority 5)
-next() → D     (priority 3)
-next() → A     (priority 1)
-```
-
-`B` and `C` have the same priority. A **sequence number** makes the older one come first.
-
-#### 4. Core Concepts — Must Know
-
-1. **Priority key** — the field the heap compares (priority, deadline, duration).
-2. **Tie-break** — equal priorities have no guaranteed order. Add a counter to keep first-in-first-out among equals.
-3. **Processing loop** — `while queue is not empty: take the best task, run it, add any new tasks`.
-4. **Time-based scheduling** — keep tasks in a min-heap by start or end time (earliest first).
-5. **Starvation** — low-priority tasks may wait forever if high-priority tasks keep arriving. Some systems raise the priority of waiting tasks over time ("aging").
-
-#### 5. Algorithm — Must Know
+**Last Stone Weight.** Take the two largest stones `a ≥ b`. If `a == b` both vanish. Else a stone of weight `a − b` returns. Repeat.
 
 ```text
-heap = priority queue ordered by (priority descending, arrival order ascending)
-
-on new task:  heap.add(task)
-
-worker loop:
-    while heap is not empty:
-        task = heap.poll()
-        run(task)
+[2, 7, 4, 1, 8, 1]
+smash 8 and 7 → 1      [2, 4, 1, 1, 1]
+smash 4 and 2 → 2      [2, 1, 1, 1]
+smash 2 and 1 → 1      [1, 1, 1]
+smash 1 and 1 → 0      [1]
+answer 1
 ```
 
-#### 6. Kotlin Implementation — Must Know
+**Furthest Building You Can Reach.** You have `bricks` and `ladders`. A climb of height `d` costs `d` bricks, or one ladder (any height). A **ladder is best used on the biggest climbs**, bricks on the small ones.
+
+- Keep a **min-heap of climbs that used a ladder**.
+- For each climb `d > 0`: push `d`. If the heap holds more than `ladders` items, the **smallest** climb pays with **bricks** instead (`bricks -= poll()`). If `bricks < 0`, stop: you cannot go further.
+
+```text
+heights = [4, 2, 7, 6, 9, 14, 12], bricks = 5, ladders = 1
+0→1: down, free
+1→2: climb 5 → heap {5} (1 ladder). ok
+2→3: down, free
+3→4: climb 3 → heap {3, 5} too big → pay the smallest (3) with bricks: bricks 5 → 2. ok
+4→5: climb 5 → heap {5, 5} → pay 5 with bricks: bricks 2 - 5 < 0 → stop at building 4
+answer 4
+```
+
+**Task Scheduler** (simulation). Max-heap of counts. Each slot, run the task with the largest count, then park it for `n` slots (a queue). Time is counted per slot (full code in `ALG Greedy Algorithms` note 13).
+
+#### 3. Brute Force vs Optimized
+
+| Problem | Brute force | Heap |
+|---|---|---|
+| Last Stone Weight | re-sort the list each round: `O(n² log n)` | max-heap: `O(n log n)` |
+| Furthest Building | try every assignment of ladders: exponential | min-heap of climbs: `O(n log L)` |
+
+```kotlin
+// Brute force: re-sort every round
+fun lastStoneWeightBrute(stones: IntArray): Int {
+    val list = stones.toMutableList()
+    while (list.size > 1) {
+        list.sortDescending()
+        val a = list.removeAt(0)
+        val b = list.removeAt(0)
+        if (a != b) list.add(a - b)
+    }
+    return if (list.isEmpty()) 0 else list[0]
+}
+```
+
+#### 4. Kotlin Code
 
 ```kotlin
 import java.util.PriorityQueue
 
-data class Task(val name: String, val priority: Int, val order: Long)
-
-class TaskQueue {
-
-    private var counter = 0L
-
-    private val heap = PriorityQueue<Task>(
-        compareByDescending<Task> { it.priority }   // most important first
-            .thenBy { it.order }                    // then oldest first
-    )
-
-    fun add(name: String, priority: Int) {
-        heap.add(Task(name, priority, counter++))
+// Last Stone Weight (LeetCode 1046)
+fun lastStoneWeight(stones: IntArray): Int {
+    val heap = PriorityQueue<Int>(compareByDescending<Int> { it })
+    for (s in stones) heap.add(s)
+    while (heap.size > 1) {
+        val a = heap.poll()
+        val b = heap.poll()
+        if (a != b) heap.add(a - b)
     }
-
-    fun next(): Task? = heap.poll()
-
-    fun isEmpty() = heap.isEmpty()
+    return if (heap.isEmpty()) 0 else heap.peek()
 }
 
-// Usage
-val queue = TaskQueue()
-queue.add("A", 1); queue.add("B", 5); queue.add("C", 5); queue.add("D", 3)
-while (!queue.isEmpty()) println(queue.next()!!.name)   // B, C, D, A
+// Furthest Building You Can Reach (LeetCode 1642)
+fun furthestBuilding(heights: IntArray, bricks: Int, ladders: Int): Int {
+    val ladderClimbs = PriorityQueue<Int>()                  // min-heap: climbs that currently use a ladder
+    var bricksLeft = bricks
+    for (i in 0 until heights.size - 1) {
+        val climb = heights[i + 1] - heights[i]
+        if (climb <= 0) continue                             // going down or flat is free
+        ladderClimbs.add(climb)
+        if (ladderClimbs.size > ladders) {
+            bricksLeft -= ladderClimbs.poll()                // the smallest climb pays with bricks
+            if (bricksLeft < 0) return i                     // cannot reach building i + 1
+        }
+    }
+    return heights.size - 1
+}
+
+// Single-Threaded CPU (LeetCode 1834): tasks[i] = [enqueueTime, processingTime]
+fun getOrder(tasks: Array<IntArray>): IntArray {
+    val order = tasks.indices.sortedBy { tasks[it][0] }      // by enqueue time
+    val heap = PriorityQueue<Int>(compareBy<Int>({ tasks[it][1] }, { it }))   // shortest first, then index
+    val result = IntArray(tasks.size)
+    var time = 0L
+    var next = 0
+    var done = 0
+    while (done < tasks.size) {
+        if (heap.isEmpty() && time < tasks[order[next]][0]) time = tasks[order[next]][0].toLong()   // jump ahead when idle
+        while (next < order.size && tasks[order[next]][0] <= time) heap.add(order[next++])
+        val t = heap.poll()
+        result[done++] = t
+        time += tasks[t][1]
+    }
+    return result
+}
 ```
 
-The `PriorityQueue` is not thread-safe. If several threads add and take tasks, use `PriorityBlockingQueue` or guard it with a lock.
+Checks: `lastStoneWeight(intArrayOf(2, 7, 4, 1, 8, 1))` → `1`. `lastStoneWeight(intArrayOf(1))` → `1`. `lastStoneWeight(intArrayOf(2, 2))` → `0`. `lastStoneWeightBrute(intArrayOf(2, 7, 4, 1, 8, 1))` → `1`. `furthestBuilding(intArrayOf(4, 2, 7, 6, 9, 14, 12), 5, 1)` → `4`. `furthestBuilding(intArrayOf(4, 12, 2, 7, 3, 18, 20, 3, 19), 10, 2)` → `7`. `furthestBuilding(intArrayOf(14, 3, 19, 3), 17, 0)` → `3`. `getOrder(arrayOf(intArrayOf(1, 2), intArrayOf(2, 4), intArrayOf(3, 2), intArrayOf(4, 1)))` → `[0, 2, 3, 1]`.
 
-#### 7. Time & Space Complexity — Must Know
+#### 5. Complexity
 
-| Operation | Time |
-|---|---:|
-| Add a task | `O(log n)` |
-| Take the next task | `O(log n)` |
-| Look at the next task | `O(1)` |
-| Space | `O(n)` |
+| | Time | Space |
+|---|---|---|
+| Last Stone Weight | `O(n log n)` | `O(n)` |
+| Furthest Building | `O(n log L)` for `L` ladders | `O(L)` |
+| Single-Threaded CPU | `O(n log n)` | `O(n)` |
 
-Running `n` tasks through the queue costs `O(n log n)`.
+#### 6. Common Mistakes
 
-#### 8. Common Scheduling Patterns — Must Know
+1. **Re-sorting** every round instead of using a heap.
+2. **Furthest Building:** spending bricks first on the biggest climbs. Ladders are for the **biggest** climbs.
+3. **Treating downhill climbs** as costs. Only positive differences count.
+4. **CPU:** forgetting to jump `time` forward when the heap is empty.
+5. **CPU:** forgetting the tie-break by index.
+6. **Returning the wrong index** in Furthest Building (the loop index `i` is the last reachable building when the next one fails).
 
-1. **Task Scheduler** (LeetCode 621) — a max-heap of remaining counts, with a cooldown.
-2. **Meeting Rooms II** — a min-heap of end times (see "Meeting Rooms / Scheduling with Heap").
-3. **Dijkstra's shortest path** — always expand the closest node (`02-algorithm/07-Graph Algorithms`).
-4. **Event simulation** — always handle the event with the earliest time.
-5. **Shortest job first** — a min-heap by duration.
-6. Your own app: a download or upload queue where user-visible items go before background items. Keep the comparator simple and tested.
+#### 7. Say This in the Interview
 
-#### 9. Edge Cases / Common Mistakes
+1. "I always need the best available item next, and the available set changes, so I'll use a heap."
+2. "In Furthest Building, ladders are best spent on the biggest climbs. I keep a min-heap of the climbs that currently use ladders. When it exceeds the ladder count, the smallest one pays with bricks."
+3. "Each operation is `O(log n)`, so the whole simulation is `O(n log n)`."
 
-1. Relying on first-in-first-out among equal priorities. Add a sequence number.
-2. Changing a task's priority after it is in the heap. Remove it and add it again, or use lazy deletion.
-3. Starvation of low-priority tasks.
-4. Using a min-heap when a larger number means higher priority.
-5. Polling an empty queue (`null`).
-6. Using one `PriorityQueue` from several threads without protection.
-7. A comparator that is not consistent (for example, one that depends on the current time). The heap order breaks.
+#### 8. Quick Check
 
-#### 10. When to Use / When Not to Use
+1. `lastStoneWeight` of `[3, 3, 3]`?
+2. Why does Furthest Building use a **min**-heap?
+3. In the CPU problem, what if no task is available at the current time?
 
-**Use when:**
+<details>
+<summary>Answers</summary>
 
-1. Tasks differ in importance or deadline.
-2. Tasks keep arriving while you work.
+1. `3`. Smash two `3`s to nothing, one `3` is left.
+2. The root is the **smallest** ladder climb. When there are too many, that one is the best to replace with bricks.
+3. Jump the clock to the next task's enqueue time.
 
-**Avoid when:**
+</details>
 
-1. All tasks have the same importance and order is by arrival. Use a plain queue.
-2. The set is small and fixed. Sort once.
-3. You must cancel or reprioritise tasks often. Add a map and lazy deletion.
+#### 9. Related LeetCode Questions
 
-#### 11. Related Topics
-
-1. Priority Queue
-2. Kotlin `PriorityQueue`
-3. Meeting Rooms / Scheduling with Heap
-4. Lazy Deletion with Heap
-5. Queue (`01-data-structure/04-Queue`)
-6. Greedy Algorithms (`02-algorithm/04-Greedy Algorithms`)
-
-#### 12. Interview Must Remember
-
-1. Process the **best item first**. Add a **sequence number** to break ties.
-2. `O(log n)` per add and per take.
-3. Do not change a priority in place.
-4. Heaps are not thread-safe. Name the risk of starvation.
+| # | Question | Idea |
+|---|---|---|
+| 1046 | [Last Stone Weight](https://leetcode.com/problems/last-stone-weight/) (Easy) | max-heap |
+| 621 | [Task Scheduler](https://leetcode.com/problems/task-scheduler/) (Medium) | max-heap of counts |
+| 1642 | [Furthest Building You Can Reach](https://leetcode.com/problems/furthest-building-you-can-reach/) (Medium) | min-heap of ladder climbs |
+| 1834 | [Single-Threaded CPU](https://leetcode.com/problems/single-threaded-cpu/) (Medium) | shortest available task |
+| 767 | [Reorganize String](https://leetcode.com/problems/reorganize-string/) (Medium) | max-heap, two letters |
+| 1353 | [Maximum Number of Events That Can Be Attended](https://leetcode.com/problems/maximum-number-of-events-that-can-be-attended/) (Medium) | min-heap of end days |

@@ -83,7 +83,23 @@ Both need a **visited** set, because a graph can have cycles. Without it, you wa
 
 Graph vs tree: a tree is a graph that is **connected** and has **no cycles**. A tree with `n` nodes always has `n - 1` edges.
 
-#### 4. Kotlin Code
+#### 4. Brute Force vs Optimized
+
+| Question | Without a graph model | With an adjacency list |
+|---|---|---|
+| Are `A` and `B` directly connected? | scan the whole list of pairs: `O(E)` | check `A`'s neighbours: `O(degree)` |
+| Who are the neighbours of `A`? | scan the whole list: `O(E)` | read `A`'s list: `O(degree)` |
+| Can I get from `A` to `B`? | try every sequence of pairs | BFS / DFS: `O(V + E)` |
+
+```kotlin
+// Brute force: the graph is just a list of pairs. Every question scans all of them.
+fun areConnectedBrute(edges: List<Pair<Int, Int>>, a: Int, b: Int): Boolean =
+    edges.any { (x, y) -> (x == a && y == b) || (x == b && y == a) }          // O(E)
+```
+
+`areConnectedBrute(listOf(0 to 1, 1 to 2), 1, 2)` → `true`, `(0, 2)` → `false`. An adjacency list answers the same question by looking only at one vertex's list.
+
+#### 5. Kotlin Code
 
 ```kotlin
 // Build an undirected graph from an edge list
@@ -122,7 +138,7 @@ println(graph)                       // [[1, 2], [0, 3], [0, 3], [1, 2]]
 println(reachable(graph, 0))         // [0, 1, 2, 3]
 ```
 
-#### 5. How to Spot a Graph Problem
+#### 6. How to Spot a Graph Problem
 
 | If the question has... | Think... | Note |
 |---|---|---|
@@ -136,7 +152,7 @@ println(reachable(graph, 0))         // [0, 1, 2, 3]
 | "connect everything at the lowest cost" | minimum spanning tree | 26 – 28 |
 | "words/states you can change one step at a time" | implicit graph + BFS | 30 |
 
-#### 6. Complexity
+#### 7. Complexity
 
 | Action | Time |
 |---|---|
@@ -144,7 +160,7 @@ println(reachable(graph, 0))         // [0, 1, 2, 3]
 | Memory for an adjacency list | `O(V + E)` |
 | Check if an edge `a-b` exists (adjacency list) | `O(degree of a)` |
 
-#### 7. Common Mistakes
+#### 8. Common Mistakes
 
 1. **No `visited` check.** The program loops forever on a cycle.
 2. **Marking visited too late in BFS.** Mark when you add to the queue.
@@ -152,14 +168,14 @@ println(reachable(graph, 0))         // [0, 1, 2, 3]
 4. **Missing disconnected parts.** Start a search from every unvisited node.
 5. **Mixing `0`-based and `1`-based node numbers.**
 
-#### 8. Say This in the Interview
+#### 9. Say This in the Interview
 
 1. "I will model this as a graph. The nodes are ... and the edges are ..."
 2. "I store it as an adjacency list, so a full walk is `O(V + E)`."
 3. "I use BFS (or DFS) with a visited set."
 4. "I will check disconnected parts, cycles and an empty input."
 
-#### 9. Quick Check
+#### 10. Quick Check
 
 1. How many edges does a tree with 7 nodes have?
 2. Why do we need a `visited` set?
@@ -172,7 +188,7 @@ println(reachable(graph, 0))         // [0, 1, 2, 3]
 
 </details>
 
-#### 10. Related LeetCode Questions (Often Asked)
+#### 11. Related LeetCode Questions (Often Asked)
 
 Solve them in this order. Search by title if a number looks wrong.
 

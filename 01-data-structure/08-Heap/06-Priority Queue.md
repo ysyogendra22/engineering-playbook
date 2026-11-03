@@ -1,148 +1,148 @@
 # Priority Queue
 
-#### 1. Definition — Must Know
+> A queue where the item with the **highest priority** leaves first, not the oldest. A heap is how it is built.
 
-1. A **priority queue** is a collection where every element has a **priority**, and removing an element always returns the one with the **highest priority**.
-2. It is an **abstract data type** (an idea with operations), not a specific structure.
-3. A **heap** is the usual way to implement it.
-4. A normal queue returns the **oldest** item (first in, first out). A priority queue returns the **most important** item, whatever its age.
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+A **priority queue (PQ)** is an abstract data type with three operations:
 
-1. Many problems are "always handle the most urgent item next": tasks, events, shortest paths, merging.
-2. It separates *what you want* (the best item next) from *how it is stored* (a heap, a sorted list, a tree).
-3. In interviews, "priority queue" is the name you say, and "heap" is how you explain the cost.
+| Operation | Meaning |
+|---|---|
+| `add(item)` | put an item in |
+| `peek()` | look at the highest-priority item |
+| `poll()` | remove and return the highest-priority item |
 
-#### 3. How It Works — Must Know
+- A **queue** is first-in-first-out. A **priority queue** is **best-in-first-out**.
+- "Priority" is whatever you define: the smallest number, the earliest deadline, the highest score.
+- A **heap** is the usual **implementation** of a priority queue. (The PQ is the idea. The heap is the machinery.)
 
-Smaller number means higher priority:
+**Signals:** "process in order of priority / deadline / cost", "always pick the smallest", "next best", "scheduler", "Dijkstra".
 
-```text
-add("send email", 3)
-add("fix crash", 1)
-add("update docs", 5)
-add("review PR", 2)
+#### 2. How It Works
 
-poll() → "fix crash"      (priority 1)
-poll() → "review PR"      (priority 2)
-poll() → "send email"     (priority 3)
-poll() → "update docs"    (priority 5)
+```mermaid
+flowchart LR
+    A["add: (3, 'email')"] --> PQ
+    B["add: (1, 'fix bug')"] --> PQ
+    C["add: (2, 'review')"] --> PQ
+    PQ["Priority queue<br/>(min-heap by priority)"] -->|"poll"| R1["1: fix bug"]
+    PQ -->|"poll"| R2["2: review"]
+    PQ -->|"poll"| R3["3: email"]
 ```
 
-The order of `add` calls does not matter. The order of `poll` calls follows priority.
+Items come out in priority order, not in the order they were added.
 
-#### 4. Core Concepts — Must Know
+**Priority queue vs plain queue vs sorted list**
 
-1. **Operations:** `add`, `peek` (look at the best item), `poll` (remove the best item), `isEmpty`, `size`.
-2. **Priority** — defined by a comparison: natural order of numbers, or a custom comparator.
-3. **Implementations:**
+| | Queue | Sorted list | **Priority queue (heap)** |
+|---|---|---|---|
+| Next item | oldest | smallest | smallest (or largest) |
+| `add` | `O(1)` | `O(n)` | `O(log n)` |
+| `poll` | `O(1)` | `O(1)` | `O(log n)` |
 
-| Implementation | Add | Peek | Poll |
-|---|---:|---:|---:|
-| Unsorted list | `O(1)` | `O(n)` | `O(n)` |
-| Sorted list | `O(n)` | `O(1)` | `O(1)` or `O(n)` |
-| **Binary heap** | `O(log n)` | `O(1)` | `O(log n)` |
-| Balanced BST | `O(log n)` | `O(log n)` | `O(log n)` |
+**Where it is used**
 
-4. **Ties:** items with the same priority may come out in any order. The heap is **not stable**.
-5. To keep first-in-first-out order among equal priorities, add a **sequence number** to the comparison.
+- **Dijkstra** (always expand the closest node), **Prim**, A*
+- task schedulers, event simulation, OS process scheduling
+- **top K** and **merge K sorted**
+- Huffman coding, running median, load balancing
 
-#### 5. Algorithm — Must Know
+**Ties.** If two items have the same priority, the order between them is **not guaranteed** (a heap is not stable). If order matters, add a sequence number as the second key.
 
-The contract, in pseudocode:
+#### 3. Brute Force vs Optimized
 
-```text
-interface PriorityQueue<T>:
-    add(item)        // insert with its priority
-    peek(): T?       // best item, not removed
-    poll(): T?       // best item, removed
-    size, isEmpty
+| Approach | `add` | `poll` | Note |
+|---|---|---|---|
+| Unsorted list | `O(1)` | `O(n)` scan | simple, slow polls |
+| Sorted list | `O(n)` | `O(1)` | slow adds |
+| **Heap** | `O(log n)` | `O(log n)` | balanced |
+
+```kotlin
+// Brute force PQ: keep an unsorted list and scan for the highest priority each time
+class ListPriorityQueue {
+    private val items = mutableListOf<Pair<Int, String>>()          // (priority, name)
+    fun add(priority: Int, name: String) { items.add(priority to name) }
+    fun poll(): Pair<Int, String> {                                 // O(n)
+        var best = 0
+        for (i in items.indices) if (items[i].first < items[best].first) best = i
+        return items.removeAt(best)
+    }
+}
 ```
 
-Typical use:
-
-```text
-add all work items
-while the queue is not empty:
-    item = poll()
-    handle item
-    (handling may add new items)
-```
-
-#### 6. Kotlin Implementation — Must Know
+#### 4. Kotlin Code
 
 ```kotlin
 import java.util.PriorityQueue
 
-data class Job(val name: String, val priority: Int)
+data class Task(val priority: Int, val name: String)
 
-val queue = PriorityQueue<Job>(compareBy<Job> { it.priority })   // smaller number first
+fun runTasks(tasks: List<Task>): List<String> {
+    val pq = PriorityQueue<Task>(compareBy<Task> { it.priority })   // smallest priority number first
+    for (t in tasks) pq.add(t)
+    val order = mutableListOf<String>()
+    while (pq.isNotEmpty()) order.add(pq.poll().name)
+    return order
+}
 
-queue.add(Job("send email", 3))
-queue.add(Job("fix crash", 1))
-queue.add(Job("review PR", 2))
+// Ties: add a sequence number so equal priorities keep insertion order
+data class Job(val priority: Int, val seq: Int, val name: String)
 
-while (queue.isNotEmpty()) {
-    println(queue.poll().name)   // fix crash, review PR, send email
+fun runJobsStable(jobs: List<Pair<Int, String>>): List<String> {
+    val pq = PriorityQueue<Job>(compareBy<Job>({ it.priority }, { it.seq }))
+    for ((i, j) in jobs.withIndex()) pq.add(Job(j.first, i, j.second))
+    val out = mutableListOf<String>()
+    while (pq.isNotEmpty()) out.add(pq.poll().name)
+    return out
 }
 ```
 
-More on comparators in "Kotlin `PriorityQueue`".
+Checks: `runTasks(listOf(Task(3, "email"), Task(1, "fix bug"), Task(2, "review")))` → `["fix bug", "review", "email"]`. `runJobsStable(listOf(2 to "a", 1 to "b", 2 to "c", 1 to "d"))` → `["b", "d", "a", "c"]` (equal priorities keep the order they were added). `ListPriorityQueue` gives the same order for the first example.
 
-#### 7. Time & Space Complexity — Must Know
+#### 5. Complexity
 
-With a binary heap:
+| | Time | Space |
+|---|---|---|
+| `add` | `O(log n)` | |
+| `poll` | `O(log n)` | |
+| `peek` | `O(1)` | |
+| Process `n` items | `O(n log n)` | `O(n)` |
 
-| Operation | Time |
-|---|---:|
-| `add` | `O(log n)` |
-| `peek` | `O(1)` |
-| `poll` | `O(log n)` |
-| Space | `O(n)` |
+#### 6. Common Mistakes
 
-Processing `n` items from start to finish costs `O(n log n)`.
+1. **Thinking a priority queue is FIFO.** It is ordered by priority.
+2. **Assuming stable order for ties.** Add a sequence number if needed.
+3. **Using a PQ when a plain sort would do.** If all items are known up front and you need one pass, sorting is simpler.
+4. **Mutating an item's priority** after adding it. The heap will not notice. Remove and re-add, or add a new entry and skip the stale one (note 23).
+5. **Wrong direction:** "highest priority first" with a min-heap. Check the comparator.
 
-#### 8. Common Priority Queue Patterns — Must Know
+#### 7. Say This in the Interview
 
-1. Task or job scheduling by importance or deadline.
-2. Dijkstra's shortest path (always expand the closest node).
-3. Event simulation (always process the earliest event).
-4. Top K and Kth element problems.
-5. Merging sorted sources (K-way merge).
-6. Greedy algorithms that "always pick the best available".
+1. "A priority queue always returns the best item next. I'll implement it with a binary heap: `O(log n)` add and poll, `O(1)` peek."
+2. "I'd use it here because the next item to process depends on a priority that changes as new items arrive."
+3. "Ties are not stable in a heap, so if order matters I add a sequence number as a tie-breaker."
 
-#### 9. Edge Cases / Common Mistakes
+#### 8. Quick Check
 
-1. Assuming first-in-first-out among equal priorities.
-2. Changing an item's priority **after** adding it. The queue does not re-order itself.
-3. Expecting `PriorityQueue` iteration or `toString` to be sorted. It is not.
-4. Polling an empty queue. `poll()` returns `null`; `remove()` throws.
-5. Confusing the abstract type with the structure. A priority queue does not have to be a heap.
+1. Is a `PriorityQueue` a FIFO queue?
+2. What is the cost of processing `n` items through a PQ?
+3. How do you keep insertion order for equal priorities?
 
-#### 10. When to Use / When Not to Use
+<details>
+<summary>Answers</summary>
 
-**Use when:**
+1. No. The highest-priority item leaves first.
+2. `O(n log n)`.
+3. Add a counter to each item and compare `(priority, counter)`.
 
-1. The next item to handle depends on priority, not arrival time.
-2. Items keep arriving while you process.
+</details>
 
-**Avoid when:**
+#### 9. Related LeetCode Questions
 
-1. Arrival order is what matters. Use a normal queue.
-2. All items are known in advance and you need them sorted once. Just sort.
-3. You must update or remove arbitrary items often. Add a map (see "Heap + HashMap Pattern").
-
-#### 11. Related Topics
-
-1. Heap Fundamentals
-2. Kotlin `PriorityQueue`
-3. Heap for Scheduling / Processing by Priority
-4. Queue (`01-data-structure/04-Queue`)
-5. Dijkstra (`02-algorithm/07-Graph Algorithms/01-Dijkstra's Algorithm — Shortest Path, Non-Negative Weights.md`)
-
-#### 12. Interview Must Remember
-
-1. A priority queue returns the **highest-priority** item, not the oldest.
-2. It is an **idea**. A binary **heap** is the usual implementation.
-3. `add` and `poll` are `O(log n)`. `peek` is `O(1)`.
-4. Equal priorities have no guaranteed order. Add a sequence number if order matters.
+| # | Question | Idea |
+|---|---|---|
+| 1046 | [Last Stone Weight](https://leetcode.com/problems/last-stone-weight/) (Easy) | always the two largest |
+| 621 | [Task Scheduler](https://leetcode.com/problems/task-scheduler/) (Medium) | most frequent first |
+| 743 | [Network Delay Time](https://leetcode.com/problems/network-delay-time/) (Medium) | Dijkstra with a PQ |
+| 1834 | [Single-Threaded CPU](https://leetcode.com/problems/single-threaded-cpu/) (Medium) | schedule by time and length |
+| 355 | [Design Twitter](https://leetcode.com/problems/design-twitter/) (Medium) | merge feeds by time |

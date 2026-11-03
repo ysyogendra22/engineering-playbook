@@ -1,143 +1,199 @@
 # Wildcard Search
 
-#### 1. Definition — Must Know
+> A `.` in the pattern means "any one letter". The trie walks **every** child at a wildcard, so the search becomes a DFS.
 
-1. **Wildcard search** matches a pattern that contains a special character standing for "any one letter", usually `.`.
-2. Example: `.ad` matches `bad`, `dad`, and `mad`.
-3. A Trie handles this by trying **every child** at a wildcard position, using DFS.
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+**Wildcard search** looks up a pattern where `.` matches **any single letter**.
 
-1. A `HashSet` cannot search with a wildcard without checking every word.
-2. A Trie prunes: as soon as a path cannot match, that branch is dropped.
-3. It is the classic problem *Design Add and Search Words Data Structure* (LeetCode 211).
+| Question | Rule |
+|---|---|
+| **Design Add and Search Words** (211) | `search("b.d")` matches `bad`, `bid`, `bud`. `.` matches exactly one letter |
+| **Implement Magic Dictionary** (676) | `search(word)`: can you change **exactly one** letter to get a stored word? |
 
-#### 3. How It Works — Must Know
+**Signals:** "dot matches any letter", "pattern", "exactly one letter different", "word with a wildcard".
 
-Trie holds `bad`, `dad`, `mad`:
+#### 2. How It Works
 
-```text
-root
-├── b → a → d*
-├── d → a → d*
-└── m → a → d*
+**Normal letter:** follow the one matching child. **Wildcard `.`:** try **every** child, and succeed if **any** path succeeds.
+
+```mermaid
+flowchart TD
+    root((root)) --- b((b))
+    b --- a((a))
+    b --- i((i))
+    b --- u((u))
+    a --- d1(["d ✓ bad"])
+    i --- d2(["d ✓ bid"])
+    u --- d3(["d ✓ bud"])
+    classDef word fill:#bbf7d0,stroke:#15803d,color:#111
+    class d1,d2,d3 word
 ```
 
 ```text
-search("bad") → normal walk                                   → true
-search("pad") → p has no child                                → false
-search(".ad") → at '.', try b, d, m. Each leads to a → d*     → true
-search("b..") → b ✓, then '.' tries a, then '.' tries d       → true
-search("...") → every branch matches three letters            → true
-search("..")  → ends at nodes that are not end of word        → false
+search "b.d":
+  'b'   → follow child b
+  '.'   → try children a, i, u
+            a → 'd' → exists and isEnd → TRUE (stop)
+search ".ad":  '.' tries every child of the root; only the branch b → a → d works
+search "b..d": needs 4 letters; no stored word has 4 letters → FALSE
 ```
 
-#### 4. Core Concepts — Must Know
-
-1. A normal character follows **one** child, or fails.
-2. A `.` follows **all** children, and succeeds if **any** branch succeeds.
-3. At the end of the pattern, the current node must be an **end of word**.
-4. The pattern index tells you the depth, so no extra path tracking is needed.
-
-#### 5. Algorithm — Must Know
-
 ```text
-search(pattern):
-    return dfs(root, pattern, 0)
-
-dfs(node, pattern, index):
-    if index == pattern.length: return node.isEndOfWord
-
-    ch = pattern[index]
-    if ch is '.':
-        for each child of node:
-            if dfs(child, pattern, index + 1): return true
+dfs(node, i):
+    if i == word.length: return node.isEnd
+    if word[i] == '.':
+        for each existing child: if dfs(child, i + 1): return true
         return false
-    else:
-        child = node.children[ch]
-        if child is null: return false
-        return dfs(child, pattern, index + 1)
+    child = node.next[word[i]]  or return false
+    return dfs(child, i + 1)
 ```
 
-#### 6. Kotlin Implementation — Must Know
+**Cost.** Without wildcards it is `O(L)`. Each `.` can branch up to 26 ways, so the worst case is `O(26^L)` (for a pattern of all dots). In practice the trie prunes branches that do not exist, so it is bounded by the number of nodes: `O(total characters)`.
+
+**Magic Dictionary (exactly one change).** DFS with a flag `changed`. At each letter:
+
+- if the child matches, continue with the same flag;
+- if a **different** child exists and `changed == false`, take it and set `changed = true`.
+
+At the end, succeed only if `changed` is `true` and the node is a word end.
+
+#### 3. Brute Force vs Optimized
+
+| Approach | Time per search |
+|---|---|
+| Store words in a list, compare each with the pattern | `O(n · L)` |
+| Group words by length, compare only the same length | `O(n_L · L)` |
+| **Trie + DFS** | `O(L)` for letters, branching only at `.` |
 
 ```kotlin
-class WordDictionary {
+// Brute force: compare the pattern with every stored word
+fun matches(pattern: String, word: String): Boolean =
+    pattern.length == word.length && pattern.indices.all { pattern[it] == '.' || pattern[it] == word[it] }
 
+fun searchBrute(words: List<String>, pattern: String): Boolean = words.any { matches(pattern, it) }
+```
+
+#### 4. Kotlin Code
+
+```kotlin
+class TrieNode {
+    val next = arrayOfNulls<TrieNode>(26)
+    var isEnd = false
+}
+
+// Design Add and Search Words Data Structure (LeetCode 211)
+class WordDictionary {
     private val root = TrieNode()
 
     fun addWord(word: String) {
         var node = root
-        for (ch in word) {
-            node = node.children.getOrPut(ch) { TrieNode() }
+        for (c in word) {
+            if (node.next[c - 'a'] == null) node.next[c - 'a'] = TrieNode()
+            node = node.next[c - 'a']!!
         }
-        node.isEndOfWord = true
+        node.isEnd = true
     }
 
-    fun search(pattern: String): Boolean = dfs(root, pattern, 0)
+    fun search(word: String): Boolean = dfs(root, word, 0)
 
-    private fun dfs(node: TrieNode, pattern: String, index: Int): Boolean {
-        if (index == pattern.length) return node.isEndOfWord
-
-        val ch = pattern[index]
-        if (ch == '.') {
-            return node.children.values.any { dfs(it, pattern, index + 1) }
+    private fun dfs(node: TrieNode, word: String, i: Int): Boolean {
+        if (i == word.length) return node.isEnd
+        val c = word[i]
+        if (c == '.') {
+            for (child in node.next) {
+                if (child != null && dfs(child, word, i + 1)) return true
+            }
+            return false
         }
-        val next = node.children[ch] ?: return false
-        return dfs(next, pattern, index + 1)
+        val child = node.next[c - 'a'] ?: return false
+        return dfs(child, word, i + 1)
+    }
+}
+
+// Implement Magic Dictionary (LeetCode 676): exactly one letter must be changed
+class MagicDictionary {
+    private val root = TrieNode()
+
+    fun buildDict(dictionary: Array<String>) {
+        for (w in dictionary) {
+            var node = root
+            for (c in w) {
+                if (node.next[c - 'a'] == null) node.next[c - 'a'] = TrieNode()
+                node = node.next[c - 'a']!!
+            }
+            node.isEnd = true
+        }
+    }
+
+    fun search(searchWord: String): Boolean = dfs(root, searchWord, 0, false)
+
+    private fun dfs(node: TrieNode, word: String, i: Int, changed: Boolean): Boolean {
+        if (i == word.length) return changed && node.isEnd
+        val want = word[i] - 'a'
+        for (letter in 0 until 26) {
+            val child = node.next[letter] ?: continue
+            if (letter == want) {
+                if (dfs(child, word, i + 1, changed)) return true
+            } else if (!changed) {
+                if (dfs(child, word, i + 1, true)) return true        // use the one allowed change here
+            }
+        }
+        return false
     }
 }
 ```
 
-#### 7. Time & Space Complexity — Must Know
+Checks (`WordDictionary`): `addWord("bad")`, `addWord("dad")`, `addWord("mad")`. `search("pad")` → `false`. `search("bad")` → `true`. `search(".ad")` → `true`. `search("b..")` → `true`. `search("b.")` → `false` (length 2). `search("...")` → `true`. `search("....")` → `false`. `searchBrute(listOf("bad", "dad", "mad"), ".ad")` → `true`.
 
-| Case | Time |
-|---|---:|
-| Pattern with no wildcards | `O(L)` |
-| Pattern with wildcards | bounded by the number of nodes in the Trie (each node is visited at most once) |
-| Space (recursion) | `O(L)` |
+Checks (`MagicDictionary`): `buildDict(arrayOf("hello", "leetcode"))`. `search("hello")` → `false` (zero changes is not enough). `search("hhllo")` → `true`. `search("hell")` → `false`. `search("leetcoded")` → `false`.
 
-Each node has one parent, and the pattern position equals the node depth, so a node is never visited twice during one search.
+#### 5. Complexity
 
-More wildcards mean more branches to try, so the cost grows toward the whole Trie.
+| | Time | Space |
+|---|---|---|
+| `addWord` | `O(L)` | `O(L)` |
+| `search` without `.` | `O(L)` | `O(L)` stack |
+| `search` with `.` | `O(26^d · L)` worst, for `d` dots, bounded by the trie size | `O(L)` |
+| Magic Dictionary `search` | `O(26 · L)` | `O(L)` |
 
-#### 8. Common Wildcard Patterns — Must Know
+#### 6. Common Mistakes
 
-1. `.` for any single letter (LeetCode 211).
-2. Count of dots matters: few dots stay close to `O(L)`.
-3. For `*` (any number of letters), the idea needs more branching and is not covered here.
-4. Mobile example: searching a word list with unknown letters (crossword or word-game helpers).
+1. **Treating `.` as a normal letter** (`'.' - 'a'` is negative and crashes).
+2. **Returning `true` at the first matching child without recursing**, or `false` after the first child fails (must try all).
+3. **Not checking `isEnd`** at the end of the pattern.
+4. **Magic Dictionary:** accepting zero changes (the word itself).
+5. **Magic Dictionary:** allowing two changes (the flag must stop a second change).
+6. **Pattern longer or shorter than the stored word** (handled by `isEnd` at the right depth).
 
-#### 9. Edge Cases / Common Mistakes
+#### 7. Say This in the Interview
 
-1. At the end of the pattern, returning `true` without checking `isEndOfWord`.
-2. Treating `.` as a normal character, so it never matches.
-3. Returning on the first failed branch instead of trying the other children.
-4. A `.` matching *zero* letters. It must match exactly one.
-5. Pattern longer or shorter than any stored word. The end check handles it.
+1. "For a normal letter I follow one child. For `.` I try every child recursively and return true if any branch matches. Without wildcards it's `O(L)`."
+2. "The worst case is a pattern of all dots, which explores the whole trie. That is bounded by the number of nodes."
+3. "For the magic dictionary I carry a `changed` flag: take a different child only once, and accept only if the flag is set at a word end."
 
-#### 10. When to Use / When Not to Use
+#### 8. Quick Check
 
-**Use when:**
+1. Does `search("b.")` match `bad`?
+2. What does the DFS return at `.` if no child leads to a match?
+3. `MagicDictionary` with `hello`: is `hello` itself accepted?
 
-1. Patterns have a few wildcards and the words are in a Trie.
-2. You need exact length matching with unknown letters.
+<details>
+<summary>Answers</summary>
 
-**Avoid when:**
+1. No. `.` matches one letter, so `b.` has length 2 and `bad` has length 3.
+2. `false`.
+3. No. Exactly one letter must be changed.
 
-1. Patterns are mostly wildcards over a huge Trie (close to scanning everything).
-2. You need full regular expressions. Use a regex engine.
+</details>
 
-#### 11. Related Topics
+#### 9. Related LeetCode Questions
 
-1. Search Word
-2. Trie + DFS
-3. Word Dictionary / Prefix Matching
-4. DFS and Recursion (`02-algorithm/03-Recursion & Divide and Conquer`)
-
-#### 12. Interview Must Remember
-
-1. A normal character follows one child. A **`.` tries all children**.
-2. At the end of the pattern, check **`isEndOfWord`**.
-3. Cost is bounded by the number of nodes, and is close to `O(L)` with few wildcards.
-4. This is DFS inside a Trie, not a loop.
+| # | Question | Idea |
+|---|---|---|
+| 211 | [Design Add and Search Words Data Structure](https://leetcode.com/problems/design-add-and-search-words-data-structure/) (Medium) | `.` DFS |
+| 676 | [Implement Magic Dictionary](https://leetcode.com/problems/implement-magic-dictionary/) (Medium) | one change |
+| 208 | [Implement Trie (Prefix Tree)](https://leetcode.com/problems/implement-trie-prefix-tree/) (Medium) | the base |
+| 10 | [Regular Expression Matching](https://leetcode.com/problems/regular-expression-matching/) (Hard) | DP, `.` and `*` |
+| 44 | [Wildcard Matching](https://leetcode.com/problems/wildcard-matching/) (Hard) | DP, `?` and `*` |
+| 1032 | [Stream of Characters](https://leetcode.com/problems/stream-of-characters/) (Hard) | reversed words |

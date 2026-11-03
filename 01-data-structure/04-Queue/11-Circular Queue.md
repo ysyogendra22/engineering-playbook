@@ -39,7 +39,26 @@ enqueue 6 → full → rejected
 
 **Why keep `size`?** If you only keep `head` and `tail`, an *empty* queue and a *full* queue both look like `head == tail`. A `size` counter removes the doubt.
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Design | `enqueue` | `dequeue` | Wasted space |
+|---|---|---|---|
+| Array, shift on `dequeue` | `O(1)` | `O(n)` | none |
+| Array with `head` and `tail` that only move forward | `O(1)` | `O(1)` | the freed front is never reused |
+| **Circular array** (`index % capacity`) | `O(1)` | `O(1)` | none |
+
+```kotlin
+// Naive: shift everything left on dequeue, O(n)
+fun dequeueShift(a: IntArray, size: Int): Int {
+    val v = a[0]
+    for (i in 1 until size) a[i - 1] = a[i]
+    return v
+}
+```
+
+The circular queue wraps `head` and `tail` around with `% capacity`, so every slot is reused and nothing shifts.
+
+#### 4. Kotlin Code
 
 ```kotlin
 // Design Circular Queue (LeetCode 622)
@@ -107,14 +126,14 @@ listOf("a", "b", "c", "d", "e").forEach { log.add(it) }
 println(log.toList())   // [c, d, e]
 ```
 
-#### 4. Complexity
+#### 5. Complexity
 
 | Action | Time |
 |---|---|
 | `enQueue`, `deQueue`, `front`, `rear`, `isEmpty`, `isFull` | `O(1)` |
 | Memory | `O(capacity)`, fixed |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Using only `head` and `tail`**, so empty and full look the same. Keep `size`.
 2. **Forgetting `% capacity`** when moving an index.
@@ -123,14 +142,14 @@ println(log.toList())   // [c, d, e]
 5. **Overwriting when full** when the question expects `false`.
 6. **Not changing `size`** after enqueue or dequeue.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "I use a fixed array with a `head` index and a `size` counter."
 2. "Indexes wrap with `% capacity`. The next free slot is `(head + size) % capacity`."
 3. "All operations are `O(1)` and no item is ever shifted."
 4. "A `size` counter tells me empty from full."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. Capacity 5, `head = 3`, `size = 4`. Where is the next free slot?
 2. Why do we use `%`?
@@ -143,7 +162,7 @@ println(log.toList())   // [c, d, e]
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

@@ -30,7 +30,11 @@
 17. HashSet in Graph / State-Space Problems
 18. Deduplication of Complex States
 
-## 4. Study Separately
+## 4. Revision
+
+99. HashSet Cheat Sheet
+
+## 5. Study Separately
 
 - HashMap
 - Array
@@ -39,7 +43,7 @@
 - Sliding Window
 - Graph / BFS / DFS
 
-## 5. Low Priority / Skip Initially
+## 6. Low Priority / Skip Initially
 
 - Custom HashSet Implementation
 - Advanced Hash Function Design

@@ -1,138 +1,155 @@
 # Find Median from Data Stream
 
-#### 1. Definition — Must Know
+> The standard two-heaps question. Numbers arrive one at a time and you must report the median at any moment.
 
-1. Numbers arrive one at a time. After each one you may be asked for the **median** of all numbers so far.
-2. Median:
-   - odd count → the middle value,
-   - even count → the average of the two middle values.
-3. This is *Find Median from Data Stream* (LeetCode 295). If a number and a title ever disagree, trust the title.
-4. The answer is the Two Heaps pattern.
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+Design a structure with two operations:
 
-1. It is the classic heap question, and a favourite at top companies.
-2. It shows why keeping data sorted is too slow, and why two heaps are enough.
-3. Medians are used in real monitoring: response times, scores, prices.
+- `addNum(num)`: add a number from the stream.
+- `findMedian()`: return the median of all numbers so far.
 
-#### 3. How It Works — Must Know
+The **median** is the middle value if the count is odd, and the **average of the two middle values** if it is even.
 
-Stream: `5, 2, 8, 1`. The lower half is a max-heap (`low`), the upper half is a min-heap (`high`).
+**Signals:** "median", "running median", "stream", "middle element".
+
+#### 2. How It Works
+
+Keep two heaps (note 12):
+
+- `low`: a **max**-heap with the smaller half
+- `high`: a **min**-heap with the larger half
+- sizes: `low.size == high.size` or `low.size == high.size + 1`
+
+**`addNum`** (three steps keep both rules true):
+
+1. Push the number into `low`.
+2. Move `low`'s largest into `high` (this keeps "every low ≤ every high").
+3. If `high` is now bigger than `low`, move `high`'s smallest back into `low`.
+
+**`findMedian`:** if `low` is bigger, return `low.peek()`. Otherwise return `(low.peek() + high.peek()) / 2.0`.
 
 ```text
-add 5:  low=[5]        high=[]       median = 5
-add 2:  low=[2]        high=[5]      median = (2 + 5) / 2 = 3.5
-add 8:  low=[5, 2]     high=[8]      median = 5
-add 1:  low=[2, 1]     high=[5, 8]   median = (2 + 5) / 2 = 3.5
-
-Check: sorted data is 1, 2, 5, 8 → median (2 + 5) / 2 = 3.5 ✓
+add 1: low {1}         high {}            median = 1
+add 2: low {1}         high {2}           median = (1 + 2) / 2 = 1.5
+add 3: low {1, 2}      high {3}           median = 2
+add 4: low {1, 2}      high {3, 4}        median = (2 + 3) / 2 = 2.5
 ```
 
-Inside `add`, each number goes into `low`, its largest value moves to `high`, and `low` takes one back if `high` becomes larger.
+```mermaid
+flowchart LR
+    subgraph LOW["low: max-heap"]
+        l["1, 2<br/>root 2"]
+    end
+    subgraph HIGH["high: min-heap"]
+        h["3, 4<br/>root 3"]
+    end
+    LOW --- HIGH
+    M["median = (2 + 3) / 2 = 2.5"] --- LOW
+```
 
-#### 4. Core Concepts — Must Know
+**Follow-ups (often asked)**
 
-1. **Lower half** → max-heap. **Upper half** → min-heap.
-2. **Invariants:** everything in `low` ≤ everything in `high`; `low.size` is equal to or one more than `high.size`.
-3. **Median:** odd count → `low.peek()`. Even count → average of both tops.
-4. **No sorting** of the whole stream is ever done.
+| Follow-up | Answer |
+|---|---|
+| All numbers are in `0..100` | keep a count array of size 101, `O(1)` insert, median by scanning 101 buckets |
+| 99% of numbers are in `0..100` | counts for `0..100`, plus two counters and a small structure for the rest |
+| Sliding window median | two heaps with **lazy deletion** (note 23), or a sorted structure |
 
-Comparison:
+#### 3. Brute Force vs Optimized
 
-| Method | Add | Median |
-|---|---:|---:|
-| Keep a list and sort for each query | `O(1)` | `O(n log n)` |
+| Approach | `addNum` | `findMedian` |
+|---|---|---|
+| Unsorted list, sort each time | `O(1)` | `O(n log n)` |
 | Insert into a sorted list | `O(n)` | `O(1)` |
 | **Two heaps** | **`O(log n)`** | **`O(1)`** |
 
-#### 5. Algorithm — Must Know
-
-```text
-addNum(x):
-    low.add(x)
-    high.add(low.poll())
-    if high.size > low.size: low.add(high.poll())
-
-findMedian():
-    if low.size > high.size: return low.peek()
-    return (low.peek() + high.peek()) / 2
+```kotlin
+// Brute force: keep a sorted list and insert in place
+class MedianFinderSorted {
+    private val list = mutableListOf<Int>()
+    fun addNum(num: Int) {
+        var i = 0
+        while (i < list.size && list[i] < num) i++
+        list.add(i, num)                                  // O(n)
+    }
+    fun findMedian(): Double {
+        val n = list.size
+        return if (n % 2 == 1) list[n / 2].toDouble() else (list[n / 2 - 1] + list[n / 2]) / 2.0
+    }
+}
 ```
 
-#### 6. Kotlin Implementation — Must Know
+#### 4. Kotlin Code
 
 ```kotlin
 import java.util.PriorityQueue
 
+// Find Median from Data Stream (LeetCode 295)
 class MedianFinder {
-
-    private val low = PriorityQueue<Int>(compareByDescending<Int> { it })   // max-heap
-    private val high = PriorityQueue<Int>()                                  // min-heap
+    private val low = PriorityQueue<Int>(compareByDescending<Int> { it })   // max-heap: smaller half
+    private val high = PriorityQueue<Int>()                                 // min-heap: larger half
 
     fun addNum(num: Int) {
         low.add(num)
-        high.add(low.poll())
-        if (high.size > low.size) low.add(high.poll())
+        high.add(low.poll())                                // the largest of low goes to high
+        if (high.size > low.size) low.add(high.poll())      // keep low the same size or one bigger
     }
 
     fun findMedian(): Double =
         if (low.size > high.size) low.peek().toDouble()
-        else (low.peek().toDouble() + high.peek().toDouble()) / 2.0
+        else (low.peek().toLong() + high.peek().toLong()) / 2.0
 }
-
-// Usage
-val finder = MedianFinder()
-finder.addNum(5); finder.addNum(2)
-println(finder.findMedian())   // 3.5
-finder.addNum(8)
-println(finder.findMedian())   // 5.0
 ```
 
-#### 7. Time & Space Complexity — Must Know
+Checks: add `1`, add `2` → `findMedian()` → `1.5`. Add `3` → `2.0`. Add `4` → `2.5`. A new `MedianFinder` with only `5` → `5.0`. Negative numbers: add `-1`, add `-2` → `-1.5`. `MedianFinderSorted` gives the same answers after the same calls.
 
-| Operation | Time |
-|---|---:|
-| `addNum` | `O(log n)` |
-| `findMedian` | `O(1)` |
-| Space | `O(n)` |
+Trace of `addNum(3)` after `1, 2`: `low {1}`, `high {2}`. Push `3` into `low` → `{1, 3}`. Move its largest `3` to `high` → `low {1}`, `high {2, 3}`. `high` is bigger, so move `2` back → `low {1, 2}`, `high {3}`. Median is `low.peek() = 2`.
 
-#### 8. Common Follow-Ups — Must Know
+#### 5. Complexity
 
-1. **All numbers are between 0 and 100.** Keep a count for each value in an `IntArray(101)`. The median is found by walking the counts: `O(100)`, which is a constant.
-2. **99% of numbers are between 0 and 100.** Use the counts for that range, plus a small separate structure for the rare outliers.
-3. **Sliding Window Median** (LeetCode 480) — needs deletions (see "Multiple Heap / Advanced Two-Heaps Patterns").
-4. **Median of two sorted arrays** (LeetCode 4) — a different problem, solved with binary search (`02-algorithm/02-searching`).
+| | Time | Space |
+|---|---|---|
+| `addNum` | `O(log n)` | |
+| `findMedian` | `O(1)` | |
+| Total | | `O(n)` |
 
-#### 9. Edge Cases / Common Mistakes
+#### 6. Common Mistakes
 
-1. Calling `findMedian()` before any number is added (both heaps are empty).
-2. Reading the wrong top when the counts are odd.
-3. Averaging two `Int` values without converting to `Double`, which can overflow.
-4. Forgetting to rebalance after the move.
-5. Making the min-heap the lower half by mistake.
-6. Returning an `Int` median for an even count, losing the `.5`.
+1. **Using one sorted list** (`O(n)` inserts).
+2. **Not rebalancing** the sizes.
+3. **Wrong halves:** `low` must be the max-heap.
+4. **Integer division** in the average: `(a + b) / 2` loses `.5`. Divide by `2.0`.
+5. **Overflow:** `a + b` can exceed `Int`. Add as `Long`.
+6. **Calling `findMedian()` on an empty stream** (undefined; usually not tested).
 
-#### 10. When to Use / When Not to Use
+#### 7. Say This in the Interview
 
-**Use when:**
+1. "I split the numbers into a lower half in a max-heap and an upper half in a min-heap, with sizes within one of each other."
+2. "The median is the top of the bigger heap, or the average of both tops. `addNum` is `O(log n)` and `findMedian` is `O(1)`."
+3. "If all values are small integers, I can use a count array instead."
 
-1. The median is asked for repeatedly while data arrives.
+#### 8. Quick Check
 
-**Avoid when:**
+1. After adding `5, 15, 1, 3`, what is the median?
+2. Why push to `low` first and then move to `high`?
+3. What does `findMedian()` return when both heaps have size 2 with tops 2 and 3?
 
-1. The data is fixed. Sort once.
-2. Values are in a tiny range. Use counts.
-3. You need removal of arbitrary old values. Use lazy deletion (see the advanced topic).
+<details>
+<summary>Answers</summary>
 
-#### 11. Related Topics
+1. Sorted: `1, 3, 5, 15`, so `(3 + 5) / 2 = 4.0`.
+2. It guarantees every number in `low` is `≤` every number in `high`, whichever side the new number belongs to.
+3. `2.5`.
 
-1. Two Heaps Pattern
-2. Min Heap vs Max Heap
-3. Multiple Heap / Advanced Two-Heaps Patterns
-4. Sorting (`02-algorithm/01-sorting`)
+</details>
 
-#### 12. Interview Must Remember
+#### 9. Related LeetCode Questions
 
-1. **Two heaps: max-heap (lower half), min-heap (upper half).**
-2. Add in `O(log n)`, median in `O(1)`.
-3. Odd count → top of the lower heap. Even count → average of the tops.
-4. Know the follow-up: **small value range → counting array.**
+| # | Question | Idea |
+|---|---|---|
+| 295 | [Find Median from Data Stream](https://leetcode.com/problems/find-median-from-data-stream/) (Hard) | two heaps |
+| 480 | [Sliding Window Median](https://leetcode.com/problems/sliding-window-median/) (Hard) | two heaps + lazy deletion |
+| 703 | [Kth Largest Element in a Stream](https://leetcode.com/problems/kth-largest-element-in-a-stream/) (Easy) | one heap |
+| 502 | [IPO](https://leetcode.com/problems/ipo/) (Hard) | two heaps, another use |
+| 1825 | [Finding MK Average](https://leetcode.com/problems/finding-mk-average/) (Hard) | structures for a middle band |

@@ -73,7 +73,23 @@ How to detect a cycle:
 
 **Valid tree test (very common):** a graph with `n` nodes is a tree if and only if it has **exactly `n - 1` edges** and is **connected**.
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Question | Brute force | Better |
+|---|---|---|
+| Does an undirected graph have a cycle? | for each edge, remove it and test if its ends are still connected: `O(E · (V + E))` | DFS with a parent, or union-find: `O(V + E)` |
+| Does a directed graph have a cycle? | from every vertex search for a way back to it: `O(V · (V + E))` | 3-state DFS or Kahn's algorithm: `O(V + E)` |
+| Is this graph a tree? | check connectivity and try to find a cycle | `E == V − 1` **and** connected |
+
+The one-line test for a tree: **`V − 1` edges and connected** (no cycle follows automatically).
+
+```text
+Brute force idea for a cycle in an undirected graph:
+    an edge (a, b) lies on a cycle  ⇔  a and b are still connected after removing that edge.
+Checking every edge this way repeats a full search E times.
+```
+
+#### 4. Kotlin Code
 
 ```kotlin
 // Graph Valid Tree (LeetCode 261): n nodes, undirected edges
@@ -107,27 +123,27 @@ Checks: `validTree(5, [[0,1],[0,2],[0,3],[1,4]])` → `true`. `validTree(5, [[0,
 
 The full cycle-detection code is in notes 13 and 14.
 
-#### 4. Complexity
+#### 5. Complexity
 
 | | Time |
 |---|---|
 | Valid tree check | `O(V + E)` |
 | Cycle detection (DFS or union-find) | `O(V + E)` |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Using the undirected check on a directed graph.** In a directed graph, reaching a visited node does not always mean a cycle.
 2. **Forgetting the connected check** in the tree test. `n - 1` edges alone is not enough.
 3. **Forgetting the edge count check.** Connected alone is not enough.
 4. **Treating a DAG as a tree.** A DAG can have two paths to one node.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "A tree is connected and has `n - 1` edges. I check both."
 2. "For a directed graph I detect cycles with DFS states or Kahn's algorithm. For an undirected one, I use a parent check or union-find."
 3. "If there is a cycle in the dependencies, no valid order exists."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. What does DAG stand for?
 2. A graph has 6 nodes and 5 edges. Is it always a tree?
@@ -140,7 +156,7 @@ The full cycle-detection code is in notes 13 and 14.
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

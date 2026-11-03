@@ -39,7 +39,31 @@ One leftover single letter (a or b) can go in the middle → +1
 answer: 7     e.g. "dccaccd"
 ```
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Approach | Time | Space |
+|---|---|---|
+| Compare two strings by sorting both | `O(n log n)` | `O(n)` |
+| Count letters with a `HashMap<Char, Int>` | `O(n)` | `O(alphabet)` |
+| **Count letters with `IntArray(26)`** (lowercase only) | **`O(n)`** | `O(1)` |
+
+```kotlin
+// Brute force: anagram check by sorting
+fun isAnagramSort(a: String, b: String): Boolean =
+    a.length == b.length && a.toCharArray().sorted() == b.toCharArray().sorted()
+
+// Faster: letter counts
+fun isAnagramCount(a: String, b: String): Boolean {
+    if (a.length != b.length) return false
+    val count = IntArray(26)
+    for (i in a.indices) { count[a[i] - 'a']++; count[b[i] - 'a']-- }
+    return count.all { it == 0 }
+}
+```
+
+`isAnagramSort("anagram", "nagaram")` → `true`. `isAnagramCount("rat", "car")` → `false`.
+
+#### 4. Kotlin Code
 
 ```kotlin
 // Valid Anagram
@@ -99,7 +123,7 @@ fun frequencySort(s: String): String {
 
 Checks: `longestPalindrome("abccccdd")` → `7`. `findAnagrams("cbaebabacd", "abc")` → `[0, 6]`.
 
-#### 4. Complexity
+#### 5. Complexity
 
 | Problem | Time | Space |
 |---|---|---|
@@ -108,7 +132,7 @@ Checks: `longestPalindrome("abccccdd")` → `7`. `findAnagrams("cbaebabacd", "ab
 | Find All Anagrams | `O(26 · n)` ≈ `O(n)` | `O(1)` |
 | Sort by frequency | `O(n + u log u)` | `O(u)` |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **`IntArray(26)` with capital letters, digits or spaces.** It crashes with an index error.
 2. **Different lengths** in an anagram check.
@@ -118,13 +142,13 @@ Checks: `longestPalindrome("abccccdd")` → `7`. `findAnagrams("cbaebabacd", "ab
 6. **Maps with zero counts** make `==` fail. Remove zero-count keys first.
 7. **Emoji and other Unicode.** A Kotlin `Char` is only a part of them. State your assumption.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "I assume lowercase English letters, so I use an `IntArray(26)`: `O(1)` space."
 2. "Two strings are anagrams if every letter count is equal."
 3. "For a palindrome, at most one letter may have an odd count."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. Can `"carrace"` be rearranged into a palindrome?
 2. Why does `findAnagrams` subtract a letter when `i >= p.length`?
@@ -137,7 +161,7 @@ Checks: `longestPalindrome("abccccdd")` → `7`. `findAnagrams("cbaebabacd", "ab
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

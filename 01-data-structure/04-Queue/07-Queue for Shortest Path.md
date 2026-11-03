@@ -40,7 +40,20 @@ Which algorithm for which edges:
 | different, not negative | Dijkstra (heap) |
 | negative possible | Bellman-Ford |
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Approach | Time | Result |
+|---|---|---|
+| Try every path and take the shortest | exponential | correct, impractical |
+| DFS | `O(V + E)` | a path, **not** the shortest |
+| **BFS** | `O(V + E)` | the shortest path (all edges cost 1) |
+| Run BFS from every node (all pairs) | `O(V · (V + E))` | only if you really need all pairs |
+
+The key fact: BFS processes all nodes at distance `d` before any node at distance `d + 1`, so **the first time you reach a node is the shortest way**.
+
+For scale: a 30 x 30 grid has an astronomical number of simple paths, but BFS looks at each of its 900 cells once.
+
+#### 4. Kotlin Code
 
 ```kotlin
 // Shortest path (list of nodes). Empty list if the target cannot be reached.
@@ -97,14 +110,14 @@ fun minOperations(start: Int, target: Int, limit: Int = 10_000): Int {
 
 Checks: on the graph above, `shortestPath(graph, 0, 5)` → `[0, 1, 2, 5]`. `minOperations(2, 7)` → `3` (for example `2 → 3 → 6 → 7`).
 
-#### 4. Complexity
+#### 5. Complexity
 
 | | Time | Space |
 |---|---|---|
 | BFS shortest path | `O(V + E)` | `O(V)` |
 | Grid with `R × C` cells | `O(R · C)` | `O(R · C)` |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Using BFS on a weighted graph.** It gives wrong answers. Use Dijkstra.
 2. **Marking visited when you take the node out** instead of when you add it.
@@ -114,13 +127,13 @@ Checks: on the graph above, `shortestPath(graph, 0, 5)` → `[0, 1, 2, 5]`. `min
 6. **Forgetting to reverse the path** after following the parents.
 7. **Counting nodes instead of edges** (or the reverse). Read the question: "number of steps" vs "number of cells".
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "All moves cost 1, so BFS gives the shortest path. The first time I reach a node is the shortest way."
 2. "I keep a `dist` array that is also my visited marker, and a `parent` array to rebuild the path."
 3. "Time `O(V + E)`. If the edges had different costs I would use Dijkstra."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. Why is DFS not used to find the shortest path?
 2. What is the shortest distance from a node to itself?
@@ -133,7 +146,7 @@ Checks: on the graph above, `shortestPath(graph, 0, 5)` → `[0, 1, 2, 5]`. `min
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

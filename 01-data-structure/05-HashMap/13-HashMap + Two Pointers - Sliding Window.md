@@ -42,7 +42,32 @@ The steps every time:
 3. When a count reaches `0`, **remove the key**, so `map.size` is the number of different items.
 4. Update the answer with `right - left + 1`.
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Approach | Time | Space |
+|---|---|---|
+| Check every substring for the condition | `O(n²)` to `O(n³)` | `O(k)` |
+| **Sliding window + frequency map** | **`O(n)`** | `O(k)` for `k` distinct keys |
+
+```kotlin
+// Brute force: longest substring with at most k distinct characters, O(n^2)
+fun longestKDistinctBrute(s: String, k: Int): Int {
+    var best = 0
+    for (i in s.indices) {
+        val seen = HashSet<Char>()
+        for (j in i until s.length) {
+            seen.add(s[j])
+            if (seen.size > k) break
+            best = maxOf(best, j - i + 1)
+        }
+    }
+    return best
+}
+```
+
+`longestKDistinctBrute("eceba", 2)` → `3` (`"ece"`). `longestKDistinctBrute("aa", 1)` → `2`. The window version moves `left` only forward, so each character is added and removed at most once.
+
+#### 4. Kotlin Code
 
 ```kotlin
 // Fruit Into Baskets: longest subarray with at most 2 different values
@@ -114,7 +139,7 @@ fun checkInclusion(s1: String, s2: String): Boolean {
 
 Checks: `totalFruit([1,2,1,2,3])` → `4`. `minWindow("ADOBECODEBANC", "ABC")` → `"BANC"`. `checkInclusion("ab", "eidbaooo")` → `true`.
 
-#### 4. Complexity
+#### 5. Complexity
 
 | Problem | Time | Space |
 |---|---|---|
@@ -125,7 +150,7 @@ Checks: `totalFruit([1,2,1,2,3])` → `4`. `minWindow("ADOBECODEBANC", "ABC")` �
 
 Each item is added once and removed once, so the inner `while` does not make it `O(n²)`.
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Not removing keys whose count reaches `0`.** Then `map.size` is wrong.
 2. **Using `if` instead of `while`** to shrink the window.
@@ -134,13 +159,13 @@ Each item is added once and removed once, so the inner `while` does not make it 
 5. **Duplicate letters in `t`.** Use counts, not a set.
 6. **Off-by-one** in the window length (`right - left + 1`).
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "I slide a window and keep counts of its contents in a map. When the rule breaks, I move `left` until it is valid again."
 2. "Each item enters and leaves once, so it is `O(n)`."
 3. "I delete a key when its count hits zero, so `map.size` is the number of different items."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. Why must you remove a key when its count becomes `0`?
 2. Why is the nested `while` still `O(n)` overall?
@@ -153,7 +178,7 @@ Each item is added once and removed once, so the inner `while` does not make it 
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

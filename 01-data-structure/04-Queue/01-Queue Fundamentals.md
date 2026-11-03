@@ -45,7 +45,35 @@ Common kinds of queues you will meet:
 | **Priority queue** | the **best** item leaves first, not the oldest (this is a heap, see the Heap folder) |
 | **Blocking queue** | waits when empty or full, used between threads (note 16) |
 
-#### 4. Kotlin Code
+#### 4. Brute Force vs Optimized
+
+| Task | Naive | Queue |
+|---|---|---|
+| Serve items in arrival order | scan a list for the oldest item each time: `O(n)` | `poll()` from the front: `O(1)` |
+| Process neighbours level by level | recursion, extra bookkeeping for the depth | queue with a level loop |
+| "First come, first served" | sort by arrival time each time: `O(n log n)` | the queue already holds the order |
+
+The classic mistake is a plain `MutableList` used as a queue: `removeAt(0)` shifts every item.
+
+```kotlin
+// Naive queue: remove from the front of a list. Each dequeue shifts all other items: O(n).
+class SlowQueue {
+    private val items = mutableListOf<Int>()
+    fun enqueue(x: Int) { items.add(x) }
+    fun dequeue(): Int = items.removeAt(0)
+}
+
+// Queue with O(1) operations
+class FastQueue {
+    private val items = ArrayDeque<Int>()
+    fun enqueue(x: Int) = items.addLast(x)
+    fun dequeue(): Int = items.removeFirst()
+}
+```
+
+Both return `1, 2, 3` after enqueuing `1, 2, 3`. Only the speed differs.
+
+#### 5. Kotlin Code
 
 Use `ArrayDeque`. Add at the **back**, remove from the **front**.
 
@@ -77,7 +105,7 @@ while (queue.isNotEmpty()) {
 
 Do **not** use a list with `removeAt(0)` as a queue. It shifts every item, so it costs `O(n)` each time.
 
-#### 5. How to Spot a Queue Problem
+#### 6. How to Spot a Queue Problem
 
 | If the question has... | Think... |
 |---|---|
@@ -88,7 +116,7 @@ Do **not** use a list with `removeAt(0)` as a queue. It shifts every item, so it
 | "max/min of every window" | monotonic queue (deque) |
 | "last N events", fixed memory | circular queue |
 
-#### 6. Complexity
+#### 7. Complexity
 
 | Action | Time |
 |---|---|
@@ -96,20 +124,20 @@ Do **not** use a list with `removeAt(0)` as a queue. It shifts every item, so it
 | Search for a value | `O(n)` |
 | Memory for `n` items | `O(n)` |
 
-#### 7. Common Mistakes
+#### 8. Common Mistakes
 
 1. **Dequeue from an empty queue.** It crashes. Check `isNotEmpty()` or use `removeFirstOrNull()`.
 2. **Using `removeAt(0)`** on a list as a dequeue. It is `O(n)`.
 3. **Mixing up queue and stack.** Queue: `addLast` + `removeFirst`. Stack: `addLast` + `removeLast`.
 4. **Changing a queue while looping over it** with `for (x in queue)`. It crashes. Use a `while` loop.
 
-#### 8. Say This in the Interview
+#### 9. Say This in the Interview
 
 1. "The order matters (oldest first), so I will use a queue."
 2. "For the fewest steps I will use BFS with a queue and a visited set."
 3. "Each item is added once and removed once, so the time is `O(n)`."
 
-#### 9. Quick Check
+#### 10. Quick Check
 
 1. You enqueue `1`, `2`, `3` and then dequeue once. What is at the front?
 2. Why is `list.removeAt(0)` a bad dequeue?
@@ -122,7 +150,7 @@ Do **not** use a list with `removeAt(0)` as a queue. It shifts every item, so it
 
 </details>
 
-#### 10. Related LeetCode Questions (Often Asked)
+#### 11. Related LeetCode Questions (Often Asked)
 
 Solve them in this order. Search by title if a number looks wrong.
 

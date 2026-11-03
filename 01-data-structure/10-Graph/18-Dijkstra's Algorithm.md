@@ -50,7 +50,37 @@ Why it fails with negative edges: Dijkstra assumes that once a node is finished,
 
 BFS or Dijkstra? BFS is Dijkstra when all weights are equal.
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Approach | Time | Note |
+|---|---|---|
+| BFS (ignores weights) | `O(V + E)` | wrong for different weights |
+| Bellman-Ford (relax every edge `V − 1` times) | `O(V · E)` | allows negative edges |
+| **Dijkstra, scan the array for the next vertex** | `O(V²)` | good for dense graphs |
+| **Dijkstra with a min-heap** | `O((V + E) log V)` | best for sparse graphs |
+
+```kotlin
+// Dijkstra with an array scan instead of a heap. O(V^2).
+fun dijkstraScan(n: Int, edges: Array<IntArray>, start: Int): IntArray {
+    val g = Array(n) { mutableListOf<IntArray>() }
+    for ((a, b, w) in edges) { g[a].add(intArrayOf(b, w)); g[b].add(intArrayOf(a, w)) }
+    val dist = IntArray(n) { Int.MAX_VALUE }
+    val done = BooleanArray(n)
+    dist[start] = 0
+    repeat(n) {
+        var u = -1
+        for (i in 0 until n) if (!done[i] && dist[i] != Int.MAX_VALUE && (u == -1 || dist[i] < dist[u])) u = i
+        if (u == -1) return@repeat
+        done[u] = true
+        for ((v, w) in g[u]) if (dist[u] + w < dist[v]) dist[v] = dist[u] + w
+    }
+    return dist
+}
+```
+
+`dijkstraScan(4, arrayOf(intArrayOf(0, 1, 4), intArrayOf(0, 2, 1), intArrayOf(1, 3, 2), intArrayOf(2, 3, 3), intArrayOf(1, 2, 2)), 0)` → `[0, 3, 1, 4]`. The heap replaces the `O(V)` scan for "closest unfinished vertex" with an `O(log V)` pop.
+
+#### 4. Kotlin Code
 
 ```kotlin
 import java.util.PriorityQueue
@@ -121,7 +151,7 @@ Checks: the graph in the trace gives `dijkstra` → `[0, 3, 1, 4]`. `networkDela
 
 To rebuild the path, also keep a `parent` array and set `parent[v] = u` when you relax an edge.
 
-#### 4. Complexity
+#### 5. Complexity
 
 For `V` nodes and `E` edges (binary heap):
 
@@ -129,7 +159,7 @@ For `V` nodes and `E` edges (binary heap):
 |---|---|---|
 | Dijkstra | `O((V + E) log V)` | `O(V + E)` |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Negative edge weights.** Dijkstra may give wrong answers.
 2. **No stale-entry check** (`if (d > dist[u]) continue`). It still works but does extra work.
@@ -140,13 +170,13 @@ For `V` nodes and `E` edges (binary heap):
 7. **Forgetting the unreachable case.**
 8. **Node numbering from 1** with arrays that start at 0. Allocate `n + 1`.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "The edges have different non-negative costs, so BFS is wrong. I use Dijkstra."
 2. "I keep a min-heap of (distance, node). I pop the smallest, skip stale entries, and relax the neighbours."
 3. "Time `O((V + E) log V)`. If there were negative weights I would use Bellman-Ford."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. What data structure picks the next node?
 2. Why skip a popped entry with `d > dist[u]`?
@@ -159,7 +189,7 @@ For `V` nodes and `E` edges (binary heap):
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

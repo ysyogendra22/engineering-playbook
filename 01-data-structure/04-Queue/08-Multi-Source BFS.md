@@ -35,7 +35,28 @@ Round 2: their unknown neighbours get distance 2.
               minute 4: (2,2) rots        → answer 4
 ```
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Approach | Time | Note |
+|---|---|---|
+| BFS from **each** cell to find the nearest source | `O((R·C)²)` | repeated work |
+| For each cell, scan all sources | `O(R·C · S)` | `S` = number of sources |
+| **One BFS with all sources in the queue at distance 0** | `O(R·C)` | each cell is reached first by its nearest source |
+
+```kotlin
+// Brute force: for every cell, the distance to the nearest 0 by checking all zeros
+fun nearestZeroBrute(mat: Array<IntArray>): Array<IntArray> {
+    val zeros = mutableListOf<IntArray>()
+    for (r in mat.indices) for (c in mat[0].indices) if (mat[r][c] == 0) zeros.add(intArrayOf(r, c))
+    return Array(mat.size) { r ->
+        IntArray(mat[0].size) { c -> zeros.minOf { Math.abs(it[0] - r) + Math.abs(it[1] - c) } }
+    }
+}
+```
+
+`nearestZeroBrute(arrayOf(intArrayOf(0, 0, 0), intArrayOf(0, 1, 0), intArrayOf(1, 1, 1)))` → `[[0,0,0],[0,1,0],[1,2,1]]`. The multi-source BFS gives the same grid in one pass.
+
+#### 4. Kotlin Code
 
 ```kotlin
 private val DIRS = arrayOf(intArrayOf(1, 0), intArrayOf(-1, 0), intArrayOf(0, 1), intArrayOf(0, -1))
@@ -110,14 +131,14 @@ Checks: `orangesRotting([[2,1,1],[1,1,0],[0,1,1]])` → `4`. `updateMatrix([[0,0
 
 `orangesRotting` changes the input grid. Copy it first if the caller needs it unchanged.
 
-#### 4. Complexity
+#### 5. Complexity
 
 | | Time | Space |
 |---|---|---|
 | Multi-source BFS on `R × C` cells | `O(R · C)` | `O(R · C)` |
 | A separate BFS from every cell | `O((R · C)²)` | — |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Running a separate BFS from each source.** Far too slow.
 2. **Not marking the sources as visited** when you put them in the queue.
@@ -126,13 +147,13 @@ Checks: `orangesRotting([[2,1,1],[1,1,0],[0,1,1]])` → `4`. `updateMatrix([[0,0
 5. **No sources at all.** No rotten oranges and some fresh ones: `-1`. No fresh oranges: `0`.
 6. **Changing the input** when the caller still needs it.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "Instead of one BFS per cell, I put all sources in the queue at distance 0 and run one BFS."
 2. "Each cell is reached first by its nearest source, so that is its distance."
 3. "Time and space are `O(R · C)`."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. In Rotting Oranges, what goes in the queue before the loop starts?
 2. When do you return `-1`?
@@ -145,7 +166,7 @@ Checks: `orangesRotting([[2,1,1],[1,1,0],[0,1,1]])` → `4`. `updateMatrix([[0,0
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

@@ -1,171 +1,165 @@
 # Lazy Deletion with Heap
 
-#### 1. Definition — Must Know
+> A heap cannot remove an arbitrary item quickly. So don't remove it: **mark it as dead, and throw it away when it reaches the top.**
 
-1. **Lazy deletion** means you do **not** remove an item from the middle of a heap right away.
-2. You **mark** it as deleted (usually in a `HashMap` or a `HashSet`) and **skip it later**, when it reaches the top.
-3. The reason: removing an arbitrary item from a heap is `O(n)` (`PriorityQueue.remove(x)`), because the item must be found first.
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+`PriorityQueue.remove(x)` costs `O(n)` (it searches the whole array). A heap also has no "update priority". **Lazy deletion** avoids both:
 
-1. It keeps every operation at `O(log n)` amortized.
-2. A heap cannot find items by value. A mark is far cheaper than a search.
-3. It is needed in sliding-window problems, Dijkstra, and streams where old items expire or change.
+- To **delete** an item: record it as deleted (in a map or set). Leave it in the heap.
+- To **update** an item: add a **new** entry, and treat the old entry as deleted.
+- When you `peek` or `poll`: while the top item is marked deleted (or stale), **pop and ignore it**.
 
-#### 3. How It Works — Must Know
+**Signals:** "remove an element from a heap", "update a priority", "Dijkstra with a priority queue", "sliding window median", "tasks that can be cancelled".
 
-Min-heap with `5, 3, 8`. We want to delete `5`, but it is not at the top.
+#### 2. How It Works
 
-```text
-Heap (min):        3
-                  / \
-                 5   8
-
-Step 1: remove(5)  → do NOT touch the heap. Record it:  deleted = {5: 1}
-Step 2: peek()     → top is 3. Not marked → answer 3.
-Step 3: poll()     → removes 3. Heap now has 5 on top.
-Step 4: peek()     → top is 5. It is marked → discard it, lower its mark, look again.
-                     top is now 8. Not marked → answer 8.
+```mermaid
+flowchart LR
+    D["delete(x)"] --> M["mark x as deleted<br/>(map of counts)"]
+    T["peek / poll"] --> C{"top is marked<br/>deleted?"}
+    C -->|"yes"| P["pop it and unmark one copy<br/>look at the new top"]
+    P --> C
+    C -->|"no"| R["use the top"]
 ```
 
-The stale item is cleaned **only when it reaches the top**. Items buried deeper never cost anything until then.
-
-#### 4. Core Concepts — Must Know
-
-1. **Mark, don't remove.** Use a `HashMap<T, Int>` (count of pending deletions) for values that can repeat, or a `HashSet<Id>` when every item has a unique id.
-2. **Prune before you read the top.** Call `prune()` before every `peek()` and `poll()`.
-3. **Keep a separate live size.** `heap.size` counts stale items too, so track `liveSize` yourself.
-4. **Cost.** Each stale item is removed once, so the extra work is spread across operations (amortized `O(log n)`).
-5. **Stale entries need memory.** The heap can grow bigger than the live data. Rebuild it if stale entries become the majority.
-
-#### 5. Algorithm — Must Know
-
 ```text
-remove(x):  deleted[x] += 1;  liveSize -= 1
-
-prune():
-    while heap is not empty and deleted[heap.peek()] > 0:
-        deleted[heap.peek()] -= 1
-        heap.poll()
-
-peek():  prune();  return heap.peek()
-poll():  prune();  liveSize -= 1;  return heap.poll()
+add 5, 3, 8               heap {3, 5, 8}      live = 3
+delete(3)                 deleted {3: 1}      live = 2       (3 is still inside the heap)
+peek():   top is 3 → it is marked deleted → pop it           heap {5, 8}
+          top is 5 → fine → return 5
+poll():   returns 5       live = 1
 ```
 
-#### 6. Kotlin Implementation — Must Know
+**Use a count** (not a simple set) in the "deleted" map, because the same value may be in the heap several times.
 
-**A min-heap that supports `remove(x)` in `O(log n)` amortized**
+**Stale entries** are the same idea for **updates**. In Dijkstra, a node may be pushed several times with different distances. When you poll an entry whose distance is **bigger than the best known** (`d > dist[node]`), it is stale: skip it.
+
+**Cost.** Every entry is pushed once and popped once, so the total work stays `O(n log n)` even though dead entries stay inside for a while. The heap may hold more entries than there are live items.
+
+#### 3. Brute Force vs Optimized
+
+| Approach | Delete | Update | Note |
+|---|---|---|---|
+| `pq.remove(x)` | `O(n)` | `O(n)` (remove + add) | simple, slow |
+| Rebuild the heap without `x` | `O(n)` | `O(n)` | slow |
+| **Lazy deletion** | `O(1)` mark, `O(log n)` later | `O(log n)` | the standard trick |
+| Indexed heap with position map | `O(log n)` | `O(log n)` | more code |
 
 ```kotlin
 import java.util.PriorityQueue
 
+// Brute force: remove(x) searches the whole heap
+fun deleteBrute(heap: PriorityQueue<Int>, x: Int) { heap.remove(x) }       // O(n)
+```
+
+#### 4. Kotlin Code
+
+```kotlin
+import java.util.PriorityQueue
+
+// A min-heap that supports delete(x) with lazy deletion. delete(x) assumes x is in the heap.
 class LazyMinHeap {
     private val heap = PriorityQueue<Int>()
-    private val deleted = HashMap<Int, Int>()    // value → how many copies are marked deleted
-    var size = 0                                  // live items only
+    private val deleted = HashMap<Int, Int>()                  // value -> how many copies are marked deleted
+    var size = 0
         private set
 
-    fun add(x: Int) {
-        heap.add(x)
-        size++
-    }
+    fun add(x: Int) { heap.add(x); size++ }
 
-    // The caller must make sure x is really in the heap
-    fun remove(x: Int) {
+    fun delete(x: Int) {
         deleted[x] = (deleted[x] ?: 0) + 1
         size--
     }
 
-    private fun prune() {
+    private fun clean() {
         while (heap.isNotEmpty()) {
             val top = heap.peek()
-            val pending = deleted[top] ?: break
-            if (pending == 1) deleted.remove(top) else deleted[top] = pending - 1
-            heap.poll()
+            val c = deleted[top] ?: 0
+            if (c == 0) break
+            deleted[top] = c - 1
+            heap.poll()                                         // drop a dead copy
         }
     }
 
-    fun peek(): Int? {
-        prune()
-        return heap.peek()          // null when empty
-    }
+    fun peek(): Int { clean(); return heap.peek() }
 
-    fun poll(): Int? {
-        prune()
-        val value = heap.poll() ?: return null
-        size--
-        return value
-    }
+    fun poll(): Int { clean(); size--; return heap.poll() }
 }
 
-// Usage
-val h = LazyMinHeap()
-h.add(5); h.add(3); h.add(8)
-h.remove(5)
-println(h.peek())   // 3
-h.poll()
-println(h.peek())   // 8   (5 was skipped)
+// Dijkstra: stale entries are skipped instead of updated
+fun dijkstra(n: Int, edges: Array<IntArray>, start: Int): IntArray {
+    val graph = Array(n) { mutableListOf<IntArray>() }                 // node -> [neighbour, weight]
+    for ((a, b, w) in edges) { graph[a].add(intArrayOf(b, w)); graph[b].add(intArrayOf(a, w)) }
+    val dist = IntArray(n) { Int.MAX_VALUE }
+    dist[start] = 0
+    val heap = PriorityQueue<IntArray>(compareBy<IntArray> { it[0] })  // [distance, node]
+    heap.add(intArrayOf(0, start))
+    while (heap.isNotEmpty()) {
+        val (d, u) = heap.poll()
+        if (d > dist[u]) continue                                      // stale: a shorter path was found already
+        for ((v, w) in graph[u]) {
+            if (d + w < dist[v]) {
+                dist[v] = d + w
+                heap.add(intArrayOf(dist[v], v))                       // push a NEW entry, do not update
+            }
+        }
+    }
+    return dist
+}
 ```
 
-**Dijkstra uses the same idea**: a node may be pushed several times with different distances. When you pop a stale entry, skip it.
+Checks: `LazyMinHeap`: add `5`, `3`, `8`, then `delete(3)` → `size` → `2`. `peek()` → `5`. `poll()` → `5`. `size` → `1`. `poll()` → `8`. Adding a value twice and deleting it once: add `4`, `4`, `delete(4)`, then `peek()` → `4` and `size` → `1`.
 
-```kotlin
-// inside Dijkstra's loop
-val (dist, node) = pq.poll()
-if (dist > best[node]) continue        // stale entry: a shorter path was found later
-```
+`dijkstra(4, arrayOf(intArrayOf(0, 1, 4), intArrayOf(0, 2, 1), intArrayOf(1, 3, 2), intArrayOf(2, 3, 3), intArrayOf(1, 2, 2)), 0)` → `[0, 3, 1, 4]`. Here node `1` is first pushed with distance `4` (via `0 → 1`), then with `3` (via `0 → 2 → 1`). The entry `(4, 1)` is stale when it comes out (`4 > dist[1] = 3`), so it is skipped.
 
-#### 7. Time & Space Complexity — Must Know
+#### 5. Complexity
 
-| Operation | Time |
-|---|---:|
-| `add` | `O(log n)` |
-| `remove` (mark) | `O(1)` |
-| `peek` / `poll` | `O(log n)` amortized (includes pruning) |
-| `PriorityQueue.remove(x)` for comparison | `O(n)` |
-| Space | `O(n)`, including stale items |
+| | Time | Space |
+|---|---|---|
+| `add` | `O(log n)` | |
+| `delete` (mark) | `O(1)` | |
+| `peek` / `poll` | `O(log n)` amortised | |
+| Heap holds | | `O(n)` including dead entries |
+| Dijkstra with stale skipping | `O((V + E) log V)` | `O(V + E)` |
 
-#### 8. Common Lazy-Deletion Patterns — Must Know
+#### 6. Common Mistakes
 
-1. **Sliding window max/min** — discard tops whose index is outside the window (see "Heap + Sliding Window").
-2. **Sliding window median** — two heaps with a delayed-deletion map (see "Multiple Heap / Advanced Two-Heaps Patterns").
-3. **Dijkstra** — skip entries whose distance is worse than the best known.
-4. **Task cancel / reschedule** — mark a task id as cancelled, then skip it when it is popped.
-5. **Changing a priority** — push a new entry with the new priority, mark the old one stale.
+1. **Using `pq.remove(x)`** in a loop (`O(n²)` overall).
+2. **A set instead of a count** for deleted values, which breaks when a value appears more than once.
+3. **Forgetting to clean** before `peek()`, and returning a dead item.
+4. **Adjusting `size` wrongly.** `size` must count live items, not heap entries.
+5. **Deleting something that is not in the heap** (the counts drift).
+6. **Not skipping stale entries in Dijkstra** (still correct, but slower).
 
-#### 9. Edge Cases / Common Mistakes
+#### 7. Say This in the Interview
 
-1. Using `heap.size` as the real size. It includes stale items.
-2. Reading `peek()` without pruning first.
-3. Calling `remove(x)` for a value that is not in the heap, which breaks `size` and leaves a mark that deletes a future item.
-4. Only pruning in `poll()` and not in `peek()`.
-5. Forgetting to decrease the mark count, so later equal values are skipped wrongly.
-6. Not cleaning up when stale entries dominate. The heap grows without a limit in long-running systems.
-7. Using lazy deletion with duplicate values but a `HashSet` mark. Use a count map, or unique ids.
+1. "`PriorityQueue.remove` is `O(n)`, so I'll use lazy deletion: mark the item as deleted, and discard it when it reaches the top."
+2. "For priority updates I push a new entry and skip the old one when I see that it's stale."
+3. "Each entry is pushed and popped once, so the total cost stays `O(n log n)`."
 
-#### 10. When to Use / When Not to Use
+#### 8. Quick Check
 
-**Use when:**
+1. What does `peek()` do first in `LazyMinHeap`?
+2. Why store a count of deleted copies?
+3. In Dijkstra, what does `if (d > dist[u]) continue` do?
 
-1. Items must be deleted or changed in the middle and `O(n)` is too slow.
-2. Old entries expire (windows, cancelled tasks, outdated distances).
+<details>
+<summary>Answers</summary>
 
-**Avoid when:**
+1. It removes dead items from the top (`clean()`), then reads the top.
+2. The same value can be in the heap more than once, and only some copies may be deleted.
+3. It skips an old entry whose distance is worse than the best known distance for that node.
 
-1. The heap is small and `PriorityQueue.remove(x)` is fast enough.
-2. You need exact removal from memory immediately. Use a `TreeSet` / `TreeMap` (`O(log n)` removal by value).
+</details>
 
-#### 11. Related Topics
+#### 9. Related LeetCode Questions
 
-1. Heap + Sliding Window
-2. Multiple Heap / Advanced Two-Heaps Patterns
-3. Heap + HashMap Pattern
-4. Priority Queue
-5. Dijkstra (`02-algorithm/07-Graph Algorithms`)
-
-#### 12. Interview Must Remember
-
-1. **Mark now, remove later (when it reaches the top).**
-2. Prune before `peek` and `poll`. Track your own live size.
-3. `PriorityQueue.remove(x)` is `O(n)`. Lazy deletion avoids it.
-4. A `TreeMap`/`TreeSet` is the alternative when exact removal is needed.
+| # | Question | Idea |
+|---|---|---|
+| 743 | [Network Delay Time](https://leetcode.com/problems/network-delay-time/) (Medium) | Dijkstra with stale entries |
+| 239 | [Sliding Window Maximum](https://leetcode.com/problems/sliding-window-maximum/) (Hard) | heap + lazy deletion by index (note 24) |
+| 480 | [Sliding Window Median](https://leetcode.com/problems/sliding-window-median/) (Hard) | two heaps + lazy deletion |
+| 1438 | [Longest Continuous Subarray With Absolute Diff Less Than or Equal to Limit](https://leetcode.com/problems/longest-continuous-subarray-with-absolute-diff-less-than-or-equal-to-limit/) (Medium) | two heaps, drop old indexes |
+| 2349 | [Design a Number Container System](https://leetcode.com/problems/design-a-number-container-system/) (Medium) | min-heap per number |
+| 1912 | [Design Movie Rental System](https://leetcode.com/problems/design-movie-rental-system/) (Hard) | heaps with deletion |

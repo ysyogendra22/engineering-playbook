@@ -67,7 +67,22 @@ else: union(a, b)
 
 (Union-find is explained in note 23.)
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Approach | Time | Note |
+|---|---|---|
+| Remove each edge in turn, test if its ends are still connected | `O(E · (V + E))` | one BFS per edge |
+| **DFS with a parent:** a visited neighbour that is not the parent means a cycle | **`O(V + E)`** | one pass |
+| **Union-find:** `find(a) == find(b)` before joining means a cycle | `O(E α(V))` | good when edges arrive one by one |
+
+```text
+Brute force: edge (a, b) is on a cycle if a and b are still connected without it.
+DFS: reaching an already visited vertex that is NOT the one you came from closes a cycle.
+```
+
+Remember the parent exception. In an undirected graph every edge is also an edge back to where you came from, and that is not a cycle.
+
+#### 4. Kotlin Code
 
 ```kotlin
 // DFS with a parent
@@ -118,14 +133,14 @@ fun findRedundantConnection(edges: Array<IntArray>): IntArray {
 
 Checks: `hasCycle(3, [[0,1],[1,2],[2,0]])` → `true`. `hasCycle(4, [[0,1],[1,2],[2,3]])` → `false`. `findRedundantConnection([[1,2],[1,3],[2,3]])` → `[2, 3]`.
 
-#### 4. Complexity
+#### 5. Complexity
 
 | Way | Time | Space |
 |---|---|---|
 | DFS with a parent | `O(V + E)` | `O(V)` |
 | Union-Find | `O(E · α(V))` | `O(V)` |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Treating the parent as a cycle.** Every undirected edge points back to the parent, so ignore it.
 2. **Using this check on a directed graph.** It gives wrong answers. Use the 3-state DFS (note 14).
@@ -133,13 +148,13 @@ Checks: `hasCycle(3, [[0,1],[1,2],[2,0]])` → `true`. `hasCycle(4, [[0,1],[1,2]
 4. **Parallel edges** (two edges between the same pair). The simple parent check misses this cycle. Track the edge id instead of the parent node if the problem allows parallel edges.
 5. **Union-find with 0-based arrays** when nodes are 1-based. Allocate `n + 1`.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "In an undirected DFS, reaching a visited node that is not my parent means a cycle."
 2. "Or with union-find: if an edge joins two nodes already in the same set, that edge creates the cycle."
 3. "Time `O(V + E)`. I check every component."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. Why ignore the parent in the DFS?
 2. Does a tree have a cycle?
@@ -152,7 +167,7 @@ Checks: `hasCycle(3, [[0,1],[1,2],[2,0]])` → `true`. `hasCycle(4, [[0,1],[1,2]
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

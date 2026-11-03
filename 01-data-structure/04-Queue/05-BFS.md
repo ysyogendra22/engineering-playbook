@@ -43,7 +43,34 @@ BFS or DFS?
 | Order | level by level | deep first |
 | Shortest path (equal steps) | **yes** | no |
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Approach | Finds | Time | Note |
+|---|---|---|---|
+| DFS over **all** paths | any path, not the shortest | exponential | needs backtracking |
+| DFS + `visited` | a path, not the shortest | `O(V + E)` | shortest path not guaranteed |
+| **BFS + `visited`** | the **shortest** path (equal steps) | `O(V + E)` | stops at the first arrival |
+| BFS marking visited on **dequeue** | correct but wasteful | up to `O(E)` queue entries | duplicates in the queue |
+
+```kotlin
+// Brute force for "shortest path": try every simple path with DFS and keep the shortest. Exponential.
+fun shortestPathBrute(graph: Array<List<Int>>, node: Int, target: Int, seen: MutableSet<Int>): Int {
+    if (node == target) return 0
+    seen.add(node)
+    var best = Int.MAX_VALUE
+    for (next in graph[node]) {
+        if (next in seen) continue
+        val sub = shortestPathBrute(graph, next, target, seen)
+        if (sub != Int.MAX_VALUE) best = minOf(best, sub + 1)
+    }
+    seen.remove(node)
+    return best
+}
+```
+
+For the graph `0 → [1, 2]`, `1 → [3]`, `2 → [3]`, `3 → []`: `shortestPathBrute(graph, 0, 3, mutableSetOf())` → `2`. BFS finds the same answer in `O(V + E)`.
+
+#### 4. Kotlin Code
 
 ```kotlin
 // BFS on an adjacency list. Returns the order in which nodes are visited.
@@ -99,7 +126,7 @@ fun countComponents(graph: List<List<Int>>): Int {
 }
 ```
 
-#### 4. Complexity
+#### 5. Complexity
 
 For `V` nodes and `E` edges:
 
@@ -107,7 +134,7 @@ For `V` nodes and `E` edges:
 |---|---|---|
 | BFS with an adjacency list | `O(V + E)` | `O(V)` |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Marking visited after taking the node out of the queue.** The same node enters the queue many times.
 2. **Forgetting to mark the start node.**
@@ -116,14 +143,14 @@ For `V` nodes and `E` edges:
 5. **Not checking grid bounds** (index out of range).
 6. **Using `list.removeAt(0)`** as the queue. It is `O(n)`.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "I will use BFS with a queue and a visited set, because I need the fewest steps."
 2. "I mark nodes visited when I enqueue them to avoid duplicates."
 3. "Time is `O(V + E)` and space is `O(V)`."
 4. "If edges have different costs I would use Dijkstra instead."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. Does BFS use a queue or a stack?
 2. Why mark a node visited when adding it to the queue?
@@ -136,7 +163,7 @@ For `V` nodes and `E` edges:
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

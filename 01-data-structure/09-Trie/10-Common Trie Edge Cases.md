@@ -1,119 +1,162 @@
 # Common Trie Edge Cases
 
-#### 1. Definition — Must Know
+> Read this before a trie interview and run through it at the end of every solution. Most trie bugs are here.
 
-1. These are the inputs and situations that most often break a Trie solution.
-2. Most bugs come from confusing a **prefix** with a **word**, or from the way the Trie is built, not from the walking logic itself.
-3. Check this list before you submit any Trie code.
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+These are the situations where trie solutions crash, return wrong results, or use too much memory. They fall into four groups:
 
-1. A Trie works on the happy path very easily, so interviewers use edge cases to see whether you think carefully.
-2. Fixing these cases early saves debugging time.
+1. **Prefix vs word** (`isEnd`),
+2. **input problems** (empty strings, duplicates, case, characters outside `a..z`),
+3. **structure problems** (overwriting nodes, memory, deletion),
+4. **algorithm problems** (DFS state, backtracking, ordering).
 
-#### 3. How It Works — Must Know
+#### 2. How It Works
 
-Trie holds only `do` and `dog`:
+**The checklist**
 
-```text
-root
-└── d
-    └── o*        ← "do" is a word
-        └── g*    ← "dog" is a word
+| # | Edge case | What goes wrong | Fix |
+|---|---|---|---|
+| 1 | Prefix is not a word (`app` when only `apple` exists) | `search` returns `true` | check `isEnd` |
+| 2 | Word is also a prefix (`car` and `cart`) | inserting `car` after `cart` loses `isEnd` or creates nodes | set `isEnd` on the existing node |
+| 3 | Empty string | `search("")` is `true` or `false`? | decide, and state it (usually `false`; `startsWith("")` true) |
+| 4 | Duplicate words | counts double (in counter tries) | check `search` first, or use a set |
+| 5 | Upper case, digits, spaces, Unicode | array index out of range | `HashMap` children, or normalise |
+| 6 | `node.next[i] = TrieNode()` without a null check | overwrites an existing subtree | create only if `null` |
+| 7 | Not moving to the child after creating it | the node chain stops | `node = node.next[i]!!` |
+| 8 | Creating all 26 children eagerly | memory explosion | create lazily |
+| 9 | Very long words | deep recursion (`StackOverflowError`) | iterative loops |
+| 10 | Large dictionaries (millions of words) | memory | map children, compressed trie, or note it |
+| 11 | Deleting a word | removes a prefix of another word | only unmark `isEnd`, prune only unused nodes (note 11) |
+| 12 | Delete a word that does not exist | corrupts counts | check `search` first |
+| 13 | DFS in a grid: cell not restored | missed words | restore after recursion |
+| 14 | DFS: same word found twice | duplicates in the result | clear `node.word` or use a set |
+| 15 | DFS: letter `'#'` used as an index | negative index | check the marker before indexing |
+| 16 | Autocomplete order | not alphabetical with a map | iterate `a..z`, or sort |
+| 17 | Wildcard `.` | exponential branching | prune with the trie, memoise if needed |
+| 18 | Counting prefixes after delete | counters not decremented | decrement along the path |
+| 19 | Shared static state between tests | old words remain | create a new trie per test |
+| 20 | Binary trie with negative numbers | the sign bit | treat as 32-bit patterns, or handle the sign |
+
+```mermaid
+flowchart TD
+    Start["Trie solution written"] --> A{"search checks isEnd?"}
+    A -->|"no"| F1["fix: prefix is not a word"]
+    A -->|"yes"| B{"Input only a..z?"}
+    F1 --> B
+    B -->|"no"| F2["use HashMap children / normalise"]
+    B -->|"yes"| C{"Empty string, duplicates,<br/>word = prefix of another word?"}
+    F2 --> C
+    C --> D{"DFS: marks restored,<br/>no duplicate results?"}
+    D --> Done["done"]
 ```
 
-```text
-search("do")     → true      (a word that is also a prefix of another word)
-search("d")      → false     (only a prefix)
-search("dogs")   → false     (path breaks after g)
-startsWith("d")  → true
-```
+#### 3. Brute Force vs Optimized
 
-#### 4. Core Concepts — Must Know
-
-1. A node can be an end of word **and** have children.
-2. A path can exist without being a word.
-3. The root represents the empty prefix and normally holds no word.
-4. Everything depends on the same rule: **`isEndOfWord` decides a word, the path decides a prefix.**
-
-#### 5. Edge Case Checklist — Must Know
-
-| Case | What should happen |
+| Habit | Better |
 |---|---|
-| Empty Trie | `search` → `false`; `startsWith("x")` → `false` |
-| Empty string `""` | `startsWith("")` → `true`; `search("")` is `true` only if `""` was inserted |
-| Single character word | Works like any other word: one node with the end flag |
-| Prefix of another word (`app` and `apple`) | Both must be searchable. The end flag must exist on the earlier node |
-| Word longer than anything stored | `search` and `startsWith` return `false` when the path breaks |
-| Duplicate insert | No change. Safe to repeat (but counts increase in a counting Trie) |
-| Upper vs lower case | `Car` and `car` are different paths unless you normalise first |
-| Non-lowercase character with `Array(26)` | Index out of range. Validate or use a `HashMap` |
-| Spaces and punctuation | Treated as normal characters in a `HashMap` Trie |
-| Unicode / emoji | Kotlin `Char` is a UTF-16 unit. Some symbols take two units |
-| Delete a word that is a prefix of another | Unmark the end flag, but **do not remove** nodes that other words use |
-| Delete a word that is missing | Do nothing and do not break the structure |
-
-#### 6. Kotlin Implementation — Must Know
-
-Defensive handling for the common cases:
+| `Array(26) { TrieNode() }` (all children created) | `arrayOfNulls<TrieNode>(26)`, create on demand |
+| rebuilding a word while walking | store `word` in the end node |
+| recursion for insert and search | simple loops |
+| `substring` for every prefix | walk characters |
 
 ```kotlin
-fun insert(word: String) {
-    if (word.isEmpty()) return                       // decide: ignore the empty string
-    var node = root
-    for (ch in word) {
-        node = node.children.getOrPut(ch) { TrieNode() }
-    }
-    node.isEndOfWord = true
-}
-
-fun search(word: String): Boolean = findNode(word)?.isEndOfWord == true
-
-// Normalise before inserting or searching when case should not matter
-fun normalise(text: String) = text.lowercase()
+// Bad: creates 26 children per node, and each of those creates 26 more... (infinite recursion)
+class BadNode { val next = Array(26) { BadNode() } }            // StackOverflowError when constructed
 ```
 
-#### 7. Time & Space Complexity — Must Know
+#### 4. Kotlin Code
 
-Edge cases do not change the complexity. Every operation is still `O(L)`.
+```kotlin
+class TrieNode {
+    val next = arrayOfNulls<TrieNode>(26)
+    var isEnd = false
+}
 
-Normalising a string (for example `lowercase()`) adds one more `O(L)` pass, which is fine.
+class SafeTrie {
+    private val root = TrieNode()
+    private var hasEmpty = false
 
-#### 8. Common Edge-Case Patterns — Must Know
+    private fun valid(s: String) = s.all { it in 'a'..'z' }
 
-1. **Prefix vs word:** test `search("app")` after inserting only `apple`.
-2. **Word that is a prefix:** test `search("app")` after inserting both `app` and `apple`.
-3. **Empty input:** test the empty Trie and the empty string.
-4. **Case sensitivity:** state your assumption out loud.
-5. **Alphabet assumption:** state it (`a`–`z` only, or any character).
+    // Returns false for words we cannot store
+    fun insert(word: String): Boolean {
+        if (!valid(word)) return false                         // upper case, digits, spaces
+        if (word.isEmpty()) { hasEmpty = true; return true }   // the empty word is stored in a flag
+        var node = root
+        for (c in word) {
+            val i = c - 'a'
+            if (node.next[i] == null) node.next[i] = TrieNode()
+            node = node.next[i]!!
+        }
+        node.isEnd = true
+        return true
+    }
 
-#### 9. Edge Cases / Common Mistakes
+    fun search(word: String): Boolean {
+        if (!valid(word)) return false
+        if (word.isEmpty()) return hasEmpty
+        var node = root
+        for (c in word) node = node.next[c - 'a'] ?: return false
+        return node.isEnd
+    }
 
-1. Treating `search("ca")` as `true` because the path exists.
-2. Marking the end flag on the wrong node.
-3. Removing shared nodes during delete, which breaks other words.
-4. Assuming lowercase letters and crashing on other input.
-5. Not stating assumptions (alphabet, case, empty string) before coding.
+    fun startsWith(prefix: String): Boolean {
+        if (!valid(prefix)) return false
+        var node = root
+        for (c in prefix) node = node.next[c - 'a'] ?: return false
+        return true
+    }
+}
+```
 
-#### 10. When to Use / When Not to Use
+Checks: `val t = SafeTrie()`. `t.insert("Hello")` → `false` (upper case rejected). `t.insert("cart")` → `true`. `t.search("car")` → `false`. `t.insert("car")` then `t.search("car")` → `true` and `t.search("cart")` → `true` (inserting a prefix keeps the longer word). `t.search("")` → `false`. `t.insert("")` → `true`, then `t.search("")` → `true`. `t.startsWith("")` → `true`. `t.search("c4t")` → `false`.
 
-**Use this checklist:**
+#### 5. Complexity
 
-1. Before you write the solution, to state your assumptions.
-2. After you write it, to dry-run two or three cases by hand.
+| Fix | Cost |
+|---|---|
+| Validation | `O(L)` per call |
+| Lazy child creation | saves memory, no time cost |
+| Iterative loops | `O(1)` extra space instead of `O(L)` |
 
-**Skip nothing:** edge-case thinking applies to every Trie problem.
+#### 6. Common Mistakes
 
-#### 11. Related Topics
+1. **Never testing a prefix that is not a word.**
+2. **Never testing the empty string.**
+3. **Assuming input is lowercase.**
+4. **Overwriting existing children.**
+5. **Eager creation of children.**
+6. **Forgetting to restore the grid** in trie + DFS.
+7. **Ignoring memory** when asked about a very large dictionary.
 
-1. Search Word
-2. Prefix Search / `startsWith`
-3. Delete Word from Trie
-4. TrieNode Structure
+#### 7. Say This in the Interview
 
-#### 12. Interview Must Remember
+1. "Before finishing, I'll test: a prefix that isn't a word, a word that is a prefix of another word, the empty string, duplicates, and characters outside `a..z`."
+2. "I create child nodes only when needed, so the trie doesn't blow up in size."
+3. "If the alphabet is not just lowercase letters, I'd switch the children to a hash map."
 
-1. **Path = prefix. End flag = word.**
-2. A word can also be a prefix of a longer word.
-3. State your assumptions: alphabet, case, and empty string.
-4. Test `app` / `apple` and the empty Trie on every solution.
+#### 8. Quick Check
+
+1. After inserting `cart`, does `search("car")` return true?
+2. Why does `Array(26) { TrieNode() }` break?
+3. What should `startsWith("")` return?
+
+<details>
+<summary>Answers</summary>
+
+1. No. `car` is only a prefix.
+2. Each node creates 26 children, each of which creates 26 more, forever (a stack overflow).
+3. `true` (every word starts with the empty prefix), if the trie is non-empty.
+
+</details>
+
+#### 9. Related LeetCode Questions
+
+| # | Question | Idea |
+|---|---|---|
+| 208 | [Implement Trie (Prefix Tree)](https://leetcode.com/problems/implement-trie-prefix-tree/) (Medium) | prefix vs word |
+| 211 | [Design Add and Search Words Data Structure](https://leetcode.com/problems/design-add-and-search-words-data-structure/) (Medium) | wildcard branching |
+| 212 | [Word Search II](https://leetcode.com/problems/word-search-ii/) (Hard) | restore state, no duplicates |
+| 14 | [Longest Common Prefix](https://leetcode.com/problems/longest-common-prefix/) (Easy) | empty input |
+| 720 | [Longest Word in Dictionary](https://leetcode.com/problems/longest-word-in-dictionary/) (Medium) | word = prefix cases |

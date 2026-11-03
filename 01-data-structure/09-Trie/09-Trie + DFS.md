@@ -1,137 +1,179 @@
 # Trie + DFS
 
-#### 1. Definition — Must Know
+> The famous combination: search **many words at once** in a grid. The trie tells the DFS when to **stop early**, so you never explore a path that no word can use.
 
-1. **Trie + DFS** means finding the Trie node for a prefix, then using **depth-first search** to visit everything below it.
-2. It answers "give me every word that starts with this prefix", and "how many words are under this node?"
-3. Plain search and `startsWith` only walk one path. DFS explores **all** paths below a node.
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+Some problems walk a **grid** (or a graph) and need to know if the path so far is a **prefix of any word** in a dictionary. A trie answers that in `O(1)` per step. The DFS then walks the grid and the trie **together**.
 
-1. A Trie keeps all words with the same prefix in one subtree, so they are easy to collect.
-2. It is the basis of autocomplete, listing suggestions, and any "all matches" question.
-3. It also shows why a Trie is a Tree: the same DFS ideas apply (`01-data-structure/07-Tree`).
+| Question | Idea |
+|---|---|
+| **Word Search II** (212) | find all dictionary words that can be traced in the grid |
+| **Boggle**-style word games | same |
+| **Palindrome Pairs**, **Concatenated Words** (472) | trie to check prefixes while splitting |
 
-#### 3. How It Works — Must Know
+**Signals:** "find all words in a grid", "words from a dictionary", "board", "prefix pruning".
 
-Trie holds `car`, `card`, `care`, `cat`. Collect all words with prefix `car`:
+#### 2. How It Works
 
-```text
-root → c → a → r*        ← walk the prefix "car" to this node
-                ├── d*
-                └── e*
+*Word Search I* (LeetCode 79) finds **one** word with DFS. For **many** words, doing it once per word repeats the same grid search over and over. **Word Search II** puts all words in **one trie** and does **one** DFS from each cell:
 
-Start DFS at the node for "car", with path = "car":
-  r is an end of word  → add "car"
-  go to d              → path "card", end of word → add "card"
-  go to e              → path "care", end of word → add "care"
+1. Move to the child of the current trie node that matches the grid letter. **If there is none, stop**: no word has this prefix.
+2. If the trie node ends a word, **record the word** (and clear it, so it is not found twice).
+3. Mark the cell as used (`#`), recurse in the 4 directions, then **restore** the cell (backtracking).
 
-Result: ["car", "card", "care"]      ("cat" is under a different branch and is never visited)
+```mermaid
+flowchart LR
+    G["grid cell (r, c)"] --> M{"trie node has a child<br/>for this letter?"}
+    M -->|"no: no word has this prefix"| X["stop, prune"]
+    M -->|"yes"| W{"node.word != null ?"}
+    W -->|"yes"| R["add the word to the result<br/>set node.word = null"]
+    W --> D["mark the cell used<br/>DFS to 4 neighbours<br/>restore the cell"]
+    R --> D
 ```
 
-#### 4. Core Concepts — Must Know
-
-1. **Step 1:** walk the prefix with `findNode`. If it is missing, the answer is empty.
-2. **Step 2:** DFS from that node, building the current word in a `StringBuilder`.
-3. **Add a word** whenever the current node is an end of word.
-4. **Undo the last character** after returning from a child, so the path stays correct.
-5. The recursion depth is at most the length of the longest word.
-
-#### 5. Algorithm — Must Know
-
 ```text
-wordsWithPrefix(prefix):
-    start = findNode(prefix)
-    if start is null: return empty list
-    collect(start, prefix, results)
-
-collect(node, path, results):
-    if node.isEndOfWord: results.add(path)
-    for each (ch, child) in node.children:
-        append ch to path
-        collect(child, path, results)
-        remove the last character from path
+board          words = ["oath", "pea", "eat", "rain"]
+o a a n
+e t a e        Trie: o-a-t-h✓,  p-e-a✓,  e-a-t✓,  r-a-i-n✓
+i h k r        DFS from (0,0) 'o' → a (0,1) → t (1,1) → h (2,1): "oath" found
+i f l v        DFS from (1,0) 'e' → a (0,1)… → t (1,1): "eat" found
+               "pea" and "rain" cannot be traced: no path in the grid
+result: ["oath", "eat"]
 ```
 
-#### 6. Kotlin Implementation — Must Know
+**Optimisations worth knowing**
+
+- Store the **whole word at the end node** (`node.word`), so you do not rebuild it with a `StringBuilder`.
+- **Set `node.word = null`** after finding a word, to avoid duplicates.
+- **Prune** trie branches that have no words left (remove a leaf node after its last word is found). This helps a lot on big inputs.
+
+#### 3. Brute Force vs Optimized
+
+| Approach | Time | Note |
+|---|---|---|
+| Word Search I for **each** word | `O(W · m · n · 4^L)` | repeats the grid work for each word |
+| **Trie + one DFS** | `O(m · n · 4^L)` | shares prefixes, prunes dead paths |
+
+`W` = number of words, `m × n` = the grid, `L` = the longest word.
 
 ```kotlin
-// Methods inside the Trie class from "Trie Implementation"
-
-fun wordsWithPrefix(prefix: String): List<String> {
-    val start = findNode(prefix) ?: return emptyList()
-    val results = mutableListOf<String>()
-    collect(start, StringBuilder(prefix), results)
-    return results
-}
-
-private fun collect(node: TrieNode, path: StringBuilder, results: MutableList<String>) {
-    if (node.isEndOfWord) results.add(path.toString())
-    for (ch in node.children.keys.sorted()) {        // sorted → alphabetical order
-        path.append(ch)
-        collect(node.children.getValue(ch), path, results)
-        path.deleteCharAt(path.length - 1)           // undo
+// Brute force: run a separate DFS for every word (this is LeetCode 79 in a loop)
+fun existsInGrid(board: Array<CharArray>, word: String): Boolean {
+    val rows = board.size
+    val cols = board[0].size
+    fun dfs(r: Int, c: Int, i: Int): Boolean {
+        if (i == word.length) return true
+        if (r !in 0 until rows || c !in 0 until cols || board[r][c] != word[i]) return false
+        val saved = board[r][c]
+        board[r][c] = '#'
+        val found = dfs(r + 1, c, i + 1) || dfs(r - 1, c, i + 1) || dfs(r, c + 1, i + 1) || dfs(r, c - 1, i + 1)
+        board[r][c] = saved
+        return found
     }
+    for (r in 0 until rows) for (c in 0 until cols) if (dfs(r, c, 0)) return true
+    return false
 }
 
-// Count how many words are stored below (and at) a node
-private fun countWords(node: TrieNode): Int =
-    (if (node.isEndOfWord) 1 else 0) + node.children.values.sumOf { countWords(it) }
+fun findWordsBrute(board: Array<CharArray>, words: Array<String>): List<String> =
+    words.filter { existsInGrid(board, it) }
 ```
 
-`HashMap` does not keep order. Sorting the keys gives alphabetical results.
+#### 4. Kotlin Code
 
-#### 7. Time & Space Complexity — Must Know
+```kotlin
+class TrieNode {
+    val next = arrayOfNulls<TrieNode>(26)
+    var word: String? = null                      // the full word if a word ends here
+}
 
-`S` = number of nodes in the subtree under the prefix.
+// Word Search II (LeetCode 212)
+fun findWords(board: Array<CharArray>, words: Array<String>): List<String> {
+    val root = TrieNode()
+    for (w in words) {
+        var node = root
+        for (c in w) {
+            if (node.next[c - 'a'] == null) node.next[c - 'a'] = TrieNode()
+            node = node.next[c - 'a']!!
+        }
+        node.word = w
+    }
 
-| Step | Time |
-|---|---:|
-| Walk the prefix | `O(P)` |
-| DFS over the subtree | `O(S)` |
-| Total | `O(P + S)`, plus the cost of building the result strings |
-| Space (recursion + path) | `O(longest word)` |
+    val rows = board.size
+    val cols = board[0].size
+    val result = mutableListOf<String>()
 
-Sorting keys at every node adds a small factor of `A log A`, where `A` is the alphabet size.
+    fun dfs(r: Int, c: Int, parent: TrieNode) {
+        if (r !in 0 until rows || c !in 0 until cols) return
+        val letter = board[r][c]
+        if (letter == '#') return                              // already used on this path
+        val node = parent.next[letter - 'a'] ?: return         // no word has this prefix: prune
+        val w = node.word
+        if (w != null) { result.add(w); node.word = null }    // found, and avoid duplicates
 
-#### 8. Common Trie + DFS Patterns — Must Know
+        board[r][c] = '#'                                      // mark used
+        dfs(r + 1, c, node)
+        dfs(r - 1, c, node)
+        dfs(r, c + 1, node)
+        dfs(r, c - 1, node)
+        board[r][c] = letter                                   // restore
+    }
 
-1. List all words with a prefix.
-2. Count words below a node.
-3. Find the longest word in the Trie.
-4. Visit all words in alphabetical order (DFS with sorted children, starting at the root).
-5. Stop after `k` results (see "Autocomplete / Prefix Suggestions").
+    for (r in 0 until rows) for (c in 0 until cols) dfs(r, c, root)
+    return result
+}
+```
 
-#### 9. Edge Cases / Common Mistakes
+Board and words from the example (as `arrayOf(charArrayOf('o','a','a','n'), charArrayOf('e','t','a','e'), charArrayOf('i','h','k','r'), charArrayOf('i','f','l','v'))`):
 
-1. Forgetting to **undo** the appended character, which corrupts every later word.
-2. Skipping the check for a missing prefix and crashing on `null`.
-3. Forgetting that the prefix itself may be a stored word (`car` above).
-4. Relying on `HashMap` order when the result must be alphabetical.
-5. Very deep Tries causing deep recursion. Words are rarely long enough to be a problem, but an iterative stack avoids it.
+Checks: `findWords(board, arrayOf("oath", "pea", "eat", "rain"))` → `["oath", "eat"]` (order may differ). On the board `[['a','b'],['c','d']]`: `findWords(..., arrayOf("abdc"))` → `["abdc"]` (path `a → b → d → c`), and `findWords(..., arrayOf("abcb"))` → `[]` (`b` and `c` are diagonal, not adjacent). `findWords(arrayOf(charArrayOf('a')), arrayOf("a"))` → `["a"]`. `findWordsBrute(board, arrayOf("oath", "pea", "eat", "rain"))` → `["oath", "eat"]`.
 
-#### 10. When to Use / When Not to Use
+#### 5. Complexity
 
-**Use when:**
+| | Time | Space |
+|---|---|---|
+| Build the trie | `O(total characters of the words)` | `O(total characters)` |
+| DFS | `O(m · n · 3^L)` (after the first step there are at most 3 new directions) | `O(L)` stack |
+| Brute force | `O(W · m · n · 3^L)` | `O(L)` |
 
-1. You need **all** matches for a prefix, not just a yes/no.
-2. You need counts or the longest word.
+#### 6. Common Mistakes
 
-**Avoid when:**
+1. **Not restoring the cell** after the DFS.
+2. **Not marking the cell as used** (a cell reused in one word).
+3. **Reporting the same word twice.** Clear `node.word` after the first find.
+4. **Rebuilding strings in the DFS** (slow). Store the word at the end node.
+5. **Reading `board[r][c]` before the bounds check.**
+6. **Running Word Search I for each word** (time limit exceeded on big inputs).
+7. **Using the wrong index** for letters (`'#'` minus `'a'` is negative). Check `'#'` before indexing.
 
-1. You only need to know whether a prefix exists. `startsWith` is enough.
-2. The prefix is very short and the subtree is huge. Cap the results (see "Autocomplete").
+#### 7. Say This in the Interview
 
-#### 11. Related Topics
+1. "Word Search II for each word separately repeats the grid search. I build one trie of all the words and run one DFS from each cell, moving in the trie alongside the grid."
+2. "If the current trie node has no child for the next letter, I stop right away, because no word has this prefix. That prunes most of the search."
+3. "I store the word at its end node so I can add it without rebuilding the string, and I clear it to avoid duplicates."
 
-1. Prefix Search / `startsWith`
-2. Autocomplete / Prefix Suggestions
-3. Counting Words / Prefixes
-4. DFS (`01-data-structure/07-Tree`, `10-Graph`) and Recursion (`02-algorithm/03-Recursion & Divide and Conquer`)
+#### 8. Quick Check
 
-#### 12. Interview Must Remember
+1. Why use a trie and not a `HashSet` of words?
+2. What does the DFS do when the trie has no child for the cell's letter?
+3. Why restore the cell after the recursive calls?
 
-1. Two steps: **walk the prefix, then DFS the subtree**.
-2. Add a word when `isEndOfWord` is true, and **undo** the character after each child.
-3. Cost is `O(P + S)`.
-4. Sort the children if the output must be alphabetical.
+<details>
+<summary>Answers</summary>
+
+1. A set cannot tell if a **prefix** can still become a word, so the DFS could not prune early.
+2. It returns immediately (prune).
+3. So other paths can use that cell again. Marking is only for the current path.
+
+</details>
+
+#### 9. Related LeetCode Questions
+
+| # | Question | Idea |
+|---|---|---|
+| 79 | [Word Search](https://leetcode.com/problems/word-search/) (Medium) | one word, grid DFS |
+| 212 | [Word Search II](https://leetcode.com/problems/word-search-ii/) (Hard) | trie + DFS |
+| 472 | [Concatenated Words](https://leetcode.com/problems/concatenated-words/) (Hard) | trie + DFS on splits |
+| 140 | [Word Break II](https://leetcode.com/problems/word-break-ii/) (Hard) | trie or set + backtracking |
+| 1255 | [Maximum Score Words Formed by Letters](https://leetcode.com/problems/maximum-score-words-formed-by-letters/) (Hard) | backtracking |
+| 1268 | [Search Suggestions System](https://leetcode.com/problems/search-suggestions-system/) (Medium) | DFS below a prefix (note 12) |

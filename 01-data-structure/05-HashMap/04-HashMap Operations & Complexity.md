@@ -33,7 +33,23 @@ remove(k)    key found?  yes → delete the pair        no → return null
 
 **Resizing:** when the map is 75% full, it doubles its buckets and places every pair again. One resize costs `O(n)`, but it is rare, so `put` stays `O(1)` on average ("amortized").
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Operation | Unsorted array of pairs | Sorted array | **HashMap** |
+|---|---|---|---|
+| `get(key)` | `O(n)` | `O(log n)` | **`O(1)`** average |
+| `put(key, value)` | `O(n)` (check for the key) | `O(n)` (shift) | **`O(1)`** average |
+| `remove(key)` | `O(n)` | `O(n)` | **`O(1)`** average |
+| iterate in key order | sort first | `O(n)` | not supported (use `TreeMap`) |
+
+```kotlin
+// Sorted-array "map": binary search for the key, but inserting still shifts items
+fun findIndex(keys: IntArray, key: Int): Int = java.util.Arrays.binarySearch(keys, key)   // O(log n)
+```
+
+`findIndex(intArrayOf(2, 5, 9), 5)` → `1`, `findIndex(intArrayOf(2, 5, 9), 4)` → a negative number (not found). Binary search makes lookups fast, but insert and delete are still `O(n)`.
+
+#### 4. Kotlin Code
 
 ```kotlin
 val map = HashMap<String, Int>()
@@ -70,7 +86,7 @@ m.entries.removeIf { it.key % 2 == 1 }        // safe
 // for (k in m.keys) if (k % 2 == 1) m.remove(k)   // crashes: ConcurrentModificationException
 ```
 
-#### 4. Complexity
+#### 5. Complexity
 
 | Operation | Average | Notes |
 |---|---|---|
@@ -80,7 +96,7 @@ m.entries.removeIf { it.key % 2 == 1 }        // safe
 | Visit all pairs | `O(n)` | |
 | Memory | `O(n)` | `HashMap<Int, Int>` boxes numbers, so it uses more memory than an `IntArray` |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **`map[k]++`** does not compile. Use `(map[k] ?: 0) + 1`.
 2. **`map[k]!!`** crashes when the key is missing.
@@ -90,13 +106,13 @@ m.entries.removeIf { it.key % 2 == 1 }        // safe
 6. **Calling `containsValue` in a loop.** It is `O(n)` each time.
 7. **Forgetting that `put` returns the old value**, not the new one.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "`put`, `get` and `remove` are `O(1)` on average."
 2. "I use `getOrPut` to create the list the first time a key appears."
 3. "`containsValue` is `O(n)`, so I keep a reverse map if I need fast value lookups."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. What is the difference between `getOrDefault` and `getOrPut`?
 2. What does `map.remove("x")` return if `"x"` is not there?
@@ -109,7 +125,7 @@ m.entries.removeIf { it.key % 2 == 1 }        // safe
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Operation used |
 |---|---|---|

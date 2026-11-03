@@ -72,7 +72,23 @@ Two small tricks make it almost constant time (see notes 24 and 25):
 
 With both, each operation costs `O(α(n))`, which is below 5 for any real input. Treat it as constant.
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Approach | "Are `a` and `b` connected?" | Edges arrive over time |
+|---|---|---|
+| Run BFS / DFS for each query | `O(V + E)` per query | rerun after every new edge: `O(E · (V + E))` |
+| Rebuild the component labels after every edge | `O(V)` per edge | `O(V · E)` |
+| **Union-find** | **almost `O(1)`** per query | **almost `O(1)`** per edge |
+
+```text
+1,000,000 edges and 1,000,000 queries:
+    BFS per query     ~ 10^12 steps
+    union-find        ~ 10^6 * (a very small constant)
+```
+
+Use a search when the whole graph is given and you ask **one** question. Use union-find when the graph **changes** or you ask **many** connectivity questions.
+
+#### 4. Kotlin Code
 
 ```kotlin
 class UnionFind(n: Int) {
@@ -136,7 +152,7 @@ Checks: `findCircleNum([[1,1,0],[1,1,0],[0,0,1]])` → `2`. `findRedundantConnec
 
 **Accounts Merge (LeetCode 721):** give every email an id, union the emails of one account, then group the emails by root. Use a map from email to id.
 
-#### 4. Complexity
+#### 5. Complexity
 
 | | Time | Space |
 |---|---|---|
@@ -144,7 +160,7 @@ Checks: `findCircleNum([[1,1,0],[1,1,0],[0,0,1]])` → `2`. `findRedundantConnec
 | Build with `n` items | `O(n)` | `O(n)` |
 | Process `E` edges | `O(E · α(n))` | |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Merging the items instead of the roots.** Always `union(find(a), find(b))`.
 2. **Forgetting to check `rootA == rootB`** before decreasing `count`.
@@ -153,13 +169,13 @@ Checks: `findCircleNum([[1,1,0],[1,1,0],[0,0,1]])` → `2`. `findRedundantConnec
 5. **Reading `parent[x]` as the root.** It is only the parent. Use `find(x)`.
 6. **Using it on directed problems** (it ignores direction). Use DFS/Kahn there.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "Union-find keeps groups. `find` returns the group leader and `union` merges two groups."
 2. "With path compression and union by size, each operation is almost `O(1)`."
 3. "If `union` finds both nodes already in the same group, that edge makes a cycle."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. How do you check whether `a` and `b` are in the same group?
 2. What does `union` return if they already are?
@@ -172,7 +188,7 @@ Checks: `findCircleNum([[1,1,0],[1,1,0],[0,0,1]])` → `2`. `findRedundantConnec
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

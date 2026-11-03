@@ -59,7 +59,21 @@ flowchart LR
 Edges: 0 → 1, 1 → 0       in-degree: 0:1  1:1   → no node with in-degree 0 → queue is empty → 0 processed < 2 → cycle
 ```
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Approach | Time | Note |
+|---|---|---|
+| Recompute every in-degree from all edges each round | `O(V · (V + E))` | wasteful |
+| Scan all vertices to find one with in-degree 0 each round | `O(V²)` | no queue |
+| **Queue of in-degree-0 vertices + decrement neighbours** | **`O(V + E)`** | the standard version |
+
+Only the **neighbours of the vertex you just removed** change their in-degree. So update just those. If the number of processed vertices is smaller than `V`, the rest are stuck in a cycle.
+
+```text
+in-degree [0, 1, 1, 2]:  queue [0] → remove 0: in-degree of 1 and 2 drops to 0 → queue [1, 2] → ...
+```
+
+#### 4. Kotlin Code
 
 ```kotlin
 // Returns a valid order, or an empty list if there is a cycle
@@ -116,7 +130,7 @@ fun minimumSemesters(n: Int, relations: Array<IntArray>): Int {      // courses 
 
 Checks: `kahn(4, [[1,2],[3],[3],[]])` → `[0, 1, 2, 3]`. `findOrder(2, [[1,0]])` → `[0, 1]`. `canFinish(2, [[1,0],[0,1]])` → `false`. `minimumSemesters(3, [[1,3],[2,3]])` → `2`.
 
-#### 4. Complexity
+#### 5. Complexity
 
 | | Time | Space |
 |---|---|---|
@@ -124,7 +138,7 @@ Checks: `kahn(4, [[1,2],[3],[3],[]])` → `[0, 1, 2, 3]`. `findOrder(2, [[1,0]])
 
 Each node and each edge is handled once.
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Wrong edge direction.** For `[course, prerequisite]` the edge is `prerequisite → course`.
 2. **Forgetting the cycle check** (`order.size == n`).
@@ -133,13 +147,13 @@ Each node and each edge is handled once.
 5. **Parallel edges** (the same pair twice) count twice in the in-degree and must be decreased twice. The code does that.
 6. **Assuming a unique answer.** Several orders can be valid.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "I count the in-degree of every node. Nodes with in-degree 0 go into a queue."
 2. "I take a node, add it to the order, and lower the in-degree of its neighbours. A neighbour with in-degree 0 joins the queue."
 3. "If I process fewer than `n` nodes, there is a cycle. Time `O(V + E)`."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. What is the in-degree of a node?
 2. How does Kahn's algorithm tell you there is a cycle?
@@ -152,7 +166,7 @@ Each node and each edge is handled once.
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

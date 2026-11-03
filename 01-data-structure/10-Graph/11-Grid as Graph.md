@@ -69,7 +69,23 @@ Which walk:
 | spread from many cells at once | multi-source BFS |
 | cells have different costs | Dijkstra |
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Approach | Time | Memory |
+|---|---|---|
+| Build an adjacency list for the grid first | `O(R · C)` | extra `O(R · C)` |
+| **Compute neighbours on the fly** with a `dirs` array | `O(R · C)` | none extra |
+| DFS over all paths in the grid | exponential | |
+| BFS / DFS with `visited` | `O(R · C)` | `O(R · C)` |
+
+A grid is a graph you do **not** have to build: the neighbours of `(r, c)` are `(r ± 1, c)` and `(r, c ± 1)`. Check the bounds first, then the cell value, then `visited`.
+
+```text
+3 x 4 grid:  12 vertices, about 4 * 12 = 48 directed neighbour checks.
+Building a map of 12 adjacency lists first adds memory and code but no speed.
+```
+
+#### 4. Kotlin Code
 
 ```kotlin
 private val DIRS = arrayOf(intArrayOf(1, 0), intArrayOf(-1, 0), intArrayOf(0, 1), intArrayOf(0, -1))
@@ -147,7 +163,7 @@ fun islandPerimeter(grid: Array<IntArray>): Int {
 
 Checks: `numIslands` on `["11000","11000","00100","00011"]` → `3`. `islandPerimeter([[0,1,0,0],[1,1,1,0],[0,1,0,0],[1,1,0,0]])` → `16`.
 
-#### 4. Complexity
+#### 5. Complexity
 
 For `R` rows and `C` columns:
 
@@ -155,7 +171,7 @@ For `R` rows and `C` columns:
 |---|---|---|
 | DFS or BFS over the grid | `O(R · C)` | `O(R · C)` worst case |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Checking the bounds after reading the cell.** You get an index error. Check bounds first.
 2. **Not marking visited** before going deeper. DFS goes back and forth forever.
@@ -165,13 +181,13 @@ For `R` rows and `C` columns:
 6. **Deep recursion** on a big grid (`StackOverflowError`). Use BFS or an explicit stack.
 7. **Changing the input** when the caller still needs it.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "I treat the grid as a graph. Each cell connects to its 4 neighbours, which I compute with a direction array."
 2. "I check bounds first, then the cell value, then visited."
 3. "Time and space are `O(R · C)`. For fewest steps I use BFS; for regions DFS or BFS."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. What are the four direction pairs?
 2. Why do you check the bounds before reading `grid[nr][nc]`?
@@ -184,7 +200,7 @@ For `R` rows and `C` columns:
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

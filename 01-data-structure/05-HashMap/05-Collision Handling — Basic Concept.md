@@ -35,7 +35,23 @@ Two ways to handle collisions:
 
 **Load factor:** Java doubles the table when it is 75% full. This keeps the chains short.
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Strategy | What happens on a collision | Cost |
+|---|---|---|
+| **No handling** | the new value overwrites the old one: **data is lost** | wrong results |
+| **Chaining** (each bucket is a list) | add to the bucket's list | `O(1 + bucket length)` |
+| **Open addressing** (probe the next free slot) | linear / quadratic probing | `O(1)` while the table is not too full |
+
+```kotlin
+// Broken: no collision handling. Keys 1 and 5 land in the same slot (key % 4), so key 1 is lost.
+val table = IntArray(4) { -1 }
+fun putBad(key: Int, value: Int) { table[key % 4] = value }
+```
+
+`putBad(1, 10)`, `putBad(5, 50)` → `table[1]` is `50`. The value for key `1` was overwritten. Chaining keeps both pairs in the bucket: `[(1, 10), (5, 50)]`.
+
+#### 4. Kotlin Code
 
 ```kotlin
 // Two different keys with the same hash code still work
@@ -75,7 +91,7 @@ class ChainTable(private val size: Int = 8) {
 }
 ```
 
-#### 4. Complexity
+#### 5. Complexity
 
 | Case | Time per operation |
 |---|---|
@@ -84,7 +100,7 @@ class ChainTable(private val size: Int = 8) {
 | All keys in one bucket (Java tree bucket) | `O(log n)` |
 | Resize | `O(n)`, but rare |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Thinking a collision loses data.** It does not. Both pairs are kept.
 2. **Thinking equal hash codes mean equal keys.** They do not.
@@ -92,13 +108,13 @@ class ChainTable(private val size: Int = 8) {
 4. **Using different fields** in `equals` and `hashCode`.
 5. **Saying the worst case is always `O(n)`.** In Java 8+ it is about `O(log n)`.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "Two keys can land in the same bucket. Java chains them in a list, or a tree if the list gets long."
 2. "The hash picks the bucket. `equals()` finds the exact key."
 3. "Resizing at a load factor of 0.75 keeps the chains short, so operations are `O(1)` on average."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. If two keys collide, are both stored?
 2. Why does `get` still call `equals()`?
@@ -111,7 +127,7 @@ class ChainTable(private val size: Int = 8) {
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

@@ -43,7 +43,25 @@ The complement depends on the rule:
 
 **Look up first, then add `x`.** That keeps `i < j` and stops an item from pairing with itself.
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Approach | Time | Space |
+|---|---|---|
+| Check every pair `(i, j)` | `O(n²)` | `O(1)` |
+| **One pass with a count map of earlier values** | **`O(n)`** | `O(n)` |
+
+```kotlin
+// Brute force: count pairs with a given sum
+fun countPairsBrute(nums: IntArray, target: Int): Int {
+    var count = 0
+    for (i in nums.indices) for (j in i + 1 until nums.size) if (nums[i] + nums[j] == target) count++
+    return count
+}
+```
+
+`countPairsBrute(intArrayOf(1, 5, 7, -1, 5), 6)` → `3` (`1 + 5` twice, and `7 + (−1)`). The map version adds `count[target − x]` for every `x`, then records `x`.
+
+#### 4. Kotlin Code
 
 ```kotlin
 // Number of Good Pairs: equal values
@@ -96,7 +114,7 @@ fun findPairs(nums: IntArray, k: Int): Int {
 
 Checks: `numIdenticalPairs([1,2,3,1,1,3])` → `4`. `numPairsDivisibleBy60([30,20,150,100,40])` → `3`. `findPairs([3,1,4,1,5], 2)` → `2`.
 
-#### 4. Complexity
+#### 5. Complexity
 
 | Way | Time | Space |
 |---|---|---|
@@ -104,7 +122,7 @@ Checks: `numIdenticalPairs([1,2,3,1,1,3])` → `4`. `numPairsDivisibleBy60([30,2
 | **Count map, one pass** | **`O(n)`** | `O(u)` |
 | Remainder array of size `m` | `O(n + m)` | `O(m)` |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Adding the current value before the lookup.** An item pairs with itself.
 2. **Counting each pair twice** (as `(i, j)` and as `(j, i)`).
@@ -114,13 +132,13 @@ Checks: `numIdenticalPairs([1,2,3,1,1,3])` → `4`. `numPairsDivisibleBy60([30,2
 6. **Overflow** of the answer. It can reach `n²/2`, so use `Long` for big inputs.
 7. **K-diff pairs:** forgetting the special case `k == 0`.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "For each item I add how many earlier items complete a pair, then I record the item. That keeps `i < j`."
 2. "A count map handles duplicates, which a set cannot."
 3. "One pass: `O(n)` time. I use `Long` if the count can be large."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. For `[1, 1, 1]`, how many good pairs are there?
 2. Why record the current item **after** the lookup?
@@ -133,7 +151,7 @@ Checks: `numIdenticalPairs([1,2,3,1,1,3])` → `4`. `numPairsDivisibleBy60([30,2
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

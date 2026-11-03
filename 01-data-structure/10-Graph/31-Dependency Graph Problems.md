@@ -74,7 +74,28 @@ Graph: w → e → r → t → f.    Order: "wertf"
 
 Invalid case: if a longer word comes before its own prefix (`"abc"` then `"ab"`), no order exists. Return `""`.
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Approach | Time | Note |
+|---|---|---|
+| Try every ordering of the tasks | `O(V!)` | impossible beyond about 10 tasks |
+| Repeatedly scan for a task with no pending prerequisites | `O(V² + V · E)` | works, slow |
+| **Kahn's algorithm** | **`O(V + E)`** | also detects a cycle |
+| DFS with 3 states | `O(V + E)` | order = reverse finish |
+
+The three standard questions and their tools:
+
+| Question | Tool |
+|---|---|
+| Is an order possible? | did Kahn process all vertices? |
+| Give one order | Kahn or reverse DFS finish order |
+| Minimum rounds / time | Kahn **by levels**, or the longest path in the DAG |
+
+```text
+build the edge  "needed first"  →  "needed later",  count in-degrees,  run Kahn
+```
+
+#### 4. Kotlin Code
 
 ```kotlin
 // Alien Dictionary (LeetCode 269). Returns any valid order, or "" if there is none.
@@ -140,14 +161,14 @@ fun findAllRecipes(recipes: Array<String>, ingredients: List<List<String>>, supp
 
 Checks: `alienOrder(["wrt","wrf","er","ett","rftt"])` → `"wertf"`. `alienOrder(["z","x","z"])` → `""` (a cycle). `alienOrder(["abc","ab"])` → `""`.
 
-#### 4. Complexity
+#### 5. Complexity
 
 | | Time | Space |
 |---|---|---|
 | Course Schedule style (Kahn) | `O(V + E)` | `O(V + E)` |
 | Alien Dictionary (`C` = total characters of all words) | `O(C)` | `O(1)` for a fixed alphabet (at most 26 letters) |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Wrong edge direction.** Edge = "must come before".
 2. **Alien Dictionary: forgetting that every letter is a node**, even letters with no rules.
@@ -157,13 +178,13 @@ Checks: `alienOrder(["wrt","wrf","er","ett","rftt"])` → `"wertf"`. `alienOrder
 6. **Not checking for a cycle** at the end.
 7. **Expecting a unique answer.** Any valid order is accepted.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "This is a dependency problem. I model 'A before B' as an edge `A → B`, then run Kahn's algorithm."
 2. "If I cannot process all nodes, there is a cycle, so no valid order exists."
 3. "Time `O(V + E)`."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. In Alien Dictionary, which letters of two words give a rule?
 2. When is there no valid order?
@@ -176,7 +197,7 @@ Checks: `alienOrder(["wrt","wrf","er","ett","rftt"])` → `"wertf"`. `alienOrder
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

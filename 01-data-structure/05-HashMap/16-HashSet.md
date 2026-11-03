@@ -32,7 +32,25 @@ Types:
 | `LinkedHashSet` / `mutableSetOf()` | insertion order |
 | `TreeSet` / `sortedSetOf()` | sorted, `O(log n)` |
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Task | With a list | With a `HashSet` |
+|---|---|---|
+| Is `x` present? | `contains`: `O(n)` | `O(1)` |
+| Add only if new | `if (x !in list) list.add(x)`: `O(n)` | `set.add(x)`: `O(1)` |
+| Unique values of an array | nested loops: `O(n²)` | `toHashSet()`: `O(n)` |
+
+```kotlin
+// Brute force: contains duplicate with nested loops
+fun containsDuplicateBrute(nums: IntArray): Boolean {
+    for (i in nums.indices) for (j in i + 1 until nums.size) if (nums[i] == nums[j]) return true
+    return false
+}
+```
+
+`containsDuplicateBrute(intArrayOf(1, 2, 3, 1))` → `true`. With a set: `if (!seen.add(x)) return true` finds it in one pass.
+
+#### 4. Kotlin Code
 
 ```kotlin
 val set = HashSet<Int>()
@@ -52,14 +70,14 @@ fun containsDuplicate(nums: IntArray): Boolean {
 }
 ```
 
-#### 4. Complexity
+#### 5. Complexity
 
 | Action | Time |
 |---|---|
 | `add`, `contains`, `remove` | `O(1)` on average |
 | Memory | `O(n)` (less than a map) |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Using `HashMap<K, Boolean>`** when a `HashSet<K>` is enough.
 2. **Using a set when you need counts or indexes.** Use a map.
@@ -67,12 +85,12 @@ fun containsDuplicate(nums: IntArray): Boolean {
 4. **Arrays or mutable objects** inside a set.
 5. **Removing from a set inside a `for` loop** over it.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "I only need to know if I have seen the value, so a `HashSet` is enough. A map would store values I never use."
 2. "`add` returns `false` for a duplicate, so one call is both the check and the insert."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. What does `set.add(x)` return when `x` is already in the set?
 2. When must you use a map instead of a set?
@@ -85,7 +103,7 @@ fun containsDuplicate(nums: IntArray): Boolean {
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

@@ -1,159 +1,179 @@
 # HashSet with Custom Objects
 
-#### 1. Definition — Must Know
+> A set decides "same or different" with `equals` and `hashCode`. For your own classes, use a **`data class`**, or write both functions yourself.
 
-1. A HashSet can hold **your own classes**, such as `Point`, `User`, or `Task`.
-2. To work correctly, the class needs **`equals()`** and **`hashCode()`** that match each other.
-3. In Kotlin, a **`data class`** gives you both automatically.
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+A `HashSet<T>` finds an item with `hashCode()` (which bucket?) and then compares with `equals()` (is it the same?). The two must agree:
 
-1. Many problems use coordinates, pairs, or states as set items: `(row, col)`, `(x, y, direction)`.
-2. App code stores model objects in sets: selected items, unique users, seen messages.
-3. A broken `equals`/`hashCode` is one of the most common hidden bugs.
+> **If `a == b`, then `a.hashCode() == b.hashCode()`.**
 
-#### 3. How It Works — Must Know
+| Type | `equals` / `hashCode` | Works in a set? |
+|---|---|---|
+| `Int`, `String`, `Char`, `Long` | by value | yes |
+| `Pair`, `Triple`, `List`, `data class` | by value of the contents | yes |
+| `IntArray`, `Array<T>` | by **identity** | **no** (use `List`) |
+| Normal `class` (no override) | by **identity** | only the same object |
 
-```text
-set.add(obj):
-    1. hash = obj.hashCode()                    → picks the bucket
-    2. in that bucket, for each existing item:  compare with equals()
-    3. if an equal item exists → not added      (duplicate)
-       else                    → added
-```
+**Signals:** "set of points", "visited coordinates", "set of states", "unique pairs", "set of objects", "unique shapes".
 
-**The contract:**
-
-```text
-If a.equals(b) is true  →  a.hashCode() MUST equal b.hashCode()
-(the opposite is allowed: equal hash codes do not require equal objects)
-```
-
-If this is broken, equal objects land in different buckets, and the set stores both.
-
-#### 4. Core Concepts — Must Know
-
-1. **Default behaviour** (a normal class with no overrides): equality is **identity**. Two separate objects are always different.
-2. **`data class`**: `equals`, `hashCode`, `toString`, `copy` are generated from the **constructor properties**.
-3. **Use only `val` properties** (immutable) in anything stored in a set.
-4. **Do not mutate a key** after adding it. The item can no longer be found.
-5. **Arrays do not work** (`IntArray`, `Array<T>`). They compare by reference. Use `List`, `Pair`, `Triple`, or a `data class`.
-6. **Only properties in the primary constructor** count for a `data class`. Body properties are ignored.
-7. **Custom rule:** override `equals`/`hashCode` yourself when only some fields define identity (for example, by `id`).
-
-| Choice | Equality is based on |
-|---|---|
-| Normal class | Reference (same object) |
-| `data class` | All primary-constructor properties |
-| Class with your own `equals`/`hashCode` | Whatever you choose (like only `id`) |
-| `Pair`, `Triple`, `List` | Contents |
-
-#### 5. Algorithm — Must Know
-
-```text
-1. Decide what makes two objects "the same" (the key).
-2. Make the class a data class with val fields, or override equals + hashCode on exactly those fields.
-3. Put the objects in the set.
-```
-
-#### 6. Kotlin Implementation — Must Know
+#### 2. How It Works
 
 ```kotlin
-// 1. data class as a key
-data class Point(val x: Int, val y: Int)
-
-val visited = HashSet<Point>()
-visited.add(Point(1, 2))
-println(Point(1, 2) in visited)        // true  (equal by content)
-println(visited.add(Point(1, 2)))      // false (duplicate)
-
-// 2. Pair / Triple work too
-val seen = HashSet<Pair<Int, Int>>()
-seen.add(3 to 4)
-println((3 to 4) in seen)              // true
-
-// 3. A normal class does NOT work as expected
-class Tag(val name: String)
-println(hashSetOf(Tag("a"), Tag("a")).size)      // 2
-
-// 4. Manual equals/hashCode — identity by id only
-class User(val id: Int, var name: String) {
-    override fun equals(other: Any?): Boolean =
-        this === other || (other is User && id == other.id)
-
-    override fun hashCode(): Int = id.hashCode()
-}
-val users = hashSetOf(User(1, "Asha"), User(1, "Asha K"))
-println(users.size)                              // 1
-
-// 5. Remove duplicates by a property
-data class Message(val id: Int, val text: String)
-val messages = listOf(Message(1, "Hi"), Message(2, "Yo"), Message(1, "Hi again"))
-val uniqueMessages = messages.distinctBy { it.id }     // keeps ids 1 and 2
-
-// 6. Arrays inside a data class: compare contents yourself
-data class Grid(val cells: List<Int>)            // List compares by content — good
-// data class Bad(val cells: IntArray)           // IntArray compares by reference — bad
+class P(val x: Int, val y: Int)            // no equals / hashCode: identity only
+data class Q(val x: Int, val y: Int)       // equals, hashCode, toString, copy: by value
 ```
 
-**Android note.** Model classes used in a `Set` or as `DiffUtil` keys should be `data class` with `val` fields. A `var` in the constructor invites the mutation bug.
+```text
+setOf(P(1, 2)).contains(P(1, 2))   → false   (two different objects)
+setOf(Q(1, 2)).contains(Q(1, 2))   → true    (equal by value)
+```
 
-#### 7. Time & Space Complexity — Must Know
+**Choices for a coordinate**
 
-| Operation | Cost |
+| Key | Pros | Cons |
+|---|---|---|
+| `Pair<Int, Int>` | built in, short | boxing, a little slow |
+| `data class Point(val r: Int, val c: Int)` | clear names | boxing, a little slow |
+| `r * cols + c` (an `Int` / `Long`) | fastest, least memory | you must decode it (`id / cols`, `id % cols`) |
+| `"$r,$c"` (a `String`) | easy to write | slow, wasteful |
+
+```mermaid
+flowchart TD
+    A["Need a set of coordinates / states"] --> B{"Small input, clarity first?"}
+    B -->|"yes"| C["data class or Pair"]
+    B -->|"no, performance matters"| D["encode into an Int or Long"]
+    A --> E{"Elements are arrays?"}
+    E -->|"yes"| F["convert to List or String first"]
+```
+
+**Mutable keys.** Do not change a key's fields after it is in a set. The set looks for it in the old bucket and fails to find it.
+
+```text
+val p = MutablePoint(1, 2); set.add(p)
+p.x = 5            → the hash changed, but the set still stores p in the old bucket
+set.contains(p)    → false (!), even though p is in the set
+```
+
+**Writing `equals` and `hashCode` by hand** (when a data class is not possible, for example you only want to compare some fields):
+
+```kotlin
+class User(val id: Int, val name: String) {
+    override fun equals(other: Any?): Boolean = other is User && other.id == id
+    override fun hashCode(): Int = id.hashCode()        // use the same fields as equals
+}
+```
+
+#### 3. Brute Force vs Optimized
+
+| Approach | Cost |
 |---|---|
-| `add` / `contains` / `remove` | `O(1)` average, plus the cost of `hashCode()` and `equals()` |
-| `hashCode()` of a data class | `O(number of fields)`; for a `List` field, `O(list size)` |
-| Space | One object per element, plus set overhead |
+| Keep a `List<Point>` and check `contains` | `O(n)` per check |
+| `HashSet<Point>` with a data class | `O(1)` per check |
+| `HashSet<Int>` with an encoded id | `O(1)`, faster and smaller |
 
-A big key (a long list or string) makes every operation slower, because hashing must read all of it.
+```kotlin
+// Brute force: a list of points, scanning for duplicates
+fun uniquePointsBrute(points: List<Pair<Int, Int>>): Int {
+    val out = mutableListOf<Pair<Int, Int>>()
+    for (p in points) if (p !in out) out.add(p)           // O(n) scan
+    return out.size
+}
+```
 
-#### 8. Common Custom-Object Patterns — Must Know
+#### 4. Kotlin Code
 
-1. **Coordinates:** `data class Point(val r: Int, val c: Int)` in grid problems.
-2. **State objects:** `data class State(val row: Int, val col: Int, val keys: Int)` in BFS.
-3. **Edges / pairs:** `Pair(a, b)` to remember visited edges.
-4. **Deduplicate models:** `distinctBy { it.id }`.
-5. **Sorted lists as keys:** `Set<List<Int>>` for unique triples or combinations.
-6. **Performance trick:** for very large grids, an `Int` or `Long` id (`r * cols + c`) is lighter than a `Point` object.
+```kotlin
+data class Point(val r: Int, val c: Int)
 
-#### 9. Edge Cases / Common Mistakes
+class Plain(val x: Int)                                   // no equals / hashCode
 
-1. Using a normal class and expecting content equality.
-2. Overriding `equals` but not `hashCode` (or the other way around).
-3. Using `var` fields in the key and changing them later.
-4. Including a mutable field (like a list that changes) in `hashCode`.
-5. Putting arrays in a data class and expecting `==` to compare contents.
-6. A `hashCode` that returns a constant (`return 1`). It is legal but makes every operation `O(n)`.
-7. Using fields in `equals` that are not in `hashCode`.
-8. Floating-point fields. Equality is exact; `0.1 + 0.2` is not `0.3`.
-9. Relying on `toString()` as a key without a good reason. It is slow and fragile.
+fun uniquePoints(points: List<Point>): Int = points.toHashSet().size
 
-#### 10. When to Use / When Not to Use
+// Number of distinct cells visited by a walk: U, D, L, R
+fun distinctCellsVisited(moves: String): Int {
+    val visited = HashSet<Point>()
+    var r = 0
+    var c = 0
+    visited.add(Point(r, c))
+    for (m in moves) {
+        when (m) { 'U' -> r--; 'D' -> r++; 'L' -> c--; 'R' -> c++ }
+        visited.add(Point(r, c))
+    }
+    return visited.size
+}
 
-**Use a data class key when:**
+// Path Crossing (LeetCode 1496): does the path visit a point twice?
+fun isPathCrossing(path: String): Boolean {
+    val visited = HashSet<Pair<Int, Int>>()
+    var x = 0
+    var y = 0
+    visited.add(x to y)
+    for (ch in path) {
+        when (ch) { 'N' -> y++; 'S' -> y--; 'E' -> x++; 'W' -> x-- }
+        if (!visited.add(x to y)) return true
+    }
+    return false
+}
 
-1. The key is naturally several values (coordinates, state).
-2. You want readable, correct code.
+// Compact key for a grid cell
+fun cellId(r: Int, c: Int, cols: Int) = r * cols + c
 
-**Use an encoded `Int`/`Long`/`String` key when:**
+// Unique pairs regardless of order: (a, b) and (b, a) are the same
+fun uniqueUnorderedPairs(pairs: List<Pair<Int, Int>>): Int =
+    pairs.map { (a, b) -> if (a <= b) a to b else b to a }.toHashSet().size
+```
 
-1. Speed and memory matter (very large grids, millions of states).
+Checks: `setOf(Plain(1)).contains(Plain(1))` → `false`. `setOf(Point(1, 2)).contains(Point(1, 2))` → `true`. `uniquePoints(listOf(Point(1, 2), Point(1, 2), Point(2, 1)))` → `2`. `distinctCellsVisited("RRLU")` → `4` (cells `(0,0)`, `(0,1)`, `(0,2)`, then back to `(0,1)`, then `(-1,1)`). `isPathCrossing("NES")` → `false`. `isPathCrossing("NESWW")` → `true`. `cellId(3, 4, 10)` → `34`. `uniqueUnorderedPairs(listOf(1 to 2, 2 to 1, 3 to 4))` → `2`. `uniquePointsBrute(listOf(1 to 2, 1 to 2, 2 to 1))` → `2`.
 
-**Avoid when:**
+Trace of `distinctCellsVisited("RRLU")`: start `(0,0)`; `R` → `(0,1)`; `R` → `(0,2)`; `L` → `(0,1)` (already visited); `U` → `(-1,1)`. Set size `4`.
 
-1. The objects are mutable and shared. Copy the needed fields into a key instead.
+#### 5. Complexity
 
-#### 11. Related Topics
+| | Time | Space |
+|---|---|---|
+| `add` / `contains` with a good `hashCode` | `O(1)` average | |
+| Data class hash | `O(number of fields)` | |
+| Encoded `Int` key | `O(1)` | smallest |
+| List scan | `O(n)` | |
 
-1. Common HashSet Edge Cases
-2. Deduplication of Complex States
-3. HashSet in Graph / State-Space Problems
-4. Kotlin Data Classes (`03-leetcode-patterns`, topic 3)
+#### 6. Common Mistakes
 
-#### 12. Interview Must Remember
+1. **A normal class with no `equals` / `hashCode`** in a set. Every object is "different".
+2. **Overriding `equals` but not `hashCode`** (or the other way round). The set breaks.
+3. **Using `var` fields in a key** and changing them.
+4. **Arrays as elements** (identity comparison).
+5. **`hashCode` using different fields from `equals`.**
+6. **Encoding a cell as `r * cols + c` with the wrong `cols`** (rows and columns swapped).
 
-1. **A set needs `equals()` and `hashCode()` that agree.**
-2. **`data class` + `val` fields** is the safe default.
-3. Arrays and normal classes compare by reference. They break sets.
-4. Never mutate an object after it is in a set.
+#### 7. Say This in the Interview
+
+1. "A set uses `equals` and `hashCode`. For my own type I'll use a data class so equality is by value."
+2. "For a grid I could encode the cell as `r * cols + c` in an `Int`, which is faster and smaller than a `Pair`."
+3. "I'll keep keys immutable, so they never move to the wrong bucket after being added."
+
+#### 8. Quick Check
+
+1. Why does `setOf(Plain(1)).contains(Plain(1))` return false?
+2. Which one is a good coordinate key for speed?
+3. What must be true about `equals` and `hashCode`?
+
+<details>
+<summary>Answers</summary>
+
+1. `Plain` uses identity equality, so two objects are different.
+2. An encoded `Int` or `Long` (`r * cols + c`).
+3. Equal objects must have equal hash codes.
+
+</details>
+
+#### 9. Related LeetCode Questions
+
+| # | Question | Idea |
+|---|---|---|
+| 1496 | [Path Crossing](https://leetcode.com/problems/path-crossing/) (Easy) | set of points |
+| 463 | [Island Perimeter](https://leetcode.com/problems/island-perimeter/) (Easy) | neighbours of cells |
+| 874 | [Walking Robot Simulation](https://leetcode.com/problems/walking-robot-simulation/) (Medium) | set of obstacles |
+| 694 | [Number of Distinct Islands](https://leetcode.com/problems/number-of-distinct-islands/) (Medium, premium) | set of shapes (note 18) |
+| 447 | [Number of Boomerangs](https://leetcode.com/problems/number-of-boomerangs/) (Medium) | map of distances |
+| 149 | [Max Points on a Line](https://leetcode.com/problems/max-points-on-a-line/) (Hard) | map of slopes |

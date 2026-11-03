@@ -1,172 +1,169 @@
 # HashSet + Sliding Window
 
-#### 1. Definition — Must Know
+> A window that must contain **no duplicates**. The set holds the window's items. When a new item is already inside, shrink from the left until it is not.
 
-1. A **sliding window** is a range of consecutive items that grows on the right and shrinks on the left.
-2. A **HashSet** holds the items **inside the current window**, so you can check duplicates in `O(1)`.
-3. Use it when the rule is "all items in the window must be unique" or "no duplicate within distance `k`".
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+In a **sliding window** problem, the window `[left, right]` must stay **valid**. When validity means **"all elements are different"**, a `HashSet` of the window's elements checks it in `O(1)`.
 
-1. It turns an `O(n²)` "check every substring" idea into `O(n)`.
-2. It is behind famous problems: *Longest Substring Without Repeating Characters* (LeetCode 3) and *Contains Duplicate II* (LeetCode 219).
-3. It shows two techniques working together, which interviewers like.
+| Question | Window rule |
+|---|---|
+| **Longest Substring Without Repeating Characters** (3) | no repeated character |
+| **Maximum Erasure Value** (1695) | no repeated number; maximise the **sum** |
+| **Contains Duplicate II** (219) | window of size `k`, find a duplicate (note 4) |
+| **Longest Nice / Distinct subarray** variants | distinct elements |
 
-#### 3. How It Works — Must Know
+**Signals:** "longest substring/subarray with all distinct", "no repeats", "unique elements", "maximum sum of a subarray of unique elements".
 
-Longest substring without repeating characters, `s = "abcabcbb"`.
+#### 2. How It Works
 
-```text
-left = 0, window = {}
-
-right=0 'a' not in window → add          window {a}        length 1
-right=1 'b' not in window → add          window {a,b}      length 2
-right=2 'c' not in window → add          window {a,b,c}    length 3   ← best
-right=3 'a' IS in window  → remove s[left]='a', left=1      window {b,c}
-                            then add 'a'                    window {b,c,a}  length 3
-right=4 'b' IS in window  → remove 'b', left=2, add 'b'     window {c,a,b}  length 3
-right=5 'c' IS in window  → remove 'c', left=3, add 'c'     window {a,b,c}  length 3
-right=6 'b' IS in window  → remove 'a' (left=4), 'b' (left=5), add 'b'
-                                                            window {c,b}    length 2
-right=7 'b' IS in window  → remove 'c' (left=6), 'b' (left=7), add 'b'
-                                                            window {b}      length 1
-
-Answer: 3   (the best length seen)
+```mermaid
+flowchart LR
+    R["right moves to the next element"] --> Q{"is it already<br/>in the set?"}
+    Q -->|"yes"| S["remove nums[left] from the set<br/>left++"]
+    S --> Q
+    Q -->|"no"| A["add it to the set<br/>update the best answer"]
+    A --> R
 ```
 
-The idea: when the new item breaks the rule, **remove items from the left until the rule is true again**, then add the new item.
+```text
+Maximum Erasure Value: [4, 2, 4, 5, 6]
+right=0 (4): set {4}         sum 4
+right=1 (2): set {4, 2}      sum 6
+right=2 (4): 4 is in the set → remove nums[0]=4 (sum 2), left=1 → add 4 → set {2, 4}  sum 6
+right=3 (5): set {2, 4, 5}   sum 11
+right=4 (6): set {2,4,5,6}   sum 17   ← best
+answer 17
+```
 
-#### 4. Core Concepts — Must Know
+**Why `O(n)`:** `left` and `right` each move forward at most `n` times. Each element is added once and removed at most once.
 
-1. **Two pointers:** `left` and `right`. `right` moves every step. `left` moves only when needed.
-2. **The set is the window.** It always holds exactly the items from `left` to `right`.
-3. **Shrink with a `while`:** keep removing from the left while the new item is still a duplicate.
-4. **Each item enters and leaves the set at most once**, so the total is `O(n)`.
-5. **Fixed-size window** (like "within `k` positions"): after adding, if the set is larger than `k`, remove the item that fell out.
-6. **Map instead of set** when you want to jump `left` directly: store the last index of each character.
+**Set vs map.** A **set** is enough when you only need "is it in the window?". If you want to jump `left` straight past the earlier copy, store the **last index** in a `HashMap` (a faster variant of the same idea).
 
-| Problem | Window | Rule |
+**Set vs array.** For lowercase letters, `BooleanArray(26)` replaces the set.
+
+#### 3. Brute Force vs Optimized
+
+| Approach | Time | Space |
 |---|---|---|
-| Longest substring without repeats | Variable | All characters unique |
-| Contains Duplicate II | Fixed size `k` | No duplicate within `k` positions |
-| Max sum of distinct subarray of size `k` (LeetCode 2461) | Fixed size `k` | All `k` items distinct |
-
-#### 5. Algorithm — Must Know
-
-```text
-Variable window:
-left = 0; window = empty set; best = 0
-for right in 0 until n:
-    while s[right] is in window:
-        window.remove(s[left]); left++
-    window.add(s[right])
-    best = max(best, right - left + 1)
-
-Fixed window of size k (duplicate within k):
-for i in 0 until n:
-    if window.add(nums[i]) is false: return true
-    if window.size > k: window.remove(nums[i - k])
-```
-
-#### 6. Kotlin Implementation — Must Know
+| Check every subarray for duplicates | `O(n³)` (or `O(n²)` with a set per start) | `O(n)` |
+| **Sliding window + set** | **`O(n)`** | `O(window)` |
 
 ```kotlin
-// Longest Substring Without Repeating Characters
+// Brute force: for each start, extend until a duplicate appears. O(n^2).
+fun maximumUniqueSubarrayBrute(nums: IntArray): Int {
+    var best = 0
+    for (i in nums.indices) {
+        val seen = HashSet<Int>()
+        var sum = 0
+        for (j in i until nums.size) {
+            if (!seen.add(nums[j])) break
+            sum += nums[j]
+        }
+        best = maxOf(best, sum)
+    }
+    return best
+}
+```
+
+#### 4. Kotlin Code
+
+```kotlin
+// Longest Substring Without Repeating Characters (LeetCode 3)
 fun lengthOfLongestSubstring(s: String): Int {
     val window = HashSet<Char>()
     var left = 0
     var best = 0
     for (right in s.indices) {
-        while (s[right] in window) {
+        while (!window.add(s[right])) {            // already inside: shrink from the left
             window.remove(s[left])
             left++
         }
-        window.add(s[right])
         best = maxOf(best, right - left + 1)
     }
     return best
 }
 
-// Contains Duplicate II — two equal values at most k positions apart
-fun containsNearbyDuplicate(nums: IntArray, k: Int): Boolean {
+// Maximum Erasure Value (LeetCode 1695): the best sum of a subarray with all distinct values
+fun maximumUniqueSubarray(nums: IntArray): Int {
     val window = HashSet<Int>()
-    for (i in nums.indices) {
-        if (!window.add(nums[i])) return true
-        if (window.size > k) window.remove(nums[i - k])
+    var left = 0
+    var sum = 0
+    var best = 0
+    for (right in nums.indices) {
+        while (!window.add(nums[right])) {
+            window.remove(nums[left])
+            sum -= nums[left]
+            left++
+        }
+        sum += nums[right]
+        best = maxOf(best, sum)
     }
-    return false
+    return best
 }
 
-// Faster jump with a map (last index of each character)
+// Same as the first one, with a map of last positions (jumps left in one step)
 fun lengthOfLongestSubstringMap(s: String): Int {
-    val lastSeen = HashMap<Char, Int>()
+    val last = HashMap<Char, Int>()
     var left = 0
     var best = 0
     for (right in s.indices) {
-        val prev = lastSeen[s[right]]
+        val prev = last[s[right]]
         if (prev != null && prev >= left) left = prev + 1
-        lastSeen[s[right]] = right
+        last[s[right]] = right
         best = maxOf(best, right - left + 1)
     }
     return best
 }
 ```
 
-Checks: `"abcabcbb"` → `3`. `"bbbbb"` → `1`. `"pwwkew"` → `3`. `containsNearbyDuplicate([1,2,3,1], 3)` → `true`.
+Checks: `lengthOfLongestSubstring("abcabcbb")` → `3`. `("bbbbb")` → `1`. `("pwwkew")` → `3`. `("")` → `0`. `("dvdf")` → `3` (`vdf`). `lengthOfLongestSubstringMap("dvdf")` → `3`. `maximumUniqueSubarray(intArrayOf(4, 2, 4, 5, 6))` → `17`. `maximumUniqueSubarray(intArrayOf(5, 2, 1, 2, 5, 2, 1, 2, 5))` → `8` (`5 + 2 + 1`). `maximumUniqueSubarray(intArrayOf(10))` → `10`. `maximumUniqueSubarrayBrute(intArrayOf(4, 2, 4, 5, 6))` → `17`.
 
-#### 7. Time & Space Complexity — Must Know
+#### 5. Complexity
 
-| Problem | Time | Space |
-|---|---:|---:|
-| Longest unique substring | `O(n)` | `O(min(n, alphabet))` |
-| Contains Duplicate II | `O(n)` | `O(k)` |
-| Brute force substrings | `O(n²)` or `O(n³)` | — |
+| | Time | Space |
+|---|---|---|
+| Set window | `O(n)` | `O(min(n, alphabet))` |
+| Map of last positions | `O(n)` | `O(min(n, alphabet))` |
+| Brute force | `O(n²)` | `O(n)` |
 
-Each character is added once and removed once, so the `while` loop does not make it `O(n²)`.
+#### 6. Common Mistakes
 
-#### 8. Common HashSet + Window Patterns — Must Know
+1. **Using `if` instead of `while`** to shrink. One removal may not clear the duplicate.
+2. **Forgetting to update the running sum** when removing from the left.
+3. **Adding the new element before the shrink loop finishes** (the `while (!add)` pattern avoids this).
+4. **Map version:** moving `left` backwards. Use `prev >= left`.
+5. **Window length off by one.** It is `right − left + 1`.
+6. **Using the whole array's set** instead of the window's set.
 
-1. **Longest Substring Without Repeating Characters** (LeetCode 3).
-2. **Contains Duplicate II** (LeetCode 219) — fixed window.
-3. **Maximum Sum of Distinct Subarrays With Length K** (LeetCode 2461) — set plus running sum (a map of counts also works).
-4. **Longest subarray with unique items** — the same idea with numbers.
-5. **Substring problems with a limited number of distinct characters** — a map of counts is needed, not just a set.
-6. **Longest Nice Subarray, repeating elements** — set variants.
+#### 7. Say This in the Interview
 
-#### 9. Edge Cases / Common Mistakes
+1. "The window must have all distinct elements, so I keep a `HashSet` of what's inside. When the next element is already in the set, I shrink from the left until it isn't."
+2. "Each element is added once and removed at most once, so it's `O(n)`."
+3. "I update the sum as the window changes, so I don't recompute it."
 
-1. Using `if` instead of `while` when shrinking. Several items may need to be removed.
-2. Adding the new item before the shrink loop finishes.
-3. Wrong length: `right - left + 1`.
-4. In the fixed window: removing `nums[i - k]` too early or too late. The set should hold at most the last `k` items.
-5. Empty string. The answer is `0`.
-6. Using a set when counts are needed ("at most 2 distinct characters" needs a map).
-7. In the map version: forgetting `prev >= left`, so `left` jumps backward.
+#### 8. Quick Check
 
-#### 10. When to Use / When Not to Use
+1. Longest distinct window in `"abba"`?
+2. Why `while` and not `if`?
+3. What does `window.add(x)` returning `false` tell you?
 
-**Use when:**
+<details>
+<summary>Answers</summary>
 
-1. The rule is about **uniqueness** inside a contiguous range.
+1. `2` (`ab` or `ba`).
+2. A new element's earlier copy might be several positions from `left`, so more than one removal may be needed.
+3. `x` is already in the window, so you must shrink.
 
-**Use a map instead when:**
+</details>
 
-1. You need counts, or the exact last index of an item.
+#### 9. Related LeetCode Questions
 
-**Avoid when:**
-
-1. The range is not contiguous (subsequences). Use another technique.
-
-#### 11. Related Topics
-
-1. Sliding Window (`03-leetcode-patterns`, topic 5)
-2. HashSet with Strings / Characters
-3. Duplicate Detection
-4. HashSet + Two Pointers
-
-#### 12. Interview Must Remember
-
-1. **The set holds exactly the current window.**
-2. **Shrink from the left with a `while` until the rule is valid again.**
-3. `O(n)`: each item enters and leaves the set once.
-4. Counts needed → `HashMap`, not `HashSet`.
+| # | Question | Idea |
+|---|---|---|
+| 3 | [Longest Substring Without Repeating Characters](https://leetcode.com/problems/longest-substring-without-repeating-characters/) (Medium) | set window |
+| 1695 | [Maximum Erasure Value](https://leetcode.com/problems/maximum-erasure-value/) (Medium) | set window + sum |
+| 219 | [Contains Duplicate II](https://leetcode.com/problems/contains-duplicate-ii/) (Easy) | fixed-size window |
+| 904 | [Fruit Into Baskets](https://leetcode.com/problems/fruit-into-baskets/) (Medium) | window with at most 2 types |
+| 2401 | [Longest Nice Subarray](https://leetcode.com/problems/longest-nice-subarray/) (Medium) | window with a bit mask |
+| 424 | [Longest Repeating Character Replacement](https://leetcode.com/problems/longest-repeating-character-replacement/) (Medium) | window with counts |

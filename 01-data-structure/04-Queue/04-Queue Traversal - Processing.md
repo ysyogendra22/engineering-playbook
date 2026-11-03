@@ -32,7 +32,32 @@ rotate 2 times:  [C, D, A, B]      the front (C) holds the potato
 C leaves:        [D, A, B]
 ```
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Approach | Idea | Cost |
+|---|---|---|
+| Process everything, then handle order with sorting | store all items, sort by arrival time | `O(n log n)` |
+| **Queue** processing | `while (queue.isNotEmpty()) { val x = queue.removeFirst(); ...; queue.addLast(next) }` | `O(n)` |
+
+The queue is the right tool when **new work is discovered while processing** (neighbours, children, retries). A sorted list would need to be re-sorted every time new work arrives.
+
+```kotlin
+// Process tasks and the new tasks they create, in arrival order
+fun processAll(start: List<Int>, spawn: (Int) -> List<Int>): List<Int> {
+    val queue = ArrayDeque(start)
+    val order = mutableListOf<Int>()
+    while (queue.isNotEmpty()) {
+        val x = queue.removeFirst()
+        order.add(x)
+        queue.addAll(spawn(x))
+    }
+    return order
+}
+```
+
+`processAll(listOf(1), { if (it < 4) listOf(it * 2, it * 2 + 1) else emptyList() })` → `[1, 2, 3, 4, 5, 6, 7]`.
+
+#### 4. Kotlin Code
 
 ```kotlin
 // Number of Recent Calls (LeetCode 933)
@@ -89,7 +114,7 @@ fun timeRequiredToBuy(tickets: IntArray, k: Int): Int {
 
 Checks: `RecentCounter` with pings `1, 100, 3001, 3002` → `1, 2, 3, 3`. `timeRequiredToBuy([2, 3, 2], 2)` → `6`.
 
-#### 4. Complexity
+#### 5. Complexity
 
 | Task | Time | Space |
 |---|---|---|
@@ -99,7 +124,7 @@ Checks: `RecentCounter` with pings `1, 100, 3001, 3002` → `1, 2, 3, 3`. `timeR
 
 Each item is added once and removed once, so an "expire from the front" queue costs `O(n)` in total.
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Wrong boundary** on the time window (`<` vs `<=`). Read the question.
 2. **Calling `first()` on an empty queue** in the expire loop.
@@ -108,13 +133,13 @@ Each item is added once and removed once, so an "expire from the front" queue co
 5. **Forgetting to put a person back** in the line when they still need tickets.
 6. **Dividing by zero** for an empty window.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "Events arrive in time order, so the oldest are at the front. I remove them from the front while they are too old."
 2. "Each item enters and leaves once, so the total time is `O(n)`."
 3. "To pass something around a circle I rotate: `addLast(removeFirst())`."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. In `RecentCounter`, why remove from the **front**?
 2. What does rotating a queue of `[1, 2, 3]` once give?
@@ -127,7 +152,7 @@ Each item is added once and removed once, so an "expire from the front" queue co
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

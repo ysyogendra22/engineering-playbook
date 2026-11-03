@@ -43,7 +43,33 @@ pop → 3 (right), pop → 5 (left), calculate 5 - 3 = 2      (not 3 - 5)
 
 Division truncates toward zero: `13 / 5 = 2`, and `-7 / 2 = -3`. Kotlin `Int` division does exactly this.
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Approach | Idea | Time |
+|---|---|---|
+| Rewrite the token list repeatedly | find the first operator, compute it with the two numbers before it, replace the three tokens with the result | `O(n²)` |
+| **Stack** | push numbers; on an operator pop two, compute, push the result | `O(n)` |
+
+```kotlin
+// Brute force: keep rewriting the list until one number is left. O(n^2) because of the list edits.
+fun evalRPNBrute(tokens: List<String>): Int {
+    val t = tokens.toMutableList()
+    while (t.size > 1) {
+        val i = t.indexOfFirst { it == "+" || it == "-" || it == "*" || it == "/" }
+        val a = t[i - 2].toInt()
+        val b = t[i - 1].toInt()
+        val r = when (t[i]) { "+" -> a + b; "-" -> a - b; "*" -> a * b; else -> a / b }
+        t[i - 2] = r.toString()
+        t.removeAt(i)
+        t.removeAt(i - 1)
+    }
+    return t[0].toInt()
+}
+```
+
+`evalRPNBrute(listOf("2", "1", "+", "3", "*"))` → `9`. The stack version gives the same answer in one pass.
+
+#### 4. Kotlin Code
 
 ```kotlin
 fun evalRPN(tokens: Array<String>): Int {
@@ -71,7 +97,7 @@ fun evalRPN(tokens: Array<String>): Int {
 
 Checks: `["2","1","+","3","*"]` → `9`. `["4","13","5","/","+"]` → `6`. `["10","6","9","3","+","-11","*","/","*","17","+","5","+"]` → `22`.
 
-#### 4. Complexity
+#### 5. Complexity
 
 | | Time | Space |
 |---|---|---|
@@ -79,7 +105,7 @@ Checks: `["2","1","+","3","*"]` → `9`. `["4","13","5","/","+"]` → `6`. `["10
 
 Each token is handled once.
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Wrong operand order.** `b - a` instead of `a - b`. The first pop is the right number.
 2. **Mistaking `"-3"` for the operator `-`.** Compare the **whole token** with `"-"`. `"-3"` is a number.
@@ -87,13 +113,13 @@ Each token is handled once.
 4. **Overflow.** Use `Long` if the numbers can be large.
 5. **Stack has fewer than two numbers** when an operator arrives. Only happens with invalid input.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "Postfix needs no brackets. I scan left to right with a stack."
 2. "A number is pushed. For an operator I pop the right operand, then the left operand, and push the result."
 3. "Time `O(n)`, space `O(n)`. Division truncates toward zero."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. Evaluate `["6", "2", "/", "3", "-"]`.
 2. Why is `["-3"]` a number and not an operator?
@@ -106,7 +132,7 @@ Each token is handled once.
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

@@ -97,7 +97,23 @@ flowchart LR
     classDef b fill:#bfdbfe,stroke:#1d4ed8,color:#111
 ```
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Approach | Time | Note |
+|---|---|---|
+| Try every sequence of moves (DFS, no memory) | exponential | revisits the same states |
+| DFS with `visited` | `O(states · moves)` | finds a path, not the shortest |
+| **BFS with `visited`** | **`O(states · moves)`** | the fewest moves |
+| Bidirectional BFS | about `√` of the states | needs a known target |
+
+A **state** must hold everything that decides the future (word, lock code, board layout, plus any extra such as remaining removals). Put dead ends into `visited` before you start.
+
+```text
+Open the Lock: 10^4 = 10,000 states, 8 moves each → 80,000 steps with visited.
+Trying all move sequences of length 10 would be 8^10 ≈ 10^9.
+```
+
+#### 4. Kotlin Code
 
 ```kotlin
 // Open the Lock (LeetCode 752)
@@ -183,7 +199,7 @@ Checks: `openLock(["0201","0101","0102","1212","2002"], "0202")` → `6`. `ladde
 
 For Word Ladder, the faster two-sided search is in the Queue folder (note 18, bidirectional BFS).
 
-#### 4. Complexity
+#### 5. Complexity
 
 | Problem | Time | Space |
 |---|---|---|
@@ -192,7 +208,7 @@ For Word Ladder, the faster two-sided search is in the Queue folder (note 18, bi
 | Perfect Squares | `O(n · √n)` | `O(n)` |
 | General | `O(number of states × moves per state)` | `O(number of states)` |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Putting too little in the state.** If the future depends on something (keys collected, steps left), include it, or you merge different situations.
 2. **No visited set**, so states repeat and the search explodes.
@@ -202,13 +218,13 @@ For Word Ladder, the faster two-sided search is in the Queue folder (note 18, bi
 6. **Mutable state objects** (arrays) as set keys. Use a `String`, `List` or `data class`.
 7. **The target is not allowed** (not in the word list). Return `0` / `-1`.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "I will treat each state as a node and each allowed move as an edge. I need the fewest moves, so BFS."
 2. "My state is ..., and its neighbours are ..."
 3. "A visited set prevents repeating states. The number of states bounds the work."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. What is the "node" in Word Ladder?
 2. Why BFS and not DFS?
@@ -221,7 +237,7 @@ For Word Ladder, the faster two-sided search is in the Queue folder (note 18, bi
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

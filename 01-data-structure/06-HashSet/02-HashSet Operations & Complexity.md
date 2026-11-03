@@ -1,150 +1,138 @@
 # HashSet Operations & Complexity
 
-#### 1. Definition — Must Know
+> `add`, `contains` and `remove` are `O(1)` on average. Know **why**, and know the three Kotlin set types and what each costs.
 
-1. The core operations of a HashSet are **add**, **contains** and **remove**.
-2. All three run in **`O(1)` average** time.
-3. Extra operations: `size`, `isEmpty`, `clear`, iteration, and bulk operations (`addAll`, `removeAll`, `retainAll`).
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+The core operations and their costs:
 
-1. Interviewers often ask "what is the complexity of your solution?". You must know the cost of each set operation.
-2. Most set-based solutions are `O(n)` because each of the `n` items costs `O(1)`.
-3. Knowing the worst case and the memory cost shows depth.
+| Operation | Kotlin | Average | Worst |
+|---|---|---|---|
+| Add | `set.add(x)` (returns `Boolean`) | `O(1)` | `O(n)` |
+| Contains | `x in set`, `set.contains(x)` | `O(1)` | `O(n)` |
+| Remove | `set.remove(x)` (returns `Boolean`) | `O(1)` | `O(n)` |
+| Size / empty | `set.size`, `set.isEmpty()` | `O(1)` | `O(1)` |
+| Iterate | `for (x in set)` | `O(n)` | `O(n)` |
+| Clear | `set.clear()` | `O(n)` | `O(n)` |
 
-#### 3. How It Works — Must Know
+#### 2. How It Works
 
-Each operation follows the same steps: **hash → bucket → equals check**.
+**Why `O(1)` on average?** `hashCode()` gives a number. The set takes `hash mod (number of buckets)` to choose one bucket and checks only the few items in it.
 
-```text
-add(x)       hash x → go to bucket → if an equal value is there: return false
-                                   → else insert x, return true
-contains(x)  hash x → go to bucket → look for an equal value
-remove(x)    hash x → go to bucket → if found: delete it, return true
-                                   → else return false
+```mermaid
+flowchart LR
+    X["contains(x)"] --> H["compute hash(x)"]
+    H --> B["pick bucket = hash mod size"]
+    B --> E["compare x with the few items<br/>in that bucket using equals"]
+    E --> R["true or false"]
 ```
 
-**Resizing.** Java's `HashSet` starts with 16 buckets and a **load factor of 0.75**. When it is 75% full it doubles the buckets and moves every item to a new place (**rehash**). One resize costs `O(n)`, but it is rare, so `add` stays `O(1)` **amortized**.
+**Why `O(n)` in the worst case?** If every item lands in the same bucket (a bad hash function, or an attack), the bucket is a long list. Java 8+ turns long buckets into balanced trees (`O(log n)`), so this is rare in practice. Interviewers accept "`O(1)` average".
 
-#### 4. Core Concepts — Must Know
+**Load factor and resize.** The default load factor is `0.75`. When `size > 0.75 × buckets`, the set doubles its buckets and re-hashes all items: `O(n)`. This happens rarely, so `add` is **amortised** `O(1)`. If you know the size, you can create the set with a capacity (`HashSet<Int>(n * 2)`) to avoid resizes.
 
-1. **Add**
-   - Returns `true` if added, `false` if the value already existed.
-2. **Contains**
-   - Returns `true` or `false`. Use `x in set`.
-3. **Remove**
-   - Returns `true` if something was removed.
-4. **Bulk operations** work on whole collections and cost `O(m)` for `m` items passed in.
-5. **Iteration** visits every bucket, so it costs `O(n + capacity)`.
-6. **Size** is stored, so `size` is `O(1)`.
+**Three set types in Kotlin/Java**
 
-#### 5. Algorithm — Must Know
+| | `HashSet` | `LinkedHashSet` (`mutableSetOf()` / `linkedSetOf()`) | `TreeSet` |
+|---|---|---|---|
+| Order | none | insertion order | sorted |
+| `add` / `contains` / `remove` | `O(1)` | `O(1)` | `O(log n)` |
+| Extra methods | | | `first()`, `last()`, `floor`, `ceiling`, `higher`, `lower`, `headSet`, `tailSet` |
+| Memory | lowest | a bit more (links) | a bit more (tree) |
+| Null allowed | one null | one null | no (with natural ordering) |
 
-Pseudo-steps for a safe "add if new":
+`mutableSetOf()` and `setOf()` create a `LinkedHashSet`, so they keep insertion order.
 
-```text
-if set.add(x):   // true → new
-    process the new value
-else:
-    handle the duplicate
-```
+**Remove while iterating.** Use `removeAll { cond }` or an iterator's `remove()`. Calling `set.remove(x)` inside a `for` loop over the same set throws `ConcurrentModificationException`.
 
-This does one hash lookup instead of two (`contains` then `add`).
+#### 3. Brute Force vs Optimized
 
-#### 6. Kotlin Implementation — Must Know
+| Task | Slow | Fast |
+|---|---|---|
+| Membership many times | `list.contains(x)`: `O(n)` | `set.contains(x)`: `O(1)` |
+| Keep unique + sorted | sort + dedupe: `O(n log n)` once | `TreeSet`: `O(log n)` per insert |
+| Keep unique + order | `list.contains` before adding: `O(n²)` | `LinkedHashSet`: `O(n)` |
 
 ```kotlin
-val set = hashSetOf<String>()
-
-// Add
-set.add("apple")              // true
-set.add("apple")              // false
-set += "banana"               // operator form (same as add)
-set.addAll(listOf("cherry", "date"))
-
-// Contains
-println("apple" in set)       // true
-println(set.contains("fig"))  // false
-println(set.containsAll(listOf("apple", "banana")))   // true
-
-// Remove
-set.remove("apple")           // true
-set -= "banana"               // operator form
-set.removeAll(listOf("cherry"))
-set.retainAll(setOf("date"))  // keep only items that are also in the other collection
-
-// Other
-println(set.size)
-println(set.isEmpty())
-set.clear()
+// Slow: unique values in order with a list, O(n^2)
+fun uniqueSlow(nums: IntArray): List<Int> {
+    val out = mutableListOf<Int>()
+    for (x in nums) if (x !in out) out.add(x)        // 'in' on a list scans it
+    return out
+}
 ```
 
-Remove while looping — the safe way:
+#### 4. Kotlin Code
 
 ```kotlin
-val nums = hashSetOf(1, 2, 3, 4, 5, 6)
-nums.removeIf { it % 2 == 0 }        // safe, keeps the odd numbers
-// for (n in nums) if (n % 2 == 0) nums.remove(n)   // ConcurrentModificationException
+import java.util.TreeSet
+
+// Unique values, keeping the first-seen order: LinkedHashSet
+fun uniqueInOrder(nums: IntArray): List<Int> = LinkedHashSet(nums.toList()).toList()
+
+// Unique values, sorted: TreeSet
+fun uniqueSorted(nums: IntArray): List<Int> = TreeSet(nums.toList()).toList()
+
+// Nearest value (needs a TreeSet): the largest value <= x and the smallest value >= x
+fun nearest(values: IntArray, x: Int): Pair<Int?, Int?> {
+    val set = TreeSet<Int>()
+    for (v in values) set.add(v)
+    return set.floor(x) to set.ceiling(x)
+}
+
+// Safe removal while looping
+fun removeEvens(set: MutableSet<Int>) {
+    set.removeAll { it % 2 == 0 }                       // not: for (x in set) set.remove(x)
+}
 ```
 
-#### 7. Time & Space Complexity — Must Know
+Checks: `uniqueInOrder(intArrayOf(3, 1, 3, 2, 1))` → `[3, 1, 2]`. `uniqueSorted(intArrayOf(3, 1, 3, 2, 1))` → `[1, 2, 3]`. `uniqueSlow(intArrayOf(3, 1, 3, 2, 1))` → `[3, 1, 2]`. `nearest(intArrayOf(10, 20, 30), 25)` → `(20, 30)`. `nearest(intArrayOf(10, 20, 30), 5)` → `(null, 10)`. `nearest(intArrayOf(10, 20, 30), 20)` → `(20, 20)`. With `val s = mutableSetOf(1, 2, 3, 4)`: `removeEvens(s)` leaves `[1, 3]`. `HashSet<Int>().add(1)` → `true`, then `add(1)` → `false`.
 
-| Operation | Average | Worst case |
-|---|---:|---:|
-| `add(x)` | `O(1)` amortized | `O(n)` (resize, or very bad hash) |
-| `contains(x)` | `O(1)` | `O(n)` |
-| `remove(x)` | `O(1)` | `O(n)` |
-| `size`, `isEmpty` | `O(1)` | `O(1)` |
-| `addAll(m items)` | `O(m)` | — |
-| `containsAll(m items)` | `O(m)` | — |
-| Iteration | `O(n + capacity)` | — |
-| Space | `O(n)` | — |
+#### 5. Complexity
 
-Notes:
+| | `HashSet` | `TreeSet` |
+|---|---|---|
+| `add` / `contains` / `remove` | `O(1)` avg | `O(log n)` |
+| Min / max | `O(n)` | `O(log n)` |
+| Sorted iteration | needs a sort `O(n log n)` | `O(n)` |
+| Space | `O(n)` | `O(n)` |
 
-1. Java 8+ turns very long chains into balanced trees, so the real worst case is about `O(log n)` per operation for keys that are `Comparable`.
-2. `HashSet<Int>` boxes each number into an `Integer` object. It uses much more memory than an `IntArray`.
-3. `TreeSet` operations are `O(log n)`, not `O(1)`.
+#### 6. Common Mistakes
 
-#### 8. Common Operation Patterns — Must Know
+1. **Saying `HashSet` operations are always `O(1)`.** Say "average `O(1)`, worst `O(n)`".
+2. **Expecting sorted output** from a `HashSet`.
+3. **`set.remove(x)` inside a `for` over the same set.**
+4. **Using a `HashSet` when you need `floor` or `ceiling`** (that needs a `TreeSet`).
+5. **Using `mutableSetOf()` and assuming hash speed with no order** (it is a `LinkedHashSet`, still `O(1)`, just ordered).
+6. **A bad `hashCode`** (constant) for custom classes, making every operation `O(n)`.
 
-1. **Build a set from an array:** `nums.toHashSet()` — `O(n)`.
-2. **Check then act:** `if (!seen.add(x)) return true`.
-3. **Delete as you go:** `words.remove(w)` returning `true` doubles as a "visited" mark.
-4. **Count distinct:** `set.size` after adding everything.
-5. **Pre-size to avoid resizes:** `HashSet<Int>(expectedSize * 2)` for very large inputs.
+#### 7. Say This in the Interview
 
-#### 9. Edge Cases / Common Mistakes
+1. "`add`, `contains` and `remove` are `O(1)` on average: the hash picks a bucket, and the bucket has only a few items. In the worst case, with many collisions, it is `O(n)`."
+2. "If I need sorted order or the nearest value I'd use a `TreeSet`, which is `O(log n)` per operation."
+3. "`LinkedHashSet` keeps insertion order at the same `O(1)` cost."
 
-1. Calling `contains` and then `add` (two lookups) instead of using the result of `add`.
-2. Removing items while iterating with a `for` loop. Use `removeIf` or an `Iterator`.
-3. Saying `contains` is always `O(1)`. Say "average".
-4. Using `list.contains` and thinking it is the same cost.
-5. Using `retainAll` and `removeAll` on the same set you are looping over.
-6. Forgetting that a resize makes one `add` expensive.
+#### 8. Quick Check
 
-#### 10. When to Use / When Not to Use
+1. What is the amortised cost of `add`, and why?
+2. Which Kotlin function creates a set that keeps insertion order?
+3. How do you remove all even numbers from a set safely?
 
-**Use when:**
+<details>
+<summary>Answers</summary>
 
-1. Most work is `add` and `contains`.
-2. You need the best average speed.
+1. `O(1)`. Rare `O(n)` resizes are spread over many cheap adds.
+2. `mutableSetOf()` / `setOf()` / `linkedSetOf()` (a `LinkedHashSet`).
+3. `set.removeAll { it % 2 == 0 }`.
 
-**Avoid when:**
+</details>
 
-1. You need the smallest, largest, or a range query. Use `TreeSet` (`O(log n)`).
-2. Memory is very tight and values are small integers. Use a `BooleanArray` or `BitSet`.
+#### 9. Related LeetCode Questions
 
-#### 11. Related Topics
-
-1. HashSet Fundamentals
-2. HashSet vs HashMap
-3. Duplicate Detection
-4. Set Union / Intersection / Difference
-
-#### 12. Interview Must Remember
-
-1. `add`, `contains`, `remove` are **`O(1)` average**.
-2. `add` returns a `Boolean` — use it.
-3. Never modify a set while looping with `for`. Use `removeIf`.
-4. Space is `O(n)`. Resizing makes `add` amortized `O(1)`.
+| # | Question | Idea |
+|---|---|---|
+| 217 | [Contains Duplicate](https://leetcode.com/problems/contains-duplicate/) (Easy) | `add` returns `Boolean` |
+| 349 | [Intersection of Two Arrays](https://leetcode.com/problems/intersection-of-two-arrays/) (Easy) | set operations |
+| 705 | [Design HashSet](https://leetcode.com/problems/design-hashset/) (Easy) | buckets and collisions |
+| 220 | [Contains Duplicate III](https://leetcode.com/problems/contains-duplicate-iii/) (Hard) | `TreeSet` `ceiling` |
+| 703 | [Kth Largest Element in a Stream](https://leetcode.com/problems/kth-largest-element-in-a-stream/) (Easy) | a sorted structure |

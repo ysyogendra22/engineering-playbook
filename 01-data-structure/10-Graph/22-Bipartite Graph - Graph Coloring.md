@@ -76,7 +76,27 @@ colour 0 = A;  1 = B;  2 (neighbour of 0) = B
 but 1-2 is an edge and both are B → NOT bipartite
 ```
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Approach | Time | Note |
+|---|---|---|
+| Try all `2^V` ways to split the vertices into two groups | `O(2^V · E)` | only for tiny `V` |
+| **BFS / DFS colouring** with two colours | **`O(V + E)`** | fail when an edge joins two equal colours |
+| Union-find with "enemy" links | `O(E α(V))` | alternative |
+
+```kotlin
+// Brute force: try every assignment of two groups (bitmask), only for small n
+fun isBipartiteBrute(n: Int, edges: Array<IntArray>): Boolean {
+    for (mask in 0 until (1 shl n)) {
+        if (edges.all { (a, b) -> ((mask shr a) and 1) != ((mask shr b) and 1) }) return true
+    }
+    return false
+}
+```
+
+`isBipartiteBrute(4, arrayOf(intArrayOf(0, 1), intArrayOf(1, 2), intArrayOf(2, 3), intArrayOf(3, 0)))` → `true` (a square). `isBipartiteBrute(3, arrayOf(intArrayOf(0, 1), intArrayOf(1, 2), intArrayOf(2, 0)))` → `false` (a triangle, an odd cycle).
+
+#### 4. Kotlin Code
 
 ```kotlin
 // Is Graph Bipartite? (LeetCode 785): graph[i] = neighbours of i
@@ -135,13 +155,13 @@ fun possibleBipartition(n: Int, dislikes: Array<IntArray>): Boolean {
 
 Checks: `isBipartite([[1,3],[0,2],[1,3],[0,2]])` → `true` (the square). `isBipartite([[1,2],[0,2],[0,1]])` → `false` (the triangle). `possibleBipartition(4, [[1,2],[1,3],[2,4]])` → `true`.
 
-#### 4. Complexity
+#### 5. Complexity
 
 | | Time | Space |
 |---|---|---|
 | BFS / DFS colouring | `O(V + E)` | `O(V)` |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Colouring only one component.** Loop over all nodes.
 2. **Treating "already coloured with the opposite colour" as an error.** That is fine. Only the **same** colour is a problem.
@@ -149,13 +169,13 @@ Checks: `isBipartite([[1,3],[0,2],[1,3],[0,2]])` → `true` (the square). `isBip
 4. **Nodes numbered from 1** with 0-based arrays.
 5. **Directed edges.** Bipartite checking treats edges as undirected.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "A graph is bipartite if I can 2-colour it. I BFS from every unvisited node, giving neighbours the opposite colour."
 2. "If a neighbour already has my colour, it is not bipartite. That happens exactly when there is an odd cycle."
 3. "Time `O(V + E)`."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. Is a triangle bipartite?
 2. Is any tree bipartite?
@@ -168,7 +188,7 @@ Checks: `isBipartite([[1,3],[0,2],[1,3],[0,2]])` → `true` (the square). `isBip
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

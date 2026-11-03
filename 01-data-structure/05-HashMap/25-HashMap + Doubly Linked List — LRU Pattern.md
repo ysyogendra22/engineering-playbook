@@ -43,7 +43,38 @@ Rules:
 
 Each node stores its **key** too, so you can delete the right entry from the map when evicting.
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Design | `get` | `put` | Note |
+|---|---|---|---|
+| List of keys in recency order | `O(n)` (find and move the key) | `O(n)` | simple, slow |
+| `LinkedHashMap` in access order | `O(1)` | `O(1)` | the shortcut in Kotlin |
+| **HashMap + doubly linked list** | **`O(1)`** | **`O(1)`** | the answer interviewers expect |
+
+```kotlin
+// Brute force LRU: a list orders the keys from oldest to newest. Finding and moving a key is O(n).
+class LRUBrute(private val capacity: Int) {
+    private val order = ArrayList<Int>()                 // oldest first
+    private val data = HashMap<Int, Int>()
+
+    fun get(key: Int): Int {
+        if (key !in data) return -1
+        order.remove(key); order.add(key)                // O(n): find and move to the end
+        return data[key]!!
+    }
+
+    fun put(key: Int, value: Int) {
+        if (key in data) order.remove(key)
+        else if (data.size == capacity) { val oldest = order.removeAt(0); data.remove(oldest) }
+        order.add(key)
+        data[key] = value
+    }
+}
+```
+
+With capacity `2`: `put(1, 1)`, `put(2, 2)`, `get(1)` → `1`, `put(3, 3)` (evicts `2`), `get(2)` → `-1`. The doubly linked list moves a node to the front in `O(1)` because the map hands you the node directly.
+
+#### 4. Kotlin Code
 
 **By hand (what interviewers expect)**
 
@@ -121,7 +152,7 @@ class LRUCacheShort(private val capacity: Int) {
 
 Say in the interview: "I can use `LinkedHashMap`, but I will write the list by hand to show how it works." In Android, `android.util.LruCache` is the ready-made class.
 
-#### 4. Complexity
+#### 5. Complexity
 
 | Action | Time |
 |---|---|
@@ -129,7 +160,7 @@ Say in the interview: "I can use `LinkedHashMap`, but I will write the list by h
 | `put` | `O(1)` |
 | Memory | `O(capacity)` |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **`put` on an existing key must update and move**, not evict.
 2. **Not storing the key inside the node.** You cannot delete the evicted key from the map.
@@ -140,14 +171,14 @@ Say in the interview: "I can use `LinkedHashMap`, but I will write the list by h
 7. **`LinkedHashMap` with the default access order (`false`)** behaves like FIFO, not LRU.
 8. **A `get` of a missing key must not change the order.**
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "I need `O(1)` lookup and `O(1)` reordering. A HashMap gives the lookup. A doubly linked list gives the reordering."
 2. "The map goes from key to node. The front of the list is the most recent. I evict the node before the tail."
 3. "I use dummy head and tail nodes to avoid edge cases."
 4. "In production on Android I would use `LruCache`."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. Capacity 2: `put(1)`, `put(2)`, `get(1)`, `put(3)`. Which key is evicted?
 2. Why does each node store its key?
@@ -160,7 +191,7 @@ Say in the interview: "I can use `LinkedHashMap`, but I will write the list by h
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

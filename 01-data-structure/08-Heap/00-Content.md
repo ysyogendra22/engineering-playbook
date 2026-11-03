@@ -40,7 +40,11 @@
 24. Heap + Sliding Window
 25. Multiple Heap / Advanced Two-Heaps Patterns
 
-## 4. Study Separately
+## 4. Revision
+
+99. Heap Cheat Sheet
+
+## 5. Study Separately
 
 - Binary Tree
 - Priority Queue Applications
@@ -50,7 +54,7 @@
 - K-Way Merge
 - Sliding Window
 
-## 5. Low Priority / Skip Initially
+## 6. Low Priority / Skip Initially
 
 - Fibonacci Heap
 - Binomial Heap

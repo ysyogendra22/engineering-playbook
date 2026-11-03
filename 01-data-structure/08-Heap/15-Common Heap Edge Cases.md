@@ -1,144 +1,155 @@
 # Common Heap Edge Cases
 
-#### 1. Definition — Must Know
+> Read this before a heap interview and run through it at the end of every solution. Most heap bugs are on this list.
 
-1. These are the inputs and situations that most often break a heap solution.
-2. Most bugs come from **empty heaps**, **comparator mistakes**, and **changing items after they are inside the heap**.
-3. Check this list before you submit any heap code.
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+These are the situations where heap solutions crash, loop forever, or return a wrong answer. Interviewers watch whether you check them yourself. They fall into five groups:
 
-1. Heap code looks short, so small mistakes hide easily.
-2. Interviewers use `k = 0`, empty input, and duplicates to see whether you think about boundaries.
-3. Many of these problems appear as silent wrong answers, not crashes.
+1. **empty heap** (`peek`, `poll`),
+2. **wrong heap direction** (min vs max, `K` largest vs smallest),
+3. **comparator bugs** (overflow, ties, wrong field),
+4. **size problems** (`K` larger than `n`, `K = 0`, duplicates),
+5. **stale or changed data** (mutating items, deleting, decrease-key).
 
-#### 3. How It Works — Must Know
+#### 2. How It Works
 
-A bug that looks correct:
+**The checklist**
 
-```kotlin
-val heap = PriorityQueue<Int>(compareBy<Int> { -it })   // "max-heap"
-heap.add(Int.MIN_VALUE)
-heap.add(5)
-println(heap.peek())   // prints Int.MIN_VALUE, not 5
+| # | Edge case | What goes wrong | Fix |
+|---|---|---|---|
+| 1 | `peek()` / `poll()` on an empty heap | returns `null` (Kotlin) and crashes later | check `isNotEmpty()` first |
+| 2 | `remove()` on an empty heap | `NoSuchElementException` | use `poll()` or check |
+| 3 | Min-heap used for "K largest" with a max-heap mindset | wrong or too slow | K largest → **min**-heap of size `K` |
+| 4 | Heap size not capped | `O(n log n)`, more memory | `if (size > k) poll()` |
+| 5 | `K > n` | `peek()` on a small heap gives a wrong "Kth" | check `n >= K`, or define the answer |
+| 6 | `K == 0` or `K == 1` | empty result, or special case | handle early |
+| 7 | Duplicates | counted once or twice? | read the statement; heap keeps duplicates |
+| 8 | Comparator `{ a, b -> a - b }` | **overflow** for big or negative values | `compareBy`, `Integer.compare` |
+| 9 | Comparing the wrong field | wrong order | check `it[0]` vs `it[1]` |
+| 10 | Ties are not stable | different answers on equal keys | add a second key (index or word) |
+| 11 | Printing / iterating the heap | not sorted | `poll()` repeatedly, or sort a copy |
+| 12 | Changing an object's key after `add` | the heap order is now wrong | remove and add again, or push a new entry |
+| 13 | `pq.remove(x)` or `pq.contains(x)` | `O(n)` | lazy deletion (note 23) |
+| 14 | Decrease-key (Dijkstra) | no such method | push the new entry, skip stale ones on `poll` |
+| 15 | Stale entries after update | processing an old, outdated item | compare with the current best before using it |
+| 16 | Integer sums overflow (`a + b`) | wrong median or total | `Long` |
+| 17 | Storing `IntArray` / `Pair` without a comparator | `ClassCastException` | always pass a comparator for non-`Comparable` items |
+| 18 | Max-heap with `Int.MIN_VALUE` as a sentinel | breaks the comparison | use nullable / a flag |
+| 19 | Very large `n`, boxed `Int` memory | memory pressure | `IntArray`-based custom heap, or note the cost |
+| 20 | Modifying the heap while iterating it | `ConcurrentModificationException` | poll into a list, then process |
+| 21 | Streaming: asked for the answer before `K` items arrived | `peek()` is `null` or wrong | state your assumption |
+
+```mermaid
+flowchart TD
+    Start["Heap solution written"] --> E1{"Can the heap be empty<br/>when I call peek or poll?"}
+    E1 -->|"yes"| F1["add a check"]
+    E1 -->|"no"| E2{"Right direction?<br/>K largest = min-heap"}
+    F1 --> E2
+    E2 --> E3{"Comparator safe?<br/>no subtraction, right field, tie rule"}
+    E3 --> E4{"K = 0, K > n, duplicates?"}
+    E4 --> E5{"Do keys change after add?"}
+    E5 -->|"yes"| F5["lazy deletion / new entry"]
+    E5 -->|"no"| Done["done"]
+    F5 --> Done
 ```
 
-`-Int.MIN_VALUE` is still `Int.MIN_VALUE` (overflow), so that value compares wrongly. Use `compareByDescending { it }`.
+#### 3. Brute Force vs Optimized
 
-Another one:
-
-```kotlin
-val heap = PriorityQueue<IntArray>(compareBy<IntArray> { it[0] })
-val item = intArrayOf(5, 0)
-heap.add(item)
-item[0] = 1          // changed after adding: the heap is not re-ordered
-```
-
-The heap still believes `item` has key `5`.
-
-#### 4. Core Concepts — Must Know
-
-1. **The heap only checks order when you add or remove.** It never re-checks an item you changed.
-2. **The comparator decides everything.** A wrong comparator gives wrong answers with no error.
-3. **Empty is a normal state** that your code must handle.
-4. **Only the root is guaranteed best.** Iteration order is not sorted.
-
-#### 5. Edge Case Checklist — Must Know
-
-| Case | What should happen |
-|---|---|
-| Empty heap, `peek()` / `poll()` | Return `null` (`PriorityQueue`). `remove()` / `element()` throw. Check `isNotEmpty()` first |
-| Single element | Works. The element is both root and last item |
-| `k = 0` | Return an empty result. Do not call `peek()` on an empty heap |
-| `k > n` | The heap simply keeps everything. The "Kth" element may not exist |
-| `k = n` | Heap-based Top K equals a full sort. Sorting is simpler |
-| Duplicates | Kept as separate items, unless the problem says "distinct" |
-| Equal priorities | Order among them is unspecified. Add a sequence number if it matters |
-| Negative numbers | Fine for heaps. Negating values to fake a max-heap is dangerous (`Int.MIN_VALUE`) |
-| Comparator `b - a` | May overflow. Use `compareByDescending` or `compareTo` |
-| Very large values | Use `Long` for computed keys, such as squared distances or sums |
-| Changing an item after adding it | The heap breaks. Remove and re-add it, or add a new entry and mark the old one stale |
-| `remove(x)` | `O(n)`, not `O(log n)` |
-| `contains(x)` | `O(n)` |
-| Iterating a `PriorityQueue` | Not sorted. Poll to get sorted order |
-| Modifying while iterating | `ConcurrentModificationException` |
-| `null` element | `NullPointerException` |
-| Elements not comparable and no comparator | `ClassCastException` |
-| Multiple threads | Not thread-safe. Use `PriorityBlockingQueue` or a lock |
-| Heap size grows without limit | Memory problem. Cap it (Top K) or drain it regularly |
-
-#### 6. Kotlin Implementation — Must Know
-
-Defensive patterns:
+| Problem | Naive | Better |
+|---|---|---|
+| Update a priority | `pq.remove(x)` then `pq.add(x)`: `O(n)` | add a new entry and skip the old one when it comes out: `O(log n)` |
+| Safe max-heap | `{ a, b -> b - a }` | `compareByDescending { it }` |
+| Check for empty | assume non-empty | `if (pq.isNotEmpty())` |
 
 ```kotlin
 import java.util.PriorityQueue
 
-fun kLargest(nums: IntArray, k: Int): List<Int> {
-    if (k <= 0 || nums.isEmpty()) return emptyList()      // k = 0 or empty input
+// The classic overflow bug: b - a overflows for these two numbers
+val risky = PriorityQueue<Int> { a, b -> b - a }
+// risky.add(Int.MIN_VALUE); risky.add(1)  → the order can be wrong
+
+// Safe
+val safe = PriorityQueue<Int>(compareByDescending<Int> { it })
+```
+
+#### 4. Kotlin Code
+
+```kotlin
+import java.util.PriorityQueue
+
+// Safe peek: returns a default when the heap is empty
+fun PriorityQueue<Int>.peekOr(default: Int): Int = this.peek() ?: default
+
+// K-th largest with all the edge cases handled
+fun kthLargestSafe(nums: IntArray, k: Int): Int? {
+    if (k <= 0 || k > nums.size) return null                 // K = 0 or K > n
     val heap = PriorityQueue<Int>()
-    for (n in nums) {
-        heap.add(n)
+    for (x in nums) {
+        heap.add(x)
         if (heap.size > k) heap.poll()
     }
-    return heap.sortedDescending()                         // k > n returns all n items
+    return heap.peek()
 }
 
-// Safe peek
-val best: Int? = if (heap.isNotEmpty()) heap.peek() else null
+// Stable tie-breaking: equal priorities come out in insertion order
+data class Item(val priority: Int, val order: Int, val name: String)
 
-// Safe comparator for large values
-val byDistance = compareBy<IntArray> {
-    it[0].toLong() * it[0] + it[1].toLong() * it[1]       // Long, no overflow
+fun stableOrder(items: List<Pair<Int, String>>): List<String> {
+    val pq = PriorityQueue<Item>(compareBy<Item>({ it.priority }, { it.order }))
+    items.forEachIndexed { i, (p, n) -> pq.add(Item(p, i, n)) }
+    val out = mutableListOf<String>()
+    while (pq.isNotEmpty()) out.add(pq.poll().name)
+    return out
 }
 ```
 
-#### 7. Time & Space Complexity — Must Know
+Checks: `PriorityQueue<Int>().peekOr(-1)` → `-1`. `kthLargestSafe(intArrayOf(3, 2, 1), 5)` → `null`. `kthLargestSafe(intArrayOf(3, 2, 1), 0)` → `null`. `kthLargestSafe(intArrayOf(3, 3, 5), 2)` → `3` (duplicates count). `kthLargestSafe(intArrayOf(Int.MIN_VALUE, 1), 1)` → `1`. `stableOrder(listOf(1 to "a", 1 to "b", 0 to "c"))` → `["c", "a", "b"]`.
 
-Edge cases do not change the main costs (`add` / `poll` `O(log n)`, `peek` `O(1)`).
+#### 5. Complexity
 
-The ones that **do** change the cost:
+| Fix | Cost |
+|---|---|
+| `isNotEmpty()` / null checks | `O(1)` |
+| Lazy deletion instead of `remove(x)` | `O(log n)` instead of `O(n)` |
+| Tie-break key | no extra cost |
 
-| Situation | Cost |
-|---|---:|
-| `remove(x)` or `contains(x)` | `O(n)` |
-| Checking `size` | `O(1)` |
-| Building from a collection | `O(n)`, while `addAll` is `O(n log n)` |
+#### 6. Common Mistakes
 
-#### 8. Common Edge-Case Patterns — Must Know
+1. **Never testing the empty and `K > n` cases.**
+2. **Writing the comparator as a subtraction.**
+3. **Assuming the iteration order of a `PriorityQueue`.**
+4. **Trying to update an item in place.**
+5. **Forgetting that duplicates are separate entries.**
+6. **Leaving stale entries unchecked** (Dijkstra, scheduling).
 
-1. **Boundary values of `k`:** `0`, `1`, `n`, and more than `n`.
-2. **Empty and one-element input.**
-3. **Ties:** decide the rule and say it aloud.
-4. **Stale entries:** an item removed or replaced elsewhere but still in the heap (see "Lazy Deletion with Heap").
-5. **Overflow:** in comparators and in computed keys.
+#### 7. Say This in the Interview
 
-#### 9. Edge Cases / Common Mistakes
+1. "Before I finish, I'll check: empty heap, `K` larger than `n`, duplicates, and ties."
+2. "I use `compareBy` so the comparator can't overflow."
+3. "A heap has no decrease-key. I add a new entry, and when I pop an old one I skip it if it is out of date."
 
-1. Calling `peek()` on an empty heap and treating `null` as a value.
-2. Building a max-heap with negation or `b - a`.
-3. Updating a field of an object that is already in the heap.
-4. Assuming the heap prints sorted.
-5. Using `remove(x)` in a hot loop.
-6. Not stating assumptions about duplicates and ties before coding.
+#### 8. Quick Check
 
-#### 10. When to Use / When Not to Use
+1. What does `PriorityQueue<Int>().poll()` return?
+2. Name two ways a heap comparator can be wrong.
+3. How do you "update" a priority in a `PriorityQueue`?
 
-**Use this checklist:**
+<details>
+<summary>Answers</summary>
 
-1. Before coding, to state your assumptions.
-2. After coding, to dry-run `k = 0`, an empty input, and a duplicate-heavy input.
+1. `null`.
+2. Overflow from subtraction, comparing the wrong field, or no tie-break for equal keys.
+3. Add a new entry with the new priority, and ignore the stale one when it is polled.
 
-#### 11. Related Topics
+</details>
 
-1. Kotlin `PriorityQueue`
-2. Min Heap vs Max Heap
-3. Top K Elements Pattern
-4. Lazy Deletion with Heap
+#### 9. Related LeetCode Questions
 
-#### 12. Interview Must Remember
-
-1. **Empty heap**: `peek` / `poll` give `null`. Check first.
-2. **Never mutate an item inside the heap.**
-3. **Max-heap by `compareByDescending`**, not negation and not `b - a`.
-4. Test `k = 0`, `k > n`, and duplicates on every solution.
+| # | Question | Idea |
+|---|---|---|
+| 703 | [Kth Largest Element in a Stream](https://leetcode.com/problems/kth-largest-element-in-a-stream/) (Easy) | fewer than `K` items at first |
+| 1046 | [Last Stone Weight](https://leetcode.com/problems/last-stone-weight/) (Easy) | empty heap at the end |
+| 692 | [Top K Frequent Words](https://leetcode.com/problems/top-k-frequent-words/) (Medium) | ties |
+| 743 | [Network Delay Time](https://leetcode.com/problems/network-delay-time/) (Medium) | stale entries |
+| 973 | [K Closest Points to Origin](https://leetcode.com/problems/k-closest-points-to-origin/) (Medium) | comparator on squared distance |

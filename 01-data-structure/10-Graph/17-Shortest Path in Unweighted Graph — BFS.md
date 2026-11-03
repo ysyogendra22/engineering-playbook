@@ -48,7 +48,22 @@ Why BFS is correct: the queue finishes all nodes at distance `d` before any node
 
 If the edges have **different costs**, BFS is wrong. Use Dijkstra (note 18).
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Approach | Time | Shortest? |
+|---|---|---|
+| Enumerate all simple paths and take the shortest | exponential | yes, but impractical |
+| DFS with `visited` | `O(V + E)` | **no** |
+| **BFS with `dist` and `visited`** | **`O(V + E)`** | **yes** (every edge costs 1) |
+| BFS from each vertex for all pairs | `O(V · (V + E))` | yes, all pairs |
+
+Why BFS is correct: the queue holds vertices in order of distance, so the first time a vertex is reached is by a shortest path. Keep a `parent` array to rebuild the path, and mark a vertex visited when it is **added** to the queue.
+
+```text
+0 - 1 - 2 - 5, and 0 - 3 - 4 - 2:   BFS reaches 5 at distance 3 and never looks at longer routes again.
+```
+
+#### 4. Kotlin Code
 
 ```kotlin
 // Shortest path as a list of nodes. Empty list if the target cannot be reached.
@@ -115,14 +130,14 @@ Check: on the graph above, `shortestPath(graph, 0, 5)` → `[0, 1, 2, 5]`.
 
 The grid version (Shortest Path in Binary Matrix) is in `01-data-structure/04-Queue/09-Grid BFS.md`.
 
-#### 4. Complexity
+#### 5. Complexity
 
 | | Time | Space |
 |---|---|---|
 | BFS shortest path | `O(V + E)` | `O(V)` |
 | Grid `R × C` | `O(R · C)` | `O(R · C)` |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Using BFS on a weighted graph.**
 2. **Marking visited when taking the node out** instead of when adding it.
@@ -132,13 +147,13 @@ The grid version (Shortest Path in Binary Matrix) is in `01-data-structure/04-Qu
 6. **Counting nodes instead of edges** (or the reverse).
 7. **Forgetting extra state.** If a rule depends on more than the node (like the last colour), put it in the BFS state.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "Every move costs 1, so BFS gives the shortest path. The first time I reach a node is the shortest way."
 2. "I keep a `dist` array as my visited marker and a `parent` array to rebuild the path."
 3. "Time `O(V + E)`. With different costs I would use Dijkstra."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. What is the BFS distance of the start node?
 2. Why is the first arrival the shortest?
@@ -151,7 +166,7 @@ The grid version (Shortest Path in Binary Matrix) is in `01-data-structure/04-Qu
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

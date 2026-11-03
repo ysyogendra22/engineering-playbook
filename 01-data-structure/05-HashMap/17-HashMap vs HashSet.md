@@ -38,7 +38,27 @@ an object or extra data        → HashMap<K, V>
 | Subarray Sum Equals K | Map | counts of prefix sums |
 | BFS distance | Map | a distance per node |
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Situation | Naive | Better |
+|---|---|---|
+| You only need "is it present?" | `HashMap<K, Boolean>` (extra value for every key) | `HashSet<K>` |
+| You need a count, index or list per key | a `HashSet` plus another scan of the data | `HashMap<K, V>` |
+| Need the two together | two separate structures kept in sync by hand | a map whose value tells you what you need |
+
+A `HashSet` is itself backed by a `HashMap` with a dummy value. Use the set when there is **no value to store**.
+
+```kotlin
+// Wasteful: a map used as a set
+val seenMap = HashMap<Int, Boolean>()
+fun seeBad(x: Int): Boolean = seenMap.put(x, true) != null
+
+// Clean
+val seenSet = HashSet<Int>()
+fun see(x: Int): Boolean = !seenSet.add(x)        // true if x was already there
+```
+
+#### 4. Kotlin Code
 
 ```kotlin
 // A set is enough: Contains Duplicate
@@ -78,14 +98,14 @@ fun longestConsecutive(nums: IntArray): Int {
 
 You can convert between them: `map.keys` is a set of the keys, and `set.associateWith { 0 }` makes a map from a set.
 
-#### 4. Complexity
+#### 5. Complexity
 
 | | HashSet | HashMap |
 |---|---|---|
 | Add / put, contains / get, remove | `O(1)` | `O(1)` |
 | Memory | `O(n)` | `O(n)`, bigger per item |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **`HashMap<Int, Boolean>`** where a `HashSet<Int>` is enough.
 2. **A set where you need counts.**
@@ -94,13 +114,13 @@ You can convert between them: `map.keys` is a set of the keys, and `set.associat
 5. **Forgetting that `map[k]` is nullable.**
 6. **Using a map for 26 letters** when `IntArray(26)` is faster.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "I only need to know if a value exists, so a `HashSet`."
 2. "I need the index (or the count), so a `HashMap`."
 3. "Both are `O(1)` average. The set uses less memory."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. Which do you use for "how many times does each word appear"?
 2. Which for "have I seen this number before"?
@@ -113,7 +133,7 @@ You can convert between them: `map.keys` is a set of the keys, and `set.associat
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Choice |
 |---|---|---|

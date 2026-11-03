@@ -35,7 +35,38 @@ These are the situations where queue and BFS solutions most often **crash**, **r
 | 17 | Counting nodes vs counting moves | off-by-one answer | re-read the question |
 | 18 | `Int` overflow in sums | wrong values | use `Long` |
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Mistake (naive) | Fix |
+|---|---|
+| `removeFirst()` on an empty queue (throws) | check `isNotEmpty()` |
+| `list.removeAt(0)` as a dequeue | `ArrayDeque.removeFirst()` |
+| Mark visited when **dequeuing** | mark when **enqueuing** |
+| Reading `queue.size` inside the level loop | read it **once** before the loop |
+| BFS without a `visited` set on a graph with cycles | add one |
+| Forgetting the start node is already visited | mark it before the loop |
+
+```kotlin
+// BUG: queue.size shrinks on every removal and grows on every add, so this stops at the wrong moment
+fun processLevelWrong(queue: ArrayDeque<Int>, children: (Int) -> List<Int>) {
+    var i = 0
+    while (i < queue.size) {
+        val x = queue.removeFirst()
+        queue.addAll(children(x))
+        i++
+    }
+}
+
+// Right: read the size once, then loop that many times
+fun processLevelRight(queue: ArrayDeque<Int>, children: (Int) -> List<Int>) {
+    repeat(queue.size) {
+        val x = queue.removeFirst()
+        queue.addAll(children(x))
+    }
+}
+```
+
+#### 4. Kotlin Code
 
 ```kotlin
 // 1. Empty queue
@@ -77,24 +108,24 @@ dq.push(0)                              // goes to the front
 println(dq)                             // [0, 1, 2]
 ```
 
-#### 4. Complexity
+#### 5. Complexity
 
 Edge cases do not change the complexity. They change **correctness** and sometimes **speed**. For example, marking visited on dequeue can make a BFS far slower, and `removeAt(0)` makes each dequeue `O(n)`.
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Testing only the example from the question.** Also test: empty input, one node, start equals target, no path, a cycle, a disconnected graph.
 2. **Returning the number of nodes** when the question asks for edges (or the reverse).
 3. **Storing `Pair<Int, Int>` in a huge BFS.** It creates many objects. An `Int` cell id is lighter.
 4. **Printing a `PriorityQueue`** and thinking it is sorted. Only `poll()` gives the right order.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "Edge cases I will check: empty input, one node, start equals target, no path, and a disconnected graph."
 2. "I mark nodes visited when I enqueue them, including the start."
 3. "I read the queue size once per level."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. What goes wrong if you mark a node visited only after taking it out of the queue?
 2. What does `repeat(queue.size)` protect you from?
@@ -107,7 +138,7 @@ Edge cases do not change the complexity. They change **correctness** and sometim
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Edge case to watch |
 |---|---|---|

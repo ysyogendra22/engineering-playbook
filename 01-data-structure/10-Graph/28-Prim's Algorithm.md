@@ -59,7 +59,22 @@ Implementation with a min-heap of `(weight, node)`: pop the cheapest. If the nod
 
 For a **complete graph of points** (LeetCode 1584), there is a simple `O(n²)` version with no heap: keep `minCost[v]` = the cheapest edge from the tree to `v`, and pick the unused node with the smallest `minCost` each round.
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Approach | Time | Note |
+|---|---|---|
+| Each round, scan **all edges** for the cheapest one that leaves the tree | `O(V · E)` | simple |
+| Each round, scan an array `minCost[v]` for the cheapest vertex | `O(V²)` | no heap, good for dense graphs |
+| **Min-heap of `(weight, vertex)`** | **`O(E log V)`** | best for sparse graphs |
+
+```text
+Heap version: pop the cheapest edge; if its vertex is already in the tree, skip it (stale);
+otherwise add the vertex, add the weight to the total, and push its edges to vertices outside the tree.
+```
+
+Prim looks like Dijkstra. The only change is the priority: the **edge weight**, not the total distance from the start.
+
+#### 4. Kotlin Code
 
 ```kotlin
 import java.util.PriorityQueue
@@ -113,7 +128,7 @@ fun minCostConnectPoints(points: Array<IntArray>): Int {
 
 Checks: with the example graph (A=0, B=1, C=2, D=3), `prim(4, graph)` → `7`. `minCostConnectPoints([[0,0],[2,2],[3,10],[5,2],[7,0]])` → `20`.
 
-#### 4. Complexity
+#### 5. Complexity
 
 | Version | Time | Space |
 |---|---|---|
@@ -122,7 +137,7 @@ Checks: with the example graph (A=0, B=1, C=2, D=3), `prim(4, graph)` → `7`. `
 
 For 1584, `V = n` and `E = n²`, so the array version `O(n²)` beats the heap version `O(n² log n)`.
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Using the total distance** from the start (the Dijkstra rule) instead of the **edge weight**.
 2. **Not skipping stale entries** (nodes already in the tree).
@@ -130,13 +145,13 @@ For 1584, `V = n` and `E = n²`, so the array version `O(n²)` beats the heap ve
 4. **Starting from a node that does not exist** (empty graph).
 5. **Building a huge edge list** for 1584 when the `O(n²)` array version needs none.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "Prim grows one tree. Each step I add the cheapest edge that leaves the tree, using a min-heap."
 2. "It looks like Dijkstra, but the key is the edge weight, not the path length."
 3. "For a dense or complete graph I use the `O(V²)` array version."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. What is the one difference between Prim and Dijkstra?
 2. When is Prim better than Kruskal?
@@ -149,7 +164,7 @@ For 1584, `V = n` and `E = n²`, so the array version `O(n²)` beats the heap ve
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

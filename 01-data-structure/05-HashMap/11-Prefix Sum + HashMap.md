@@ -45,7 +45,33 @@ Three rules:
 2. **Look up first, then store** the current prefix.
 3. **Count questions** store *how many times*. **Longest-length questions** store the *first index* of each prefix.
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Approach | Time | Space |
+|---|---|---|
+| Check every subarray, summing it again each time | `O(n³)` | `O(1)` |
+| Every subarray with a running sum | `O(n²)` | `O(1)` |
+| Sliding window (only if all numbers are positive) | `O(n)` | `O(1)` |
+| **Prefix sum + HashMap** (works with negatives) | **`O(n)`** | `O(n)` |
+
+```kotlin
+// Brute force: Subarray Sum Equals K with a running sum, O(n^2)
+fun subarraySumBrute(nums: IntArray, k: Int): Int {
+    var count = 0
+    for (i in nums.indices) {
+        var sum = 0
+        for (j in i until nums.size) {
+            sum += nums[j]
+            if (sum == k) count++
+        }
+    }
+    return count
+}
+```
+
+`subarraySumBrute(intArrayOf(1, 1, 1), 2)` → `2`. `subarraySumBrute(intArrayOf(1, 2, 3), 3)` → `2`. The map version asks "how many earlier prefixes equal `sum − k`?".
+
+#### 4. Kotlin Code
 
 ```kotlin
 // Subarray Sum Equals K (LeetCode 560): count the subarrays
@@ -82,7 +108,7 @@ Checks: `subarraySum([1,1,1], 2)` → `2`. `subarraySum([1,2,3], 3)` → `2`. `s
 
 If the numbers can be large, use `Long` for `sum`.
 
-#### 4. Complexity
+#### 5. Complexity
 
 | Way | Time | Space |
 |---|---|---|
@@ -90,7 +116,7 @@ If the numbers can be large, use `Long` for `sum`.
 | **Prefix sum + HashMap** | **`O(n)`** | `O(n)` |
 | Sliding window (only non-negative numbers) | `O(n)` | `O(1)` |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Forgetting `count[0] = 1`.** Subarrays that start at index 0 are missed.
 2. **Storing the current prefix before the lookup.** With `k = 0` it counts empty subarrays.
@@ -99,13 +125,13 @@ If the numbers can be large, use `Long` for `sum`.
 5. **Starting with `{0: 0}` instead of `{0: -1}`** in the "longest" version.
 6. **`Int` overflow** of the running sum.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "A subarray sum is the difference of two prefix sums. So I look for `prefix - k` among earlier prefixes."
 2. "I keep a map from prefix sum to how many times it appeared, starting with `{0: 1}`."
 3. "It works with negative numbers. Time `O(n)`, space `O(n)`."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. Why start the map with `{0: 1}`?
 2. Why can't a sliding window solve this when there are negative numbers?
@@ -118,7 +144,7 @@ If the numbers can be large, use `Long` for `sum`.
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

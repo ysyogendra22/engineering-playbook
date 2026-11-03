@@ -34,7 +34,29 @@ Important: a map has **no input order**. Scan the **input** (not the map) to fin
 
 **First unique in a stream** (items arrive one at a time): keep a count map **and** a queue of candidates. When asked, remove from the front of the queue while the front is no longer unique.
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Approach | Time | Space |
+|---|---|---|
+| For each item, scan the rest for another copy | `O(n²)` | `O(1)` |
+| **Two passes:** count with a map, then find the first item with count 1 | **`O(n)`** | `O(alphabet)` or `O(n)` |
+| One pass storing the first index (or `-1` after a repeat) | `O(n)` | `O(n)` |
+
+```kotlin
+// Brute force: First Unique Character in a String
+fun firstUniqCharBrute(s: String): Int {
+    for (i in s.indices) {
+        var unique = true
+        for (j in s.indices) if (i != j && s[i] == s[j]) { unique = false; break }
+        if (unique) return i
+    }
+    return -1
+}
+```
+
+`firstUniqCharBrute("leetcode")` → `0`. `firstUniqCharBrute("loveleetcode")` → `2`. `firstUniqCharBrute("aabb")` → `-1`.
+
+#### 4. Kotlin Code
 
 ```kotlin
 // First Unique Character in a String: returns the index, or -1
@@ -81,7 +103,7 @@ class FirstUnique {
 
 Checks: `firstUniqChar("leetcode")` → `0`. `firstUniqChar("loveleetcode")` → `2`. `firstUniqChar("aabb")` → `-1`.
 
-#### 4. Complexity
+#### 5. Complexity
 
 | Task | Time | Space |
 |---|---|---|
@@ -89,7 +111,7 @@ Checks: `firstUniqChar("leetcode")` → `0`. `firstUniqChar("loveleetcode")` →
 | First repeated | `O(n)` | `O(u)` |
 | Stream: `add` / `showFirstUnique` | `O(1)` / `O(1)` on average | `O(u)` |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Trying to find the first unique in one pass** without counts.
 2. **Looping over the map** and expecting the input order. Loop over the input.
@@ -98,13 +120,13 @@ Checks: `firstUniqChar("leetcode")` → `0`. `firstUniqChar("loveleetcode")` →
 5. **No unique item.** Return `-1` or `null`.
 6. **Stream version:** leaving non-unique values at the front of the queue.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "To find the first unique I count every item, then scan the input in order and return the first with count 1. That is `O(n)`."
 2. "For the first repeated item, a set and one pass is enough."
 3. "For a stream I keep counts plus a queue of candidates and remove non-unique ones from the front when asked."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. What is the first unique character of `"aabbcd"`?
 2. What is the first repeated character of `"abcba"`?
@@ -117,7 +139,7 @@ Checks: `firstUniqChar("leetcode")` → `0`. `firstUniqChar("loveleetcode")` →
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

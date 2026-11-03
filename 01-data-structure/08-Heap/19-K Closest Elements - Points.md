@@ -1,145 +1,145 @@
 # K Closest Elements / Points
 
-#### 1. Definition — Must Know
+> "Closest" means "smallest distance". Compute a distance for each item, then keep the `K` smallest with a **max**-heap of size `K`.
 
-1. **K Closest Points to Origin** (LeetCode 973): given points `(x, y)`, return the `k` points closest to `(0, 0)`.
-2. **Find K Closest Elements** (LeetCode 658): given a sorted array, return the `k` numbers closest to a target `x`.
-3. Both are Top K problems where the key is a **distance**. If a number and a title ever disagree, trust the title.
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+| Question | Items | Distance |
+|---|---|---|
+| **K Closest Points to Origin** (973) | points `(x, y)` | `x² + y²` (no square root needed) |
+| **Find K Closest Elements** (658) | a sorted array and a target `x` | `|a[i] − x|` |
 
-1. It is a direct use of the "keep the best `k`" heap.
-2. It teaches an important trick: compare **squared** distance, so no square root is needed.
-3. It matches real features such as "nearest stores" or "closest friends".
+**Signals:** "K closest", "nearest K", "K nearest to a target".
 
-#### 3. How It Works — Must Know
+#### 2. How It Works
 
-Points `(1, 3)`, `(-2, 2)`, `(5, 8)`, `(0, 1)`, `k = 2`. Squared distance from the origin: `x² + y²`.
+**Use the squared distance.** Comparing `x² + y²` gives the same order as comparing `√(x² + y²)`, and it avoids floating-point work.
 
-```text
-(1, 3)   → 10
-(-2, 2)  → 8
-(5, 8)   → 89
-(0, 1)   → 1
-
-Max-heap of size 2, ordered by distance (the root is the FARTHEST of the kept points):
-add (1, 3)  d=10     heap: (1,3)
-add (-2, 2) d=8      heap: (1,3) (-2,2)
-add (5, 8)  d=89     size 3 > 2 → remove the farthest (5,8)   → (1,3) (-2,2)
-add (0, 1)  d=1      size 3 > 2 → remove the farthest (1,3)   → (-2,2) (0,1)
-
-Answer: (-2, 2) and (0, 1)
-```
-
-#### 4. Core Concepts — Must Know
-
-1. **Closest `k` → max-heap of size `k`**, ordered by distance. The root is the farthest of the kept points, so it is the one to remove.
-2. **Use squared distance.** `√` is monotonic, so the order is the same and floating point is avoided.
-3. **Use `Long`** for the squared distance if coordinates can be large.
-4. For a **sorted array**, a heap works, but binary search plus two pointers is faster (`O(log n + k)`).
-
-| Problem | Best approach | Time |
-|---|---|---:|
-| Closest points (unsorted) | Max-heap of size `k` | `O(n log k)` |
-| Closest points (unsorted) | Quickselect on distance | `O(n)` average |
-| Closest elements in a **sorted** array | Binary search + two pointers | `O(log n + k)` |
-
-#### 5. Algorithm — Must Know
+**Max-heap of size `K` on distance.** The root is the **farthest** of the `K` closest so far. When a new point is closer than the root, replace the root.
 
 ```text
-heap = max-heap ordered by squared distance
-for each point:
-    heap.add(point)
-    if heap.size > k: heap.poll()      // drop the farthest
-return all points in the heap
+points = [[3, 3], [5, -1], [-2, 4]], K = 2
+distances: 18, 26, 20
+add (3,3) d=18 → {18}      add (5,-1) d=26 → {26, 18}      add (-2,4) d=20 → size 3 → remove the largest (26) → {20, 18}
+answer: (3,3) and (-2,4)
 ```
 
-#### 6. Kotlin Implementation — Must Know
+```mermaid
+flowchart LR
+    P["each point<br/>distance = x² + y²"] --> H["max-heap of size K<br/>root = the farthest kept"]
+    H --> R["when a new point is closer than the root:<br/>poll the root, add the new point"]
+```
 
-**Closest points to the origin**
+**Find K Closest Elements (sorted array).** The same heap works, with the tie rule: for equal distance, the **smaller value** is closer. Use a max-heap ordered by `(distance, value)`; the "worst" item has the larger distance, or equal distance and the larger value. Then sort the `K` survivors. (Faster: binary search + two pointers, `O(log n + K)`.)
+
+```text
+arr = [1, 2, 3, 4, 5], K = 4, x = 3        distances 2, 1, 0, 1, 2
+keep 4 smallest: drop one distance-2 item. 5 is "worse" than 1 (same distance, larger value) → drop 5
+answer [1, 2, 3, 4]
+```
+
+#### 3. Brute Force vs Optimized
+
+| Approach | Time | Space |
+|---|---|---|
+| Sort all by distance, take `K` | `O(n log n)` | `O(n)` |
+| **Max-heap of size `K`** | `O(n log K)` | `O(K)` |
+| Quickselect on distances | `O(n)` average | `O(1)` |
+| (sorted array) binary search + two pointers | `O(log n + K)` | `O(1)` |
+
+```kotlin
+// Brute force: sort by squared distance
+fun kClosestSort(points: Array<IntArray>, k: Int): Array<IntArray> =
+    points.sortedBy { it[0] * it[0] + it[1] * it[1] }.take(k).toTypedArray()
+```
+
+#### 4. Kotlin Code
 
 ```kotlin
 import java.util.PriorityQueue
 
+// K Closest Points to Origin (LeetCode 973)
 fun kClosest(points: Array<IntArray>, k: Int): Array<IntArray> {
-    fun dist(p: IntArray): Long = p[0].toLong() * p[0] + p[1].toLong() * p[1]
-
-    val heap = PriorityQueue<IntArray>(compareByDescending<IntArray> { dist(it) })   // max-heap
+    fun dist(p: IntArray) = p[0] * p[0] + p[1] * p[1]
+    val heap = PriorityQueue<IntArray>(compareByDescending<IntArray> { dist(it) })   // farthest on top
     for (p in points) {
         heap.add(p)
-        if (heap.size > k) heap.poll()
+        if (heap.size > k) heap.poll()                                              // drop the farthest
     }
     return heap.toTypedArray()
 }
-```
 
-**Closest elements to a value `x` (heap version)**
-
-```kotlin
-import kotlin.math.abs
-
+// Find K Closest Elements (LeetCode 658): heap with a tie rule
 fun findClosestElements(arr: IntArray, k: Int, x: Int): List<Int> {
-    // The root is the "worst" kept number: the farthest from x, and on a tie the larger value
+    // worst on top: larger distance, or the same distance and the larger value
     val heap = PriorityQueue<Int>(
-        compareByDescending<Int> { abs(it.toLong() - x) }.thenByDescending { it }
+        compareByDescending<Int> { Math.abs(it - x) }.thenByDescending { it }
     )
-    for (n in arr) {
-        heap.add(n)
+    for (v in arr) {
+        heap.add(v)
         if (heap.size > k) heap.poll()
     }
     return heap.sorted()
 }
+
+// Same question, faster: binary search for the left edge of the window of size k
+fun findClosestElementsBinary(arr: IntArray, k: Int, x: Int): List<Int> {
+    var lo = 0
+    var hi = arr.size - k
+    while (lo < hi) {
+        val mid = lo + (hi - lo) / 2
+        if (x - arr[mid] > arr[mid + k] - x) lo = mid + 1 else hi = mid
+    }
+    return arr.slice(lo until lo + k)
+}
 ```
 
-Binary search plus two pointers for the sorted array is shown in `03-leetcode-patterns` (topics 4 and 8).
+Checks: `kClosest(arrayOf(intArrayOf(3, 3), intArrayOf(5, -1), intArrayOf(-2, 4)), 2)` returns the points `(3, 3)` and `(-2, 4)` (order not guaranteed). `kClosest(arrayOf(intArrayOf(1, 3), intArrayOf(-2, 2)), 1)` → `[[-2, 2]]` (distances 10 and 8). `findClosestElements(intArrayOf(1, 2, 3, 4, 5), 4, 3)` → `[1, 2, 3, 4]`. `findClosestElements(intArrayOf(1, 1, 2, 3, 4, 5), 4, -1)` → `[1, 1, 2, 3]`. `findClosestElementsBinary(intArrayOf(1, 2, 3, 4, 5), 4, 3)` → `[1, 2, 3, 4]`. `kClosestSort(...)` agrees with `kClosest`.
 
-#### 7. Time & Space Complexity — Must Know
+#### 5. Complexity
 
-| Approach | Time | Space |
-|---|---:|---:|
-| Heap of size `k` | `O(n log k)` | `O(k)` |
+| | Time | Space |
+|---|---|---|
+| Heap of size `K` | `O(n log K)` | `O(K)` |
 | Sort by distance | `O(n log n)` | `O(n)` |
-| Quickselect | `O(n)` average | `O(1)` extra |
+| Binary search window | `O(log(n − K) + K)` | `O(1)` extra |
 
-#### 8. Common Variations — Must Know
+#### 6. Common Mistakes
 
-1. **Closest points to any given point.** Replace the origin with `(qx, qy)`.
-2. **K nearest places on a phone map.** For GPS, use a proper geographic distance, and a spatial index such as geohash or a quadtree for large data (`SD 33`).
-3. **Find K Closest Elements** (LeetCode 658) — ties favour the smaller number.
-4. **K Closest Points with Manhattan distance** — change the key to `abs(x) + abs(y)`.
+1. **Using `sqrt`** (floating-point, slow, risk of equal-looking values). Compare squared distances.
+2. **Overflow:** `x * x` can overflow `Int` for large coordinates. Use `Long`.
+3. **A min-heap of size `n`** instead of a max-heap of size `K`.
+4. **No tie rule** in "K Closest Elements". Equal distance means the **smaller** value wins.
+5. **Returning the heap order** for the sorted-array version (it must be sorted).
+6. **`K > n`:** return everything.
 
-#### 9. Edge Cases / Common Mistakes
+#### 7. Say This in the Interview
 
-1. Using a **min**-heap for the closest points. It keeps the farthest ones.
-2. Computing `√(x² + y²)`. It is slower and may introduce floating-point errors.
-3. `Int` overflow in `x * x + y * y` for large coordinates. Convert to `Long` first.
-4. `k` larger than the number of points.
-5. Points at the same distance. Any order is usually allowed, but read the problem.
-6. For LeetCode 658: forgetting the tie rule (smaller number wins) and returning an unsorted list.
-7. Using the heap on a sorted array when a binary search is expected for the better complexity.
+1. "I compare squared distances to avoid `sqrt`. A max-heap of size `K` keeps the `K` closest: the root is the farthest of them and gets replaced by any closer point. `O(n log K)`."
+2. "For a sorted array I can do better: binary search for the start of the window of size `K`, in `O(log n + K)`."
+3. "I'd use `Long` for the squared distance if the coordinates can be large."
 
-#### 10. When to Use / When Not to Use
+#### 8. Quick Check
 
-**Use the heap when:**
+1. Which heap and why?
+2. For `K` closest to `x = 3`, are `1` and `5` equally close? Which one wins?
+3. Is `dist = x² + y²` enough to decide the order?
 
-1. The data is unsorted and `k` is small.
-2. Points arrive over time.
+<details>
+<summary>Answers</summary>
 
-**Avoid it when:**
+1. A **max**-heap of size `K`, so the farthest candidate is on top and is replaced first.
+2. Yes, both are 2 away. The **smaller** value (`1`) wins.
+3. Yes, squaring is monotonic for non-negative values, so the order is the same as for the real distance.
 
-1. The array is sorted. Use binary search and two pointers.
-2. The data is large and fixed, and you query many times. Use a spatial index (k-d tree, geohash).
+</details>
 
-#### 11. Related Topics
+#### 9. Related LeetCode Questions
 
-1. Top K Elements Pattern
-2. Kth Largest / Kth Smallest Element
-3. Quickselect (`02-algorithm/02-searching/13-Quickselect.md`)
-4. Binary Search (`02-algorithm/02-searching/03-Binary Search.md`)
-
-#### 12. Interview Must Remember
-
-1. **Closest `k` → max-heap of size `k`** by distance.
-2. **Compare squared distance** (use `Long`). No square root.
-3. `O(n log k)` time, `O(k)` space.
-4. For a **sorted** array, say binary search plus two pointers.
+| # | Question | Idea |
+|---|---|---|
+| 973 | [K Closest Points to Origin](https://leetcode.com/problems/k-closest-points-to-origin/) (Medium) | max-heap, squared distance |
+| 658 | [Find K Closest Elements](https://leetcode.com/problems/find-k-closest-elements/) (Medium) | heap or binary search |
+| 215 | [Kth Largest Element in an Array](https://leetcode.com/problems/kth-largest-element-in-an-array/) (Medium) | same size-`K` rule |
+| 1471 | [The k Strongest Values in an Array](https://leetcode.com/problems/the-k-strongest-values-in-an-array/) (Medium) | distance from the median |
+| 347 | [Top K Frequent Elements](https://leetcode.com/problems/top-k-frequent-elements/) (Medium) | note 18 |

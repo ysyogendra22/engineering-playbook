@@ -41,7 +41,23 @@ now expand {dog, log}: dog's neighbour dot is in back → they MEET
 answer = 5
 ```
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Approach | Nodes explored | Time |
+|---|---|---|
+| One-directional BFS from the start | about `b^d` | `O(b^d)` |
+| **Bidirectional BFS** (from both ends, always expand the smaller side) | about `2 · b^(d/2)` | `O(b^(d/2))` |
+
+`b` is the branching factor (neighbours per state) and `d` is the distance between start and target. With `b = 10` and `d = 6`, one-directional BFS looks at about `10⁶` states and bidirectional BFS at about `2 · 10³`.
+
+```text
+one direction:   start ●━━━━━━━━━━━━━━━▶ target     (a huge ball of states)
+two directions:  start ●━━━▶ ◀━━━● target           (two small balls that meet)
+```
+
+It requires that you can generate neighbours in **both** directions, and that the target is known.
+
+#### 4. Kotlin Code
 
 ```kotlin
 // Word Ladder with bidirectional BFS (LeetCode 127): number of words in the shortest chain
@@ -106,7 +122,7 @@ fun bidirectionalDistance(graph: List<List<Int>>, src: Int, dst: Int): Int {
 
 Check: `ladderLength("hit", "cog", [hot, dot, dog, lot, log, cog])` → `5`. If `cog` is not in the list → `0`.
 
-#### 4. Complexity
+#### 5. Complexity
 
 | | Time | Space |
 |---|---|---|
@@ -115,7 +131,7 @@ Check: `ladderLength("hit", "cog", [hot, dot, dog, lot, log, cog])` → `5`. If 
 
 In the worst case (a graph that is just a line), the gain is small.
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Checking for the meeting only when taking a node out.** Check when you **generate** a neighbour.
 2. **Not expanding the smaller side**, so the speed-up is lost.
@@ -125,13 +141,13 @@ In the worst case (a graph that is just a line), the gain is small.
 6. **Using it when moves are one-way** and you did not build the reverse edges.
 7. **Forgetting to put the target into the `back` set** at the start.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "Plain BFS explores about `b^d` nodes. Searching from both ends explores about `b^(d/2)`."
 2. "I keep two frontiers, always expand the smaller one, and stop when a neighbour is in the other frontier."
 3. "It needs a known target and reversible moves."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. Why expand the smaller frontier?
 2. Name two things bidirectional BFS needs.
@@ -144,7 +160,7 @@ In the worst case (a graph that is just a line), the gain is small.
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

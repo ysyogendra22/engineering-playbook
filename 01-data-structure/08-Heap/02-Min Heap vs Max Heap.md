@@ -1,58 +1,69 @@
 # Min Heap vs Max Heap
 
-#### 1. Definition — Must Know
+> The first decision in every heap problem. A small rule decides it: **to keep the K largest, use a min-heap. To keep the K smallest, use a max-heap.**
 
-1. A **min-heap** keeps the **smallest** element at the root. Every parent is `≤` its children.
-2. A **max-heap** keeps the **largest** element at the root. Every parent is `≥` its children.
-3. They are the same structure with the comparison reversed.
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+- A **min-heap** keeps the **smallest** item at the root.
+- A **max-heap** keeps the **largest** item at the root.
 
-1. Choosing the right one is the first decision in almost every heap problem.
-2. Many problems want a heap that is **opposite to what the words suggest**. For example, finding the `k` **largest** items uses a **min-heap** (see below).
+They are the same structure with the comparison reversed.
 
-#### 3. How It Works — Must Know
+**Why it matters:** the best heap is often the **opposite** of what the words suggest. "Find the K largest" wants a **min**-heap, because you need to throw away the **smallest** of your K candidates.
 
-The same values `5, 3, 8, 1, 9`, stored both ways:
+#### 2. How It Works
 
-```text
-Min-heap                 Max-heap
-     1                        9
-   /   \                    /   \
-  3     8                  8     5
- / \                      / \
-5   9                    1   3
+The same values `5, 3, 8, 1, 9`:
+
+```mermaid
+flowchart TD
+    subgraph MIN["Min-heap: root is the smallest"]
+        a1((1)) --- a3((3))
+        a1 --- a8((8))
+        a3 --- a5((5))
+        a3 --- a9((9))
+    end
+    subgraph MAX["Max-heap: root is the largest"]
+        b9((9)) --- b8((8))
+        b9 --- b5((5))
+        b8 --- b1((1))
+        b8 --- b3((3))
+    end
 ```
 
-1. Min-heap: `peek()` gives `1`.
-2. Max-heap: `peek()` gives `9`.
-3. The shape may differ, because insertion order and comparison decide where each value lands.
+**The Top K rule**
 
-#### 4. Core Concepts — Must Know
-
-1. **Min-heap** → quick access to the minimum.
-2. **Max-heap** → quick access to the maximum.
-3. **Rule for Top K:** keep a heap of size `k`. The root is the item you would drop first.
-
-| Goal | Heap to use | Why |
+| Goal | Use | Why |
 |---|---|---|
-| `k` **largest** items | **Min**-heap of size `k` | The root is the smallest of the `k` kept, so it is the one to throw away |
-| `k` **smallest** items | **Max**-heap of size `k` | The root is the largest of the `k` kept |
-| Always process the earliest deadline | Min-heap | Smallest deadline first |
-| Always process the highest score | Max-heap | Largest score first |
-
-4. Libraries usually give one type (Kotlin: a min-heap) and ask you to reverse it for the other.
-
-#### 5. Algorithm — Must Know
-
-Nothing new is implemented. The only change is the comparison:
+| `K` **largest** items | **min**-heap of size `K` | the root is the smallest of the `K` kept, so it is the one to evict |
+| `K` **smallest** items | **max**-heap of size `K` | the root is the largest of the `K` kept |
+| process the earliest deadline first | min-heap | smallest deadline on top |
+| process the highest score first | max-heap | largest score on top |
+| lower half of a stream (median) | max-heap | you need the largest of the lower half |
+| upper half of a stream (median) | min-heap | you need the smallest of the upper half |
 
 ```text
-min-heap: a goes above b when a < b
-max-heap: a goes above b when a > b
+K largest of [5, 3, 8, 1, 9], K = 3  (min-heap of size 3)
+add 5 → [5]    add 3 → [3,5]    add 8 → [3,5,8]
+add 1 → size 4 → remove the smallest (1) → [3,5,8]
+add 9 → size 4 → remove the smallest (3) → [5,8,9]       answer: 5, 8, 9
 ```
 
-#### 6. Kotlin Implementation — Must Know
+Kotlin gives a **min-heap**. To get a max-heap, reverse the comparison.
+
+#### 3. Brute Force vs Optimized
+
+| Goal | Brute force | Heap |
+|---|---|---|
+| `K` largest of `n` | sort descending, take `K`: `O(n log n)` | min-heap of size `K`: `O(n log K)` |
+| Max of a changing collection | scan: `O(n)` per query | max-heap: `O(log n)` per update |
+
+```kotlin
+fun kLargestBySort(nums: IntArray, k: Int): List<Int> =
+    nums.sortedDescending().take(k)                          // O(n log n)
+```
+
+#### 4. Kotlin Code
 
 ```kotlin
 import java.util.PriorityQueue
@@ -62,62 +73,73 @@ val minHeap = PriorityQueue<Int>()
 
 // Max-heap
 val maxHeap = PriorityQueue<Int>(compareByDescending<Int> { it })
-// also works: PriorityQueue<Int>(Comparator.reverseOrder())
+// also: PriorityQueue<Int>(Collections.reverseOrder())
 
-minHeap.addAll(listOf(5, 3, 8, 1, 9))
-maxHeap.addAll(listOf(5, 3, 8, 1, 9))
+// The K largest with a min-heap of size K
+fun kLargest(nums: IntArray, k: Int): List<Int> {
+    val heap = PriorityQueue<Int>()
+    for (x in nums) {
+        heap.add(x)
+        if (heap.size > k) heap.poll()                       // drop the smallest
+    }
+    return heap.sortedDescending()
+}
 
-println(minHeap.peek())   // 1
-println(maxHeap.peek())   // 9
+// The K smallest with a max-heap of size K
+fun kSmallest(nums: IntArray, k: Int): List<Int> {
+    val heap = PriorityQueue<Int>(compareByDescending<Int> { it })
+    for (x in nums) {
+        heap.add(x)
+        if (heap.size > k) heap.poll()                       // drop the largest
+    }
+    return heap.sorted()
+}
 ```
 
-Do not write the max-heap comparator as `{ a, b -> b - a }`. The subtraction can overflow for large or negative values. Use `compareByDescending`, `Comparator.reverseOrder()`, or `b.compareTo(a)`.
+Checks: with `5, 3, 8, 1, 9`: `minHeap.peek()` → `1`, `maxHeap.peek()` → `9`. `kLargest(intArrayOf(5, 3, 8, 1, 9), 3)` → `[9, 8, 5]`. `kSmallest(intArrayOf(5, 3, 8, 1, 9), 3)` → `[1, 3, 5]`. `kLargestBySort(...)` → `[9, 8, 5]`.
 
-#### 7. Time & Space Complexity — Must Know
+#### 5. Complexity
 
-| Operation | Min-heap | Max-heap |
-|---|---:|---:|
-| Peek | `O(1)` | `O(1)` |
-| Insert | `O(log n)` | `O(log n)` |
-| Extract | `O(log n)` | `O(log n)` |
-| Space | `O(n)` | `O(n)` |
+| | Time | Space |
+|---|---|---|
+| Top K with a heap of size `K` | `O(n log K)` | `O(K)` |
+| Sort and take `K` | `O(n log n)` | `O(n)` |
 
-Both have identical cost. Only the comparison differs.
+#### 6. Common Mistakes
 
-#### 8. Common Choices — Must Know
+1. **Using a max-heap for "K largest"** and keeping all `n` items.
+2. **Using `a - b` in a comparator.** It can overflow. Use `compareBy` or `compareByDescending`.
+3. **Forgetting that `PriorityQueue` is a min-heap by default** in Kotlin and Java.
+4. **Not capping the size at `K`.** Without `if (size > k) poll()`, the heap holds everything.
+5. **Mixing up the reading:** after the loop, the **root** is the Kth largest (min-heap), not the largest.
 
-1. Kth **largest** element → min-heap of size `k`.
-2. Kth **smallest** element → max-heap of size `k`.
-3. Running median → one max-heap (lower half) **and** one min-heap (upper half).
-4. Dijkstra's shortest path → min-heap by distance.
-5. Task with highest priority first → max-heap (or a min-heap with the priority negated).
+#### 7. Say This in the Interview
 
-#### 9. Edge Cases / Common Mistakes
+1. "For the K largest I use a **min**-heap of size K. The root is the smallest of my candidates, so it is the one to drop when a bigger value arrives."
+2. "That is `O(n log K)` time and `O(K)` space, better than sorting when K is small."
+3. "Kotlin's `PriorityQueue` is a min-heap. I reverse the comparator for a max-heap."
 
-1. Using a max-heap to keep the `k` largest. You would throw away the wrong item.
-2. Negating values to fake a max-heap, then overflowing on `Int.MIN_VALUE` (`-Int.MIN_VALUE` is still `Int.MIN_VALUE`).
-3. Comparator written as `b - a`, which can overflow.
-4. Forgetting that Kotlin's default is a **min-heap**. Java's `PriorityQueue` behaves the same way.
-5. Mixing the two heaps in the Two Heaps pattern and putting a value in the wrong half.
+#### 8. Quick Check
 
-#### 10. When to Use / When Not to Use
+1. Which heap finds the 3 smallest numbers?
+2. After processing a stream with a min-heap of size `K = 2`, what does `peek()` return?
+3. Why not use `{ a, b -> b - a }` for a max-heap?
 
-**Use a min-heap when:** the next thing you need is the smallest item, or you keep the `k` largest.
+<details>
+<summary>Answers</summary>
 
-**Use a max-heap when:** the next thing you need is the largest item, or you keep the `k` smallest.
+1. A **max**-heap of size 3.
+2. The 2nd largest value seen so far (the smallest of the two kept).
+3. Subtraction can overflow for large or negative values. `compareByDescending` is safe.
 
-**Use both together when:** you split data into a lower half and an upper half (running median).
+</details>
 
-#### 11. Related Topics
+#### 9. Related LeetCode Questions
 
-1. Heap Fundamentals
-2. Kotlin `PriorityQueue`
-3. Top K Elements Pattern
-4. Two Heaps Pattern
-
-#### 12. Interview Must Remember
-
-1. Min-heap → minimum at the root. Max-heap → maximum at the root.
-2. **`k` largest → min-heap of size `k`. `k` smallest → max-heap of size `k`.**
-3. Kotlin's `PriorityQueue` is a **min-heap** by default.
-4. Build a max-heap with `compareByDescending` or `Comparator.reverseOrder()`, not `b - a`.
+| # | Question | Idea |
+|---|---|---|
+| 1046 | [Last Stone Weight](https://leetcode.com/problems/last-stone-weight/) (Easy) | max-heap |
+| 703 | [Kth Largest Element in a Stream](https://leetcode.com/problems/kth-largest-element-in-a-stream/) (Easy) | min-heap of size K |
+| 215 | [Kth Largest Element in an Array](https://leetcode.com/problems/kth-largest-element-in-an-array/) (Medium) | min-heap of size K |
+| 973 | [K Closest Points to Origin](https://leetcode.com/problems/k-closest-points-to-origin/) (Medium) | max-heap of size K |
+| 506 | [Relative Ranks](https://leetcode.com/problems/relative-ranks/) (Easy) | max-heap of scores |

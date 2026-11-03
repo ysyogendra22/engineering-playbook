@@ -33,3 +33,7 @@
 20. Priority Queue Internals → Study under Heap
 21. Concurrent / Lock-Free Queue
 22. Queueing Theory
+
+### Revision
+
+99. Queue Cheat Sheet

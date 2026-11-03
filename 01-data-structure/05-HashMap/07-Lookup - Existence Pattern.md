@@ -37,7 +37,23 @@ s = "foo"   t = "bar"
 f → b      o → a      o → r   (o is already mapped to a, not r ✗)            → false
 ```
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Approach | Per lookup | Total for `m` lookups in `n` items |
+|---|---|---|
+| `list.contains(x)` | `O(n)` | `O(m · n)` |
+| Binary search on a sorted list | `O(log n)` | `O(n log n + m log n)` |
+| **`HashSet` / `HashMap`** | **`O(1)`** | `O(n + m)` |
+
+```kotlin
+// Brute force: scan the list for every query
+fun existsBrute(items: List<Int>, queries: List<Int>): List<Boolean> =
+    queries.map { it in items }                                // 'in' on a list is O(n)
+```
+
+`existsBrute(listOf(5, 3, 9), listOf(3, 4))` → `[true, false]`. Build the set once, and each query is `O(1)`.
+
+#### 4. Kotlin Code
 
 ```kotlin
 // Roman to Integer (LeetCode 13)
@@ -82,7 +98,7 @@ Checks: `romanToInt("MCMXCIV")` → `1994`. `isIsomorphic("egg", "add")` → `tr
 
 **Word Pattern (LeetCode 290)** is the same code: map each pattern letter to a word, and each word back to the letter.
 
-#### 4. Complexity
+#### 5. Complexity
 
 | | Time |
 |---|---|
@@ -92,7 +108,7 @@ Checks: `romanToInt("MCMXCIV")` → `1994`. `isIsomorphic("egg", "add")` → `tr
 
 Without the map, searching a list for every question costs `O(m × n)`.
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Using only one map** for a one-to-one match. `"ab"` → `"aa"` would wrongly pass a one-way check.
 2. **`map[key]!!`** when the key might be missing. It crashes.
@@ -101,13 +117,13 @@ Without the map, searching a list for every question costs `O(m × n)`.
 5. **Case and spaces** in string keys.
 6. **Using a map for 26 letters** when an `IntArray(26)` is faster.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "I build the lookup map once and then each query is `O(1)`."
 2. "A one-to-one rule needs a map in both directions."
 3. "Total time is `O(m + n)`."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. Is `"ab"` isomorphic to `"aa"`? Why?
 2. What does `"IV"` equal as a Roman numeral, and why?
@@ -120,7 +136,7 @@ Without the map, searching a list for every question costs `O(m × n)`.
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

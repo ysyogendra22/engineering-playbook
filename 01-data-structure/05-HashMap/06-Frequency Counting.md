@@ -40,7 +40,27 @@ Two useful tricks:
 - **Add for one string, subtract for the other.** If everything ends at 0, they match (anagram check).
 - **Count first, then read.** For "first unique" or "top k", build the counts, then scan or sort.
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Approach | Time | Space |
+|---|---|---|
+| For each item, count it by scanning the array | `O(n²)` | `O(1)` extra |
+| Sort, then count runs | `O(n log n)` | `O(1)` or `O(n)` |
+| **HashMap of counts** | **`O(n)`** | `O(k)` for `k` distinct items |
+| `IntArray(26)` (lowercase letters) | `O(n)` | `O(1)` |
+
+```kotlin
+// Brute force: scan the array again for every item
+fun countBrute(nums: IntArray): Map<Int, Int> {
+    val result = HashMap<Int, Int>()
+    for (x in nums) result[x] = nums.count { it == x }       // O(n) each
+    return result
+}
+```
+
+`countBrute(intArrayOf(1, 2, 1, 3, 1))` → `{1=3, 2=1, 3=1}`, the same as the map solution.
+
+#### 4. Kotlin Code
 
 ```kotlin
 // Count with a loop
@@ -94,7 +114,7 @@ The `O(1)`-space answer for majority element is the Boyer–Moore voting algorit
 
 **Top K Frequent Elements (LeetCode 347)** is "count, then keep the `k` biggest counts with a heap". The full solution is in `01-data-structure/08-Heap/18-Top K Frequent Elements.md`.
 
-#### 4. Complexity
+#### 5. Complexity
 
 | | Time | Space |
 |---|---|---|
@@ -102,7 +122,7 @@ The `O(1)`-space answer for majority element is the Boyer–Moore voting algorit
 | Letters in `IntArray(26)` | `O(n)` | `O(1)` |
 | Sort the counts afterwards | `O(u log u)` | — |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Writing `count[x]++`.** It does not compile. Use `(count[x] ?: 0) + 1`.
 2. **Using a map when `IntArray(26)` is enough.**
@@ -111,13 +131,13 @@ The `O(1)`-space answer for majority element is the Boyer–Moore voting algorit
 5. **Comparing two maps** where one has a key with count `0`. Remove zero-count keys first.
 6. **Ties** for "most frequent". The question says which to return.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "I will count with a HashMap in one pass, then answer from the counts. That is `O(n)` time and `O(u)` space."
 2. "For lowercase letters I use an `IntArray(26)`, so space is `O(1)`."
 3. "For the top `k` I would add a heap on top of the counts."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. What are the counts for `"hello"`?
 2. How can you check an anagram with only one array?
@@ -130,7 +150,7 @@ The `O(1)`-space answer for majority element is the Boyer–Moore voting algorit
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

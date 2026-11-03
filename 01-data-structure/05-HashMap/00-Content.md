@@ -39,7 +39,11 @@
 25. HashMap + Doubly Linked List — LRU Pattern
 26. Designing a Simple HashMap — Concept
 
-## 4. Study Separately
+## 4. Revision
+
+99. HashMap Cheat Sheet
+
+## 5. Study Separately
 
 - HashSet
 - Array

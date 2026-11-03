@@ -50,7 +50,22 @@ dfs(node):
 
 Use DFS when you need to: find **any** path, **count/mark components**, detect **cycles**, explore **all possibilities** (backtracking), or process a **grid region**. Use BFS (note 9) when you need the **shortest** path.
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Approach | Time | Problem |
+|---|---|---|
+| DFS **without** a `visited` set | exponential, or infinite on a cycle | revisits nodes again and again |
+| DFS enumerating all paths | exponential | needed only when you must list every path |
+| **DFS with `visited`** | **`O(V + E)`** | each node is processed once |
+
+```text
+A "ladder" of V diamonds has 2^V different paths from the top to the bottom.
+DFS without visited walks all of them. DFS with visited touches each node once.
+```
+
+Mark a node visited when you enter it. For problems that really need every path (All Paths From Source to Target), you may also **unmark** it when you leave (backtracking), and that is why those problems are exponential.
+
+#### 4. Kotlin Code
 
 ```kotlin
 // Recursive DFS: returns the visit order
@@ -125,7 +140,7 @@ Checks: `dfs([[1,2],[3],[3],[]], 0)` → `[0, 1, 3, 2]`. `allPathsSourceTarget([
 
 For a DAG you do not need `visited` in `allPathsSourceTarget`, because there are no cycles.
 
-#### 4. Complexity
+#### 5. Complexity
 
 For `V` nodes and `E` edges:
 
@@ -134,7 +149,7 @@ For `V` nodes and `E` edges:
 | DFS (adjacency list) | `O(V + E)` | `O(V)` (visited + the call stack) |
 | All paths in a DAG | exponential in the worst case | `O(V)` for the path + the answer |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **No `visited` set.** Infinite loop on a cycle.
 2. **`StackOverflowError`** on very deep graphs. Use the iterative version.
@@ -142,13 +157,13 @@ For `V` nodes and `E` edges:
 4. **Forgetting to backtrack** (`removeAt`) when collecting paths, or forgetting to **copy** the path (`path.toList()`) before saving it.
 5. **Forgetting disconnected parts.** Start a DFS from every unvisited node.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "I will use DFS with a visited set. Time `O(V + E)`, space `O(V)` for the recursion."
 2. "If the graph can be very deep, I would use an explicit stack to avoid a stack overflow."
 3. "For all paths I add the node, recurse, then remove it (backtracking)."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. When is DFS a better choice than BFS?
 2. What goes wrong if you forget to copy the path before saving it?
@@ -161,7 +176,7 @@ For `V` nodes and `E` edges:
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

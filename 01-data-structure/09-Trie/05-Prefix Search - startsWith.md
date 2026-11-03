@@ -1,126 +1,160 @@
-# Prefix Search / `startsWith`
+# Prefix Search / startsWith
 
-#### 1. Definition — Must Know
+> The reason tries exist. The same walk as `search`, but you only need the **path to exist**.
 
-1. **Prefix search** (`startsWith`) checks whether **any stored word begins with** a given prefix.
-2. Walk the prefix through the Trie. If every character has a matching child, the answer is `true`.
-3. Unlike `search`, it does **not** care whether the last node is an end of word.
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+**`startsWith(prefix)`** answers: "Is there **any** word in the trie that begins with this prefix?"
 
-1. This is the operation a Trie exists for. A `HashSet` cannot answer it without scanning every word.
-2. It is the first step of autocomplete, search suggestions, and prefix counting.
-3. It costs `O(P)`, where `P` is the prefix length.
+- It succeeds if you can follow the whole prefix.
+- It does **not** need `isEnd`. The prefix itself does not have to be a word.
 
-#### 3. How It Works — Must Know
+Once you have the **node at the end of the prefix**, many more questions become easy: count the words below it, list them, check one child, and so on.
 
-Trie holds `car`, `cat`, `dog`:
+**Signals:** "starts with", "prefix", "common prefix", "autocomplete", "words beginning with".
 
-```text
-root
-├── c
-│   └── a
-│       ├── r*
-│       └── t*
-└── d
-    └── o
-        └── g*
-```
+#### 2. How It Works
+
+Trie with `car`, `cart`, `cat`, `dog`:
 
 ```text
-startsWith("ca")  → c ✓ → a ✓                 → true
-startsWith("car") → c ✓ → a ✓ → r ✓           → true
-startsWith("do")  → d ✓ → o ✓                 → true  (even though "do" is not a word)
-startsWith("cow") → c ✓ → o ✗                 → false
-startsWith("")    → no characters to check    → true  (every word starts with "")
+startsWith "ca":   c ✓ → a ✓                      → TRUE   (cart, car, cat all start with "ca")
+startsWith "cat":  c ✓ → a ✓ → t ✓                → TRUE   (cat is also a word)
+startsWith "cx":   c ✓ → x ✗                      → FALSE
+startsWith "":     the root                       → TRUE   (every word starts with the empty prefix)
 ```
 
-#### 4. Core Concepts — Must Know
-
-1. Same walk as `search`.
-2. **Reaching the end of the prefix is enough.** No end-of-word check.
-3. Both operations share the helper `findNode(text)`.
-
-| | `search(word)` | `startsWith(prefix)` |
-|---|---|---|
-| Missing child | `false` | `false` |
-| Path complete | `isEndOfWord` | `true` |
-| `"ca"` with only `car` stored | `false` | `true` |
-
-#### 5. Algorithm — Must Know
+**A shared helper.** Write one function `findNode(prefix)` that returns the node at the end of the prefix, or `null`. Then:
 
 ```text
-node = root
-
-for each character ch in prefix:
-    if node has no child for ch:
-        return false
-    node = child for ch
-
-return true
+search(word)      = findNode(word)?.isEnd == true
+startsWith(prefix) = findNode(prefix) != null
 ```
 
-#### 6. Kotlin Implementation — Must Know
+**Longest Common Prefix of many words (LeetCode 14).** Insert all words. Start at the root and keep going **while the current node has exactly one child and is not the end of a word**. The path you walked is the longest common prefix.
 
-Reuses `findNode` from "Search Word":
+```mermaid
+flowchart TD
+    root((root)) --- f((f))
+    f --- l((l))
+    l --- o(("o"))
+    l --- i(("i"))
+    o --- w1(["w ✓ (flow)"])
+    i --- g(["g ✓ (flight)"])
+    classDef p fill:#bbf7d0,stroke:#15803d,color:#111
+    class f,l p
+```
+
+Words `flower`, `flow`, `flight`: after `f → l` the node has **two** children (`o` and `i`), so the common prefix is `fl`.
+
+(For this one question, simply comparing the first and last word after sorting is also `O(n log n · L)`, or compare character by character in `O(n · L)`. The trie is the general tool.)
+
+#### 3. Brute Force vs Optimized
+
+| Approach | Time |
+|---|---|
+| `words.any { it.startsWith(prefix) }` | `O(n · L)` |
+| Add every prefix to a `HashSet` | `O(1)` query, but `O(total L²)` memory |
+| **Trie walk** | `O(L)` query, `O(total L)` memory |
 
 ```kotlin
-fun startsWith(prefix: String): Boolean {
-    return findNode(prefix) != null
+fun startsWithBrute(words: List<String>, prefix: String): Boolean =
+    words.any { it.startsWith(prefix) }
+```
+
+#### 4. Kotlin Code
+
+```kotlin
+class TrieNode {
+    val next = arrayOfNulls<TrieNode>(26)
+    var isEnd = false
+    var childCount = 0
+}
+
+class Trie {
+    private val root = TrieNode()
+
+    fun insert(word: String) {
+        var node = root
+        for (c in word) {
+            val i = c - 'a'
+            if (node.next[i] == null) { node.next[i] = TrieNode(); node.childCount++ }
+            node = node.next[i]!!
+        }
+        node.isEnd = true
+    }
+
+    // The node at the end of the prefix, or null
+    private fun findNode(prefix: String): TrieNode? {
+        var node = root
+        for (c in prefix) node = node.next[c - 'a'] ?: return null
+        return node
+    }
+
+    fun search(word: String): Boolean = findNode(word)?.isEnd == true
+
+    fun startsWith(prefix: String): Boolean = findNode(prefix) != null
+
+    // Longest common prefix of all inserted words
+    fun longestCommonPrefix(): String {
+        val sb = StringBuilder()
+        var node = root
+        while (node.childCount == 1 && !node.isEnd) {
+            val i = node.next.indexOfFirst { it != null }
+            sb.append('a' + i)
+            node = node.next[i]!!
+        }
+        return sb.toString()
+    }
 }
 ```
 
-#### 7. Time & Space Complexity — Must Know
+Checks (insert `car`, `cart`, `cat`, `dog`): `startsWith("ca")` → `true`. `startsWith("cat")` → `true`. `startsWith("cx")` → `false`. `startsWith("")` → `true`. `search("ca")` → `false`. A trie with `flower`, `flow`, `flight`: `longestCommonPrefix()` → `"fl"`. A trie with `dog`, `racecar`, `car`: `longestCommonPrefix()` → `""` (the root has two children). A trie with only `abc`: `longestCommonPrefix()` → `"abc"`. A trie with `ab` and `abc`: `longestCommonPrefix()` → `"ab"` (stops at the end of the word `ab`).
 
-| Case | Time |
-|---|---:|
-| Best | `O(1)` |
-| Worst | `O(P)` |
-| Space | `O(1)` |
+#### 5. Complexity
 
-Why `O(P)`?
+| | Time | Space |
+|---|---|---|
+| `startsWith` | `O(L)` | `O(1)` |
+| `longestCommonPrefix` | `O(L)` for the answer length | `O(1)` extra |
+| Build the trie for LCP | `O(total characters)` | `O(total characters)` |
 
-```text
-One step per prefix character. The number of stored words does not matter.
-```
+#### 6. Common Mistakes
 
-Compare with a `HashSet<String>`: checking a prefix means testing every word, `O(N · P)`.
+1. **Checking `isEnd` in `startsWith`.** That turns it into `search`.
+2. **Treating the empty prefix as false.** By convention it is true when the trie is non-empty (decide and state it).
+3. **Longest common prefix:** not stopping at a node where a word ends (`ab` and `abc` share only `ab`).
+4. **Not stopping when the node has more than one child.**
+5. **Rewriting the same loop twice** instead of one `findNode` helper.
+6. **Case or character mismatch** crashing the array index.
 
-#### 8. Common Prefix Patterns — Must Know
+#### 7. Say This in the Interview
 
-1. "Is there any word that starts with …?"
-2. Reject a path early in a search (prune when no word can continue).
-3. Count how many words share a prefix (see "Counting Words / Prefixes").
-4. Collect all words with a prefix (see "Trie + DFS" and "Autocomplete").
+1. "`startsWith` walks the prefix and returns true if every character exists. It doesn't check `isEnd`. That is `O(L)` no matter how many words there are."
+2. "I keep a `findNode` helper that returns the node at the end of a prefix. `search` and `startsWith` both use it, and so do counting and autocomplete."
+3. "For the longest common prefix, I walk down while the node has exactly one child and is not a word end."
 
-#### 9. Edge Cases / Common Mistakes
+#### 8. Quick Check
 
-1. Checking `isEndOfWord` in `startsWith`. That turns it into `search`.
-2. Treating the empty prefix as `false`. With the `findNode` helper it returns the root, so `startsWith("")` is `true`, even for an empty Trie. Decide whether your problem wants that, and handle it explicitly if not.
-3. Case mismatch between inserted words and the prefix.
-4. Forgetting that the prefix can be a full word too (`startsWith("car")` is `true` when `car` is stored).
+1. After inserting `apple`, what does `startsWith("appl")` return?
+2. How many children does the root have in a trie of `car`, `cat`, `dog`?
+3. Longest common prefix of `ab` and `abc`?
 
-#### 10. When to Use / When Not to Use
+<details>
+<summary>Answers</summary>
 
-**Use when:**
+1. `true`.
+2. `2` (`c` and `d`).
+3. `"ab"`.
 
-1. Questions are about beginnings of words.
-2. You want to stop a search early when no stored word can match.
+</details>
 
-**Avoid when:**
+#### 9. Related LeetCode Questions
 
-1. Questions are about the middle or end of words. A Trie is organised by prefix only.
-
-#### 11. Related Topics
-
-1. Search Word
-2. Trie + DFS
-3. Autocomplete / Prefix Suggestions
-4. Counting Words / Prefixes
-
-#### 12. Interview Must Remember
-
-1. `startsWith` = walk the prefix. **No** end-of-word check.
-2. `O(P)`, independent of the number of words.
-3. `search("ca")` is `false` but `startsWith("ca")` is `true` when only `car` is stored.
-4. Share one `findNode` helper between both.
+| # | Question | Idea |
+|---|---|---|
+| 208 | [Implement Trie (Prefix Tree)](https://leetcode.com/problems/implement-trie-prefix-tree/) (Medium) | `startsWith` |
+| 14 | [Longest Common Prefix](https://leetcode.com/problems/longest-common-prefix/) (Easy) | walk while one child |
+| 1268 | [Search Suggestions System](https://leetcode.com/problems/search-suggestions-system/) (Medium) | prefix then list |
+| 648 | [Replace Words](https://leetcode.com/problems/replace-words/) (Medium) | shortest prefix that is a word |
+| 1065 | [Index Pairs of a String](https://leetcode.com/problems/index-pairs-of-a-string/) (Easy, premium) | match words at each start |

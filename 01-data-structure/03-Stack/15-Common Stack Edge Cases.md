@@ -32,7 +32,25 @@ These are the situations where stack solutions most often **crash** or **give a 
 | 14 | Multi-digit numbers, spaces, last token | wrong numbers | `num = num * 10 + digit`, skip spaces, handle the end |
 | 15 | Big products (area, sums) | `Int` overflow | use `Long` |
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Mistake (naive) | Fix |
+|---|---|
+| `pop()` / `removeLast()` on an empty stack (throws) | check `isNotEmpty()` first |
+| `peek()` without checking (crashes or returns `null`) | guard, or use `lastOrNull()` |
+| Using `==` on boxed `Int`s in a monotonic stack | compare values with `==` on primitives, or `equals` |
+| Forgetting to empty the stack at the end (leftover opens) | check `stack.isEmpty()` after the loop |
+| Using `Stack<T>` (legacy, synchronised) | `ArrayDeque<T>` |
+
+```kotlin
+// Naive: crashes on an empty stack
+fun lastOrCrash(stack: ArrayDeque<Int>): Int = stack.removeLast()
+
+// Safe
+fun lastOrNull(stack: ArrayDeque<Int>): Int? = if (stack.isNotEmpty()) stack.removeLast() else null
+```
+
+#### 4. Kotlin Code
 
 ```kotlin
 val stack = ArrayDeque<Int>()
@@ -82,24 +100,24 @@ println(100_000 * 100_000)               // 1410065408 (wrong)
 println(100_000L * 100_000)              // 10000000000
 ```
 
-#### 4. Complexity
+#### 5. Complexity
 
 Edge cases do not change the time or space. They change **correctness**. An unchecked `pop` is a crash, not a slow program.
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Testing only the example from the question.** Also test: empty input, one item, all items equal, all increasing, all decreasing.
 2. **Returning early and skipping the final `isEmpty()` check.**
 3. **Mixing `java.util.Stack` and `ArrayDeque`.**
 4. **Not saying your assumption out loud** (for example, "I assume the input has only brackets").
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "Edge cases I will check: empty input, a single item, and items left in the stack."
 2. "For equal values I use strict `<`, because the question says *strictly* greater."
 3. "I will use `Long` here to avoid overflow."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. What does `isValid("((")` return, and which line makes sure of it?
 2. What happens if you `pop` the right number second in `8 2 /`?
@@ -112,7 +130,7 @@ Edge cases do not change the time or space. They change **correctness**. An unch
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Edge case to watch |
 |---|---|---|

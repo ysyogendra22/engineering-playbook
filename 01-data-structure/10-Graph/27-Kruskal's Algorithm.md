@@ -54,7 +54,23 @@ If you finish all the edges and have fewer than `V - 1` edges, the graph is **no
 
 *Min Cost to Connect All Points* (LeetCode 1584): the points are the vertices. The edge between two points costs their **Manhattan distance** (`|x1 - x2| + |y1 - y2|`). Every pair of points is an edge (a complete graph), so build all `n(n-1)/2` edges, then run Kruskal.
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Cycle check for an edge | Time per edge | Total |
+|---|---|---|
+| DFS / BFS in the current forest to see if the ends are connected | `O(V)` | `O(E · V)` |
+| **Union-find** `find(a) == find(b)` | `O(α(V))` | `O(E α(V))` |
+
+The whole algorithm is `O(E log E)` for the **sort**, plus nearly `O(E)` for the union-find work.
+
+```text
+Kruskal = sort edges  +  for each edge: if find(a) != find(b) { union(a, b); total += weight }
+stop after V - 1 edges; fewer means the graph is not connected
+```
+
+Without union-find, each "would this make a cycle?" question is a full graph search, which makes Kruskal about `O(E · V)`.
+
+#### 4. Kotlin Code
 
 ```kotlin
 // Kruskal on an edge list: edges are [a, b, weight]. Returns the MST weight, or -1 if the graph is not connected.
@@ -97,7 +113,7 @@ Checks: `kruskal(4, [[0,1,1],[1,2,2],[0,2,3],[2,3,4],[1,3,5]])` → `7`. `minCos
 
 The edge count for 1584 is about `n²/2`. For `n = 1000` that is 500,000 edges, which is fine. For a larger `n`, use Prim's algorithm with an array (note 28).
 
-#### 4. Complexity
+#### 5. Complexity
 
 | | Time | Space |
 |---|---|---|
@@ -107,7 +123,7 @@ The edge count for 1584 is about `n²/2`. For `n = 1000` that is 500,000 edges, 
 
 For 1584: `E = n²/2`, so `O(n² log n)`.
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Not sorting the edges.**
 2. **Adding an edge without the union-find check**, so cycles appear.
@@ -116,13 +132,13 @@ For 1584: `E = n²/2`, so `O(n² log n)`.
 5. **Counting each undirected edge twice** when building from an adjacency list. Build the edge list once.
 6. **Overflow in the total weight.** Use `Long` when weights are large.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "I sort the edges by weight and take each edge that joins two different components. Union-find tells me that quickly."
 2. "I stop after `V - 1` edges. If I cannot reach that, the graph is not connected."
 3. "Time `O(E log E)`, dominated by sorting."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. Why do we skip an edge whose two ends are already in the same group?
 2. What does the algorithm do when it has `V - 1` edges?
@@ -135,7 +151,7 @@ For 1584: `E = n²/2`, so `O(n² log n)`.
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

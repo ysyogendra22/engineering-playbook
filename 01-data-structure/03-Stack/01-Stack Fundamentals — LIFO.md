@@ -51,7 +51,35 @@ f(3) returns 3 * 2 = 6 → f(3) leaves
 
 If the recursion goes too deep, this stack runs out of space and the program crashes with `StackOverflowError`. This is why some problems ask you to use **your own stack** instead of recursion.
 
-#### 5. Kotlin Code
+#### 5. Brute Force vs Optimized
+
+| Task | Naive | Stack |
+|---|---|---|
+| Undo the last action | scan the history list for the latest item: `O(n)` | `pop()`: `O(1)` |
+| Match the most recent open item | search backwards each time: `O(n)` | `peek()`: `O(1)` |
+| Reverse a sequence | build a new list by inserting at index 0: `O(n²)` | push all, pop all: `O(n)` |
+
+The cost of a stack comes from using **only one end**. Inserting at the front of an `ArrayList` shifts every item.
+
+```kotlin
+// Naive "stack" that works at the FRONT of a list: every push and pop shifts the whole list, O(n)
+class SlowStack {
+    private val items = mutableListOf<Int>()
+    fun push(x: Int) { items.add(0, x) }
+    fun pop(): Int = items.removeAt(0)
+}
+
+// Stack that works at the END: O(1) push and pop
+class FastStack {
+    private val items = ArrayDeque<Int>()
+    fun push(x: Int) = items.addLast(x)
+    fun pop(): Int = items.removeLast()
+}
+```
+
+Both give the same results: push `1, 2, 3` then `pop()` gives `3, 2, 1`. Only the speed differs.
+
+#### 6. Kotlin Code
 
 Use `ArrayDeque`. Always add and remove at the **end**.
 
@@ -84,7 +112,7 @@ fun reverse(s: String): String {
 
 Avoid `java.util.Stack` (old and slow). On a Java `Deque`, `push` and `pop` work at the **front**, so do not mix them with `addLast`.
 
-#### 6. How to Spot a Stack Problem
+#### 7. How to Spot a Stack Problem
 
 | If the question has... | Think... |
 |---|---|
@@ -96,27 +124,27 @@ Avoid `java.util.Stack` (old and slow). On a Java `Deque`, `push` and `pop` work
 
 The full practice list is in section 11.
 
-#### 7. Complexity
+#### 8. Complexity
 
 | Action | Time |
 |---|---|
 | `push`, `pop`, `peek`, `isEmpty` | `O(1)` |
 | Memory for `n` items | `O(n)` |
 
-#### 8. Common Mistakes
+#### 9. Common Mistakes
 
 1. **Popping an empty stack.** It crashes. Check `isNotEmpty()` first or use `removeLastOrNull()`.
 2. **Mixing the two ends** of a `Deque`.
 3. **Forgetting the items left in the stack** after the loop. They are often part of the answer.
 4. **Using a stack when you need the oldest item first.** That is a queue.
 
-#### 9. Say This in the Interview
+#### 10. Say This in the Interview
 
 1. "The most recent item decides what happens next, so I will use a stack."
 2. "Each item is pushed once and popped once, so time is `O(n)` and space is `O(n)`."
 3. "Edge cases: empty input, one item, and leftovers in the stack."
 
-#### 10. Quick Check
+#### 11. Quick Check
 
 1. You push `1`, `2`, `3`, then pop once. What is on top?
 2. Why does `")("` fail a bracket check?
@@ -129,7 +157,7 @@ The full practice list is in section 11.
 
 </details>
 
-#### 11. Related LeetCode Questions (Often Asked)
+#### 12. Related LeetCode Questions (Often Asked)
 
 Solve them in this order. The first column is the LeetCode number (search by title if a number looks wrong).
 

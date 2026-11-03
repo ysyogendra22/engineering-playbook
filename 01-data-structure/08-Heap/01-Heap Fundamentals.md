@@ -1,135 +1,148 @@
 # Heap Fundamentals
 
-#### 1. Definition — Must Know
+> A heap gives you the smallest (or largest) item in `O(1)`, and lets you add or remove items in `O(log n)`. It is the tool behind "top K", "kth largest" and "always take the best next".
 
-1. A **heap** is a tree-based structure that follows two rules:
-   - **Shape rule:** it is a **complete binary tree** (every level is full, except possibly the last, which fills from the left).
-   - **Order rule (heap property):** every parent is "better" than its children. In a **min-heap** the parent is smaller or equal. In a **max-heap** the parent is larger or equal.
-2. Its job is to give you the **smallest** (or **largest**) element immediately, at the root.
-3. A heap is **not sorted**. Only the root is guaranteed to be the best element.
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+A **heap** is a **complete binary tree** where every parent is ordered against its children:
 
-1. It answers "what is the next smallest / largest item?" in `O(1)`.
-2. Adding an item and removing the best item both cost only `O(log n)`.
-3. It is the standard structure for **priority queues**, **Top K** problems, **running medians**, **merging sorted lists**, and **scheduling**.
-4. It is the right tool when you keep asking for "the best item" while the data keeps changing. Sorting once does not help there.
+- **Min-heap:** every parent `≤` its children, so the **smallest** item is at the root.
+- **Max-heap:** every parent `≥` its children, so the **largest** item is at the root.
 
-#### 3. How It Works — Must Know
+A heap is **not sorted**. Only the **root** is guaranteed to be the best. Siblings and cousins have no order.
 
-A min-heap holding `1, 3, 2, 7, 4, 5`:
+**Why it matters:** many interview questions need "the best item right now, again and again", while items keep arriving or leaving. A sorted array makes insert slow. A plain array makes finding the best slow. A heap makes both fast.
 
-```text
-        1
-      /   \
-     3     2
-    / \   /
-   7   4 5
+**Signals:** "kth largest / smallest", "top K", "K closest", "merge K sorted", "running median", "schedule by priority", "always pick the smallest".
+
+#### 2. How It Works
+
+*A min-heap. The root `1` is the smallest. The array below the tree shows how it is stored.*
+
+```mermaid
+flowchart TD
+    n1((1)) --- n3((3))
+    n1 --- n8((8))
+    n3 --- n5((5))
+    n3 --- n9((9))
+    classDef g fill:#bbf7d0,stroke:#15803d,color:#111
+    class n1 g
 ```
 
-1. `1` is the root, so it is the minimum.
-2. Each parent is smaller than its children: `1 ≤ 3, 2`, `3 ≤ 7, 4`, `2 ≤ 5`.
-3. Siblings have **no order** between them (`3` and `2`).
-4. The tree is stored in a plain array: `[1, 3, 2, 7, 4, 5]` (see "Complete Binary Tree Property").
-
-#### 4. Core Concepts — Must Know
-
-1. **Root** — holds the minimum (min-heap) or maximum (max-heap).
-2. **Heap property** — parent vs child only. It says nothing about left vs right.
-3. **Complete tree** — keeps the height at `log n` and allows array storage.
-4. **Sift up / sift down** — the two moves that repair the heap after an insert or a removal.
-5. **Priority** — whatever you compare: a number, a deadline, a distance, a frequency.
-
-#### 5. Algorithm — Must Know
-
-The four basic operations (details in "Heap Operations & Complexity"):
-
 ```text
-peek:     return the root
-insert:   put the new item at the end, then sift it UP
-extract:  take the root, move the last item to the root, then sift it DOWN
-build:    heapify the whole array in O(n)
+array:  [1, 3, 8, 5, 9]
+index:   0  1  2  3  4        children of index i are 2i+1 and 2i+2
 ```
 
-#### 6. Kotlin Implementation — Must Know
+| Operation | What happens | Cost |
+|---|---|---|
+| `peek()` | read the root | `O(1)` |
+| `add(x)` | put at the end, move up while smaller than the parent | `O(log n)` |
+| `poll()` | take the root, move the last item to the root, move it down | `O(log n)` |
+| build from `n` items | heapify (note 16) | `O(n)` |
+| search for a value | no order inside, scan | `O(n)` |
 
-Use the built-in `PriorityQueue` (a min-heap by default):
+The tree is **complete**, so its height is `log₂ n`. That is why every move up or down costs `O(log n)`.
+
+**Heap vs other structures**
+
+| | Unsorted list | Sorted list | Balanced BST | **Heap** |
+|---|---|---|---|---|
+| Get min | `O(n)` | `O(1)` | `O(log n)` | **`O(1)`** |
+| Insert | `O(1)` | `O(n)` | `O(log n)` | **`O(log n)`** |
+| Remove min | `O(n)` | `O(1)` or `O(n)` | `O(log n)` | **`O(log n)`** |
+| Search any value | `O(n)` | `O(log n)` | `O(log n)` | `O(n)` |
+| Memory | array | array | nodes + pointers | **plain array** |
+
+Pick a heap when you only need the **extreme** item. Pick a BST (`TreeMap`) when you also need search or ordered iteration.
+
+#### 3. Brute Force vs Optimized
+
+Task: "keep a collection and repeatedly remove the smallest."
+
+| Approach | Insert | Remove smallest | `n` inserts + `n` removes |
+|---|---|---|---|
+| Unsorted list, scan for the min | `O(1)` | `O(n)` | `O(n²)` |
+| Sorted list | `O(n)` | `O(1)` | `O(n²)` |
+| Heap | `O(log n)` | `O(log n)` | `O(n log n)` |
+
+```kotlin
+// Brute force: a list, scan for the smallest every time
+class ListQueue {
+    private val items = mutableListOf<Int>()
+    fun add(x: Int) { items.add(x) }                       // O(1)
+    fun poll(): Int {                                      // O(n)
+        var best = 0
+        for (i in items.indices) if (items[i] < items[best]) best = i
+        return items.removeAt(best)
+    }
+}
+```
+
+#### 4. Kotlin Code
 
 ```kotlin
 import java.util.PriorityQueue
 
-val heap = PriorityQueue<Int>()
-heap.add(5)
-heap.add(1)
-heap.add(3)
+fun main() {
+    val heap = PriorityQueue<Int>()                        // min-heap
+    for (x in listOf(5, 3, 8, 1, 9)) heap.add(x)
 
-println(heap.peek())   // 1  (smallest)
-println(heap.poll())   // 1  (removes the smallest)
-println(heap.poll())   // 3
+    println(heap.peek())      // 1   (smallest, not removed)
+    println(heap.poll())      // 1   (removed)
+    println(heap.poll())      // 3
+    println(heap.size)        // 3
+}
 ```
 
-#### 7. Time & Space Complexity — Must Know
+Checks: after adding `5, 3, 8, 1, 9`, `peek()` → `1`. Then `poll()` repeatedly returns `1, 3, 5, 8, 9`. `ListQueue` gives the same answers, but each `poll()` scans the whole list. `PriorityQueue<Int>().peek()` on an empty heap → `null` (it does not throw).
 
-| Operation | Time |
-|---|---:|
-| Peek min / max | `O(1)` |
-| Insert | `O(log n)` |
-| Extract min / max | `O(log n)` |
-| Build a heap from `n` items | `O(n)` |
-| Search for an arbitrary value | `O(n)` |
-| Space | `O(n)` |
+Kotlin's `PriorityQueue` is a **min-heap by default**. Details are in note 7.
 
-Why `O(log n)`?
+#### 5. Complexity
 
-```text
-A complete binary tree with n nodes has height about log₂ n.
-Sift up and sift down move at most one level per step.
-```
+| | Time | Space |
+|---|---|---|
+| `peek` | `O(1)` | |
+| `add`, `poll` | `O(log n)` | |
+| Heapify `n` items | `O(n)` | in place |
+| Heap of `n` items | | `O(n)` |
 
-#### 8. Heap vs Other Structures — Must Know
+#### 6. Common Mistakes
 
-| Need | Heap | Sorted array | Unsorted array |
-|---|---:|---:|---:|
-| Get the best item | `O(1)` | `O(1)` | `O(n)` |
-| Insert | `O(log n)` | `O(n)` | `O(1)` |
-| Remove the best item | `O(log n)` | `O(1)` or `O(n)` | `O(n)` |
-| Find an arbitrary value | `O(n)` | `O(log n)` | `O(n)` |
+1. **Thinking a heap is sorted.** Printing or iterating a `PriorityQueue` does **not** give sorted order. Use `poll()` repeatedly.
+2. **Using a heap to search** for an arbitrary value (it is `O(n)`).
+3. **Using a min-heap when you need a max-heap** (note 2).
+4. **Forgetting that `peek()` returns `null`** on an empty heap and `remove()` throws.
+5. **Choosing a heap when a sort is enough.** If you only need one answer from fixed data, `O(n log n)` sorting or an `O(n)` scan can be simpler.
 
-The heap is the balanced choice when you insert and remove the best item many times.
+#### 7. Say This in the Interview
 
-#### 9. Edge Cases / Common Mistakes
+1. "I need the smallest item again and again while items come and go. A heap gives `O(1)` peek and `O(log n)` insert and remove."
+2. "A heap is a complete binary tree stored in an array. Only the root is ordered, so it is not a sorted structure."
+3. "Sorting everything would be `O(n log n)`. With a heap of size `K` I can do `O(n log K)`."
 
-1. Believing a heap is sorted. Printing the array does **not** give sorted order.
-2. Confusing a heap with a **BST**. A BST orders left < parent < right. A heap has no left/right order.
-3. Expecting `O(log n)` search for a given value. It is `O(n)`.
-4. Using a min-heap when the problem needs a max-heap (or the reverse).
-5. Forgetting that equal priorities may come out in any order. A heap is not stable.
+#### 8. Quick Check
 
-#### 10. When to Use / When Not to Use
+1. What is the time to get the minimum from a min-heap? To remove it?
+2. Is `[1, 3, 8, 5, 9]` a valid min-heap?
+3. Can you read all heap items in sorted order by iterating the array?
 
-**Use when:**
+<details>
+<summary>Answers</summary>
 
-1. You repeatedly need the smallest or largest item.
-2. You need the best `k` items out of many, or the best item from a stream.
-3. You merge several sorted sources.
+1. `O(1)` to read, `O(log n)` to remove.
+2. Yes. Index 0 has children 3 and 8 (both larger). Index 1 (value 3) has children 5 and 9 (both larger).
+3. No. Only the root is guaranteed. You must `poll()` repeatedly.
 
-**Avoid when:**
+</details>
 
-1. You need all items in sorted order once. Just sort.
-2. You need to search for arbitrary values, or update the priority of arbitrary items often.
-3. You need a range query (use a balanced tree).
+#### 9. Related LeetCode Questions
 
-#### 11. Related Topics
-
-1. Min Heap vs Max Heap
-2. Complete Binary Tree Property
-3. Heap Operations & Complexity
-4. Priority Queue
-5. Binary Tree (`01-data-structure/07-Tree`)
-
-#### 12. Interview Must Remember
-
-1. A heap = **complete binary tree + heap property**.
-2. The **root is the best item**. Nothing else is ordered.
-3. Peek `O(1)`. Insert and extract `O(log n)`. Build `O(n)`.
-4. Use a heap for "repeatedly give me the min / max".
+| # | Question | Idea |
+|---|---|---|
+| 1046 | [Last Stone Weight](https://leetcode.com/problems/last-stone-weight/) (Easy) | max-heap warm-up |
+| 703 | [Kth Largest Element in a Stream](https://leetcode.com/problems/kth-largest-element-in-a-stream/) (Easy) | min-heap of size K |
+| 215 | [Kth Largest Element in an Array](https://leetcode.com/problems/kth-largest-element-in-an-array/) (Medium) | heap or quickselect |
+| 347 | [Top K Frequent Elements](https://leetcode.com/problems/top-k-frequent-elements/) (Medium) | heap on counts |
+| 1337 | [The K Weakest Rows in a Matrix](https://leetcode.com/problems/the-k-weakest-rows-in-a-matrix/) (Easy) | heap with a tie rule |

@@ -65,7 +65,25 @@ flowchart LR
     classDef b fill:#bfdbfe,stroke:#1d4ed8,color:#111
 ```
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Problem | Brute force | Topological order DP |
+|---|---|---|
+| Longest path in a DAG (Parallel Courses III) | DFS over every path: exponential | process in topological order, `finish[next] = max(finish[next], finish[u] + time[next])`: `O(V + E)` |
+| Count the paths from `A` to `B` | enumerate every path | `ways[next] += ways[u]` in topological order: `O(V + E)` |
+| Earliest start times | simulate time steps | Kahn by levels |
+| Shortest path with negative edges (no cycles) | Bellman-Ford `O(V · E)` | one pass in topological order: `O(V + E)` |
+
+When you process a vertex in topological order, **all its predecessors are already finished**, so its answer can be computed from theirs. This is dynamic programming on a graph.
+
+```text
+courses: 1 (3 months), 2 (2 months), 3 (5 months);  1 → 3, 2 → 3
+finish[1] = 3, finish[2] = 2, finish[3] = max(3, 2) + 5 = 8     answer 8
+```
+
+All Paths From Source to Target on a DAG needs no `visited` set: there is no cycle, so plain DFS with backtracking is safe.
+
+#### 4. Kotlin Code
 
 ```kotlin
 // Parallel Courses III (LeetCode 2050): courses are 1..n, relations[i] = [prev, next], time[i] = months for course i + 1
@@ -132,7 +150,7 @@ Checks: `minimumTime(3, [[1,3],[2,3]], [3,2,5])` → `8`. `allPathsSourceTarget(
 
 `finish.max()` needs a recent Kotlin version (1.7+). On older versions use `finish.maxOrNull()!!`.
 
-#### 4. Complexity
+#### 5. Complexity
 
 | | Time | Space |
 |---|---|---|
@@ -140,7 +158,7 @@ Checks: `minimumTime(3, [[1,3],[2,3]], [3,2,5])` → `8`. `allPathsSourceTarget(
 | Count paths with memo | `O(V + E)` | `O(V)` |
 | List all paths | exponential in the worst case | `O(V)` + the answer |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Using DP on a graph with a cycle.** The order does not exist.
 2. **Updating `finish[next]` with `finish[course]` only**, forgetting to add `time[next]`.
@@ -149,13 +167,13 @@ Checks: `minimumTime(3, [[1,3],[2,3]], [3,2,5])` → `8`. `allPathsSourceTarget(
 5. **Answering with `finish[last]`** instead of the maximum over all courses.
 6. **Listing all paths** when only the count is needed. Use memoization.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "This is a DAG, so I process nodes in topological order. When I reach a node, all its prerequisites are done."
 2. "A course can start when its slowest prerequisite finishes, so `finish[next] = max(finish[next], finish[course] + time[next])`."
 3. "Time `O(V + E)`."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. Why does a DAG make the longest path easy?
 2. In Parallel Courses III, what is the total time of independent courses taken at the same time?
@@ -168,7 +186,7 @@ Checks: `minimumTime(3, [[1,3],[2,3]], [3,2,5])` → `8`. `allPathsSourceTarget(
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

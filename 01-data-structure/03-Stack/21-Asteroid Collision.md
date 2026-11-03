@@ -51,7 +51,41 @@ result: [10]
 result: [-6, 2, 4]
 ```
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Approach | Idea | Time |
+|---|---|---|
+| Rescan until stable | find any adjacent pair moving towards each other, resolve it, start again | `O(n²)` |
+| **Stack** | push right-movers; when a left-mover arrives, compare it with the top and pop while it wins | `O(n)` |
+
+```kotlin
+// Brute force: find a collision, resolve it, and restart the scan
+fun asteroidCollisionBrute(asteroids: IntArray): IntArray {
+    val list = asteroids.toMutableList()
+    var changed = true
+    while (changed) {
+        changed = false
+        for (i in 0 until list.size - 1) {
+            if (list[i] > 0 && list[i + 1] < 0) {                 // moving towards each other
+                val a = list[i]
+                val b = -list[i + 1]
+                when {
+                    a > b -> list.removeAt(i + 1)
+                    a < b -> list.removeAt(i)
+                    else -> { list.removeAt(i + 1); list.removeAt(i) }
+                }
+                changed = true
+                break
+            }
+        }
+    }
+    return list.toIntArray()
+}
+```
+
+`asteroidCollisionBrute(intArrayOf(5, 10, -5))` → `[5, 10]`. `asteroidCollisionBrute(intArrayOf(8, -8))` → `[]`. `asteroidCollisionBrute(intArrayOf(10, 2, -5))` → `[10]`.
+
+#### 4. Kotlin Code
 
 ```kotlin
 fun asteroidCollision(asteroids: IntArray): IntArray {
@@ -91,7 +125,7 @@ fun carFleet(target: Int, position: IntArray, speed: IntArray): Int {
 // carFleet(12, [10,8,0,5,3], [2,4,1,1,3]) → 3
 ```
 
-#### 4. Complexity
+#### 5. Complexity
 
 | | Time | Space |
 |---|---|---|
@@ -100,7 +134,7 @@ fun carFleet(target: Int, position: IntArray, speed: IntArray): Int {
 
 In Asteroid Collision each asteroid is pushed once and popped at most once.
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Colliding in the wrong case.** Only when the top is positive and the new one is negative.
 2. **Using `if` instead of `while`.** One big left-moving asteroid can destroy several.
@@ -108,13 +142,13 @@ In Asteroid Collision each asteroid is pushed once and popped at most once.
 4. **Pushing `a` after it exploded.** Use the `alive` flag.
 5. **Sign mistake:** compare `top` with `-a`, not `a`.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "Only a right-moving asteroid on the stack and a new left-moving asteroid can collide."
 2. "I loop while the new asteroid is alive and the top is moving right. Smaller tops are popped. Equal sizes remove both. A bigger top destroys the new one."
 3. "Each asteroid is pushed once and popped at most once, so it is `O(n)`."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. What does `[-2, -1, 1, 2]` give? Why?
 2. What does `[5, -5]` give?
@@ -127,7 +161,7 @@ In Asteroid Collision each asteroid is pushed once and popped at most once.
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

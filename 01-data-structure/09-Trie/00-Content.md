@@ -23,7 +23,11 @@
 
 15. Bitwise Trie / Binary Trie
 
-## 4. Study Separately
+## 4. Revision
+
+99. Trie Cheat Sheet
+
+## 5. Study Separately
 
 - String
 - DFS / Backtracking (`02-algorithm/06-Backtracking & Branch and Bound`)
@@ -31,7 +35,7 @@
 - Tree
 - Bit Manipulation (`02-algorithm/09-Bit Manipulation`). Maximum XOR is only sketched inside "Bitwise Trie / Binary Trie"
 
-## 5. Low Priority / Skip Initially
+## 6. Low Priority / Skip Initially
 
 - Compressed Trie / Radix Tree
 - Ternary Search Tree

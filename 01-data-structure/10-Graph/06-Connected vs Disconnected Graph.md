@@ -94,7 +94,21 @@ answer: 3
 
 Another way is **union-find** (note 23), which is handy when edges arrive one by one.
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Question | Brute force | Better |
+|---|---|---|
+| Is the whole graph connected? | check a path for every pair of vertices: `O(V² · (V + E))` | one BFS / DFS from any vertex, count visited `== V`: `O(V + E)` |
+| How many components? | repeat the pair check | loop over vertices, start a search from each unvisited one: `O(V + E)` |
+| Are `A` and `B` in the same component? | a new search for every query: `O(V + E)` each | union-find: almost `O(1)` per query |
+
+One search from one vertex only covers **its** component. To cover the whole graph, start a new search from every vertex that is still unvisited.
+
+```text
+V = 6, edges 0-1, 1-2, 3-4:   searches start at 0, 3 and 5   →   3 components
+```
+
+#### 4. Kotlin Code
 
 ```kotlin
 // Number of Connected Components in an Undirected Graph (LeetCode 323)
@@ -153,14 +167,14 @@ Checks: `countComponents(5, [[0,1],[1,2],[3,4]])` → `2`. `countComponents(6, [
 
 Very deep graphs can make the recursive `dfs` overflow the stack. Use BFS or an explicit stack in that case.
 
-#### 4. Complexity
+#### 5. Complexity
 
 | | Time | Space |
 |---|---|---|
 | Count components (DFS/BFS) | `O(V + E)` | `O(V + E)` |
 | Count components (union-find) | `O(E · α(V))` (almost `O(E)`) | `O(V)` |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Starting only one search** and missing the other components.
 2. **Not resetting** `visited` between separate runs (when you need it).
@@ -168,12 +182,12 @@ Very deep graphs can make the recursive `dfs` overflow the stack. Use BFS or an 
 4. **Recursion depth** on a huge graph.
 5. **Mixing up** weakly and strongly connected for directed graphs.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "A single search only visits one component, so I loop over all nodes and start a new search from each unvisited one. The number of new searches is the number of components."
 2. "Time `O(V + E)`. Isolated nodes count as components."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. A graph with 4 nodes and no edges has how many components?
 2. After one DFS from node 0, how do you know the graph is connected?
@@ -186,7 +200,7 @@ Very deep graphs can make the recursive `dfs` overflow the stack. Use BFS or an 
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

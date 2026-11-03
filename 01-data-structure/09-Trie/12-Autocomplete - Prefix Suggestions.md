@@ -1,141 +1,172 @@
 # Autocomplete / Prefix Suggestions
 
-#### 1. Definition — Must Know
+> Walk the prefix, then use DFS under that node to list the words. Visiting children in `a..z` order gives the suggestions **in alphabetical order**.
 
-1. **Autocomplete** suggests complete words while the user is still typing a prefix.
-2. With a Trie: walk to the prefix node, then collect words below it, but only a **limited number** (`k`) and usually in a useful order.
-3. It builds directly on "Trie + DFS", adding a limit and an order.
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+**Autocomplete** returns words that start with what the user has typed. Typical rules: **at most 3** suggestions, in **alphabetical order**, recomputed after **each letter**.
 
-1. It is the best-known use of a Trie: search boxes, keyboards, address fields, command palettes.
-2. It must answer fast, on every keystroke.
-3. It is a common interview question, and a good place to show mobile awareness.
+| Step | Cost |
+|---|---|
+| 1. Walk the typed prefix to its node | `O(L)` |
+| 2. DFS below that node, collect up to `K` words | `O(K · length)` if you stop at `K` |
 
-#### 3. How It Works — Must Know
+**Signals:** "autocomplete", "suggestions", "search as you type", "products that start with".
 
-Words stored: `car`, `card`, `care`, `cat`, `cart`. User types `ca`, limit `3`:
+#### 2. How It Works
 
-```text
-1. Walk "ca" to its node.
-2. DFS in alphabetical order, adding words:
-   car  → card → care     (stop: 3 suggestions found)
-3. Return ["car", "card", "care"]
-```
-
-Each new keystroke can continue from the node already reached, instead of walking the whole prefix again.
-
-#### 4. Core Concepts — Must Know
-
-1. **Prefix node** — where the suggestions start.
-2. **Limit `k`** — stop collecting after `k` words. It keeps the response small and fast.
-3. **Order** — alphabetical (sort children) or by popularity (store a frequency at each end node).
-4. **Early exit** — once `k` results exist, stop the DFS.
-
-#### 5. Algorithm — Must Know
+*Search Suggestions System (LeetCode 1268).* Products: `mobile`, `mouse`, `moneypot`, `monitor`, `mousepad`. Search word: `mouse`. After each typed letter, return up to 3 products with that prefix, in order.
 
 ```text
-suggestions(prefix, k):
-    start = findNode(prefix)
-    if start is null: return empty list
-    DFS from start in alphabetical order,
-    adding each end-of-word until k results exist, then stop
+typed "m":     mobile, moneypot, monitor, mouse, mousepad  → first 3: mobile, moneypot, monitor
+typed "mo":    same list                                    → mobile, moneypot, monitor
+typed "mou":   mouse, mousepad                              → mouse, mousepad
+typed "mous":  mouse, mousepad
+typed "mouse": mouse, mousepad
 ```
 
-By popularity: collect candidates, sort by frequency (highest first), take `k`.
+```mermaid
+flowchart LR
+    T["typed prefix"] --> W["walk the trie to the prefix node"]
+    W --> D["DFS under the node<br/>children a to z"]
+    D --> S["stop after K words<br/>(alphabetical order)"]
+```
 
-#### 6. Kotlin Implementation — Must Know
+**DFS under the prefix node.** Because children are visited `a → z`, words come out in sorted order. If the current node is a word end, add it **before** going deeper (a shorter word sorts before its longer extensions).
 
-Alphabetical, with early exit:
+```text
+collect(node, path):
+    if results has K words: return
+    if node.isEnd: add path
+    for letter a..z:
+        if node has that child: collect(child, path + letter)
+```
+
+**Alternatives for 1268**
+
+| Method | Time | Note |
+|---|---|---|
+| Trie + DFS (each prefix) | `O(total chars + L · K)` | the trie answer |
+| Sort + binary search | `O(n log n · L)` | sort products, binary search the first match for each prefix, take 3 |
+| Store the top 3 at each node while inserting | `O(total chars)` build, `O(L)` per query | uses more memory |
+
+#### 3. Brute Force vs Optimized
+
+| Approach | Time per typed letter |
+|---|---|
+| Scan all products with `startsWith`, sort, take 3 | `O(n · L + n log n)` |
+| **Trie + DFS limited to `K`** | `O(L + K · length)` |
+| Sorted array + binary search | `O(L log n + K)` |
 
 ```kotlin
-// Methods inside the Trie class from "Trie Implementation"
+// Brute force: filter and sort for every prefix
+fun suggestedProductsBrute(products: Array<String>, searchWord: String): List<List<String>> =
+    (1..searchWord.length).map { len ->
+        val prefix = searchWord.substring(0, len)
+        products.filter { it.startsWith(prefix) }.sorted().take(3)
+    }
+```
 
-fun suggestions(prefix: String, limit: Int): List<String> {
-    val start = findNode(prefix) ?: return emptyList()
-    val results = mutableListOf<String>()
-    collectLimited(start, StringBuilder(prefix), limit, results)
-    return results
+#### 4. Kotlin Code
+
+```kotlin
+class TrieNode {
+    val next = arrayOfNulls<TrieNode>(26)
+    var isEnd = false
 }
 
-private fun collectLimited(
-    node: TrieNode,
-    path: StringBuilder,
-    limit: Int,
-    results: MutableList<String>
-) {
-    if (results.size >= limit) return
-    if (node.isEndOfWord) results.add(path.toString())
-    for (ch in node.children.keys.sorted()) {
-        if (results.size >= limit) return
-        path.append(ch)
-        collectLimited(node.children.getValue(ch), path, limit, results)
-        path.deleteCharAt(path.length - 1)
+class AutoComplete {
+    private val root = TrieNode()
+
+    fun insert(word: String) {
+        var node = root
+        for (c in word) {
+            if (node.next[c - 'a'] == null) node.next[c - 'a'] = TrieNode()
+            node = node.next[c - 'a']!!
+        }
+        node.isEnd = true
+    }
+
+    // Up to `limit` words that start with `prefix`, in alphabetical order
+    fun suggest(prefix: String, limit: Int): List<String> {
+        var node = root
+        for (c in prefix) node = node.next[c - 'a'] ?: return emptyList()
+        val result = mutableListOf<String>()
+        val path = StringBuilder(prefix)
+
+        fun dfs(cur: TrieNode) {
+            if (result.size == limit) return
+            if (cur.isEnd) result.add(path.toString())
+            for (i in 0 until 26) {
+                val child = cur.next[i] ?: continue
+                path.append('a' + i)
+                dfs(child)
+                path.deleteCharAt(path.length - 1)
+                if (result.size == limit) return
+            }
+        }
+        dfs(node)
+        return result
     }
 }
+
+// Search Suggestions System (LeetCode 1268)
+fun suggestedProducts(products: Array<String>, searchWord: String): List<List<String>> {
+    val ac = AutoComplete()
+    for (p in products) ac.insert(p)
+    return (1..searchWord.length).map { ac.suggest(searchWord.substring(0, it), 3) }
+}
 ```
 
-By popularity: add `var frequency = 0` to `TrieNode`, do `node.frequency++` on the end node in `insert`, then:
+Checks: `suggestedProducts(arrayOf("mobile", "mouse", "moneypot", "monitor", "mousepad"), "mouse")` → `[["mobile","moneypot","monitor"], ["mobile","moneypot","monitor"], ["mouse","mousepad"], ["mouse","mousepad"], ["mouse","mousepad"]]`. `suggestedProducts(arrayOf("havana"), "havana")` → six lists, each `["havana"]`. `suggestedProducts(arrayOf("bags", "baggage", "banner", "box", "cloths"), "bags")` → `[["baggage","bags","banner"], ["baggage","bags","banner"], ["baggage","bags"], ["bags"]]`. `AutoComplete().suggest("x", 3)` → `[]`. `suggestedProductsBrute(...)` gives the same lists.
 
-```kotlin
-// candidates = list of Pair(word, frequency) gathered with the DFS above (without the limit)
-val top = candidates
-    .sortedWith(compareByDescending<Pair<String, Int>> { it.second }.thenBy { it.first })
-    .take(limit)
-    .map { it.first }
-```
+Order check for `"bag"`: the words are `baggage` and `bags`. After `bag`, `g` comes before `s`, so `baggage` precedes `bags`.
 
-#### 7. Time & Space Complexity — Must Know
+#### 5. Complexity
 
-| Step | Time |
-|---|---:|
-| Walk the prefix | `O(P)` |
-| Alphabetical, early exit | about `O(P + k · L)` |
-| By popularity (collect all, then sort) | `O(P + S + C log C)`, where `C` = candidates under the prefix |
-| Space | `O(L + k)` |
+| | Time | Space |
+|---|---|---|
+| Build the trie | `O(total characters)` | `O(total characters)` |
+| `suggest` | `O(L + K · maxLength)` | `O(maxLength)` stack |
+| All `L` typed prefixes | `O(L · K · maxLength)` | |
+| Sort + binary search | `O(n log n · L)` build, `O(L log n)` queries | `O(1)` extra |
 
-For very large Tries, ranking by popularity is usually precomputed (each node stores its own top-`k` list), trading memory for speed.
+#### 6. Common Mistakes
 
-#### 8. Common Autocomplete Patterns — Must Know
+1. **Collecting all matches** before taking `K` (slow for common prefixes). Stop at `K`.
+2. **Wrong order:** visiting children in a different order from `a..z`, or adding a word **after** its children.
+3. **Forgetting that the prefix node itself may be a word** (`mouse` when typing `mouse`).
+4. **Not returning an empty list** when the prefix is missing.
+5. **Rebuilding the path** with string concatenation in every DFS call (slow).
+6. **Using a `HashMap`** for children and then getting unsorted suggestions.
 
-1. **Search Suggestions System** (LeetCode 1268) — up to 3 suggestions after each typed character.
-2. **Design Search Autocomplete System** (LeetCode 642, premium) — suggestions ranked by how often sentences were typed.
-3. On a phone, debounce typing before querying (`06-mobile-engineering/3`, `debounce`) so a lookup does not run on every key press.
-4. A small local dictionary can live in an on-device Trie. A very large one lives on the server.
+#### 7. Say This in the Interview
 
-#### 9. Edge Cases / Common Mistakes
+1. "I insert all products into a trie. For each typed prefix I walk to its node and run a DFS that visits children in `a..z` order, so the results are alphabetical, and I stop after three."
+2. "Walking the prefix is `O(L)`. The DFS cost depends on how many words I need, not on how many products exist."
+3. "An alternative is to sort the products and binary-search the start of each prefix, which uses no extra memory."
 
-1. No limit on results, returning thousands of words for a one-letter prefix.
-2. Not stopping the DFS once `k` results are found.
-3. Relying on `HashMap` order. Sort the keys, or the suggestions change between runs.
-4. Rebuilding the Trie on every keystroke instead of keeping it.
-5. Case differences: normalise the prefix and the stored words the same way.
-6. Ignoring that the typed prefix may itself be a word and should be suggested.
+#### 8. Quick Check
 
-#### 10. When to Use / When Not to Use
+1. Which child order gives alphabetical suggestions?
+2. If `car` and `cart` both match, which comes first?
+3. What do you return for a prefix that is not in the trie?
 
-**Use when:**
+<details>
+<summary>Answers</summary>
 
-1. Suggestions are driven by a typed prefix.
-2. The dictionary is reasonably static, or updated in controlled ways.
+1. `a` to `z`.
+2. `car` (a word end is added before its children are visited).
+3. An empty list.
 
-**Avoid when:**
+</details>
 
-1. Matching should be fuzzy (typos). A Trie matches exact prefixes only.
-2. Matching is on the middle of words. Use a search engine or an inverted index.
-3. The data is huge and ranking is complex. See "Production Autocomplete Design" in the low-priority list.
+#### 9. Related LeetCode Questions
 
-#### 11. Related Topics
-
-1. Prefix Search / `startsWith`
-2. Trie + DFS
-3. Counting Words / Prefixes
-4. Debounce and `Flow` (`06-mobile-engineering/3`)
-5. Top K Elements (`03-leetcode-patterns`)
-
-#### 12. Interview Must Remember
-
-1. **Walk the prefix, then collect up to `k` words.** Stop early.
-2. Order by alphabet (sort children) or by popularity (store frequency).
-3. Keep the Trie and continue from the last node as the user types.
-4. Mobile: debounce the query and keep small dictionaries on the device.
+| # | Question | Idea |
+|---|---|---|
+| 1268 | [Search Suggestions System](https://leetcode.com/problems/search-suggestions-system/) (Medium) | trie + DFS or sort + binary search |
+| 642 | [Design Search Autocomplete System](https://leetcode.com/problems/design-search-autocomplete-system/) (Hard, premium) | counts + top 3 |
+| 208 | [Implement Trie (Prefix Tree)](https://leetcode.com/problems/implement-trie-prefix-tree/) (Medium) | the base |
+| 14 | [Longest Common Prefix](https://leetcode.com/problems/longest-common-prefix/) (Easy) | trie walk |
+| 692 | [Top K Frequent Words](https://leetcode.com/problems/top-k-frequent-words/) (Medium) | top words by count |

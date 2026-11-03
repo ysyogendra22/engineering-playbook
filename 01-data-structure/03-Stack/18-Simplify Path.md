@@ -43,7 +43,36 @@ Split by `/`: `["", "a", ".", "b", "..", "..", "c", ""]`
 result: "/" + "c" = "/c"
 ```
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Approach | Idea | Time |
+|---|---|---|
+| Repeated string replacement | replace `//` with `/`, remove `/./`, collapse `/dir/../` again and again until nothing changes | `O(n²)` |
+| **Stack of directory names** | split by `/`; push a name, skip `.` and empty, pop on `..`; join the stack | `O(n)` |
+
+```kotlin
+// Brute force: keep collapsing "dir/.." pairs in a list of parts until none are left. O(n^2).
+fun simplifyPathBrute(path: String): String {
+    val parts = path.split("/").filter { it.isNotEmpty() && it != "." }.toMutableList()
+    var changed = true
+    while (changed) {
+        changed = false
+        for (i in 0 until parts.size) {
+            if (parts[i] == "..") {
+                parts.removeAt(i)
+                if (i > 0) parts.removeAt(i - 1)
+                changed = true
+                break
+            }
+        }
+    }
+    return "/" + parts.joinToString("/")
+}
+```
+
+`simplifyPathBrute("/a/./b/../../c/")` → `"/c"`. The stack version does the same in one pass: push `a`, push `b`, pop for `..` twice, push `c`.
+
+#### 4. Kotlin Code
 
 ```kotlin
 fun simplifyPath(path: String): String {
@@ -72,13 +101,13 @@ class Navigator {
 }
 ```
 
-#### 4. Complexity
+#### 5. Complexity
 
 | | Time | Space |
 |---|---|---|
 | Split + one pass | `O(n)` | `O(n)` |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Forgetting to skip empty parts.** `split("/")` returns `""` for a leading slash and for `//`.
 2. **Popping an empty stack on `..`.** Use `removeLastOrNull()`.
@@ -86,13 +115,13 @@ class Navigator {
 4. **Treating `"..."` as `..`.** It is a normal folder name.
 5. **A trailing `/`** in the result.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "Folders I am inside form a stack. A name is a push, `..` is a pop, `.` and empty parts are skipped."
 2. "`..` at the root does nothing."
 3. "Time `O(n)`, space `O(n)`."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. What does `"/a/../.."` give?
 2. What does `"/a/b/c/../.."` give?
@@ -105,7 +134,7 @@ class Navigator {
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

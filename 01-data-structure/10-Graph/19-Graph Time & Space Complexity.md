@@ -81,7 +81,23 @@ Memory for storing the graph:
 
 `α(V)` (inverse Ackermann) is below 5 for any input you will ever see, so treat it as constant.
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Representation | BFS / DFS time | Why |
+|---|---|---|
+| Adjacency **matrix** | `O(V²)` | to list the neighbours of a vertex you scan a whole row of `V` cells |
+| Adjacency **list** | **`O(V + E)`** | you only read the real neighbours |
+| Edge **list** | `O(V · E)` | each neighbour query scans all edges |
+
+For a sparse graph (`E ≈ V`) the list is `O(V)` and the matrix is `O(V²)`. For a dense graph (`E ≈ V²`) both are about `O(V²)`, and the matrix gives `O(1)` edge checks.
+
+```text
+V = 100,000 and E = 200,000:   list  ≈ 300,000 steps     matrix  ≈ 10,000,000,000 steps (and 10 GB of cells)
+```
+
+Say both numbers in an interview: "time `O(V + E)` with an adjacency list".
+
+#### 4. Kotlin Code
 
 A BFS with the cost of each line written next to it:
 
@@ -106,11 +122,11 @@ fun bfs(graph: List<List<Int>>, start: Int) {
 
 Dijkstra's extra `log V` comes from the heap: each of the up to `E` pushes costs `O(log V)`.
 
-#### 4. Complexity
+#### 5. Complexity
 
 This whole note is the complexity table above.
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Saying `O(V²)` for BFS on an adjacency list.** It is `O(V + E)`.
 2. **Forgetting the `log` in Dijkstra.**
@@ -119,13 +135,13 @@ This whole note is the complexity table above.
 5. **Not saying what `V` and `E` are** in the answer.
 6. **Calling union-find `O(1)` without saying "amortized, almost constant".**
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "Let `V` be the number of nodes and `E` the number of edges. BFS and DFS are `O(V + E)` time and `O(V)` space."
 2. "Dijkstra with a binary heap is `O((V + E) log V)`."
 3. "For a grid with `R` rows and `C` columns, it is `O(R · C)`."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. What is the time of BFS on an adjacency list?
 2. Which is bigger for a dense graph, `E` or `V`?
@@ -138,7 +154,7 @@ This whole note is the complexity table above.
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Complexity to state |
 |---|---|---|

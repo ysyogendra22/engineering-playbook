@@ -1,164 +1,167 @@
 # Top K Frequent Elements
 
-#### 1. Definition — Must Know
+> Count first, then pick the top `K` by count. A heap of size `K` or a bucket sort. The "words" version adds a tie-break rule.
 
-1. Given an array, return the `k` values that appear **most often**.
-2. It is *Top K Frequent Elements* (LeetCode 347). If a number and a title ever disagree, trust the title.
-3. It uses two steps:
-   - **Count** how often each value appears (a `HashMap`).
-   - **Pick the top `k` counts** (a heap of size `k`).
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+Given an array, return the `K` **most frequent** elements. A close cousin, **Top K Frequent Words**, breaks ties **alphabetically**.
 
-1. It is the standard example that combines a `HashMap` with a heap.
-2. It shows that the heap compares a **count**, not the value itself.
-3. It extends to words, search queries, and error codes in logs.
+**Signals:** "most frequent", "top K frequent", "K most common", "K least frequent".
 
-#### 3. How It Works — Must Know
+#### 2. How It Works
 
-Array `[1, 1, 1, 2, 2, 3]`, `k = 2`.
+Two steps: **(1) count** with a hash map, **(2) pick the top `K`** counts.
 
 ```text
-Step 1: count            {1: 3, 2: 2, 3: 1}
-
-Step 2: keep a min-heap of size 2, ordered by count
-        add (1, count 3)                  heap: (1:3)
-        add (2, count 2)                  heap: (2:2) (1:3)
-        add (3, count 1) → size 3 > 2 → remove the smallest count (3:1)
-                                          heap: (2:2) (1:3)
-
-Answer: [1, 2]
+nums = [1, 1, 1, 2, 2, 3], K = 2
+counts: {1: 3, 2: 2, 3: 1}
 ```
 
-The root of the min-heap is the least frequent of the `k` kept values, so it is the one to drop.
+**Method A: min-heap of size `K` on the counts**
 
-#### 4. Core Concepts — Must Know
+```text
+heap holds up to K entries, ordered by count (smallest count on top)
+add 1(3) → {1}      add 2(2) → {2, 1}      add 3(1) → size 3 > 2 → remove the smallest count (3) → {2, 1}
+answer: 1 and 2
+```
 
-1. **Count first.** The heap works on distinct values (at most `m` of them).
-2. **Min-heap of size `k`**, ordered by count. This is Top K with "frequency" as the key.
-3. The answer can be returned in any order (unless the problem says otherwise).
-4. Three ways to solve it:
+**Method B: bucket sort** (best when counts are small). The count of any item is at most `n`, so make `n + 1` buckets, where bucket `c` holds the items that appear exactly `c` times. Read buckets from the highest count down until you have `K` items.
+
+```mermaid
+flowchart LR
+    C["counts<br/>1:3, 2:2, 3:1"] --> B3["bucket 3: [1]"]
+    C --> B2["bucket 2: [2]"]
+    C --> B1["bucket 1: [3]"]
+    B3 --> R["read from the top bucket:<br/>1, then 2 → K = 2 done"]
+    B2 --> R
+```
 
 | Method | Time | Space |
-|---|---:|---:|
-| Sort the distinct values by count | `O(m log m)` | `O(m)` |
-| **Heap of size `k`** | **`O(n + m log k)`** | `O(m)` |
-| **Bucket sort** by frequency | `O(n)` | `O(n)` |
+|---|---|---|
+| Sort the counts | `O(n log n)` | `O(n)` |
+| Min-heap of size `K` | `O(n log K)` | `O(n)` |
+| Bucket sort | `O(n)` | `O(n)` |
+| Quickselect on counts | `O(n)` average | `O(n)` |
 
-`n` = number of items, `m` = number of distinct values.
+**Top K Frequent Words (tie-break).** Sort by **count descending, then word ascending**. With a **min-heap** that keeps the best `K`, the "worst" item must be on top: **lower count first, and for equal counts the lexicographically larger word first**. At the end, poll everything and reverse.
 
-#### 5. Algorithm — Must Know
+#### 3. Brute Force vs Optimized
 
-```text
-count = map from value to number of occurrences
-heap = min-heap ordered by count
-for each (value, count) in the map:
-    heap.add((value, count))
-    if heap.size > k: heap.poll()
-return the values in the heap
+| Approach | Time | Space |
+|---|---|---|
+| Count, sort all entries by count | `O(n log n)` | `O(n)` |
+| Count + heap of size `K` | `O(n log K)` | `O(n)` |
+| Count + bucket sort | `O(n)` | `O(n)` |
+
+```kotlin
+// Brute force: count, then sort all entries
+fun topKFrequentSort(nums: IntArray, k: Int): IntArray {
+    val count = HashMap<Int, Int>()
+    for (x in nums) count[x] = (count[x] ?: 0) + 1
+    return count.entries.sortedByDescending { it.value }.take(k).map { it.key }.toIntArray()
+}
 ```
 
-#### 6. Kotlin Implementation — Must Know
-
-**Heap**
+#### 4. Kotlin Code
 
 ```kotlin
 import java.util.PriorityQueue
 
+// Top K Frequent Elements (LeetCode 347): heap
 fun topKFrequent(nums: IntArray, k: Int): IntArray {
-    val freq = HashMap<Int, Int>()
-    for (n in nums) freq[n] = (freq[n] ?: 0) + 1
-
-    val heap = PriorityQueue<Map.Entry<Int, Int>>(compareBy<Map.Entry<Int, Int>> { it.value })
-    for (entry in freq.entries) {
-        heap.add(entry)
+    val count = HashMap<Int, Int>()
+    for (x in nums) count[x] = (count[x] ?: 0) + 1
+    val heap = PriorityQueue<Int>(compareBy<Int> { count[it]!! })     // least frequent on top
+    for (x in count.keys) {
+        heap.add(x)
         if (heap.size > k) heap.poll()
     }
-    return IntArray(heap.size) { heap.poll().key }
+    return IntArray(heap.size) { heap.poll() }.reversedArray()        // most frequent first
 }
-```
 
-**Bucket sort (`O(n)`)**
-
-```kotlin
-fun topKFrequentBucket(nums: IntArray, k: Int): IntArray {
-    val freq = HashMap<Int, Int>()
-    for (n in nums) freq[n] = (freq[n] ?: 0) + 1
-
-    // buckets[c] holds the values that appear exactly c times
-    val buckets = Array(nums.size + 1) { mutableListOf<Int>() }
-    for ((value, count) in freq) buckets[count].add(value)
-
+// Top K Frequent Elements: bucket sort, O(n)
+fun topKFrequentBuckets(nums: IntArray, k: Int): IntArray {
+    val count = HashMap<Int, Int>()
+    for (x in nums) count[x] = (count[x] ?: 0) + 1
+    val buckets = Array(nums.size + 1) { mutableListOf<Int>() }       // index = frequency
+    for ((value, freq) in count) buckets[freq].add(value)
     val result = mutableListOf<Int>()
-    for (count in buckets.indices.reversed()) {
-        for (value in buckets[count]) {
-            result.add(value)
+    for (freq in nums.size downTo 1) {
+        for (v in buckets[freq]) {
+            result.add(v)
             if (result.size == k) return result.toIntArray()
         }
     }
     return result.toIntArray()
 }
+
+// Top K Frequent Words (LeetCode 692): count desc, then word asc
+fun topKFrequentWords(words: Array<String>, k: Int): List<String> {
+    val count = HashMap<String, Int>()
+    for (w in words) count[w] = (count[w] ?: 0) + 1
+    // the "worst" candidate is on top: lower count, or the same count with the larger word
+    val heap = PriorityQueue<String>(compareBy<String> { count[it]!! }.thenByDescending { it })
+    for (w in count.keys) {
+        heap.add(w)
+        if (heap.size > k) heap.poll()
+    }
+    val result = ArrayList<String>()
+    while (heap.isNotEmpty()) result.add(heap.poll())
+    result.reverse()
+    return result
+}
 ```
 
-#### 7. Time & Space Complexity — Must Know
+Checks: `topKFrequent(intArrayOf(1, 1, 1, 2, 2, 3), 2)` → `[1, 2]`. `topKFrequent(intArrayOf(1), 1)` → `[1]`. `topKFrequentBuckets(intArrayOf(1, 1, 1, 2, 2, 3), 2)` → `[1, 2]`. `topKFrequentSort(...)` → `[1, 2]`. `topKFrequentWords(arrayOf("i", "love", "leetcode", "i", "love", "coding"), 2)` → `["i", "love"]` (both appear twice, `"i"` is alphabetically first). `topKFrequentWords(arrayOf("the", "day", "is", "sunny", "the", "the", "the", "sunny", "is", "is"), 4)` → `["the", "is", "sunny", "day"]`.
 
-| Approach | Time | Space |
-|---|---:|---:|
-| Counting | `O(n)` | `O(m)` |
-| Heap selection | `O(m log k)` | `O(k)` extra |
-| **Total (heap)** | **`O(n + m log k)`** | `O(m)` |
-| Total (bucket) | `O(n)` | `O(n)` |
+For the first words example: counts are `i:2, love:2, leetcode:1, coding:1`. The heap keeps the best 2. `"love"` is the worse of the two count-2 words (larger alphabetically), so it sits above `"i"`. Polling gives `love, i`, and reversing gives `["i", "love"]`.
 
-#### 8. Common Variations — Must Know
+#### 5. Complexity
 
-1. **Top K Frequent Words** (LeetCode 692) — ties are broken alphabetically. The weakest item has the lower count, or the same count and the larger word:
+| | Time | Space |
+|---|---|---|
+| Count | `O(n)` | `O(u)` for `u` distinct items |
+| Heap of size `K` | `O(u log K)` | `O(K)` |
+| Bucket sort | `O(n)` | `O(n)` |
+| Words: heap with string compare | `O(u log K · L)` for word length `L` | `O(u)` |
 
-```kotlin
-val heap = PriorityQueue<Map.Entry<String, Int>>(
-    compareBy<Map.Entry<String, Int>> { it.value }.thenByDescending { it.key }
-)
-// after selecting, reverse the polled order so the most frequent word comes first
-```
+#### 6. Common Mistakes
 
-2. **Sort Characters by Frequency** (LeetCode 451) — a max-heap, or buckets.
-3. **K Most Frequent in a Stream** — keep the map and update the heap with lazy deletion (see "Lazy Deletion with Heap").
-4. **Least frequent** — flip the comparison.
+1. **Putting every distinct item in a max-heap** instead of capping a min-heap at `K`.
+2. **Heap on the values instead of the counts.**
+3. **Returning the heap's polling order** without reversing (it is least frequent first).
+4. **Words:** forgetting the alphabetical tie-break, or using the wrong direction.
+5. **Bucket sort:** an array of size `n` instead of `n + 1` (a single value can appear `n` times).
+6. **Sorting the whole map** when `K` is small (fine, but slower than needed).
 
-#### 9. Edge Cases / Common Mistakes
+#### 7. Say This in the Interview
 
-1. Putting every value in a heap ordered by count without limiting it to `k`. That is `O(m log m)`.
-2. Using a max-heap of size `k`. It keeps the wrong end.
-3. Comparing the **value** instead of the **count**.
-4. Ties at the boundary. The problem says whether the answer is unique; read it carefully.
-5. `k` larger than the number of distinct values.
-6. Building the map with `map[n]++`. In Kotlin, `HashMap<Int, Int>` has no default, so use `(freq[n] ?: 0) + 1` or `getOrDefault`.
-7. Modifying `freq` while holding its `entries` in the heap.
+1. "First I count with a hash map in `O(n)`. Then I keep a min-heap of size `K` ordered by count, so the least frequent candidate is on top and gets evicted first: `O(n log K)`."
+2. "If I want `O(n)`, I use bucket sort: the frequency is at most `n`, so I put each element in the bucket of its count and read from the highest bucket."
+3. "For words, equal counts are ordered alphabetically, so the comparator must carry that tie-break."
 
-#### 10. When to Use / When Not to Use
+#### 8. Quick Check
 
-**Use the heap when:**
+1. Top 1 frequent in `[4, 4, 5]`?
+2. Which heap type, and ordered by what?
+3. Why `n + 1` buckets?
 
-1. `k` is small compared to the number of distinct values.
-2. Data may arrive as a stream.
+<details>
+<summary>Answers</summary>
 
-**Use bucket sort when:**
+1. `[4]`.
+2. A **min**-heap ordered by **count**.
+3. Frequencies go from 1 to `n`, so the largest index needed is `n`.
 
-1. You want `O(n)` time and `n` is not huge.
+</details>
 
-**Use sorting when:**
+#### 9. Related LeetCode Questions
 
-1. The input is small and clarity matters most.
-
-#### 11. Related Topics
-
-1. Top K Elements Pattern
-2. Heap + HashMap Pattern
-3. HashMap (`01-data-structure/05-HashMap`)
-4. Bucket Sort (`02-algorithm/01-sorting/09-Bucket Sort.md`)
-
-#### 12. Interview Must Remember
-
-1. **Count with a `HashMap`, then keep a min-heap of size `k` by count.**
-2. `O(n + m log k)` time. Bucket sort reaches `O(n)`.
-3. The heap compares **counts**.
-4. State your tie-breaking rule.
+| # | Question | Idea |
+|---|---|---|
+| 347 | [Top K Frequent Elements](https://leetcode.com/problems/top-k-frequent-elements/) (Medium) | count + heap or buckets |
+| 692 | [Top K Frequent Words](https://leetcode.com/problems/top-k-frequent-words/) (Medium) | tie-break |
+| 451 | [Sort Characters By Frequency](https://leetcode.com/problems/sort-characters-by-frequency/) (Medium) | count + max-heap |
+| 1636 | [Sort Array by Increasing Frequency](https://leetcode.com/problems/sort-array-by-increasing-frequency/) (Easy) | sort by count then value |
+| 973 | [K Closest Points to Origin](https://leetcode.com/problems/k-closest-points-to-origin/) (Medium) | same pattern, distance |
+| 215 | [Kth Largest Element in an Array](https://leetcode.com/problems/kth-largest-element-in-an-array/) (Medium) | note 9 |

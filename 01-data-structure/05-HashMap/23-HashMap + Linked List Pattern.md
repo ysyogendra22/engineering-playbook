@@ -36,7 +36,23 @@ For **Clone Graph**: the map also works as the "visited" set. **Put the clone in
 
 Keys are **node objects**. A node class without `equals()` uses identity, which is exactly what you want here.
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Problem | Brute force | HashMap + linked list |
+|---|---|---|
+| **Copy List with Random Pointer** | for each node, walk the list again to find the index of its `random` target and wire the copy: `O(n²)` | map old node to new node: two passes, `O(n)` |
+| **Clone Graph** | search the already-copied nodes by value: `O(n²)` | map old node to clone: `O(V + E)` |
+| Remove a known node from the middle of a list | find it by scanning: `O(n)` | the map gives the node, the list unlinks it in `O(1)` |
+
+The map is the **bridge** from "the thing I have" to "the thing I need to connect to". Without it you must search for the partner every time.
+
+```text
+Brute force (random pointers):  for each original node, find the position p of node.random by walking from the head (O(n)),
+                                then walk the copy list p steps to link it.      n nodes x O(n) = O(n²)
+With a map old → new:           copy = map[node.random]                           O(1) per node
+```
+
+#### 4. Kotlin Code
 
 ```kotlin
 class Node(var `val`: Int) {
@@ -86,7 +102,7 @@ fun cloneGraph(node: GraphNode?): GraphNode? {
 
 The `O(1)`-space alternative for the random-pointer problem weaves the copies between the originals, then splits the lists. It is clever but easy to get wrong. The map version is the safe interview answer. Mention that the weaving trick exists.
 
-#### 4. Complexity
+#### 5. Complexity
 
 | Problem | Time | Space |
 |---|---|---|
@@ -94,7 +110,7 @@ The `O(1)`-space alternative for the random-pointer problem weaves the copies be
 | Same, with the weaving trick | `O(n)` | `O(1)` extra |
 | Clone Graph | `O(V + E)` | `O(V)` |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Using `copy[cur.next]` with a `null` `next`.** Use `cur.next?.let { copy[it] }`.
 2. **Clone Graph: adding the clone to the map after visiting the neighbours.** A cycle loops forever.
@@ -103,13 +119,13 @@ The `O(1)`-space alternative for the random-pointer problem weaves the copies be
 5. **An empty list** (`head == null`).
 6. **Trying to connect copies in pass 1**, before they all exist.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "I use a map from each original node to its copy. Pass 1 creates all copies. Pass 2 connects `next` and `random` using the map."
 2. "For a graph, the map is also my visited set, and I add the clone before visiting neighbours."
 3. "`O(n)` time and space. There is an `O(1)` space weaving trick if needed."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. Why do we need two passes in Copy List with Random Pointer?
 2. In Clone Graph, why add the clone to the map before visiting its neighbours?
@@ -122,7 +138,7 @@ The `O(1)`-space alternative for the random-pointer problem weaves the copies be
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

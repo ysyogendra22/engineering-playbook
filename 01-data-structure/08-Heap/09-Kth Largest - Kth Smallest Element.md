@@ -1,96 +1,74 @@
 # Kth Largest / Kth Smallest Element
 
-#### 1. Definition — Must Know
+> The most asked heap question. There are three standard answers: sort, a heap of size K, and quickselect. Know all three and when to use each.
 
-1. The **Kth largest** element is the item that would be at position `k` if the data were sorted from largest to smallest.
-2. The **Kth smallest** is the same, from smallest to largest.
-3. Duplicates **count separately**. In `[3, 3, 2]` the 2nd largest is `3`, not `2`.
-4. A heap of size `k` gives the answer without sorting.
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+Find the **Kth largest** (or Kth smallest) element of an array, a stream, or a sorted matrix. The Kth largest is the element at position `K` if you sort in descending order. Duplicates count separately: in `[3, 3, 5]`, the 2nd largest is `3`.
 
-1. It is the single most asked heap question (*Kth Largest Element in an Array*, LeetCode 215).
-2. It is the simplest form of the Top K pattern: the answer is the **root** of the heap.
-3. The stream version (*Kth Largest Element in a Stream*, LeetCode 703) shows why a heap beats sorting.
+**Signals:** "kth largest", "kth smallest", "kth in a stream", "kth in a sorted matrix".
 
-#### 3. How It Works — Must Know
+#### 2. How It Works
 
-Find the **2nd largest** in `[3, 2, 1, 5, 6, 4]` using a min-heap of size 2:
+**Method 1: heap of size `K`.** Keep a min-heap of the `K` largest values. The **root** is the Kth largest.
 
 ```text
-add 3 → [3]
-add 2 → [2, 3]
-add 1 → [1, 2, 3]  size 3 > 2 → remove 1   → [2, 3]
-add 5 → [2, 3, 5]  size 3 > 2 → remove 2   → [3, 5]
-add 6 → [3, 5, 6]  size 3 > 2 → remove 3   → [5, 6]
-add 4 → [4, 5, 6]  size 3 > 2 → remove 4   → [5, 6]
-
-Root of the heap = 5   → the 2nd largest
+nums = [3, 2, 1, 5, 6, 4], K = 2       (min-heap of size 2)
+add 3 → [3]       add 2 → [2, 3]       add 1 → size 3, remove 1 → [2, 3]
+add 5 → remove 2 → [3, 5]              add 6 → remove 3 → [5, 6]
+add 4 → remove 4 → [5, 6]              root = 5 = 2nd largest
 ```
 
-The heap holds the 2 largest items. The smaller of the two (the root) is the 2nd largest.
+**Method 2: quickselect.** Partition like quicksort (pivot, smaller left, bigger right). Only continue in the half that contains the target index. Average `O(n)`, worst `O(n²)`.
 
-#### 4. Core Concepts — Must Know
+**Method 3: sort.** `O(n log n)`. Simple, and often enough.
 
-| Find | Heap | Answer |
-|---|---|---|
-| Kth **largest** | Min-heap of size `k` | `peek()` |
-| Kth **smallest** | Max-heap of size `k` | `peek()` |
+**A stream.** Keep the same min-heap of size `K` between calls. `add(x)` pushes `x`, pops if too big, and returns the root.
 
-Compare the approaches:
+**A sorted matrix (each row and column sorted).** Treat each row as a sorted list (K-way merge, note 10): put the first item of each row in a min-heap. Pop `K` times; each time push the next item of that row. The `K`-th pop is the answer. Time `O(K log n)`.
 
-| Method | Time | Space | Note |
-|---|---:|---:|---|
-| Sort, then index | `O(n log n)` | `O(1)` or `O(n)` | Simplest |
-| **Heap of size `k`** | **`O(n log k)`** | **`O(k)`** | Works on streams |
-| Quickselect | `O(n)` average, `O(n²)` worst | `O(1)` | Changes the array |
-
-#### 5. Algorithm — Must Know
-
-```text
-heap = min-heap
-for each n in nums:
-    heap.add(n)
-    if heap.size > k: heap.poll()
-return heap.peek()
+```mermaid
+flowchart LR
+    subgraph M["Sorted matrix"]
+        r1["1 5 9"]
+        r2["10 11 13"]
+        r3["12 13 15"]
+    end
+    M --> H["min-heap starts with 1, 10, 12<br/>pop the smallest, push the next from its row"]
+    H --> A["k = 8: the 8th pop is 13"]
 ```
 
-For the Kth smallest, use a max-heap and the same loop.
+#### 3. Brute Force vs Optimized
 
-#### 6. Kotlin Implementation — Must Know
+| Method | Time | Space | Use when |
+|---|---|---|---|
+| Sort | `O(n log n)` | `O(1)` or `O(n)` | quick answer, small input |
+| Heap of size `K` | `O(n log K)` | `O(K)` | stream, or `K` small |
+| Quickselect | `O(n)` average | `O(1)` | one query on a static array |
+
+```kotlin
+fun findKthLargestSort(nums: IntArray, k: Int): Int = nums.sortedDescending()[k - 1]
+```
+
+#### 4. Kotlin Code
 
 ```kotlin
 import java.util.PriorityQueue
 
+// Kth Largest Element in an Array (LeetCode 215): heap
 fun findKthLargest(nums: IntArray, k: Int): Int {
-    val heap = PriorityQueue<Int>()              // min-heap
-    for (n in nums) {
-        heap.add(n)
+    val heap = PriorityQueue<Int>()
+    for (x in nums) {
+        heap.add(x)
         if (heap.size > k) heap.poll()
     }
     return heap.peek()
 }
 
-fun findKthSmallest(nums: IntArray, k: Int): Int {
-    val heap = PriorityQueue<Int>(compareByDescending<Int> { it })   // max-heap
-    for (n in nums) {
-        heap.add(n)
-        if (heap.size > k) heap.poll()
-    }
-    return heap.peek()
-}
-```
-
-Stream version, where numbers keep arriving:
-
-```kotlin
+// Kth Largest Element in a Stream (LeetCode 703)
 class KthLargest(private val k: Int, nums: IntArray) {
-
     private val heap = PriorityQueue<Int>()
-
-    init {
-        for (n in nums) add(n)
-    }
+    init { for (x in nums) add(x) }
 
     fun add(value: Int): Int {
         heap.add(value)
@@ -98,57 +76,91 @@ class KthLargest(private val k: Int, nums: IntArray) {
         return heap.peek()
     }
 }
+
+// Kth Smallest Element in a Sorted Matrix (LeetCode 378): k-way merge of the rows
+fun kthSmallest(matrix: Array<IntArray>, k: Int): Int {
+    val heap = PriorityQueue<IntArray>(compareBy<IntArray> { it[0] })      // [value, row, col]
+    for (r in matrix.indices) heap.add(intArrayOf(matrix[r][0], r, 0))
+    var result = 0
+    repeat(k) {
+        val (value, r, c) = heap.poll()
+        result = value
+        if (c + 1 < matrix[r].size) heap.add(intArrayOf(matrix[r][c + 1], r, c + 1))
+    }
+    return result
+}
+
+// Quickselect (average O(n)): Kth largest
+fun quickSelectKthLargest(nums: IntArray, k: Int): Int {
+    val target = nums.size - k                              // index in ascending order
+    var lo = 0
+    var hi = nums.size - 1
+    while (lo <= hi) {
+        val pivot = nums[hi]
+        var store = lo
+        for (i in lo until hi) {
+            if (nums[i] < pivot) { val t = nums[i]; nums[i] = nums[store]; nums[store] = t; store++ }
+        }
+        val t = nums[store]; nums[store] = nums[hi]; nums[hi] = t   // pivot to its final place
+        when {
+            store == target -> return nums[store]
+            store < target -> lo = store + 1
+            else -> hi = store - 1
+        }
+    }
+    return -1
+}
 ```
 
-#### 7. Time & Space Complexity — Must Know
+Checks: `findKthLargest(intArrayOf(3, 2, 1, 5, 6, 4), 2)` → `5`. `findKthLargest(intArrayOf(3, 2, 3, 1, 2, 4, 5, 5, 6), 4)` → `4`. `findKthLargestSort(intArrayOf(3, 2, 1, 5, 6, 4), 2)` → `5`. `quickSelectKthLargest(intArrayOf(3, 2, 1, 5, 6, 4), 2)` → `5`. `KthLargest(3, intArrayOf(4, 5, 8, 2))`: `add(3)` → `4`, `add(5)` → `5`, `add(10)` → `5`, `add(9)` → `8`, `add(4)` → `8`. `kthSmallest(arrayOf(intArrayOf(1, 5, 9), intArrayOf(10, 11, 13), intArrayOf(12, 13, 15)), 8)` → `13`.
 
-| Case | Time | Space |
-|---|---:|---:|
-| Array version | `O(n log k)` | `O(k)` |
-| Stream version, per new number | `O(log k)` | `O(k)` |
+#### 5. Complexity
 
-#### 8. Common Kth-Element Patterns — Must Know
+| | Time | Space |
+|---|---|---|
+| Heap, array | `O(n log K)` | `O(K)` |
+| Stream `add` | `O(log K)` | `O(K)` |
+| Sorted matrix | `O(K log n)` for `n` rows | `O(n)` |
+| Quickselect | `O(n)` avg, `O(n²)` worst | `O(1)` |
+| Sort | `O(n log n)` | `O(1)` to `O(n)` |
 
-1. **Kth Largest Element in an Array** (LeetCode 215).
-2. **Kth Largest Element in a Stream** (LeetCode 703).
-3. **Kth Smallest Element in a Sorted Matrix** (LeetCode 378) — a max-heap of size `k`, or a K-way merge over the rows.
-4. **Kth smallest in a BST** — in-order traversal, no heap needed (`01-data-structure/07-Tree`).
-5. Use quickselect when the interviewer asks for `O(n)` on average (`02-algorithm/02-searching/13-Quickselect.md`).
+#### 6. Common Mistakes
 
-#### 9. Edge Cases / Common Mistakes
+1. **Using a max-heap with all `n` items** (`O(n log n)`) when a size-`K` min-heap works.
+2. **Off-by-one in the index** for sort or quickselect: Kth largest is index `n − K` ascending, `K − 1` descending.
+3. **Removing duplicates** before sorting. "Kth largest" counts duplicates.
+4. **Stream:** forgetting that the first calls may have fewer than `K` items.
+5. **Quickselect without randomising** the pivot (worst case on sorted input).
+6. **Matrix:** pushing the whole matrix instead of the first column, and missing the `O(K log n)` idea.
 
-1. Using a max-heap for the Kth largest. The size-`k` heap would keep the wrong end.
-2. Treating the Kth largest as the Kth **distinct** value. Duplicates count unless stated.
-3. `k > n`. `peek()` would return the smallest item, which is wrong. Validate `k`.
-4. `k` is `1`-based. The 1st largest is the maximum.
-5. Stream version: not handling the first `k - 1` additions, when the heap has fewer than `k` items (`peek()` is then not the Kth).
-6. Returning from an empty heap (`peek()` gives `null`).
+#### 7. Say This in the Interview
 
-#### 10. When to Use / When Not to Use
+1. "The simplest is sorting, `O(n log n)`. I can do better with a min-heap of size `K`: the root is the Kth largest. That's `O(n log K)` and also works for a stream."
+2. "Quickselect gets `O(n)` on average but modifies the array and has an `O(n²)` worst case unless I randomise the pivot."
+3. "For a sorted matrix I treat each row as a sorted list and merge them with a heap, stopping at the Kth pop."
 
-**Use the heap when:**
+#### 8. Quick Check
 
-1. `k` is small, or numbers arrive over time.
-2. You must not change the input array.
+1. What is the 2nd largest of `[5, 5, 4]`?
+2. In which heap, and where, is the Kth largest?
+3. What does `KthLargest(1, [])` return for `add(7)`, then `add(3)`?
 
-**Use quickselect when:**
+<details>
+<summary>Answers</summary>
 
-1. You want `O(n)` average time and can reorder the array.
+1. `5` (duplicates count).
+2. A min-heap of size `K`, at the root.
+3. `7`, then `7`.
 
-**Use sorting when:**
+</details>
 
-1. You need several different `k` values from the same data.
+#### 9. Related LeetCode Questions
 
-#### 11. Related Topics
-
-1. Top K Elements Pattern
-2. Min Heap vs Max Heap
-3. K Closest Elements / Points
-4. Quickselect (`02-algorithm/02-searching/13-Quickselect.md`)
-
-#### 12. Interview Must Remember
-
-1. Kth **largest** → **min**-heap of size `k`, answer is `peek()`.
-2. Kth **smallest** → **max**-heap of size `k`.
-3. `O(n log k)` time, `O(k)` space. Stream updates cost `O(log k)`.
-4. Mention quickselect (`O(n)` average) as the alternative.
+| # | Question | Idea |
+|---|---|---|
+| 703 | [Kth Largest Element in a Stream](https://leetcode.com/problems/kth-largest-element-in-a-stream/) (Easy) | heap of size K |
+| 215 | [Kth Largest Element in an Array](https://leetcode.com/problems/kth-largest-element-in-an-array/) (Medium) | heap or quickselect |
+| 378 | [Kth Smallest Element in a Sorted Matrix](https://leetcode.com/problems/kth-smallest-element-in-a-sorted-matrix/) (Medium) | k-way merge |
+| 373 | [Find K Pairs with Smallest Sums](https://leetcode.com/problems/find-k-pairs-with-smallest-sums/) (Medium) | heap of pairs |
+| 719 | [Find K-th Smallest Pair Distance](https://leetcode.com/problems/find-k-th-smallest-pair-distance/) (Hard) | binary search + counting |
+| 230 | [Kth Smallest Element in a BST](https://leetcode.com/problems/kth-smallest-element-in-a-bst/) (Medium) | inorder |

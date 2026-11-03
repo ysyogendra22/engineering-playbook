@@ -70,7 +70,30 @@ flowchart LR
 
 In-degree is the key number in topological sort (Kahn's algorithm, note 16).
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Question | Brute force | Better |
+|---|---|---|
+| Degree of every vertex | for each vertex scan all edges: `O(V · E)` | one pass over the edges, `degree[a]++; degree[b]++`: `O(V + E)` |
+| Is there a path `A → B`? | try every sequence of vertices | BFS / DFS: `O(V + E)` |
+| Number of components | check every pair for a path: `O(V² · (V + E))` | one traversal with `visited`: `O(V + E)` |
+
+```kotlin
+// Brute force: count the degree of each vertex by scanning every edge for every vertex. O(V * E).
+fun degreesBrute(n: Int, edges: Array<IntArray>): IntArray =
+    IntArray(n) { v -> edges.count { it[0] == v || it[1] == v } }
+
+// One pass: O(V + E)
+fun degrees(n: Int, edges: Array<IntArray>): IntArray {
+    val d = IntArray(n)
+    for ((a, b) in edges) { d[a]++; d[b]++ }
+    return d
+}
+```
+
+`degrees(3, arrayOf(intArrayOf(0, 1), intArrayOf(0, 2), intArrayOf(1, 2)))` → `[2, 2, 2]` (the handshake rule: the sum is `2 × 3 = 6`). `degreesBrute(...)` gives the same.
+
+#### 4. Kotlin Code
 
 ```kotlin
 // Degrees of an undirected graph given as an edge list
@@ -99,27 +122,27 @@ val edges = arrayOf(intArrayOf(0, 1), intArrayOf(0, 2), intArrayOf(1, 3), intArr
 println(degrees(6, edges).toList())      // [2, 2, 2, 2, 1, 1]  → the sum is 10 = 2 × 5 edges
 ```
 
-#### 4. Complexity
+#### 5. Complexity
 
 | Action | Time |
 |---|---|
 | Compute all degrees from an edge list | `O(E)` |
 | Degree of one vertex (adjacency list) | `O(1)` (the size of its list) |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Confusing a path with a cycle.** A cycle must return to the start.
 2. **Counting an undirected edge once** when computing degrees. Each end gets +1.
 3. **Forgetting self-loops and parallel edges** when the question allows them.
 4. **Mixing up in-degree and out-degree** in directed problems.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "Let me define: nodes are ..., edges are ... and the graph is directed/undirected."
 2. "A tree is a connected graph with no cycles, so it has `V - 1` edges."
 3. "I will count in-degrees to find the nodes with no prerequisites."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. A connected undirected graph has 5 vertices and 4 edges. Does it have a cycle?
 2. In an undirected graph with 6 edges, what is the sum of all degrees?
@@ -132,7 +155,7 @@ println(degrees(6, edges).toList())      // [2, 2, 2, 2, 1, 1]  → the sum is 1
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

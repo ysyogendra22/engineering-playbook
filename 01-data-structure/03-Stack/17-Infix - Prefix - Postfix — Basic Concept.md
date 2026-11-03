@@ -53,7 +53,22 @@ c   output: a b c
 end pop all                 output: a b c * +
 ```
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Approach | Idea | Time |
+|---|---|---|
+| Parse the infix text recursively for every parenthesis and precedence level | split on the lowest-precedence operator, recurse on both sides | `O(n²)` worst case |
+| Convert to postfix with the **shunting-yard** algorithm, then evaluate with a stack | one pass with an operator stack, one pass to evaluate | `O(n)` |
+| Evaluate infix directly with two stacks (numbers and operators) | pop and apply while the top operator has higher or equal precedence | `O(n)` |
+
+The idea to remember: **postfix needs no parentheses and no precedence rules**. Once the expression is in postfix form, a single stack evaluates it. The hard part (precedence) is handled once, in the conversion.
+
+```text
+infix:    2 + 3 * 4        postfix:  2 3 4 * +        value 14
+infix:  (2 + 3) * 4        postfix:  2 3 + 4 *        value 20
+```
+
+#### 4. Kotlin Code
 
 ```kotlin
 // Infix → postfix. Operands are single letters or digits.
@@ -113,14 +128,14 @@ Checks: `toPostfix("a+b*c")` → `"abc*+"`. `toPostfix("(a+b)*c")` → `"ab+c*"`
 
 Prefix is evaluated the same way, but you scan from the **right** and the first number you pop is the **left** operand.
 
-#### 4. Complexity
+#### 5. Complexity
 
 | | Time | Space |
 |---|---|---|
 | Infix → postfix | `O(n)` | `O(n)` |
 | Evaluate postfix | `O(n)` | `O(n)` |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Wrong order for equal priority.** `a - b - c` means `(a - b) - c`, so pop an equal operator before pushing. The exception is `^`, which goes right to left.
 2. **Not discarding `(`** after `)`.
@@ -129,13 +144,13 @@ Prefix is evaluated the same way, but you scan from the **right** and the first 
 5. **Evaluating prefix with the wrong operand order.**
 6. Multi-digit numbers and negative numbers need extra handling (this version uses single characters).
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "Postfix needs no brackets, so a stack can evaluate it in one pass."
 2. "To convert infix to postfix, operands go straight to the output. Operators wait on a stack until a lower-priority operator arrives."
 3. "Time `O(n)`, space `O(n)`."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. Write `a * (b + c)` in postfix.
 2. Which reading order of the expression tree gives postfix?
@@ -148,7 +163,7 @@ Prefix is evaluated the same way, but you scan from the **right** and the first 
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

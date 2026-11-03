@@ -41,7 +41,24 @@ Three small patterns appear in many solutions:
 | **Rotate** | `queue.addLast(queue.removeFirst())` | hot potato, round robin, stack from queue |
 | **One level at a time** | `repeat(queue.size) { ... }` | level-order traversal |
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Operation | Naive choice | Better choice |
+|---|---|---|
+| `enqueue` | add at the end of an array that must grow by copying: `O(n)` | `ArrayDeque` (amortised `O(1)`) |
+| `dequeue` | `list.removeAt(0)`: `O(n)` | `ArrayDeque.removeFirst()`: `O(1)` |
+| `peek` | `list[0]`: `O(1)` but unsafe on empty | `firstOrNull()` |
+| `contains` | scan the whole queue: `O(n)` | keep a `HashSet` beside the queue (`visited`) |
+
+```kotlin
+// Slow dequeue: shifts every element
+fun dequeueSlow(list: MutableList<Int>): Int = list.removeAt(0)
+
+// Fast dequeue
+fun dequeueFast(dq: ArrayDeque<Int>): Int = dq.removeFirst()
+```
+
+#### 4. Kotlin Code
 
 ```kotlin
 val q = ArrayDeque<String>()
@@ -84,7 +101,7 @@ println(jq.poll())    // 2
 println(jq.poll())    // null: empty, no crash
 ```
 
-#### 4. Complexity
+#### 5. Complexity
 
 | Action | Time |
 |---|---|
@@ -92,7 +109,7 @@ println(jq.poll())    // null: empty, no crash
 | `contains` | `O(n)` |
 | `clear`, iterate all | `O(n)` |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Dequeue or peek on an empty queue.** Check `isNotEmpty()` or use the `...OrNull()` versions.
 2. **Using `remove(x)`** thinking it is "dequeue". It removes a specific value (`O(n)`).
@@ -100,13 +117,13 @@ println(jq.poll())    // null: empty, no crash
 4. **Changing the queue inside `for (x in queue)`.** It crashes.
 5. **Assuming a `PriorityQueue` prints in priority order.** It does not. Only `poll()` gives the right order.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "I use `ArrayDeque`: `addLast` to enqueue and `removeFirst` to dequeue, both `O(1)`."
 2. "`removeFirstOrNull` is safe when the queue may be empty."
 3. "I capture the size with `repeat(queue.size)` so new items do not extend the current level."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. Which Java method returns `null` instead of crashing when the queue is empty: `remove()` or `poll()`?
 2. How do you move the front item to the back?
@@ -119,7 +136,7 @@ println(jq.poll())    // null: empty, no crash
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Operation used |
 |---|---|---|

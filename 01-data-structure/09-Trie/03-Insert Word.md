@@ -1,121 +1,147 @@
 # Insert Word
 
-#### 1. Definition — Must Know
+> Walk down the trie one letter at a time. **Reuse** a node when it exists, **create** it when it does not, and mark the last node as the end of a word.
 
-1. **Insert** adds a word to the Trie.
-2. Walk down from the root, one character at a time. **Create** any node that does not exist yet.
-3. After the last character, mark that node as an **end of word**.
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+**Insert** adds a word to the trie. It is the only way words get in, and every other operation depends on the paths it builds.
 
-1. It is the only way words get into the Trie.
-2. It reuses nodes that already exist, so words with the same beginning cost almost nothing extra.
-3. Every other operation (search, prefix check, autocomplete) depends on insert having built the right path.
+**Signals:** "build a dictionary", "add words", "preprocess the words so queries are fast".
 
-#### 3. How It Works — Must Know
+#### 2. How It Works
 
-Insert `car`, then `cat`, into an empty Trie:
+Insert `car`, then `cart`, then `cat`:
 
 ```text
-Insert "car":
-root → create c → create a → create r*        (3 new nodes)
-
-Insert "cat":
-root → c exists → a exists → create t*        (1 new node)
-
-root
-└── c
-    └── a
-        ├── r*
-        └── t*
+insert "car":   root → create c → create a → create r ✓        3 new nodes
+insert "cart":  root → c exists → a exists → r exists → create t ✓    1 new node  (and r keeps its ✓)
+insert "cat":   root → c exists → a exists → create t ✓        1 new node
 ```
 
-`cat` only created one new node, because `c → a` already existed.
+```mermaid
+flowchart TD
+    root((root)) --- c((c))
+    c --- a((a))
+    a --- r(["r ✓ (car)"])
+    r --- t1(["t ✓ (cart)"])
+    a --- t2(["t ✓ (cat)"])
+    classDef word fill:#bbf7d0,stroke:#15803d,color:#111
+    class r,t1,t2 word
+```
 
-#### 4. Core Concepts — Must Know
-
-1. Start at the **root**.
-2. For each character: if the child exists, move to it. If not, **create it**, then move.
-3. At the end, set `isEndOfWord = true`.
-4. Inserting a word that already exists changes nothing important. It is safe to repeat.
-
-#### 5. Algorithm — Must Know
+**Algorithm**
 
 ```text
 node = root
-
 for each character ch in word:
-    if node has no child for ch:
-        create a new node for ch
+    if node has no child for ch: create a new node for ch
     node = child for ch
-
-node.isEndOfWord = true
+node.isEnd = true
 ```
 
-#### 6. Kotlin Implementation — Must Know
+**Notes**
+
+- Inserting the same word twice changes nothing (the nodes exist and `isEnd` is already true).
+- Inserting a **prefix of an existing word** creates no node. It only sets `isEnd` on an existing node (`car` after `cart`).
+- Inserting the **empty string** marks the **root** as an end (decide if you allow it).
+- Cost: the number of **new** nodes is `L − (length of the shared prefix)`.
+
+#### 3. Brute Force vs Optimized
+
+| Approach | Time to insert a word | Time to answer a prefix query later |
+|---|---|---|
+| Add to a `List` / `HashSet` | `O(L)` | `O(n · L)` scan |
+| Add every prefix to a `HashSet` | `O(L²)` | `O(L)` |
+| **Trie insert** | `O(L)` | `O(L)` |
 
 ```kotlin
-fun insert(word: String) {
-    var node = root
-    for (ch in word) {
-        node = node.children.getOrPut(ch) { TrieNode() }
-    }
-    node.isEndOfWord = true
+// Brute force: store every prefix of the word. O(L^2) time and memory per word.
+fun insertPrefixes(set: HashSet<String>, word: String) {
+    for (i in 1..word.length) set.add(word.substring(0, i))
 }
 ```
 
-`getOrPut` returns the existing child, or creates and stores a new one.
+#### 4. Kotlin Code
 
-#### 7. Time & Space Complexity — Must Know
+```kotlin
+class TrieNode {
+    val next = arrayOfNulls<TrieNode>(26)
+    var isEnd = false
+}
 
-| Case | Time |
-|---|---:|
-| Insert (any case) | `O(L)` |
-| Extra space | `O(L)` worst case |
+class Trie {
+    val root = TrieNode()
+    var nodeCount = 0                                   // for the demo: nodes created, excluding the root
 
-Why `O(L)`?
+    fun insert(word: String) {
+        var node = root
+        for (c in word) {
+            val i = c - 'a'
+            if (node.next[i] == null) {
+                node.next[i] = TrieNode()               // create only if missing
+                nodeCount++
+            }
+            node = node.next[i]!!
+        }
+        node.isEnd = true
+    }
 
-```text
-One step per character. A fully new word creates up to L nodes.
-A word made only of existing prefixes creates none.
+    // Recursive version of the same idea
+    fun insertRecursive(node: TrieNode, word: String, index: Int) {
+        if (index == word.length) { node.isEnd = true; return }
+        val i = word[index] - 'a'
+        if (node.next[i] == null) { node.next[i] = TrieNode(); nodeCount++ }
+        insertRecursive(node.next[i]!!, word, index + 1)
+    }
+}
 ```
 
-#### 8. Common Insert Patterns — Must Know
+Checks: `val t = Trie()`. `t.insert("car")` → `nodeCount` is `3`. `t.insert("cart")` → `4`. `t.insert("cat")` → `5`. `t.insert("car")` again → still `5`. `t.insert("a")` → `6`. A second trie using `insertRecursive(t2.root, "car", 0)` gives `nodeCount` `3`. `insertPrefixes(set, "car")` adds `c`, `ca`, `car`.
 
-1. Build a Trie from a list of words.
-2. Insert a word while counting (see "Counting Words / Prefixes").
-3. Insert and store the full word at the end node for easy retrieval.
-4. Insert numbers as bits (see "Bitwise Trie").
+#### 5. Complexity
 
-#### 9. Edge Cases / Common Mistakes
+| | Time | Space |
+|---|---|---|
+| Insert one word of length `L` | `O(L)` | `O(L)` new nodes at most |
+| Insert `n` words | `O(n · L)` | `O(n · L)` worst case |
+| Recursive version | `O(L)` | `O(L)` call stack |
 
-1. Forgetting `isEndOfWord = true`. The word is then only a prefix and `search` fails.
-2. Setting the end flag on the **root** by mistake.
-3. Inserting the empty string. It marks the root itself as a word. Decide whether to allow it.
-4. Overwriting an existing child with a new empty node, which erases the words below it. Always check first (`getOrPut` does this).
-5. Mixing upper and lower case. `Car` and `car` become different paths.
+#### 6. Common Mistakes
 
-#### 10. When to Use / When Not to Use
+1. **Not setting `isEnd`** on the last node.
+2. **Overwriting an existing child** with a new node (`node.next[i] = TrieNode()` without the null check). This destroys the words below.
+3. **Creating a node even when it exists.**
+4. **Resetting `isEnd` to false** when inserting a prefix of an existing word.
+5. **Wrong index** (`c - 'A'` instead of `c - 'a'`, or upper-case input).
+6. **Moving `node` before creating the child**, so the new node is lost.
 
-**Use when:**
+#### 7. Say This in the Interview
 
-1. You build the Trie once and then run many prefix queries.
-2. Many words share beginnings.
+1. "I walk from the root. For each character I reuse the child if it exists, otherwise I create it. After the last character I set `isEnd`. It is `O(L)`."
+2. "Words with a common prefix share nodes, so inserting `cart` after `car` creates only one new node."
+3. "If a word is already there, insert changes nothing, so it is safe to repeat."
 
-**Avoid when:**
+#### 8. Quick Check
 
-1. You only need a few exact lookups. A `HashSet` is cheaper to build.
+1. How many new nodes does inserting `apple` create after `app` is in the trie?
+2. What does inserting `app` after `apple` change?
+3. What is the time to insert `n` words of length `L`?
 
-#### 11. Related Topics
+<details>
+<summary>Answers</summary>
 
-1. TrieNode Structure
-2. Search Word
-3. Prefix Search / `startsWith`
-4. Counting Words / Prefixes
+1. `2` (`l` and `e`). `a`, `p`, `p` already exist.
+2. Only `isEnd` on the second `p` node. No new nodes.
+3. `O(n · L)`.
 
-#### 12. Interview Must Remember
+</details>
 
-1. Walk the characters, **create missing nodes**, then **mark the last node as end of word**.
-2. Insert is `O(L)`.
-3. Never replace an existing child. Reuse it.
-4. Forgetting the end flag is the most common bug.
+#### 9. Related LeetCode Questions
+
+| # | Question | Idea |
+|---|---|---|
+| 208 | [Implement Trie (Prefix Tree)](https://leetcode.com/problems/implement-trie-prefix-tree/) (Medium) | insert + search |
+| 211 | [Design Add and Search Words Data Structure](https://leetcode.com/problems/design-add-and-search-words-data-structure/) (Medium) | `addWord` |
+| 648 | [Replace Words](https://leetcode.com/problems/replace-words/) (Medium) | insert the roots |
+| 720 | [Longest Word in Dictionary](https://leetcode.com/problems/longest-word-in-dictionary/) (Medium) | insert all words |
+| 1268 | [Search Suggestions System](https://leetcode.com/problems/search-suggestions-system/) (Medium) | insert products |

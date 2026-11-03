@@ -37,7 +37,27 @@ If the distance is too big, store the **new** index (`last[x] = i`) and go on. T
 
 *Next Greater Element I* (LeetCode 496) uses the map the other way: after a stack finds each number's next greater value, the map `number → next greater` answers the queries.
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Question | Brute force | With an index map |
+|---|---|---|
+| Where did value `x` last appear? | scan the array: `O(n)` per query | `map[x]`: `O(1)` |
+| Is there an equal value within `k` positions? | check the next `k` items for each: `O(n · k)` | compare `i` with `map[x]`: `O(n)` |
+| Longest gap between equal values | all pairs: `O(n²)` | store the first index: `O(n)` |
+
+```kotlin
+// Brute force: contains nearby duplicate, check the next k items
+fun containsNearbyDuplicateBrute(nums: IntArray, k: Int): Boolean {
+    for (i in nums.indices) {
+        for (j in i + 1..minOf(i + k, nums.size - 1)) if (nums[i] == nums[j]) return true
+    }
+    return false
+}
+```
+
+`containsNearbyDuplicateBrute(intArrayOf(1, 2, 3, 1), 3)` → `true`. `containsNearbyDuplicateBrute(intArrayOf(1, 2, 3, 1, 2, 3), 2)` → `false`.
+
+#### 4. Kotlin Code
 
 ```kotlin
 // Contains Duplicate II: keep the LAST index of each value
@@ -78,13 +98,13 @@ fun indexMap(nums: IntArray): Map<Int, Int> =
 
 Check: `nextGreaterElement([4,1,2], [1,3,4,2])` → `[-1, 3, -1]`.
 
-#### 4. Complexity
+#### 5. Complexity
 
 | | Time | Space |
 |---|---|---|
 | One pass with an index map | `O(n)` | `O(u)`, `u` = different values |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Using `put` when you want the first index.** It overwrites. Use `putIfAbsent`.
 2. **Using `putIfAbsent` when you want the last index.**
@@ -93,13 +113,13 @@ Check: `nextGreaterElement([4,1,2], [1,3,4,2])` → `[-1, 3, -1]`.
 5. **`associate` over repeated values** silently keeps the last index.
 6. **Using indexes from one array on another array.**
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "I keep a map from value to its last index. If the same value comes again within `k`, I return true."
 2. "For the longest range I keep the **first** index; for the closest repeat I keep the **last** index."
 3. "One pass: `O(n)` time, `O(n)` space."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. For `[1, 0, 1, 1]` and `k = 1`, is there a nearby duplicate?
 2. When do you use `putIfAbsent` for indexes?
@@ -112,7 +132,7 @@ Check: `nextGreaterElement([4,1,2], [1,3,4,2])` → `[-1, 3, -1]`.
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

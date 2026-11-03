@@ -56,7 +56,31 @@ A plain `ArrayDeque` is **not safe** when several threads use it. Use these inst
 
 To stop the consumers, send a special **poison pill** value, or **close** the channel.
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Approach | Problem | Better |
+|---|---|---|
+| **Busy waiting:** the consumer loops and checks if the queue is empty | burns CPU | a **blocking queue**: `take()` waits until an item exists |
+| Unbounded queue | the producer can fill the memory | a **bounded** queue: `put()` waits when full (backpressure) |
+| One lock around everything | slow with many threads | a concurrent queue (`LinkedBlockingQueue`, `ArrayBlockingQueue`) |
+
+```kotlin
+// Busy waiting (do not do this)
+fun consumeBusy(queue: java.util.concurrent.ConcurrentLinkedQueue<Int>) {
+    while (true) {
+        val item = queue.poll()
+        if (item == null) continue                // spins, using 100% of a CPU core
+        println(item)
+    }
+}
+
+// Blocking queue: the thread sleeps until an item arrives
+fun consumeBlocking(queue: java.util.concurrent.BlockingQueue<Int>) {
+    while (true) println(queue.take())            // waits without burning CPU
+}
+```
+
+#### 4. Kotlin Code
 
 **Threads with `BlockingQueue`**
 
@@ -137,14 +161,14 @@ class EventViewModel : ViewModel() {
 }
 ```
 
-#### 4. Complexity
+#### 5. Complexity
 
 | Action | Time |
 |---|---|
 | `put`, `take`, `send`, `receive` | `O(1)` (plus any waiting time) |
 | Memory | `O(capacity)` for a bounded queue, `O(backlog)` for an unbounded one |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **A plain `ArrayDeque` shared by threads.** It is not thread-safe.
 2. **An unbounded queue with a slow consumer.** Memory grows until the app crashes.
@@ -153,14 +177,14 @@ class EventViewModel : ViewModel() {
 5. **Losing items when the process dies.** An in-memory queue is not durable. For important work use `WorkManager` or a database.
 6. **A consumer crashing silently** while producers keep adding.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "A queue between producers and consumers decouples them and absorbs bursts."
 2. "I would make the queue bounded, so a slow consumer applies back-pressure instead of running out of memory."
 3. "Plain collections are not thread-safe, so I use a `BlockingQueue` on threads or a `Channel` with coroutines."
 4. "To stop, I close the channel or send a poison pill."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. What does `put()` do on a full `ArrayBlockingQueue`?
 2. Why prefer a bounded queue?
@@ -173,7 +197,7 @@ class EventViewModel : ViewModel() {
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

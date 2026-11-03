@@ -27,7 +27,33 @@ Now `pop` and `top` are plain queue operations on the front.
 
 Rotate exactly `size - 1` times. (Rotating `size` times brings the order back to where it started.)
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Design | `push` | `pop` | `top` |
+|---|---|---|---|
+| Two queues, expensive `pop` | `O(1)` | `O(n)` (move `n − 1` items to the other queue) | `O(n)` |
+| **One queue, rotate on `push`** | `O(n)` (after adding, rotate the older items behind it) | **`O(1)`** | **`O(1)`** |
+| Two queues, expensive `push` | `O(n)` | `O(1)` | `O(1)` |
+
+A queue is FIFO and a stack is LIFO, so one of the two operations has to **reverse the order**, and that costs `O(n)`. You choose which one pays.
+
+```kotlin
+// One queue, expensive push: after adding x, rotate the older items behind it so x is at the front.
+class MyStack {
+    private val q = ArrayDeque<Int>()
+    fun push(x: Int) {
+        q.addLast(x)
+        repeat(q.size - 1) { q.addLast(q.removeFirst()) }
+    }
+    fun pop(): Int = q.removeFirst()
+    fun top(): Int = q.first()
+    fun empty() = q.isEmpty()
+}
+```
+
+Push `1, 2, 3`: `top()` → `3`, `pop()` → `3`, `pop()` → `2`.
+
+#### 4. Kotlin Code
 
 ```kotlin
 class MyStack {
@@ -58,7 +84,7 @@ println(s.empty())   // false
 
 You may also be asked for the other choice: `push` is `O(1)` and `pop` rotates `size - 1` items. Say that you picked rotate-on-push because `pop` and `top` are then the most common, cheapest calls.
 
-#### 4. Complexity
+#### 5. Complexity
 
 | Operation | Time |
 |---|---|
@@ -66,7 +92,7 @@ You may also be asked for the other choice: `push` is `O(1)` and `pop` rotates `
 | `pop`, `top`, `empty` | `O(1)` |
 | Space | `O(n)` |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Rotating `size` times** instead of `size - 1`.
 2. **Rotating before adding** the new item.
@@ -74,13 +100,13 @@ You may also be asked for the other choice: `push` is `O(1)` and `pop` rotates `
 4. **Popping an empty stack.** Say how you handle it.
 5. **Saying `push` is `O(1)`** in the rotate-on-push design.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "A queue gives the oldest item first, so after each push I rotate the queue to put the newest item at the front."
 2. "Push is `O(n)`. Pop and top are `O(1)`."
 3. "In practice I would use a real stack, which is `O(1)` for everything."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. Queue is `[2, 1]`. You push `3`. What is the queue after the rotation?
 2. How many rotations after pushing into a queue that now has 5 items?
@@ -93,7 +119,7 @@ You may also be asked for the other choice: `push` is `O(1)` and `pop` rotates `
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

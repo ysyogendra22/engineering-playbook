@@ -41,7 +41,29 @@ Which key types work:
 | normal class | same object | only if identity is what you want |
 | `IntArray`, `Array` | same object | **never use as a key** |
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Key choice | Speed | Memory | Risk |
+|---|---|---|---|
+| String such as `"$r,$c"` | slow (builds a string each time) | high | easy to get the format wrong |
+| `Pair<Int, Int>` | fine | medium (boxing) | |
+| `data class Point(val r: Int, val c: Int)` | fine | medium | clear names |
+| **Encoded `Int` / `Long`** (`r * cols + c`) | fastest | lowest | you must decode it |
+| `IntArray` | **wrong** | | compares by identity |
+
+```kotlin
+// Slow: string keys for a memo table
+val memoString = HashMap<String, Int>()
+fun keyOf(r: Int, c: Int) = "$r,$c"
+
+// Better: an Int key
+val memoInt = HashMap<Int, Int>()
+fun keyOf(r: Int, c: Int, cols: Int) = r * cols + c
+```
+
+Both store the same data. The `Int` key avoids building and hashing a new string for every lookup.
+
+#### 4. Kotlin Code
 
 ```kotlin
 // Pair as a key
@@ -91,7 +113,7 @@ b.v = 2
 println(m[b])                    // null: the entry is lost (its hash code changed)
 ```
 
-#### 4. Complexity
+#### 5. Complexity
 
 | | Time |
 |---|---|
@@ -101,7 +123,7 @@ println(m[b])                    // null: the entry is lost (its hash code chang
 
 A long key makes every operation slower. A packed `Long` is the lightest.
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **A normal class as a key** and expecting content equality.
 2. **`equals` without `hashCode`** (or the opposite).
@@ -111,13 +133,13 @@ A long key makes every operation slower. A packed `Long` is the lightest.
 6. **Packing fields into a `Long` without checking ranges.** The fields overlap.
 7. **A floating-point field in a key.** Equality is exact, so `0.1 + 0.2` is not `0.3`.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "My key has two parts, so I use a `data class` (or a `Pair`) with `val` fields."
 2. "For speed I can pack two numbers into one `Long`."
 3. "I never use arrays as keys and never change a key after inserting it."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. Why does `HashMap<IntArray, String>` fail to find a key?
 2. What makes a `data class` a good key?
@@ -130,7 +152,7 @@ A long key makes every operation slower. A packed `Long` is the lightest.
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

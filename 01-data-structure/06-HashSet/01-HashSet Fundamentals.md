@@ -1,146 +1,144 @@
 # HashSet Fundamentals
 
-#### 1. Definition — Must Know
+> A set of **unique items** with **`O(1)`** `add`, `contains` and `remove` on average. It answers one question fast: "have I seen this before?"
 
-1. A **HashSet** is a collection that stores **unique** values. Adding a value that is already there changes nothing.
-2. It uses **hashing**, so `add`, `contains` and `remove` take **`O(1)` on average**.
-3. It has **no index** and **no guaranteed order**. You ask "is it in the set?", not "what is at position 3?".
-4. In Kotlin/JVM, `HashSet<T>` (and `hashSetOf(...)`) is `java.util.HashSet`, which is built on a `HashMap` inside.
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+A **`HashSet`** stores items with **no duplicates** and **no guaranteed order**. It uses a **hash function** to turn each item into a bucket number, so it can find an item without scanning.
 
-1. **Fast membership check:** is this value already known?
-2. **Remove duplicates:** keep one copy of each value.
-3. **Track what you have seen:** visited nodes, seen numbers, seen states.
-4. It replaces slow `list.contains(x)` (`O(n)`) with `set.contains(x)` (`O(1)` average). This turns many `O(n²)` solutions into `O(n)`.
+| Operation | Meaning | Average cost |
+|---|---|---|
+| `add(x)` | insert `x` (does nothing if already there) | `O(1)` |
+| `contains(x)` | is `x` in the set? | `O(1)` |
+| `remove(x)` | delete `x` | `O(1)` |
+| `size` | number of items | `O(1)` |
 
-#### 3. How It Works — Must Know
+**Signals:** "duplicate", "unique", "distinct", "seen before", "visited", "common elements", "in both", "complement", "membership".
 
-```text
-value  →  hashCode()  →  bucket index  →  look inside that bucket, compare with equals()
+#### 2. How It Works
 
-add(42):   hash(42) → bucket 2 → empty → store 42
-add(7):    hash(7)  → bucket 7 → empty → store 7
-add(42):   hash(42) → bucket 2 → found equal value → do nothing, return false
-contains(7): hash(7) → bucket 7 → found → true
+*The hash function sends each value to a bucket. `contains` looks only in that bucket.*
+
+```mermaid
+flowchart LR
+    V1["add 17"] --> H["hash(17) mod 4 = 1"]
+    V2["add 8"] --> H2["hash(8) mod 4 = 0"]
+    V3["add 21"] --> H3["hash(21) mod 4 = 1"]
+    H --> B1["bucket 1: 17"]
+    H3 --> B1b["bucket 1: 17, 21<br/>(a collision: same bucket)"]
+    H2 --> B0["bucket 0: 8"]
 ```
 
-```text
-bucket 0: -
-bucket 1: -
-bucket 2: [42]
-bucket 3: -
-...
-bucket 7: [7]
-```
+- Two different items may land in the same bucket (a **collision**). The bucket then holds a short list (or tree). Lookups stay fast as long as buckets stay short.
+- When the set gets too full, it **resizes** and re-hashes everything (a rare, `O(n)` step that is `O(1)` on average, "amortised").
+- An item needs a correct **`equals` and `hashCode`**. Equal items must have the same hash code. (`Int`, `String`, `Pair` and data classes already do.)
 
-Two different values can land in the same bucket (a **collision**). The bucket then holds a small chain. With a good hash function, chains stay short, so the average cost stays `O(1)`.
+**HashSet vs the alternatives**
 
-#### 4. Core Concepts — Must Know
-
-1. **Uniqueness is decided by `equals()` and `hashCode()`.** Two values count as the same if they are equal and have the same hash.
-2. **`add` returns a `Boolean`:** `true` if the value was new, `false` if it was already there. This is very useful.
-3. **Iteration order is not defined** for `HashSet`. Do not rely on it.
-4. **Kotlin set types:**
-
-| Type | Order | Speed | Use when |
+| | `List` | Sorted array | **HashSet** |
 |---|---|---|---|
-| `HashSet` / `hashSetOf()` | none | `O(1)` avg | Most interview problems |
-| `LinkedHashSet` / `mutableSetOf()` | insertion order | `O(1)` avg | You need uniqueness and the original order |
-| `TreeSet` / `sortedSetOf()` | sorted | `O(log n)` | You need sorted values, floor/ceiling |
-| `setOf()` | insertion order | `O(1)` avg | Read-only set |
+| `contains` | `O(n)` | `O(log n)` | **`O(1)`** |
+| `add` | `O(1)` (allows duplicates) | `O(n)` | `O(1)` |
+| Keeps order | insertion | sorted | **none** |
+| Duplicates | allowed | allowed | **not allowed** |
 
-5. **`mutableSetOf()` returns a `LinkedHashSet`**, not a plain `HashSet`.
-6. A `HashSet` allows **one `null`**.
+**The three Kotlin sets**
 
-#### 5. Algorithm — Must Know
+| Type | Order | Cost | Use |
+|---|---|---|---|
+| `HashSet` | none | `O(1)` | default |
+| `LinkedHashSet` | insertion order | `O(1)` | unique **and** keep the order |
+| `TreeSet` | sorted | `O(log n)` | need the next larger / smaller (`floor`, `ceiling`) |
 
-The usual shape of a HashSet solution:
+#### 3. Brute Force vs Optimized
 
-```text
-seen = empty set
-for each item:
-    if item is already in seen → handle it (duplicate / found / skip)
-    else add item to seen
-```
-
-#### 6. Kotlin Implementation — Must Know
-
-```kotlin
-val set = HashSet<Int>()           // empty
-val nums = hashSetOf(1, 2, 3)      // with values
-val fromList = listOf(1, 2, 2, 3).toHashSet()   // {1, 2, 3}
-
-set.add(10)                // true  (new)
-set.add(10)                // false (already there)
-println(10 in set)         // true   — same as set.contains(10)
-set.remove(10)             // true  (it was there)
-println(set.size)          // 0
-println(set.isEmpty())     // true
-
-for (x in nums) println(x) // order is not guaranteed
-```
-
-Remove duplicates from a list:
+| Question | Brute force | HashSet |
+|---|---|---|
+| Does the array have a duplicate? | compare every pair: `O(n²)` | one pass: `O(n)` |
+| Is `x` in this collection (many times)? | scan a list: `O(n)` each | `O(1)` each |
+| Distinct values | sort, then compare neighbours: `O(n log n)` | `O(n)` |
 
 ```kotlin
-val unique = listOf(3, 1, 3, 2, 1).toSet()     // keeps first-seen order: [3, 1, 2]
+// Brute force: every pair
+fun hasDuplicateBrute(nums: IntArray): Boolean {
+    for (i in nums.indices) for (j in i + 1 until nums.size) if (nums[i] == nums[j]) return true
+    return false
+}
 ```
 
-#### 7. Time & Space Complexity — Must Know
+#### 4. Kotlin Code
 
-| Operation | Average | Worst |
-|---|---:|---:|
-| `add` | `O(1)` | `O(n)`* |
-| `contains` | `O(1)` | `O(n)`* |
-| `remove` | `O(1)` | `O(n)`* |
-| Iterate all | `O(n + capacity)` | — |
-| Space | `O(n)` | — |
+```kotlin
+fun demo() {
+    val set = HashSet<Int>()               // also: mutableSetOf<Int>() (a LinkedHashSet), hashSetOf(1, 2, 3)
+    println(set.add(5))                    // true   (new)
+    println(set.add(5))                    // false  (already there)
+    set.add(7)
+    println(set.contains(7))               // true
+    println(7 in set)                      // true   (operator form)
+    println(set.remove(5))                 // true
+    println(set.size)                      // 1
+}
 
-\*Worst case happens only with very bad hashing. Modern Java turns long chains into balanced trees, so it is rarely a problem. Quote `O(1)` average in interviews.
+// Contains Duplicate (LeetCode 217)
+fun containsDuplicate(nums: IntArray): Boolean {
+    val seen = HashSet<Int>()
+    for (x in nums) {
+        if (!seen.add(x)) return true       // add returns false if x was already there
+    }
+    return false
+}
+```
 
-#### 8. Common HashSet Patterns — Must Know
+Checks: `containsDuplicate(intArrayOf(1, 2, 3, 1))` → `true`. `containsDuplicate(intArrayOf(1, 2, 3, 4))` → `false`. `containsDuplicate(intArrayOf())` → `false`. `hasDuplicateBrute(intArrayOf(1, 2, 3, 1))` → `true`. In `demo()`, the prints are `true, false, true, true, true, 1`.
 
-1. **Duplicate detection** — "does any value appear twice?"
-2. **Fast lookup** — "is X in this group?"
-3. **Unique elements** — "how many distinct values?"
-4. **Complement lookup** — "is `target - x` already seen?"
-5. **Visited / seen** — graphs, grids, cycles.
-6. **Consecutive sequence** — "is `x + 1` in the set?"
+`add` returning a Boolean is the tidiest way to do "check, then insert" in one call.
 
-#### 9. Edge Cases / Common Mistakes
+#### 5. Complexity
 
-1. Expecting a `HashSet` to keep insertion order. Use `LinkedHashSet` for that.
-2. Using `list.contains()` inside a loop when a set would be `O(1)`.
-3. Putting `IntArray` or `Array` in a set. They compare by reference, so duplicates are not detected.
-4. Changing an object after it is in the set. Its hash changes and it can no longer be found.
-5. Expecting `get(index)`. A set has no index.
-6. Forgetting that `add` already tells you whether the value was new.
+| | Time | Space |
+|---|---|---|
+| `add`, `contains`, `remove` | `O(1)` average, `O(n)` worst (all items collide) | |
+| Build a set of `n` items | `O(n)` | `O(n)` |
+| Iterate | `O(n + buckets)` | |
 
-#### 10. When to Use / When Not to Use
+#### 6. Common Mistakes
 
-**Use when:**
+1. **Assuming order.** A `HashSet` does not keep insertion or sorted order. Use `LinkedHashSet` or `TreeSet`.
+2. **Using a `List` for `contains`** inside a loop (`O(n²)`).
+3. **Putting arrays in a set.** `IntArray` compares by identity, so `setOf(intArrayOf(1))` will not find another `intArrayOf(1)`. Use `List<Int>` or a string key (note 11).
+4. **Changing an object after adding it** when `equals`/`hashCode` depend on its fields.
+5. **Forgetting that `Set` has no index.** You cannot ask for the 3rd element.
+6. **Modifying the set while iterating it** (`ConcurrentModificationException`).
 
-1. You only need to know whether a value exists.
-2. You need uniqueness.
-3. You need `O(1)` lookups.
+#### 7. Say This in the Interview
 
-**Avoid when:**
+1. "I need to know if I've seen a value before. A `HashSet` gives `O(1)` average membership, so one pass is `O(n)` instead of the `O(n²)` pair check."
+2. "The cost is `O(n)` extra space. If space mattered I'd sort instead: `O(n log n)` time, `O(1)` extra space."
+3. "`add` returns false for a duplicate, so I can detect and insert in one step."
 
-1. You need to store a **value** or a **count** with each key. Use a `HashMap`.
-2. You need sorted order. Use a `TreeSet`.
-3. You need positions or duplicates. Use a `List`.
+#### 8. Quick Check
 
-#### 11. Related Topics
+1. What does `set.add(x)` return if `x` is already in the set?
+2. When would you choose a `TreeSet` over a `HashSet`?
+3. Is the iteration order of a `HashSet` guaranteed?
 
-1. HashSet Operations & Complexity
-2. HashSet vs HashMap
-3. HashMap (`01-data-structure/05-HashMap`)
-4. Array and String basics
+<details>
+<summary>Answers</summary>
 
-#### 12. Interview Must Remember
+1. `false`.
+2. When you need sorted order or the closest value (`floor`, `ceiling`, `first`, `last`), at `O(log n)` per operation.
+3. No.
 
-1. **HashSet = unique values + `O(1)` average add/contains/remove.**
-2. `add()` returns `false` for a duplicate. Use it as a free duplicate check.
-3. No order, no index. `mutableSetOf()` is a `LinkedHashSet`.
-4. Needs correct `equals()` and `hashCode()` for custom objects.
+</details>
+
+#### 9. Related LeetCode Questions
+
+| # | Question | Idea |
+|---|---|---|
+| 217 | [Contains Duplicate](https://leetcode.com/problems/contains-duplicate/) (Easy) | `add` returns false |
+| 349 | [Intersection of Two Arrays](https://leetcode.com/problems/intersection-of-two-arrays/) (Easy) | two sets |
+| 771 | [Jewels and Stones](https://leetcode.com/problems/jewels-and-stones/) (Easy) | fast membership |
+| 202 | [Happy Number](https://leetcode.com/problems/happy-number/) (Easy) | seen set for a cycle |
+| 128 | [Longest Consecutive Sequence](https://leetcode.com/problems/longest-consecutive-sequence/) (Medium) | set + sequence starts |
+| 36 | [Valid Sudoku](https://leetcode.com/problems/valid-sudoku/) (Medium) | sets per row, column, box |

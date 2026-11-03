@@ -1,161 +1,159 @@
 # Set Union / Intersection / Difference
 
-#### 1. Definition — Must Know
+> Kotlin has the three set operations built in. Know what each means, the one-line code, and its cost.
 
-1. **Union** — all values that are in `A` **or** `B` (or both).
-2. **Intersection** — values that are in `A` **and** `B`.
-3. **Difference** — values that are in `A` **but not** in `B`.
-4. **Symmetric difference** — values that are in one set **but not both**.
-5. Kotlin gives you these as ready-made functions: `union`, `intersect`, `subtract`.
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+For two sets `A` and `B`:
 
-1. They turn "compare two groups" tasks into one line of code.
-2. They answer common questions: what is new, what was removed, what is shared.
-3. In apps: sync local and remote items, find added or removed permissions, compare two lists of ids.
-
-#### 3. How It Works — Must Know
-
-```text
-A = {1, 2, 3, 4}
-B = {3, 4, 5, 6}
-
-Union (A ∪ B)               {1, 2, 3, 4, 5, 6}
-Intersection (A ∩ B)        {3, 4}
-Difference (A − B)          {1, 2}          in A, not in B
-Difference (B − A)          {5, 6}
-Symmetric difference        {1, 2, 5, 6}    (A − B) ∪ (B − A)
-```
-
-```text
-   A only      both      B only
-  {1, 2}      {3, 4}     {5, 6}
-```
-
-#### 4. Core Concepts — Must Know
-
-| Operation | Kotlin | Result type | Changes the original? |
+| Operation | Meaning | Kotlin | Result for `A = {1, 2, 3}`, `B = {2, 3, 4}` |
 |---|---|---|---|
-| Union | `a union b` or `a + b` | `Set` | No |
-| Intersection | `a intersect b` | `Set` | No |
-| Difference | `a subtract b` or `a - b` | `Set` | No |
-| Symmetric difference | `(a - b) + (b - a)` | `Set` | No |
-| Subset check | `b.containsAll(a)` | `Boolean` | No |
-| Disjoint check | `a.none { it in b }` | `Boolean` | No |
-| In-place union | `a.addAll(b)` | `Boolean` | **Yes** |
-| In-place intersection | `a.retainAll(b)` | `Boolean` | **Yes** |
-| In-place difference | `a.removeAll(b)` | `Boolean` | **Yes** |
+| **Union** `A ∪ B` | in `A` **or** `B` | `A union B` or `A + B` | `{1, 2, 3, 4}` |
+| **Intersection** `A ∩ B` | in **both** | `A intersect B` | `{2, 3}` |
+| **Difference** `A − B` | in `A` but **not** in `B` | `A subtract B` or `A - B` | `{1}` |
+| **Symmetric difference** | in exactly one | `(A - B) + (B - A)` | `{1, 4}` |
+| **Subset** | every item of `A` is in `B` | `B.containsAll(A)` | `false` |
 
-1. The first group builds a **new** collection. The last three **change** the set.
-2. For `O(1)` lookups inside these operations, the argument should also be a set. Passing a `List` makes some operations `O(n × m)`.
-3. The result of `intersect` keeps the order of `a`.
+**Signals:** "common", "in either", "only in the first", "missing from", "difference of two arrays", "is a subset".
 
-#### 5. Algorithm — Must Know
+#### 2. How It Works
+
+```mermaid
+flowchart LR
+    subgraph A["A"]
+        a1["1"]
+    end
+    subgraph AB["A and B (intersection)"]
+        c1["2, 3"]
+    end
+    subgraph B["B"]
+        b1["4"]
+    end
+    A --- AB --- B
+```
+
+- **Union** = `A` only + both + `B` only = `{1, 2, 3, 4}`.
+- **Intersection** = the middle = `{2, 3}`.
+- **A − B** = `A` only = `{1}`. **B − A** = `B` only = `{4}`.
+
+**Mutating versions** (change the set in place):
+
+| Kotlin | Effect |
+|---|---|
+| `a.addAll(b)` | `a = a ∪ b` |
+| `a.retainAll(b)` | `a = a ∩ b` |
+| `a.removeAll(b)` | `a = a − b` |
+
+The infix versions (`union`, `intersect`, `subtract`) return a **new** set and leave the originals unchanged.
+
+**Find the Difference of Two Arrays (LeetCode 2215).** Return `[distinct values only in nums1, distinct values only in nums2]`.
 
 ```text
-union:        result = copy of A;  add every item of B
-intersection: result = items of A that are in B
-difference:   result = items of A that are not in B
+nums1 = [1, 2, 3, 3]   nums2 = [1, 1, 2, 2]
+set1 = {1, 2, 3}       set2 = {1, 2}
+set1 − set2 = {3}      set2 − set1 = {}
+answer [[3], []]
 ```
 
-#### 6. Kotlin Implementation — Must Know
+**Cost.** Each operation walks the smaller or larger set once and does `O(1)` lookups: `O(|A| + |B|)`. Intersection can be done in `O(min(|A|, |B|))` by iterating the smaller set and checking the larger.
+
+#### 3. Brute Force vs Optimized
+
+| Task | Brute force | With sets |
+|---|---|---|
+| Common values | nested loops `O(m · n)` | `O(m + n)` |
+| Values only in `A` | for each `a`, scan `B` `O(m · n)` | `O(m + n)` |
+| Union without duplicates | add, check `contains` on a list `O(n²)` | `O(m + n)` |
 
 ```kotlin
-val a = setOf(1, 2, 3, 4)
-val b = setOf(3, 4, 5, 6)
-
-println(a union b)               // [1, 2, 3, 4, 5, 6]
-println(a intersect b)           // [3, 4]
-println(a subtract b)            // [1, 2]
-println((a - b) + (b - a))       // [1, 2, 5, 6]  symmetric difference
-println(setOf(3, 4).let { b.containsAll(it) })   // true — {3, 4} is a subset of b
-
-// In place (needs a MutableSet)
-val x = hashSetOf(1, 2, 3)
-x.addAll(listOf(3, 4))           // x = {1, 2, 3, 4}
-x.retainAll(setOf(2, 3, 4))      // x = {2, 3, 4}
-x.removeAll(setOf(4))            // x = {2, 3}
+// Brute force difference: for each element of a, scan b
+fun differenceBrute(a: IntArray, b: IntArray): List<Int> =
+    a.filter { x -> b.none { it == x } }.distinct()
 ```
 
-**Find the Difference of Two Arrays** (LeetCode 2215)
+#### 4. Kotlin Code
 
 ```kotlin
+fun demo() {
+    val a = setOf(1, 2, 3)
+    val b = setOf(2, 3, 4)
+    println(a union b)                          // [1, 2, 3, 4]
+    println(a intersect b)                      // [2, 3]
+    println(a subtract b)                       // [1]
+    println((a - b) + (b - a))                  // [1, 4]   symmetric difference
+    println(b.containsAll(setOf(2, 3)))         // true     {2, 3} is a subset of b
+}
+
+// Find the Difference of Two Arrays (LeetCode 2215)
 fun findDifference(nums1: IntArray, nums2: IntArray): List<List<Int>> {
-    val a = nums1.toSet()
-    val b = nums2.toSet()
-    return listOf((a - b).toList(), (b - a).toList())
+    val s1 = nums1.toSet()
+    val s2 = nums2.toSet()
+    return listOf((s1 - s2).toList(), (s2 - s1).toList())
+}
+
+// Is one string made of letters of another (subset of characters)?
+fun usesOnlyLettersOf(word: String, allowed: String): Boolean =
+    allowed.toSet().containsAll(word.toSet())
+
+// Pangram: the letters cover the whole alphabet (LeetCode 1832)
+fun checkIfPangram(sentence: String): Boolean = sentence.toSet().size == 26
+
+// Common elements of several lists, using retainAll
+fun commonOfAll(lists: List<List<Int>>): Set<Int> {
+    val result = lists.first().toMutableSet()
+    for (l in lists.drop(1)) result.retainAll(l.toSet())
+    return result
 }
 ```
 
-**What changed between two lists of ids? (typical app code)**
+Checks: `demo()` prints `[1, 2, 3, 4]`, `[2, 3]`, `[1]`, `[1, 4]`, `true`. `findDifference(intArrayOf(1, 2, 3), intArrayOf(2, 4, 6))` → `[[1, 3], [4, 6]]`. `findDifference(intArrayOf(1, 2, 3, 3), intArrayOf(1, 1, 2, 2))` → `[[3], []]`. `usesOnlyLettersOf("cab", "abcd")` → `true`. `usesOnlyLettersOf("cabz", "abcd")` → `false`. `checkIfPangram("thequickbrownfoxjumpsoverthelazydog")` → `true`. `checkIfPangram("leetcode")` → `false`. `commonOfAll(listOf(listOf(1, 2, 3), listOf(2, 3, 4), listOf(3, 2, 9)))` → `[2, 3]`. `differenceBrute(intArrayOf(1, 2, 3), intArrayOf(2, 4, 6))` → `[1, 3]`.
 
-```kotlin
-fun diff(oldIds: List<Int>, newIds: List<Int>): Triple<Set<Int>, Set<Int>, Set<Int>> {
-    val old = oldIds.toSet()
-    val new = newIds.toSet()
-    val added = new - old
-    val removed = old - new
-    val kept = old intersect new
-    return Triple(added, removed, kept)
-}
-```
+#### 5. Complexity
 
-#### 7. Time & Space Complexity — Must Know
+| | Time | Space |
+|---|---|---|
+| `union`, `intersect`, `subtract` | `O(m + n)` | `O(m + n)` (a new set) |
+| `addAll`, `retainAll`, `removeAll` | `O(n)` for the other collection's size | in place |
+| `containsAll` | `O(|A|)` with a set `B` | |
+| Intersection smartly | `O(min(m, n))` | |
 
-For sets of size `n` and `m`:
+#### 6. Common Mistakes
 
-| Operation | Time | Extra space |
-|---|---:|---:|
-| Union | `O(n + m)` | `O(n + m)` |
-| Intersection | `O(n + m)` (about `O(min(n, m))` if you loop over the smaller set) | `O(min(n, m))` |
-| Difference | `O(n + m)` | `O(n)` |
-| Subset check | `O(n)` | `O(1)` |
-| In-place `addAll` | `O(m)` | `O(1)` extra |
+1. **Forgetting that `intersect`, `union`, `subtract` return new sets** and the originals are unchanged.
+2. **Using `retainAll` with a `List` argument** (`O(n · m)`). Convert it to a set first.
+3. **Using lists** (`a.filter { it in b }` with `b` a list: `O(m · n)`).
+4. **Mixing up `A − B` and `B − A`.** Difference is not symmetric.
+5. **Calling `.first()`** on an empty list in `commonOfAll`.
+6. **Treating duplicates as significant** (sets drop them; use a count map if you need multiplicity).
 
-Converting a list to a set first costs `O(n)`.
+#### 7. Say This in the Interview
 
-#### 8. Common Set-Operation Patterns — Must Know
+1. "Kotlin has `union`, `intersect` and `subtract`. Each is `O(m + n)` with hash sets."
+2. "I convert the lists to sets first, so the membership checks are `O(1)`."
+3. "If duplicates count, I use a map of counts instead of sets."
 
-1. **Added / removed / unchanged** between two snapshots.
-2. **Common elements** (Intersection of Two Arrays).
-3. **Find the Difference of Two Arrays** (LeetCode 2215).
-4. **Permissions needed minus permissions granted** — what to request.
-5. **Is the second a subset of the first?** — `containsAll`.
-6. **Disjoint check** — do two groups share nothing?
-7. **Android example:** `DiffUtil` style logic for lists, or syncing selected item ids with new data.
+#### 8. Quick Check
 
-#### 9. Edge Cases / Common Mistakes
+1. `{1, 2} − {2, 3}`?
+2. Does `a union b` change `a`?
+3. How do you check that `A` is a subset of `B`?
 
-1. Using these on lists with duplicates and expecting multiset results. Sets drop repeats.
-2. Mixing up `a - b` and `b - a`.
-3. Using in-place functions on a read-only `Set`. It will not compile.
-4. Changing a set while another variable still expects the old content.
-5. Expecting `a + b` on a `List` to work like union. For lists, `+` just joins them.
-6. Forgetting that `retainAll` removes everything if the argument is empty.
-7. Passing a `List` as the argument for big data. Convert it to a set first.
+<details>
+<summary>Answers</summary>
 
-#### 10. When to Use / When Not to Use
+1. `{1}`.
+2. No. It returns a new set. Use `addAll` to change `a`.
+3. `b.containsAll(a)`.
 
-**Use when:**
+</details>
 
-1. You compare two groups of unique items.
-2. You need added / removed / shared items.
+#### 9. Related LeetCode Questions
 
-**Avoid when:**
-
-1. Duplicates matter (use counts in a map).
-2. Order of the result must follow another list. Filter that list instead.
-
-#### 11. Related Topics
-
-1. Intersection / Common Elements
-2. Unique Elements Pattern
-3. HashSet Operations & Complexity
-4. Collections in Kotlin (`03-leetcode-patterns`, topic 3)
-
-#### 12. Interview Must Remember
-
-1. **`union`, `intersect`, `subtract`** make new sets. `addAll`, `retainAll`, `removeAll` change the set.
-2. `a - b` is not `b - a`. Symmetric difference = `(a - b) + (b - a)`.
-3. Convert lists to sets first. Cost `O(n + m)`.
-4. Sets lose duplicates. Use a map for counts.
+| # | Question | Idea |
+|---|---|---|
+| 2215 | [Find the Difference of Two Arrays](https://leetcode.com/problems/find-the-difference-of-two-arrays/) (Easy) | two differences |
+| 349 | [Intersection of Two Arrays](https://leetcode.com/problems/intersection-of-two-arrays/) (Easy) | intersection |
+| 1832 | [Check if the Sentence Is Pangram](https://leetcode.com/problems/check-if-the-sentence-is-pangram/) (Easy) | set size is 26 |
+| 389 | [Find the Difference](https://leetcode.com/problems/find-the-difference/) (Easy) | the added letter |
+| 1002 | [Find Common Characters](https://leetcode.com/problems/find-common-characters/) (Easy) | intersection with counts |
+| 575 | [Distribute Candies](https://leetcode.com/problems/distribute-candies/) (Easy) | distinct count |

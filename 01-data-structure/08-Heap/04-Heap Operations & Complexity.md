@@ -1,113 +1,107 @@
 # Heap Operations & Complexity
 
-#### 1. Definition — Must Know
+> Insert moves a value **up**. Extract moves a value **down**. Both follow one path of length `log n`. Know this well enough to explain it and to code it.
 
-1. A heap has three core operations:
-   - **Insert** — add an item.
-   - **Peek** — read the best item without removing it.
-   - **Extract Min / Max** — remove and return the best item.
-2. Two repair moves keep the heap valid:
-   - **Sift up** — move an item up while it is better than its parent.
-   - **Sift down** — move an item down while a child is better than it.
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+The core operations of a heap (shown for a min-heap):
 
-1. These three operations are everything a priority queue needs.
-2. Knowing how sift up and sift down work lets you explain *why* each costs `O(log n)`.
-3. Interviews often ask you to write a small heap by hand.
+| Operation | Meaning | Cost |
+|---|---|---|
+| **peek** | look at the smallest item | `O(1)` |
+| **insert (add)** | add an item, then **sift up** | `O(log n)` |
+| **extract (poll)** | remove the smallest, then **sift down** | `O(log n)` |
+| **heapify / build** | turn an array into a heap | `O(n)` (note 16) |
 
-#### 3. How It Works — Must Know
+**Sift up** and **sift down** are the only two helpers. Everything else uses them.
 
-Min-heap `[2, 5, 4, 9, 7]`:
+#### 2. How It Works
 
-```text
-      2
-     / \
-    5   4
-   / \
-  9   7
+**Insert: add at the end, then sift up.** Put the new item at the end of the array (the next free spot keeps the tree complete). While it is smaller than its parent, swap with the parent.
+
+```mermaid
+flowchart TD
+    subgraph B["Before: add 1"]
+        a3((3)) --- a5((5))
+        a3 --- a8((8))
+        a5 --- a9((9))
+    end
+    subgraph S1["1 is placed at the end, under 5"]
+        b3((3)) --- b5((5))
+        b3 --- b8((8))
+        b5 --- b9((9))
+        b5 --- b1((1))
+    end
+    subgraph S2["After sifting up: 1 is the root"]
+        c1((1)) --- c3((3))
+        c1 --- c8((8))
+        c3 --- c9((9))
+        c3 --- c5((5))
+    end
+    classDef g fill:#bbf7d0,stroke:#15803d,color:#111
+    class b1,c1 g
 ```
 
-**Insert `1`:**
-
 ```text
-1. Put 1 at the end:        [2, 5, 4, 9, 7, 1]      (child of 4)
-2. Sift up: 1 < 4 → swap    [2, 5, 1, 9, 7, 4]
-3. Sift up: 1 < 2 → swap    [1, 5, 2, 9, 7, 4]
-4. 1 is the root → stop
+array [3, 5, 8, 9]  →  add 1  →  [3, 5, 8, 9, 1]
+index 4: parent index 1 (5).  1 < 5  → swap   [3, 1, 8, 9, 5]
+index 1: parent index 0 (3).  1 < 3  → swap   [1, 3, 8, 9, 5]
+index 0: no parent → stop
 ```
 
-**Peek:** return the root → `1`.
-
-**Extract min:**
+**Extract: move the last item to the root, then sift down.** Remove the root (the answer). Move the **last** item to index 0 (this keeps the tree complete). While it is larger than a child, swap it with the **smaller** child.
 
 ```text
-1. Save the root (1).
-2. Move the last item (4) to the root:   [4, 5, 2, 9, 7]
-3. Sift down: smaller child of 4 is 2 → swap  [2, 5, 4, 9, 7]
-4. 4 has no children left in range → stop
-5. Return 1
+array [1, 3, 8, 9, 5]     poll() returns 1
+move last (5) to the root:  [5, 3, 8, 9]
+index 0 (5): children 3 and 8 → smaller is 3 → 5 > 3 → swap   [3, 5, 8, 9]
+index 1 (5): child 9 (index 3) → 5 < 9 → stop
+heap: [3, 5, 8, 9]
 ```
 
-#### 4. Core Concepts — Must Know
+**Why `O(log n)`:** the tree is complete, so its height is `log₂ n`. Each swap moves one level.
 
-1. **Insert** = add at the end + sift **up**.
-2. **Extract** = move the last item to the root + sift **down**.
-3. **Sift down picks the better (smaller, for a min-heap) child.** Swapping with the wrong child breaks the order.
-4. Each sift moves at most the height of the tree, which is `log n`.
-5. **Peek** reads index `0`. It changes nothing.
+**Delete an arbitrary item** is not a heap operation. It takes `O(n)` to find it, then `O(log n)` to fix. If you need it, use **lazy deletion** (note 23).
 
-#### 5. Algorithm — Must Know
+#### 3. Brute Force vs Optimized
 
-```text
-insert(x):
-    append x
-    siftUp(last index)
-
-peek():
-    return array[0]
-
-extract():
-    top = array[0]
-    array[0] = last item, remove the last slot
-    siftDown(0)
-    return top
-
-siftUp(i):
-    while i > 0 and array[i] is better than array[parent(i)]:
-        swap(i, parent(i)); i = parent(i)
-
-siftDown(i):
-    loop:
-        pick the better of the two children (if any)
-        if that child is better than array[i]: swap and continue from the child
-        else: stop
-```
-
-#### 6. Kotlin Implementation — Must Know
-
-A small min-heap you can write in an interview:
+| Operation | Sorted array | Heap |
+|---|---|---|
+| peek | `O(1)` | `O(1)` |
+| insert | `O(n)` (shift) | `O(log n)` |
+| extract min | `O(1)` or `O(n)` | `O(log n)` |
 
 ```kotlin
+// Brute force insert into a sorted list: O(n) shifts
+fun insertSorted(list: MutableList<Int>, x: Int) {
+    var i = 0
+    while (i < list.size && list[i] < x) i++
+    list.add(i, x)
+}
+```
+
+#### 4. Kotlin Code
+
+```kotlin
+// A min-heap built on an ArrayList
 class MinHeap {
+    private val a = ArrayList<Int>()
 
-    private val data = ArrayList<Int>()
+    val size: Int get() = a.size
+    fun isEmpty() = a.isEmpty()
 
-    val size: Int get() = data.size
+    fun peek(): Int = a[0]
 
-    fun peek(): Int? = data.firstOrNull()
-
-    fun add(value: Int) {
-        data.add(value)
-        siftUp(data.lastIndex)
+    fun add(x: Int) {
+        a.add(x)
+        siftUp(a.size - 1)
     }
 
-    fun poll(): Int? {
-        if (data.isEmpty()) return null
-        val top = data[0]
-        val last = data.removeAt(data.lastIndex)
-        if (data.isNotEmpty()) {
-            data[0] = last
+    fun poll(): Int {
+        val top = a[0]
+        val last = a.removeAt(a.size - 1)               // remove the last item
+        if (a.isNotEmpty()) {
+            a[0] = last                                  // move it to the root
             siftDown(0)
         }
         return top
@@ -116,89 +110,87 @@ class MinHeap {
     private fun siftUp(start: Int) {
         var i = start
         while (i > 0) {
-            val parent = (i - 1) / 2
-            if (data[parent] <= data[i]) break
-            swap(parent, i)
-            i = parent
+            val p = (i - 1) / 2
+            if (a[p] <= a[i]) break                      // parent is already smaller
+            swap(p, i)
+            i = p
         }
     }
 
     private fun siftDown(start: Int) {
         var i = start
         while (true) {
-            val left = 2 * i + 1
-            val right = left + 1
+            val l = 2 * i + 1
+            val r = l + 1
             var smallest = i
-            if (left < data.size && data[left] < data[smallest]) smallest = left
-            if (right < data.size && data[right] < data[smallest]) smallest = right
-            if (smallest == i) break
+            if (l < a.size && a[l] < a[smallest]) smallest = l
+            if (r < a.size && a[r] < a[smallest]) smallest = r
+            if (smallest == i) break                     // both children are larger
             swap(i, smallest)
             i = smallest
         }
     }
 
-    private fun swap(a: Int, b: Int) {
-        val temp = data[a]; data[a] = data[b]; data[b] = temp
-    }
+    private fun swap(i: Int, j: Int) { val t = a[i]; a[i] = a[j]; a[j] = t }
+
+    override fun toString() = a.toString()
 }
 ```
 
-In real code, use `PriorityQueue` (see "Kotlin `PriorityQueue`").
+Checks: add `5, 3, 8, 1, 9` one by one: the arrays are `[5]`, `[3, 5]`, `[3, 5, 8]`, `[1, 3, 8, 5]`, `[1, 3, 8, 5, 9]`. `peek()` → `1`. `poll()` → `1` and the heap becomes `[3, 5, 8, 9]`. Polling everything returns `1, 3, 5, 8, 9`. `size` → `0` at the end.
 
-#### 7. Time & Space Complexity — Must Know
+Trace of adding `1` to `[3, 5, 8]`: placed at index 3 → parent index 1 (`5`) is larger → swap → at index 1, parent index 0 (`3`) is larger → swap → `[1, 3, 8, 5]`.
+
+For a **max-heap**, flip the two comparisons: swap while the child is **larger** than the parent.
+
+#### 5. Complexity
 
 | Operation | Time | Space |
-|---|---:|---:|
+|---|---|---|
 | `peek` | `O(1)` | `O(1)` |
-| `add` (insert) | `O(log n)` | `O(1)` |
-| `poll` (extract) | `O(log n)` | `O(1)` |
-| Whole heap | | `O(n)` |
+| `add` | `O(log n)` | `O(1)` |
+| `poll` | `O(log n)` | `O(1)` |
+| Build from `n` items (`add` each) | `O(n log n)` | |
+| Build with heapify | `O(n)` | |
+| Search / remove by value | `O(n)` | |
+| `n` adds then `n` polls (heap sort idea) | `O(n log n)` | |
 
-Why `O(log n)`?
+#### 6. Common Mistakes
 
-```text
-The tree has height log n. A sift moves one level per step,
-so it does at most log n swaps.
-```
+1. **Sift down with the wrong child.** In a min-heap swap with the **smaller** child, or the heap order breaks.
+2. **Forgetting to check `l < size`** and `r < size` before reading children.
+3. **`poll()` without moving the last item to the root** (leaves a hole).
+4. **Removing the last element after reading `a[0]`** in the wrong order when the heap has one element.
+5. **Using `<` vs `<=`:** both work, but be consistent.
+6. **Thinking `remove(x)` is `O(log n)`.** On `PriorityQueue` it is `O(n)`.
 
-Insert is `O(1)` on average for random data, because most new items stay near the bottom. The worst case is still `O(log n)`.
+#### 7. Say This in the Interview
 
-#### 8. Common Operation Patterns — Must Know
+1. "Insert puts the item at the end and sifts it up, at most `log n` swaps. Extract moves the last item to the root and sifts it down, always swapping with the smaller child in a min-heap."
+2. "Both are `O(log n)` because the heap is a complete tree with height `log n`. Peek is `O(1)`."
+3. "Removing an arbitrary element is `O(n)`, so I'd use lazy deletion if I needed it."
 
-1. **Repeated extract** gives items in sorted order. Doing it `n` times is heap sort.
-2. **Insert then extract** in a loop keeps a heap at a fixed size (Top K).
-3. **Peek then decide** is used before processing, for example "is the earliest deadline due yet?".
-4. **Replace the root** (extract then insert) can be done in one sift down.
+#### 8. Quick Check
 
-#### 9. Edge Cases / Common Mistakes
+1. Insert `2` into the min-heap `[3, 5, 8, 9]`. What is the result?
+2. In sift down, why swap with the **smaller** child?
+3. What does `poll()` do to the last element?
 
-1. Calling `peek` or `poll` on an empty heap. `PriorityQueue` returns `null`. `remove()` throws.
-2. Sifting down toward the **larger** child in a min-heap.
-3. Forgetting to check that the right child exists before reading it.
-4. Not removing the last slot before sifting down.
-5. Using `remove(value)` and assuming `O(log n)`. Finding the value is `O(n)`.
-6. Changing an item's priority after it is in the heap. The heap does not notice and becomes invalid.
+<details>
+<summary>Answers</summary>
 
-#### 10. When to Use / When Not to Use
+1. `2` goes to index 4, parent index 1 (`5`) → swap, parent index 0 (`3`) → swap. Result `[2, 3, 8, 9, 5]`.
+2. After the swap, the smaller child becomes the parent of the other child, so the order stays valid. Swapping with the larger child would leave a parent larger than its other child.
+3. It moves it to the root and sifts it down.
 
-**Use when:**
+</details>
 
-1. You need only the best item, again and again.
+#### 9. Related LeetCode Questions
 
-**Avoid when:**
-
-1. You need to find, update, or delete arbitrary items quickly. See "Lazy Deletion with Heap" and "Heap + HashMap Pattern".
-
-#### 11. Related Topics
-
-1. Complete Binary Tree Property
-2. Heapify — Basic Concept
-3. Kotlin `PriorityQueue`
-4. Build Heap
-
-#### 12. Interview Must Remember
-
-1. Insert = **add at the end, sift up**. Extract = **last item to the root, sift down**.
-2. Peek `O(1)`. Insert and extract `O(log n)`.
-3. Sift down swaps with the **better child**.
-4. Empty-heap and "change priority later" are the two classic bugs.
+| # | Question | Idea |
+|---|---|---|
+| 1046 | [Last Stone Weight](https://leetcode.com/problems/last-stone-weight/) (Easy) | repeated extract and insert |
+| 703 | [Kth Largest Element in a Stream](https://leetcode.com/problems/kth-largest-element-in-a-stream/) (Easy) | add and poll |
+| 912 | [Sort an Array](https://leetcode.com/problems/sort-an-array/) (Medium) | heap sort |
+| 1845 | [Seat Reservation Manager](https://leetcode.com/problems/seat-reservation-manager/) (Medium) | min-heap of free seats |
+| 295 | [Find Median from Data Stream](https://leetcode.com/problems/find-median-from-data-stream/) (Hard) | two heaps |

@@ -1,165 +1,156 @@
-# Kotlin `PriorityQueue`
+# Kotlin PriorityQueue
 
-#### 1. Definition — Must Know
+> The Kotlin/Java `PriorityQueue` is a min-heap. Learn the four ways to build one, and the traps that cost points in interviews.
 
-1. Kotlin on the JVM and on Android uses Java's `java.util.PriorityQueue`.
-2. It is a **min-heap** by default. You change the order with a **comparator**.
-3. This is the class you use in interviews and in real code, instead of writing your own heap.
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+Kotlin uses Java's `java.util.PriorityQueue` (there is no separate Kotlin class). It is a **min-heap** by default, backed by an array.
 
-1. It gives `O(log n)` insert and extract, and `O(1)` peek, with no code to write.
-2. Almost every heap interview problem is solved with it.
-3. Knowing its methods, its default order, and its traps saves time and bugs.
+| Method | Meaning | Cost |
+|---|---|---|
+| `add(x)` / `offer(x)` | insert | `O(log n)` |
+| `peek()` | smallest item, or `null` if empty | `O(1)` |
+| `poll()` | remove and return the smallest, or `null` if empty | `O(log n)` |
+| `remove()` | remove the smallest, **throws** if empty | `O(log n)` |
+| `remove(x)` | remove one value `x` | **`O(n)`** |
+| `contains(x)` | check a value | **`O(n)`** |
+| `size`, `isEmpty()`, `isNotEmpty()` | | `O(1)` |
 
-#### 3. How It Works — Must Know
+#### 2. How It Works
 
-```text
-PriorityQueue<Int>()                      → min-heap   (smallest first)
-PriorityQueue<Int>(comparator)            → order given by the comparator
-PriorityQueue<Int>(listOf(5, 1, 3))       → heap built from a collection in O(n)
-```
+**Four ways to create one**
 
-Internally it stores a binary heap in an array and sifts up and down on each change.
+| Need | Code |
+|---|---|
+| Min-heap of `Int` | `PriorityQueue<Int>()` |
+| Max-heap of `Int` | `PriorityQueue<Int>(compareByDescending<Int> { it })` |
+| Heap ordered by a field | `PriorityQueue<Task>(compareBy<Task> { it.priority })` |
+| Heap of arrays / pairs | `PriorityQueue<IntArray>(compareBy<IntArray> { it[0] })` |
 
-#### 4. Core Concepts — Must Know
-
-| Method | What it does | Empty queue | Cost |
-|---|---|---|---:|
-| `add(x)` / `offer(x)` | Insert | n/a | `O(log n)` |
-| `peek()` | Best item, not removed | returns `null` | `O(1)` |
-| `poll()` | Remove and return the best item | returns `null` | `O(log n)` |
-| `remove()` | Remove and return the best item | **throws** | `O(log n)` |
-| `element()` | Best item, not removed | **throws** | `O(1)` |
-| `remove(x)` | Remove one occurrence of `x` | returns `false` | **`O(n)`** |
-| `contains(x)` | Search | `false` | **`O(n)`** |
-| `size`, `isEmpty()` | Count | | `O(1)` |
-
-Rules to remember:
-
-1. `peek()` and `poll()` return `null` when empty. In Kotlin that is a platform type, so check `isNotEmpty()` first.
-2. **Iteration order is not sorted.** Only `poll()` gives sorted order.
-3. `null` elements are not allowed.
-4. Elements must be comparable, or you must give a comparator. Otherwise `ClassCastException`.
-5. The queue is **not thread-safe**. Use `PriorityBlockingQueue` for concurrent access.
-
-#### 5. Algorithm — Must Know
-
-The three setups you need to know:
+**Tie-breakers (several keys):** `compareBy<T>({ it.a }, { it.b })`. Mix directions: `compareBy<T> { it.a }.thenByDescending { it.b }`.
 
 ```text
-Min-heap:   PriorityQueue<T>()
-Max-heap:   PriorityQueue<T>(reverse order comparator)
-Custom:     PriorityQueue<T>(comparator on the field(s) you care about)
+(distance, node) in Dijkstra:  PriorityQueue<IntArray>(compareBy { it[0] })
+(count, word) in top-K words:  PriorityQueue<String>(compareBy<String>({ count[it] }).thenByDescending { it })
 ```
 
-#### 6. Kotlin Implementation — Must Know
+**The traps**
 
-**Min-heap**
+1. **Iteration and `println(pq)` are not sorted.** The internal array is heap order only.
+2. **`remove(x)` and `contains(x)` are `O(n)`.**
+3. **No decrease-key.** To change a priority, add a new entry and ignore the old one when it comes out (lazy deletion, note 23).
+4. **Do not change an object's priority after adding it.** The heap will not move it.
+5. **Comparator overflow:** `{ a, b -> a - b }` can overflow. Use `compareBy` or `Integer.compare`.
+6. **`peek()` and `poll()` return `null`** on an empty queue. In Kotlin, a `!!` or a check is needed.
+7. **`PriorityQueue<Int>` boxes** every value. Fine for interviews.
+
+#### 3. Brute Force vs Optimized
+
+| Habit | Better |
+|---|---|
+| sort the whole list to get the max again and again | max-heap |
+| `pq.remove(x)` in a loop, `O(n)` each | lazy deletion with a map |
+| `pq.toList()` to see the order | `poll()` repeatedly (iteration is unordered) |
+| `(a, b) -> a - b` comparator | `compareBy` |
+
+```kotlin
+// Wrong way to read a heap in order: iteration order is NOT sorted
+val pq = PriorityQueue<Int>(listOf(5, 3, 8, 1, 9))
+println(pq.toList())             // heap order, e.g. [1, 3, 8, 5, 9]  (NOT [1, 3, 5, 8, 9])
+```
+
+#### 4. Kotlin Code
 
 ```kotlin
 import java.util.PriorityQueue
 
-val minHeap = PriorityQueue<Int>()
-```
+fun demo() {
+    // min-heap
+    val min = PriorityQueue<Int>()
+    min.addAll(listOf(5, 3, 8, 1, 9))
+    println(min.peek())                                    // 1
 
-**Max-heap**
+    // max-heap
+    val max = PriorityQueue<Int>(compareByDescending<Int> { it })
+    max.addAll(listOf(5, 3, 8, 1, 9))
+    println(max.peek())                                    // 9
 
-```kotlin
-val maxHeap1 = PriorityQueue<Int>(compareByDescending<Int> { it })
-val maxHeap2 = PriorityQueue<Int>(Comparator.reverseOrder())
-```
+    // custom object
+    data class Task(val priority: Int, val name: String)
+    val tasks = PriorityQueue<Task>(compareBy<Task> { it.priority })
+    tasks.add(Task(3, "email")); tasks.add(Task(1, "bug"))
+    println(tasks.poll().name)                             // bug
 
-**Custom comparator**
+    // array entries: [distance, node]
+    val dijkstra = PriorityQueue<IntArray>(compareBy<IntArray> { it[0] })
+    dijkstra.add(intArrayOf(5, 1)); dijkstra.add(intArrayOf(2, 8))
+    println(dijkstra.poll().toList())                      // [2, 8]
 
-```kotlin
-// By a field of a data class
-data class Task(val name: String, val priority: Int, val order: Long)
+    // several keys: count ascending, then word descending
+    val counts = mapOf("a" to 2, "b" to 2, "c" to 1)
+    val words = PriorityQueue<String>(compareBy<String>({ counts[it]!! }).thenByDescending { it })
+    words.addAll(counts.keys)
+    println(words.poll())                                  // c  (lowest count)
+    println(words.poll())                                  // b  (same count as a, but b is later in the alphabet)
 
-val tasks = PriorityQueue<Task>(
-    compareByDescending<Task> { it.priority }   // highest priority first
-        .thenBy { it.order }                    // then oldest first
-)
-
-// By the first value of an IntArray
-val byFirst = PriorityQueue<IntArray>(compareBy<IntArray> { it[0] })
-
-// By two values of an IntArray
-val byTwo = PriorityQueue<IntArray>(compareBy<IntArray>({ it[0] }, { it[1] }))
-
-// By the value of a Pair
-val byValue = PriorityQueue<Pair<String, Int>>(compareBy<Pair<String, Int>> { it.second })
-```
-
-**Build from a collection in `O(n)`**
-
-```kotlin
-val nums = listOf(9, 4, 7, 1)
-val heap = PriorityQueue<Int>(nums)    // heapifies once
-// heap.addAll(nums) would cost O(n log n)
-```
-
-**Drain in order**
-
-```kotlin
-while (heap.isNotEmpty()) {
-    println(heap.poll())   // 1, 4, 7, 9
+    // empty queue
+    val empty = PriorityQueue<Int>()
+    println(empty.peek())                                  // null
+    println(empty.poll())                                  // null
+    // empty.remove() throws NoSuchElementException
 }
 ```
 
-Add `import java.util.PriorityQueue` at the top. Kotlin's common standard library has no `PriorityQueue`. If you share code through Kotlin Multiplatform, check what your targets provide, or write a small heap (see "Heap Operations & Complexity").
+Checks (printed values are in the comments above): `min.peek()` → `1`, `max.peek()` → `9`, `tasks.poll().name` → `"bug"`, `dijkstra.poll().toList()` → `[2, 8]`, the word heap polls `"c"` then `"b"`, and `empty.peek()` → `null`.
 
-#### 7. Time & Space Complexity — Must Know
+Build a heap from a collection in one step (this is the `O(n)` heapify): `PriorityQueue<Int>(listOf(5, 3, 8, 1, 9))`.
 
-| Operation | Time |
-|---|---:|
-| `add`, `offer` | `O(log n)` |
-| `poll`, `remove()` | `O(log n)` |
-| `peek` | `O(1)` |
+#### 5. Complexity
+
+| | Time |
+|---|---|
+| `add`, `poll`, `remove()` | `O(log n)` |
+| `peek`, `size` | `O(1)` |
 | `remove(x)`, `contains(x)` | `O(n)` |
 | Build from a collection | `O(n)` |
-| Space | `O(n)` |
 
-#### 8. Common Usage Patterns — Must Know
+#### 6. Common Mistakes
 
-1. Fixed-size heap for Top K (add, then `poll()` when `size > k`).
-2. Heap of `IntArray` or `Pair` for "value plus where it came from" (K-way merge, Dijkstra).
-3. Two heaps for a running median.
-4. Heap with a sequence number for stable scheduling.
+1. **Printing the heap** and expecting sorted output.
+2. **Calling `remove(x)`** and assuming `O(log n)`.
+3. **Subtracting in the comparator** (overflow).
+4. **Mutating a stored object's key** without re-inserting.
+5. **Forgetting `null` from `peek()`/`poll()`** (Kotlin will make you handle it).
+6. **Using the wrong heap direction.** Remember: min-heap by default.
+7. **Creating `PriorityQueue<Int>(k)` thinking `k` is a size limit.** It is only the initial capacity (and in some overloads the first argument must be a comparator or collection).
 
-#### 9. Edge Cases / Common Mistakes
+#### 7. Say This in the Interview
 
-1. Comparator `{ a, b -> b - a }`. It can overflow. Use `compareByDescending` or `b.compareTo(a)`.
-2. Relying on `println(heap)` or a `for` loop to show sorted order.
-3. Mutating an object's priority field after adding it. The heap does not notice.
-4. Using `remove(x)` in a loop and assuming `O(log n)`.
-5. Forgetting that `peek()` and `poll()` can be `null`.
-6. A comparator that returns `0` for different objects when you want a total order (for example, in a set). Fine for a heap, but ties come out in any order.
-7. Sharing one `PriorityQueue` between threads without protection.
+1. "Kotlin's `PriorityQueue` is a min-heap. For a max-heap I pass `compareByDescending`."
+2. "`add` and `poll` are `O(log n)`, `peek` is `O(1)`. `remove(x)` is `O(n)`, so I'll avoid it and use lazy deletion if I must."
+3. "I'll use `compareBy` instead of subtracting, so there's no overflow."
 
-#### 10. When to Use / When Not to Use
+#### 8. Quick Check
 
-**Use when:**
+1. What does `PriorityQueue<Int>().poll()` return when the queue is empty?
+2. How do you make a heap ordered by `it[1]` of `IntArray`s?
+3. Does `println(pq)` show items in sorted order?
 
-1. You need the best item repeatedly, on the JVM or Android.
-2. You want to avoid writing a heap by hand.
+<details>
+<summary>Answers</summary>
 
-**Avoid when:**
+1. `null`.
+2. `PriorityQueue<IntArray>(compareBy<IntArray> { it[1] })`.
+3. No, only the root is guaranteed to be the smallest.
 
-1. You need priority updates or deletes by key. Use a map as well, or a sorted structure such as `TreeSet`.
-2. You are in shared Kotlin Multiplatform code with no JVM target.
+</details>
 
-#### 11. Related Topics
+#### 9. Related LeetCode Questions
 
-1. Min Heap vs Max Heap
-2. Priority Queue
-3. Heap for Scheduling / Processing by Priority
-4. Lazy Deletion with Heap
-5. Kotlin for Coding Interviews (`03-leetcode-patterns`, topic 3)
-
-#### 12. Interview Must Remember
-
-1. Default is a **min-heap**. Max-heap = `compareByDescending` or `Comparator.reverseOrder()`.
-2. `peek` / `poll` return `null` when empty. `remove()` throws.
-3. `remove(x)` and `contains(x)` are **`O(n)`**. Iteration is **not sorted**.
-4. Build from a collection for `O(n)`. Never mutate an item's priority in place.
+| # | Question | Idea |
+|---|---|---|
+| 1046 | [Last Stone Weight](https://leetcode.com/problems/last-stone-weight/) (Easy) | max-heap |
+| 973 | [K Closest Points to Origin](https://leetcode.com/problems/k-closest-points-to-origin/) (Medium) | heap of arrays |
+| 692 | [Top K Frequent Words](https://leetcode.com/problems/top-k-frequent-words/) (Medium) | multi-key comparator |
+| 743 | [Network Delay Time](https://leetcode.com/problems/network-delay-time/) (Medium) | `(distance, node)` entries |
+| 253 | [Meeting Rooms II](https://leetcode.com/problems/meeting-rooms-ii/) (Medium, premium) | min-heap of end times |

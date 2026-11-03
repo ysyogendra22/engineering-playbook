@@ -1,181 +1,160 @@
 # Heap + HashMap Pattern
 
-#### 1. Definition — Must Know
+> The map stores the **current truth** (counts, scores). The heap picks the **best** quickly. Together they answer "top K of a changing collection".
 
-1. The **Heap + HashMap pattern** uses two structures together:
-   - a **`HashMap`** to count, store, or look up values quickly,
-   - a **heap** to pick the best item (most frequent, smallest cost, earliest time) quickly.
-2. The map answers "what is the current value of X?". The heap answers "which X is best right now?".
-3. A heap alone cannot find an arbitrary item. A map alone cannot give the best item. Together they can do both.
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+A heap is fast at "give me the best", but it cannot look up or update an item by key. A hash map is fast at "find this key", but it cannot give the best. Use **both**:
 
-1. Many problems need counts or latest values first and the best choice second.
-2. It appears in Top K Frequent, Reorganize String, Task Scheduler, and Dijkstra (distance map + heap).
-3. It is also how many real systems work, for example a leaderboard or a "most active users" list.
+| Structure | Job |
+|---|---|
+| **HashMap** | key → current value (count, score, deadline) in `O(1)` |
+| **Heap** | the best entries in `O(log n)` |
 
-#### 3. How It Works — Must Know
+**Signals:** "top K frequent", "leaderboard", "most recent / most popular", "scores that change", "design a ... with top K".
 
-Example: **Reorganize String** (LeetCode 767). Rearrange a string so that no two neighbouring characters are the same.
+You have already seen this in **Top K Frequent** (note 18): count with a map, then use the heap. This note shows it in a **design** question where the values keep changing.
+
+#### 2. How It Works
+
+**Leaderboard (LeetCode 1244).** Operations:
+
+- `addScore(playerId, score)`: add `score` to the player's total.
+- `top(K)`: the sum of the `K` highest totals.
+- `reset(playerId)`: set that player's score back to 0.
 
 ```text
-s = "aabbc"
-
-Step 1: HashMap counts           {a: 2, b: 2, c: 1}
-
-Step 2: max-heap by count        top is a (2) or b (2)
-
-Step 3: repeat — take the TWO most frequent characters and place them next to each other,
-        then put them back with count - 1.
-
-   take a, b   → "ab"      put back a:1, b:1       heap: a:1, b:1, c:1
-   take a, b   → "abab"    a and b are used up     heap: c:1
-   one left: c → "ababc"
-
-Result: "ababc"   (no two neighbours are equal)
+addScore(1,73) (2,56) (3,39) (4,51) (5,4)      scores {1:73, 2:56, 3:39, 4:51, 5:4}
+top(1) = 73
+reset(1)  reset(2)                             scores {1:0, 2:0, 3:39, 4:51, 5:4}
+addScore(2,51)                                 scores {1:0, 2:51, 3:39, 4:51, 5:4}
+top(3) = 51 + 51 + 39 = 141
 ```
 
-Taking two different characters each round guarantees that neighbours differ.
+- `addScore` and `reset` use the **map**, `O(1)`.
+- `top(K)` builds a **min-heap of size `K`** over the map's values: `O(n log K)`.
 
-#### 4. Core Concepts — Must Know
+We do **not** keep the heap alive between calls. The map is the single source of truth, and a fresh heap is built when needed. This avoids the problem that a heap cannot update an existing entry.
 
-1. **Map first, heap second.** Build counts or values in the map. Load the heap from it.
-2. **Heap stores a key plus the priority** (a `Pair`, a small class, or an `IntArray`), not only the value.
-3. **Keep them in sync.** When the map value changes and the heap holds old data, either push a new entry (and skip stale ones later) or use lazy deletion.
-4. **Common combinations:**
+```mermaid
+flowchart LR
+    A["addScore / reset"] --> M["HashMap<br/>player → score<br/>(always up to date)"]
+    Q["top(K)"] --> H["min-heap of size K<br/>built from the map values"]
+    M --> H
+    H --> S["sum of the K largest"]
+```
 
-| Problem | Map holds | Heap holds |
+**When you do need a live heap** (very frequent `top(1)` queries, for example), push a **new entry** every time a value changes, and when you pop, **ignore entries that no longer match the map** (lazy deletion, note 23).
+
+#### 3. Brute Force vs Optimized
+
+| Operation | Brute force | Map + heap |
 |---|---|---|
-| Top K Frequent | value → count | `k` entries by count |
-| Reorganize String | char → count | all entries, max by count |
-| Dijkstra | node → best distance | `(distance, node)` candidates |
-| Task Scheduler | task → remaining count | tasks by remaining count |
-| Stream top-K with updates | id → score | candidates by score |
+| `addScore` | `O(1)` with a map | `O(1)` |
+| `top(K)` | sort all scores: `O(n log n)` | heap of size `K`: `O(n log K)` |
+| `reset` | `O(1)` | `O(1)` |
 
-5. **Impossible check.** For Reorganize String, if one character appears more than `(n + 1) / 2` times, the answer is `""`.
-
-#### 5. Algorithm — Must Know
-
-```text
-count = HashMap of item → value
-heap = priority queue ordered by what makes an item "best"
-for each (item, value) in count:
-    heap.add(item with its value)
-
-while there is work to do:
-    take the best item(s) from the heap
-    use them
-    if they still have something left: put them back with the updated value
+```kotlin
+// Brute force top(K): sort every score
+fun topBrute(scores: Map<Int, Int>, k: Int): Int =
+    scores.values.sortedDescending().take(k).sum()
 ```
 
-#### 6. Kotlin Implementation — Must Know
+#### 4. Kotlin Code
 
 ```kotlin
 import java.util.PriorityQueue
 
-fun reorganizeString(s: String): String {
-    val count = HashMap<Char, Int>()
-    for (c in s) count[c] = (count[c] ?: 0) + 1
+// Design A Leaderboard (LeetCode 1244, premium)
+class Leaderboard {
+    private val scores = HashMap<Int, Int>()
 
-    // Max-heap by remaining count
-    val heap = PriorityQueue<Pair<Char, Int>>(compareByDescending<Pair<Char, Int>> { it.second })
-    for ((ch, n) in count) heap.add(ch to n)
-
-    val sb = StringBuilder()
-    while (heap.size >= 2) {
-        val (c1, n1) = heap.poll()
-        val (c2, n2) = heap.poll()
-        sb.append(c1).append(c2)
-        if (n1 > 1) heap.add(c1 to n1 - 1)
-        if (n2 > 1) heap.add(c2 to n2 - 1)
+    fun addScore(playerId: Int, score: Int) {
+        scores[playerId] = (scores[playerId] ?: 0) + score
     }
 
-    if (heap.isNotEmpty()) {
-        val (c, n) = heap.poll()
-        if (n > 1) return ""          // the same character would have to touch itself
-        sb.append(c)
-    }
-    return sb.toString()
-}
-```
-
-Checks: `"aab"` → `"aba"`. `"aaab"` → `""`.
-
-**Another example — most active users from a stream of events**
-
-```kotlin
-class ActivityTracker {
-    private val counts = HashMap<String, Int>()
-
-    fun record(userId: String) {
-        counts[userId] = (counts[userId] ?: 0) + 1
-    }
-
-    // Build the top-k list when asked. Cost: O(m log k), m = number of users
-    fun topK(k: Int): List<String> {
-        val heap = PriorityQueue<Map.Entry<String, Int>>(compareBy<Map.Entry<String, Int>> { it.value })
-        for (e in counts.entries) {
-            heap.add(e)
+    fun top(k: Int): Int {
+        val heap = PriorityQueue<Int>()                       // min-heap of the K largest scores
+        for (s in scores.values) {
+            heap.add(s)
             if (heap.size > k) heap.poll()
         }
-        return heap.sortedByDescending { it.value }.map { it.key }
+        return heap.sum()
+    }
+
+    fun reset(playerId: Int) {
+        scores[playerId] = 0
+    }
+}
+
+// Heap + map with lazy deletion: always read the current most frequent value
+class MostFrequentTracker {
+    private val count = HashMap<Int, Int>()
+    private val heap = PriorityQueue<IntArray>(compareByDescending<IntArray> { it[0] })   // [count, value]
+
+    fun add(x: Int) {
+        val c = (count[x] ?: 0) + 1
+        count[x] = c
+        heap.add(intArrayOf(c, x))                            // a new entry; the old one becomes stale
+    }
+
+    fun mostFrequent(): Int {
+        while (heap.peek()[0] != count[heap.peek()[1]]) heap.poll()   // drop stale entries
+        return heap.peek()[1]
     }
 }
 ```
 
-#### 7. Time & Space Complexity — Must Know
+Checks: after `addScore(1, 73)`, `addScore(2, 56)`, `addScore(3, 39)`, `addScore(4, 51)`, `addScore(5, 4)`: `top(1)` → `73`. After `reset(1)`, `reset(2)`, `addScore(2, 51)`: `top(3)` → `141`. `topBrute(...)` gives the same numbers. `MostFrequentTracker`: add `5`, `7`, `7` → `mostFrequent()` → `7`. Then add `5`, `5` → `mostFrequent()` → `5` (count 3 beats 2).
 
-| Part | Time | Space |
-|---|---:|---:|
-| Build counts in the map | `O(n)` | `O(m)` |
-| Heap with `m` entries | `O(m log m)` | `O(m)` |
-| Heap limited to `k` entries | `O(m log k)` | `O(k)` extra |
+Trace of the tracker: after `5, 7, 7, 5, 5`, the heap holds entries `(1,5) (1,7) (2,7) (2,5) (3,5)`. The top is `(3,5)`, and `count[5] = 3`, so it matches: answer `5`. If the top were `(2,7)` while `count[7]` is now 3, it would be stale and removed.
 
-`n` = items, `m` = distinct keys.
+#### 5. Complexity
 
-For Reorganize String, the alphabet is small (26 letters), so the heap cost is almost constant per character: `O(n log 26)`, close to `O(n)`.
+| | Time | Space |
+|---|---|---|
+| `Leaderboard.addScore` / `reset` | `O(1)` | `O(n)` map |
+| `Leaderboard.top(K)` | `O(n log K)` | `O(K)` |
+| `MostFrequentTracker.add` | `O(log n)` | `O(n)` heap entries |
+| `MostFrequentTracker.mostFrequent` | `O(log n)` amortised | |
 
-#### 8. Common Heap + HashMap Patterns — Must Know
+#### 6. Common Mistakes
 
-1. **Frequency + best:** Top K Frequent Elements, Top K Frequent Words.
-2. **Rearranging by count:** Reorganize String, Task Scheduler (LeetCode 621), Rearrange String k Distance Apart.
-3. **Best known value + candidates:** Dijkstra with `dist` map and a heap of `(distance, node)`.
-4. **Updates over time:** a map holds the current score and the heap holds possibly stale entries; check the map when popping (lazy deletion).
-5. **Lookup of heap position:** an indexed priority queue (key → position in the heap) supports fast decrease-key. This is rare in interviews.
+1. **Updating an item inside the heap.** `PriorityQueue` cannot do that. Add a new entry or rebuild.
+2. **Keeping the heap and the map out of sync.**
+3. **Not skipping stale entries** when polling.
+4. **`top(K)` with a max-heap of all `n` scores** (`O(n log n)`). A min-heap of size `K` is better.
+5. **Forgetting that `reset` changes the score** to `0` but keeps the player.
+6. **Storing the live count inside the heap entry** and never comparing with the map.
 
-#### 9. Edge Cases / Common Mistakes
+#### 7. Say This in the Interview
 
-1. Not putting the entry back into the heap after using it.
-2. Putting it back with the **old** count instead of `count - 1`.
-3. Forgetting the impossible case (no valid arrangement) in Reorganize String.
-4. Reading the map while changing it.
-5. Letting the heap and the map disagree. A stale heap entry must be detected and skipped.
-6. Comparing keys (for example characters) instead of counts.
-7. Using a `Map.Entry` from a map that you change afterwards. Copy the key and value into a `Pair` when the map will change.
+1. "The map holds each player's current score, so updates are `O(1)`. For `top(K)` I build a min-heap of size `K` over the map values, which is `O(n log K)`."
+2. "A heap can't update an arbitrary entry, so if I need a live heap I push a new entry on every change and skip stale entries when I pop."
+3. "If `top` is called very often and updates are rare, I'd keep the heap. If updates are frequent, I'd rebuild on demand."
 
-#### 10. When to Use / When Not to Use
+#### 8. Quick Check
 
-**Use when:**
+1. Why not update the score inside the heap?
+2. What is the cost of `top(K)` in `Leaderboard`?
+3. How do you detect a stale heap entry?
 
-1. You need counts or latest values, plus repeated "best item" queries.
-2. You process the best items in rounds.
+<details>
+<summary>Answers</summary>
 
-**Avoid when:**
+1. `PriorityQueue` has no decrease/increase-key. `remove(x)` is `O(n)`.
+2. `O(n log K)`.
+3. Compare the entry's value with the current value in the map. If they differ, it is stale.
 
-1. You only need the best once. Scan the map and track the maximum.
-2. The number of distinct keys is tiny. Sorting once may be simpler.
+</details>
 
-#### 11. Related Topics
+#### 9. Related LeetCode Questions
 
-1. Top K Frequent Elements
-2. Lazy Deletion with Heap
-3. Heap for Scheduling / Processing by Priority
-4. HashMap (`01-data-structure/05-HashMap`)
-5. Dijkstra (`02-algorithm/07-Graph Algorithms`)
-
-#### 12. Interview Must Remember
-
-1. **Map = lookup and counts. Heap = best item.**
-2. Keep both in sync, or skip stale heap entries.
-3. Reorganize String: take the **two most frequent** each round and put them back with `count - 1`.
-4. Say the impossible case out loud.
+| # | Question | Idea |
+|---|---|---|
+| 347 | [Top K Frequent Elements](https://leetcode.com/problems/top-k-frequent-elements/) (Medium) | count + heap |
+| 1244 | [Design A Leaderboard](https://leetcode.com/problems/design-a-leaderboard/) (Medium, premium) | map + heap on demand |
+| 355 | [Design Twitter](https://leetcode.com/problems/design-twitter/) (Medium) | map of users + heap to merge feeds |
+| 895 | [Maximum Frequency Stack](https://leetcode.com/problems/maximum-frequency-stack/) (Hard) | counts + a stack per frequency |
+| 692 | [Top K Frequent Words](https://leetcode.com/problems/top-k-frequent-words/) (Medium) | count + heap with a tie rule |
+| 2349 | [Design a Number Container System](https://leetcode.com/problems/design-a-number-container-system/) (Medium) | map + min-heap with lazy deletion |

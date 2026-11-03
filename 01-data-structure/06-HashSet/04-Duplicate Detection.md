@@ -1,157 +1,152 @@
 # Duplicate Detection
 
-#### 1. Definition — Must Know
+> The most common HashSet pattern. Walk once, and the first time `add` returns `false`, you found a duplicate.
 
-1. **Duplicate detection** means finding out whether a value appears **more than once**.
-2. With a HashSet: go through the items, and if `add` returns `false`, you found a duplicate.
-3. The classic problem is *Contains Duplicate* (LeetCode 217). If a number and a title ever disagree, trust the title.
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+**Duplicate detection** asks if any value appears more than once. Three common variants:
 
-1. It is the most common HashSet interview question.
-2. It shows the jump from `O(n²)` to `O(n)` clearly.
-3. It appears in real code: duplicate user IDs, repeated requests, repeated list items.
+| Variant | Question | Tool |
+|---|---|---|
+| **Contains Duplicate** (217) | is there any duplicate? | `HashSet` |
+| **Contains Duplicate II** (219) | duplicate within distance `k` (`|i − j| ≤ k`)? | `HashSet` of the last `k` values (a window) |
+| **Contains Duplicate III** (220) | two values within `valueDiff` and indexes within `k`? | `TreeSet` of the window |
 
-#### 3. How It Works — Must Know
+**Signals:** "duplicate", "appears twice", "repeated", "within k positions", "almost equal".
 
-`nums = [1, 2, 3, 1]`
+#### 2. How It Works
 
-```text
-seen = {}
-see 1 → add → true  (new)       seen = {1}
-see 2 → add → true              seen = {1, 2}
-see 3 → add → true              seen = {1, 2, 3}
-see 1 → add → false (already!)  → duplicate found → return true
-```
-
-Three ways to solve it:
-
-| Approach | Idea | Time | Space |
-|---|---|---:|---:|
-| Brute force | Compare every pair | `O(n²)` | `O(1)` |
-| Sort | Sort, then check neighbours | `O(n log n)` | `O(1)`–`O(n)` |
-| **HashSet** | Remember what you have seen | **`O(n)`** | `O(n)` |
-
-#### 4. Core Concepts — Must Know
-
-1. **`add()` returning `false` is the duplicate signal.** No need for `contains` first.
-2. **Stop early.** Return as soon as you find the first duplicate.
-3. **Sorting is a good alternative** when memory is limited: after sorting, equal values sit next to each other.
-4. **Size trick:** `set.size < list.size` means at least one duplicate exists. It is short but always processes everything.
-5. Choose the data to remember: the whole value, a key (like an id), or a hash of a big object.
-
-#### 5. Algorithm — Must Know
+**Variant 1.** Walk the array. `if (!seen.add(x)) return true`.
 
 ```text
-seen = empty set
-for each item in the input:
-    if seen.add(item) is false:
-        return true          // duplicate
-return false
+[1, 2, 3, 1]
+add 1 → ok   add 2 → ok   add 3 → ok   add 1 → already there → DUPLICATE
 ```
 
-#### 6. Kotlin Implementation — Must Know
+**Variant 2 (within `k`).** Keep a set of only the **last `k` values**. When the window grows past `k`, remove the value that left.
+
+```text
+nums = [1, 0, 1, 1], k = 1
+i=0: add 1.               window {1}
+i=1: add 0.               window {1, 0} → size 2 > k → remove nums[0] = 1 → {0}
+i=2: add 1 → ok.          window {0, 1} → remove nums[1] → {1}
+i=3: add 1 → already there → DUPLICATE within distance 1
+```
+
+**Variant 3 (values close, indexes close).** For `x`, you need any value in the window within `[x − t, x + t]`. A `TreeSet` finds the **smallest value `≥ x − t`** with `ceiling(x − t)`. If it is `≤ x + t`, you have a pair. Use `Long` to avoid overflow.
+
+```mermaid
+flowchart LR
+    A["new value x"] --> B["c = set.ceiling(x - t)<br/>(smallest value >= x - t)"]
+    B --> C{"c exists and c <= x + t ?"}
+    C -->|"yes"| D["return true"]
+    C -->|"no"| E["add x<br/>remove the value that left the window"]
+```
+
+#### 3. Brute Force vs Optimized
+
+| Variant | Brute force | Optimized |
+|---|---|---|
+| I | all pairs `O(n²)`, or sort `O(n log n)` | set `O(n)` |
+| II | check the next `k` items for each: `O(n · k)` | window set `O(n)` |
+| III | check the next `k` items: `O(n · k)` | `TreeSet` `O(n log k)` |
 
 ```kotlin
-// Contains Duplicate — early exit
+// Brute force, variant II
+fun containsNearbyDuplicateBrute(nums: IntArray, k: Int): Boolean {
+    for (i in nums.indices) {
+        for (j in i + 1..minOf(i + k, nums.size - 1)) if (nums[i] == nums[j]) return true
+    }
+    return false
+}
+```
+
+#### 4. Kotlin Code
+
+```kotlin
+import java.util.TreeSet
+
+// I. Contains Duplicate (LeetCode 217)
 fun containsDuplicate(nums: IntArray): Boolean {
     val seen = HashSet<Int>()
-    for (n in nums) {
-        if (!seen.add(n)) return true
+    for (x in nums) if (!seen.add(x)) return true
+    return false
+}
+
+// II. Contains Duplicate II (LeetCode 219)
+fun containsNearbyDuplicate(nums: IntArray, k: Int): Boolean {
+    val window = HashSet<Int>()
+    for (i in nums.indices) {
+        if (!window.add(nums[i])) return true
+        if (window.size > k) window.remove(nums[i - k])         // the value that left the window
     }
     return false
 }
 
-// One-liner (processes the whole array)
-fun containsDuplicateShort(nums: IntArray): Boolean =
-    nums.toHashSet().size != nums.size
-```
-
-**Sort version (no extra set)**
-
-```kotlin
-fun containsDuplicateSorted(nums: IntArray): Boolean {
-    val sorted = nums.sortedArray()
-    for (i in 1 until sorted.size) {
-        if (sorted[i] == sorted[i - 1]) return true
+// III. Contains Duplicate III (LeetCode 220)
+fun containsNearbyAlmostDuplicate(nums: IntArray, indexDiff: Int, valueDiff: Int): Boolean {
+    val window = TreeSet<Long>()
+    for (i in nums.indices) {
+        val x = nums[i].toLong()
+        val c = window.ceiling(x - valueDiff)                    // smallest value >= x - valueDiff
+        if (c != null && c <= x + valueDiff) return true
+        window.add(x)
+        if (i >= indexDiff) window.remove(nums[i - indexDiff].toLong())
     }
     return false
 }
 ```
 
-**Find the first duplicate value**
+Checks: `containsDuplicate(intArrayOf(1, 2, 3, 1))` → `true`; `(intArrayOf(1, 2, 3, 4))` → `false`. `containsNearbyDuplicate(intArrayOf(1, 2, 3, 1), 3)` → `true`. `containsNearbyDuplicate(intArrayOf(1, 0, 1, 1), 1)` → `true`. `containsNearbyDuplicate(intArrayOf(1, 2, 3, 1, 2, 3), 2)` → `false`. `containsNearbyDuplicateBrute(intArrayOf(1, 2, 3, 1, 2, 3), 2)` → `false`. `containsNearbyAlmostDuplicate(intArrayOf(1, 2, 3, 1), 3, 0)` → `true`. `containsNearbyAlmostDuplicate(intArrayOf(1, 5, 9, 1, 5, 9), 2, 3)` → `false`. `containsNearbyAlmostDuplicate(intArrayOf(Int.MAX_VALUE, Int.MIN_VALUE), 1, 1)` → `false` (using `Long` avoids overflow).
 
-```kotlin
-fun firstDuplicate(nums: IntArray): Int? {
-    val seen = HashSet<Int>()
-    for (n in nums) if (!seen.add(n)) return n
-    return null
-}
-```
+Trace of `containsNearbyDuplicate(intArrayOf(1, 2, 3, 1, 2, 3), 2)`: windows (size at most 2): `{1}`, `{1, 2}`, then add `3` → size 3 > 2 → remove `nums[0] = 1` → `{2, 3}`; add `1` → ok → remove `nums[1] = 2` → `{3, 1}`; add `2` → ok → remove `nums[2] = 3` → `{1, 2}`; add `3` → ok. No duplicate within distance 2 → `false`.
 
-**Find all duplicates**
+#### 5. Complexity
 
-```kotlin
-fun allDuplicates(nums: IntArray): Set<Int> {
-    val seen = HashSet<Int>()
-    val dups = LinkedHashSet<Int>()
-    for (n in nums) if (!seen.add(n)) dups.add(n)
-    return dups
-}
-```
+| | Time | Space |
+|---|---|---|
+| I | `O(n)` | `O(n)` |
+| II | `O(n)` | `O(k)` |
+| III | `O(n log k)` | `O(k)` |
+| Sort alternative for I | `O(n log n)` | `O(1)` extra |
 
-#### 7. Time & Space Complexity — Must Know
+#### 6. Common Mistakes
 
-| Approach | Time | Space |
-|---|---:|---:|
-| HashSet | `O(n)` | `O(n)` |
-| Sort + scan | `O(n log n)` | `O(1)` if sorted in place |
-| Brute force | `O(n²)` | `O(1)` |
+1. **Adding first, checking later** with `contains` + `add` (two lookups) instead of `add`'s return value. Not wrong, only wasteful.
+2. **Variant II: not removing** the element that left the window, or removing too early (`k` vs `k + 1`).
+3. **Variant III:** `Int` overflow in `x − valueDiff`. Use `Long`.
+4. **Variant III:** using a `HashSet` (no `ceiling`).
+5. **Treating "within k" as "at most k elements apart" off by one.** Window size is `k` (indexes `i − k` to `i − 1` plus the new one).
+6. **Sorting** and losing the index information needed for variants II and III.
 
-#### 8. Common Duplicate-Detection Patterns — Must Know
+#### 7. Say This in the Interview
 
-1. **Contains Duplicate** (LeetCode 217) — any duplicate anywhere.
-2. **Contains Duplicate II** (LeetCode 219) — duplicates within distance `k`. Use a window set (see "HashSet + Sliding Window").
-3. **Find the Duplicate Number** (LeetCode 287) — a set works in `O(n)` space. The `O(1)` space answer uses Floyd's cycle detection.
-4. **Find All Duplicates in an Array** (LeetCode 442) — a set works. The `O(1)` space answer marks values using the array itself.
-5. **First Repeating Character** — a set of `Char`.
-6. **Detect duplicate objects** — use an id or a `data class` as the key.
+1. "I walk the array once with a `HashSet`. When `add` returns false I've found a duplicate. `O(n)` time and `O(n)` space. If space is tight, sorting gives `O(n log n)` with `O(1)` extra."
+2. "For 'within `k`', I only keep the last `k` values in the set, so the space is `O(k)`."
+3. "For 'values within `t`', I need the closest value in the window, so I use a `TreeSet` and check `ceiling(x − t)`. That's `O(n log k)`."
 
-#### 9. Edge Cases / Common Mistakes
+#### 8. Quick Check
 
-1. Empty or single-element input. The answer is `false`.
-2. Using `contains` and then `add`. It is two lookups for no reason.
-3. Not stopping early on the first duplicate.
-4. Putting `IntArray`/`Array` items in the set. Duplicates are missed because arrays compare by reference.
-5. Large input and memory limits. Mention the sort alternative.
-6. Confusing "all values distinct" with "no value repeats within `k` positions".
+1. `[1, 2, 3, 1]`, `k = 2`. Is there a duplicate within distance 2?
+2. Why `Long` in variant III?
+3. Space for variant II?
 
-#### 10. When to Use / When Not to Use
+<details>
+<summary>Answers</summary>
 
-**Use a HashSet when:**
+1. No. The two `1`s are 3 apart.
+2. `x − valueDiff` or `x + valueDiff` can overflow `Int`.
+3. `O(k)`.
 
-1. You need a fast answer and memory is fine.
-2. Data comes as a stream and you cannot sort it.
+</details>
 
-**Use sorting when:**
+#### 9. Related LeetCode Questions
 
-1. Extra memory is a problem.
-2. You are allowed to change or copy the array.
-
-**Use a `BooleanArray`/`BitSet` when:**
-
-1. Values are in a small known range, such as `0..n`.
-
-#### 11. Related Topics
-
-1. HashSet Fundamentals
-2. Unique Elements Pattern
-3. HashSet + Sliding Window
-4. Sorting (`02-algorithm/01-sorting`)
-
-#### 12. Interview Must Remember
-
-1. **`if (!seen.add(x)) return true`.**
-2. Hash set is `O(n)` time and space. Sort is `O(n log n)` with little space.
-3. Say both options and the trade-off.
-4. Windowed duplicates need a window set.
+| # | Question | Idea |
+|---|---|---|
+| 217 | [Contains Duplicate](https://leetcode.com/problems/contains-duplicate/) (Easy) | `add` returns false |
+| 219 | [Contains Duplicate II](https://leetcode.com/problems/contains-duplicate-ii/) (Easy) | window set |
+| 220 | [Contains Duplicate III](https://leetcode.com/problems/contains-duplicate-iii/) (Hard) | `TreeSet` + `ceiling` |
+| 287 | [Find the Duplicate Number](https://leetcode.com/problems/find-the-duplicate-number/) (Medium) | set, or Floyd for `O(1)` space |
+| 442 | [Find All Duplicates in an Array](https://leetcode.com/problems/find-all-duplicates-in-an-array/) (Medium) | set, or sign marking |
+| 36 | [Valid Sudoku](https://leetcode.com/problems/valid-sudoku/) (Medium) | duplicates per row, column, box |

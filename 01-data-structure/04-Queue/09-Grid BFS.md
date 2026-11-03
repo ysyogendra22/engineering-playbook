@@ -42,7 +42,36 @@ Handy tricks:
 - **Level by level:** increase `steps` after each round of `repeat(queue.size)`.
 - **Visited:** a `BooleanArray(rows * cols)`.
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Approach | Time | Note |
+|---|---|---|
+| DFS over all paths in the grid | exponential | no shortest-path guarantee |
+| BFS with a `visited` array | `O(R·C)` | shortest path |
+| BFS marking visited when **dequeued** | up to 4x more queue entries | slower, still correct |
+| Building an explicit adjacency list first | `O(R·C)` time and extra memory | unnecessary: compute neighbours from `(r, c)` |
+
+Do not build a graph from the grid. Use a **direction array** and compute the neighbours on the fly.
+
+```kotlin
+// Wasteful: build an adjacency list for a grid you can walk directly
+fun gridToAdjacency(grid: Array<IntArray>): Map<Int, List<Int>> {
+    val cols = grid[0].size
+    val adj = HashMap<Int, MutableList<Int>>()
+    for (r in grid.indices) for (c in 0 until cols) {
+        if (grid[r][c] == 1) continue
+        val list = adj.getOrPut(r * cols + c) { mutableListOf() }
+        for ((dr, dc) in listOf(0 to 1, 1 to 0, 0 to -1, -1 to 0)) {
+            val nr = r + dr
+            val nc = c + dc
+            if (nr in grid.indices && nc in 0 until cols && grid[nr][nc] == 0) list.add(nr * cols + nc)
+        }
+    }
+    return adj
+}
+```
+
+#### 4. Kotlin Code
 
 ```kotlin
 // Shortest Path in Binary Matrix (8 directions, counts cells)
@@ -133,7 +162,7 @@ fun floodFill(image: Array<IntArray>, sr: Int, sc: Int, color: Int): Array<IntAr
 
 Checks: `shortestPathBinaryMatrix([[0,0,0],[1,1,0],[1,1,0]])` → `4`. `[[0,1],[1,0]]` → `2`.
 
-#### 4. Complexity
+#### 5. Complexity
 
 For `R` rows and `C` columns:
 
@@ -141,7 +170,7 @@ For `R` rows and `C` columns:
 |---|---|---|
 | Grid BFS | `O(R · C)` | `O(R · C)` |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Checking the bounds after reading the cell.** Always check bounds first.
 2. **Marking visited when you take the cell out**, not when you add it.
@@ -151,13 +180,13 @@ For `R` rows and `C` columns:
 6. **Counting cells instead of moves** (or the reverse). A path of 4 cells has 3 moves.
 7. **Using DFS for the shortest path.**
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "A grid is a graph. Each cell connects to its 4 (or 8) neighbours, so BFS gives the shortest path."
 2. "I use a direction array, check bounds first, and mark cells visited when I add them."
 3. "Time and space are `O(R · C)`."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. A path has 5 cells. How many moves is that?
 2. What are the 4 direction pairs?
@@ -170,7 +199,7 @@ For `R` rows and `C` columns:
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

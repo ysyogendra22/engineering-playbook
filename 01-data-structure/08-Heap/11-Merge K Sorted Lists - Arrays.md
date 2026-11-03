@@ -1,83 +1,81 @@
 # Merge K Sorted Lists / Arrays
 
-#### 1. Definition — Must Know
+> The two classic K-way merge problems: merge `K` **linked lists**, and find the `K` smallest **pairs** from two sorted arrays.
 
-1. **Merge K Sorted Lists** (LeetCode 23) asks you to merge `k` sorted linked lists into one sorted linked list.
-2. The same idea merges `k` sorted **arrays**.
-3. It is the standard concrete problem for the K-Way Merge pattern. If a number and a title ever disagree, trust the title.
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+| Question | Input | Method |
+|---|---|---|
+| **Merge k Sorted Lists** (23) | `K` sorted linked lists | min-heap of the `K` current heads, or divide and conquer |
+| **Find K Pairs with Smallest Sums** (373) | two sorted arrays | min-heap of pairs `(i, j)`, grow neighbours as you pop |
 
-1. It is a very common interview problem, and a direct test of heap knowledge.
-2. It shows the jump from merging 2 lists (two pointers) to merging `k` lists (a heap).
-3. It has a second good answer, divide and conquer, and you should know both.
+Both use the idea from note 10. This note focuses on the code for linked lists and for pairs.
 
-#### 3. How It Works — Must Know
+#### 2. How It Works
 
-Lists: `[1, 4, 5]`, `[1, 3, 4]`, `[2, 6]`.
+**Merge k Sorted Lists (heap).** Put every non-empty head node in a min-heap ordered by `val`. Pop the smallest node, attach it to the result, push that node's `next`.
 
-```text
-Heap starts with the head of each list:  1(L1)  1(L2)  2(L3)
-
-poll 1 (L1) → output 1 → push L1's next, 4
-poll 1 (L2) → output 1 → push L2's next, 3
-poll 2 (L3) → output 2 → push L3's next, 6
-poll 3 (L2) → output 3 → push 4
-poll 4 (L1) → output 4 → push 5
-poll 4 (L2) → output 4 → L2 has no more
-poll 5 (L1) → output 5
-poll 6 (L3) → output 6
-
-Result: 1 → 1 → 2 → 3 → 4 → 4 → 5 → 6
+```mermaid
+flowchart LR
+    A["1 → 4 → 5"] --> H["min-heap of heads"]
+    B["1 → 3 → 4"] --> H
+    C["2 → 6"] --> H
+    H --> R["dummy → 1 → 1 → 2 → 3 → 4 → 4 → 5 → 6"]
 ```
 
-For linked lists, the heap holds the **nodes themselves**. A node already knows its `next`, so no extra index is needed.
+**Merge k Sorted Lists (divide and conquer).** Merge the lists in pairs, then merge the results in pairs, and so on, like merge sort. There are `log K` rounds, each touching all `N` nodes: `O(N log K)`, and **`O(1)` extra space** if you merge in place. (`merge two lists` is the dummy-node merge from the LinkedList folder.)
 
-#### 4. Core Concepts — Must Know
-
-1. **Heap of nodes** (lists) or **heap of `[value, arrayIndex, position]`** (arrays).
-2. Use a **dummy head** node to build the result list without special cases.
-3. Reuse the existing nodes. Do not create new ones, so extra space stays `O(k)`.
-4. **Two solutions:**
-
-| Approach | Time | Extra space |
-|---|---:|---:|
-| Min-heap of `k` heads | `O(N log k)` | `O(k)` |
-| Divide and conquer (merge pairs repeatedly) | `O(N log k)` | `O(1)` extra for the merge |
-| Merge one list into the result, one by one | `O(N · k)` | `O(1)` |
-
-#### 5. Algorithm — Must Know
+**K Pairs with Smallest Sums.** `nums1` and `nums2` are sorted. The smallest pair is `(0, 0)`. If `(i, j)` is the smallest, the next candidates are `(i, j + 1)` and `(i + 1, j)`. To avoid duplicates, start with `(i, 0)` for the first `K` values of `i`, and when you pop `(i, j)` push only `(i, j + 1)`.
 
 ```text
-heap = min-heap of nodes, ordered by node value
-add the head of every non-empty list
-
-dummy = new node; tail = dummy
-while heap is not empty:
-    node = heap.poll()
-    tail.next = node; tail = node
-    if node.next != null: heap.add(node.next)
-
-return dummy.next
+nums1 = [1, 7, 11]   nums2 = [2, 4, 6]   k = 3
+heap starts with (0,0)=1+2=3, (1,0)=7+2=9, (2,0)=11+2=13
+pop (0,0): pair [1,2]       push (0,1) = 1+4 = 5
+pop (0,1): pair [1,4]       push (0,2) = 1+6 = 7
+pop (0,2): pair [1,6]       (no more in row 0)
+answer: [[1,2],[1,4],[1,6]]
 ```
 
-#### 6. Kotlin Implementation — Must Know
+#### 3. Brute Force vs Optimized
 
-**Linked lists with a heap**
+| Approach | Time | Space |
+|---|---|---|
+| Collect all node values, sort, rebuild a list | `O(N log N)` | `O(N)` |
+| Merge one list into the result at a time | `O(N · K)` | `O(1)` |
+| **Heap** | `O(N log K)` | `O(K)` |
+| **Divide and conquer** | `O(N log K)` | `O(1)` extra (iterative merge) |
+| All pairs, then sort, for K smallest sums | `O(m · n log(m · n))` | `O(m · n)` |
+| Heap of pairs | `O(K log K)` | `O(K)` |
+
+```kotlin
+class ListNode(var `val`: Int) { var next: ListNode? = null }
+
+// Brute force: collect values, sort, rebuild
+fun mergeKListsBrute(lists: Array<ListNode?>): ListNode? {
+    val values = mutableListOf<Int>()
+    for (head in lists) {
+        var cur = head
+        while (cur != null) { values.add(cur.`val`); cur = cur.next }
+    }
+    values.sort()
+    val dummy = ListNode(0)
+    var tail = dummy
+    for (v in values) { tail.next = ListNode(v); tail = tail.next!! }
+    return dummy.next
+}
+```
+
+#### 4. Kotlin Code
 
 ```kotlin
 import java.util.PriorityQueue
 
-class ListNode(var `val`: Int) {
-    var next: ListNode? = null
-}
+class ListNode(var `val`: Int) { var next: ListNode? = null }
 
+// Merge k Sorted Lists (LeetCode 23): heap
 fun mergeKLists(lists: Array<ListNode?>): ListNode? {
     val heap = PriorityQueue<ListNode>(compareBy<ListNode> { it.`val` })
-    for (head in lists) {
-        if (head != null) heap.add(head)
-    }
-
+    for (head in lists) if (head != null) heap.add(head)
     val dummy = ListNode(0)
     var tail = dummy
     while (heap.isNotEmpty()) {
@@ -88,114 +86,101 @@ fun mergeKLists(lists: Array<ListNode?>): ListNode? {
     }
     return dummy.next
 }
-```
 
-**Arrays with a heap**
-
-```kotlin
-fun mergeKArrays(arrays: List<IntArray>): IntArray {
-    val result = IntArray(arrays.sumOf { it.size })
-    val heap = PriorityQueue<IntArray>(compareBy<IntArray> { it[0] })   // [value, arrayIndex, position]
-    for ((i, arr) in arrays.withIndex()) {
-        if (arr.isNotEmpty()) heap.add(intArrayOf(arr[0], i, 0))
-    }
-
-    var index = 0
-    while (heap.isNotEmpty()) {
-        val (value, arrayIndex, position) = heap.poll()
-        result[index++] = value
-        val next = position + 1
-        if (next < arrays[arrayIndex].size) {
-            heap.add(intArrayOf(arrays[arrayIndex][next], arrayIndex, next))
+// Merge k Sorted Lists: divide and conquer
+fun mergeKListsDC(lists: Array<ListNode?>): ListNode? {
+    if (lists.isEmpty()) return null
+    var step = 1
+    val work = lists.copyOf()
+    while (step < work.size) {
+        var i = 0
+        while (i + step < work.size) {
+            work[i] = mergeTwo(work[i], work[i + step])
+            i += step * 2
         }
+        step *= 2
     }
-    return result
+    return work[0]
 }
-```
 
-**Divide and conquer (no heap)**
-
-```kotlin
 fun mergeTwo(a: ListNode?, b: ListNode?): ListNode? {
     val dummy = ListNode(0)
     var tail = dummy
     var x = a
     var y = b
     while (x != null && y != null) {
-        if (x.`val` <= y.`val`) { tail.next = x; x = x.next }
-        else { tail.next = y; y = y.next }
+        if (x.`val` <= y.`val`) { tail.next = x; x = x.next } else { tail.next = y; y = y.next }
         tail = tail.next!!
     }
     tail.next = x ?: y
     return dummy.next
 }
 
-fun mergeKListsDivide(lists: Array<ListNode?>): ListNode? {
-    if (lists.isEmpty()) return null
-    var current: List<ListNode?> = lists.toList()
-    while (current.size > 1) {
-        current = current.chunked(2).map { pair -> mergeTwo(pair[0], pair.getOrNull(1)) }
+// Find K Pairs with Smallest Sums (LeetCode 373)
+fun kSmallestPairs(nums1: IntArray, nums2: IntArray, k: Int): List<List<Int>> {
+    if (nums1.isEmpty() || nums2.isEmpty()) return emptyList()
+    val heap = PriorityQueue<IntArray>(compareBy<IntArray> { nums1[it[0]] + nums2[it[1]] })   // [i, j]
+    for (i in 0 until minOf(k, nums1.size)) heap.add(intArrayOf(i, 0))
+    val result = mutableListOf<List<Int>>()
+    while (heap.isNotEmpty() && result.size < k) {
+        val (i, j) = heap.poll()
+        result.add(listOf(nums1[i], nums2[j]))
+        if (j + 1 < nums2.size) heap.add(intArrayOf(i, j + 1))
     }
-    return current[0]
+    return result
 }
 ```
 
-#### 7. Time & Space Complexity — Must Know
+Helper for the checks: `fun build(vararg v: Int): ListNode?` makes `v[0] → v[1] → ...`, and `fun toList(h: ListNode?): List<Int>` reads a list back.
 
-`N` = total number of nodes or items, `k` = number of lists.
+Checks: `toList(mergeKLists(arrayOf(build(1, 4, 5), build(1, 3, 4), build(2, 6))))` → `[1, 1, 2, 3, 4, 4, 5, 6]`. `mergeKListsDC(...)` on the same input → the same list. `mergeKLists(arrayOf())` → `null`. `mergeKLists(arrayOf(null, build(7)))` → `7`. `kSmallestPairs(intArrayOf(1, 7, 11), intArrayOf(2, 4, 6), 3)` → `[[1, 2], [1, 4], [1, 6]]`. `kSmallestPairs(intArrayOf(1, 1, 2), intArrayOf(1, 2, 3), 2)` → `[[1, 1], [1, 1]]`.
 
-| Approach | Time | Space |
-|---|---:|---:|
-| Heap | `O(N log k)` | `O(k)` |
-| Divide and conquer | `O(N log k)` | `O(k)` for the list of heads, `O(1)` for merging |
+#### 5. Complexity
 
-Why `O(N log k)`?
+| | Time | Space |
+|---|---|---|
+| `mergeKLists` (heap) | `O(N log K)` | `O(K)` |
+| `mergeKListsDC` | `O(N log K)` | `O(1)` extra |
+| `kSmallestPairs` | `O(K log K)` | `O(K)` |
 
-```text
-Every item is added to and removed from a heap of at most k items once: log k each.
-In divide and conquer: log k rounds, and each round touches N items.
-```
+#### 6. Common Mistakes
 
-#### 8. Common Variations — Must Know
+1. **Adding `null` heads** to the heap (crash when comparing).
+2. **Not pushing `node.next`** after a pop.
+3. **Creating new nodes** when you can re-link the existing ones.
+4. **Merging in a loop `result = merge(result, list)`**: `O(N · K)`.
+5. **Pairs:** pushing both `(i + 1, j)` and `(i, j + 1)` creates duplicates unless you track visited pairs.
+6. **Pairs:** starting the heap with every `i` instead of `min(k, size)`.
+7. **Overflow:** `nums1[i] + nums2[j]` can overflow `Int` for large values. Use `Long` if limits are big.
 
-1. **Merge Two Sorted Lists** (LeetCode 21) — the building block.
-2. **Merge Sorted Array** (LeetCode 88) — two arrays, solved with two pointers, no heap.
-3. **Kth Smallest Element in a Sorted Matrix** (LeetCode 378) — stop after `k` polls.
-4. **Find K Pairs with Smallest Sums** (LeetCode 373).
-5. **Sort a nearly sorted array** — a heap of size `k + 1` (items are at most `k` places from their final position).
+#### 7. Say This in the Interview
 
-#### 9. Edge Cases / Common Mistakes
+1. "I put the head of every list in a min-heap. I pop the smallest, link it, and push its next node. That's `O(N log K)` time with `O(K)` space."
+2. "Or I can merge lists in pairs, like merge sort: also `O(N log K)`, with `O(1)` extra space."
+3. "For K smallest pairs I start from `(i, 0)` and only advance `j`, so each pair is generated once."
 
-1. An empty input array, or lists that are `null`. Skip empty lists when filling the heap.
-2. Adding a `null` node to the heap (`PriorityQueue` throws on `null`).
-3. Forgetting to push `node.next` after polling.
-4. Creating new nodes instead of reusing them, and using extra space.
-5. Returning `dummy` instead of `dummy.next`, which adds a fake `0` at the front.
-6. Using `compareBy { it.val }` without naming the type, which fails to compile in some cases. Write `compareBy<ListNode> { it.`val` }`.
+#### 8. Quick Check
 
-#### 10. When to Use / When Not to Use
+1. How many nodes are in the heap at any time?
+2. Why is merging lists one by one slower?
+3. What is the first pair in `kSmallestPairs` for two sorted arrays?
 
-**Use the heap when:**
+<details>
+<summary>Answers</summary>
 
-1. `k` is large, or the lists arrive as streams.
+1. At most `K`.
+2. Early nodes are touched in every later merge, giving `O(N · K)`.
+3. `(nums1[0], nums2[0])`, which has the smallest sum.
 
-**Use divide and conquer when:**
+</details>
 
-1. You want `O(1)` extra merge space, and all lists are in memory.
+#### 9. Related LeetCode Questions
 
-**Avoid merging one list at a time** when `k` is large. It is `O(N · k)`.
-
-#### 11. Related Topics
-
-1. K-Way Merge Pattern
-2. Heap Fundamentals
-3. Linked List (`01-data-structure/02-LinkedList`)
-4. Divide and Conquer (`02-algorithm/03-Recursion & Divide and Conquer`)
-5. Merge Sort (`02-algorithm/01-sorting/04-Merge Sort.md`)
-
-#### 12. Interview Must Remember
-
-1. Heap of `k` list heads: poll the smallest, push its `next`. `O(N log k)`.
-2. Use a **dummy head**, and reuse the nodes.
-3. Know the second answer: **divide and conquer**, also `O(N log k)`.
-4. Skip `null` heads before adding to the heap.
+| # | Question | Idea |
+|---|---|---|
+| 21 | [Merge Two Sorted Lists](https://leetcode.com/problems/merge-two-sorted-lists/) (Easy) | the building block |
+| 23 | [Merge k Sorted Lists](https://leetcode.com/problems/merge-k-sorted-lists/) (Hard) | heap or divide and conquer |
+| 373 | [Find K Pairs with Smallest Sums](https://leetcode.com/problems/find-k-pairs-with-smallest-sums/) (Medium) | grow along `j` |
+| 378 | [Kth Smallest Element in a Sorted Matrix](https://leetcode.com/problems/kth-smallest-element-in-a-sorted-matrix/) (Medium) | rows as lists |
+| 264 | [Ugly Number II](https://leetcode.com/problems/ugly-number-ii/) (Medium) | three pointers or heap |
+| 786 | [K-th Smallest Prime Fraction](https://leetcode.com/problems/k-th-smallest-prime-fraction/) (Medium) | heap of fractions |

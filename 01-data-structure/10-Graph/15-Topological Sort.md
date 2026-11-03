@@ -64,7 +64,33 @@ Why it works: a node is added only after everything it points to has been added.
 
 To detect a cycle, use the 3 states from note 14. Seeing a "visiting" node means no valid order.
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Approach | Time | Note |
+|---|---|---|
+| Try every permutation and check the edges | `O(V! · E)` | impossible beyond `V = 10` |
+| Repeatedly scan for a vertex whose prerequisites are all done | `O(V² + V · E)` | simple, slow |
+| **DFS finish order, reversed** | **`O(V + E)`** | needs cycle detection |
+| **Kahn's algorithm** (note 16) | **`O(V + E)`** | in-degree queue |
+
+```kotlin
+// Brute force: keep picking a vertex that has no unfinished prerequisite
+fun topoBrute(n: Int, edges: Array<IntArray>): List<Int> {
+    val done = BooleanArray(n)
+    val order = mutableListOf<Int>()
+    repeat(n) {
+        val pick = (0 until n).firstOrNull { v -> !done[v] && edges.none { it[1] == v && !done[it[0]] } }
+            ?: return emptyList()                          // no vertex is free: there is a cycle
+        done[pick] = true
+        order.add(pick)
+    }
+    return order
+}
+```
+
+`topoBrute(4, arrayOf(intArrayOf(0, 1), intArrayOf(0, 2), intArrayOf(1, 3), intArrayOf(2, 3)))` → `[0, 1, 2, 3]`. Each pick scans every vertex and every edge. Kahn's algorithm keeps a queue of free vertices and updates in-degrees instead.
+
+#### 4. Kotlin Code
 
 ```kotlin
 // Returns a valid order, or an empty list if there is a cycle
@@ -101,13 +127,13 @@ Checks: `topologicalSort(4, [[1,2],[3],[3],[]])` → `[0, 2, 1, 3]`. `findOrder(
 
 Any valid order is accepted. Your answer may differ from another correct answer.
 
-#### 4. Complexity
+#### 5. Complexity
 
 | | Time | Space |
 |---|---|---|
 | Topological sort | `O(V + E)` | `O(V)` |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Adding the node to the list before visiting its neighbours** (preorder). It must be added **after** (postorder).
 2. **Forgetting to reverse** the list.
@@ -116,13 +142,13 @@ Any valid order is accepted. Your answer may differ from another correct answer.
 5. **Not starting a DFS from every unvisited node.**
 6. **Assuming the answer is unique.** There can be many valid orders.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "I model tasks as nodes and 'A before B' as an edge `A → B`. A valid order exists only if there is no cycle."
 2. "I do a DFS, add each node after its descendants, and reverse the list. Or I use Kahn's algorithm with in-degrees."
 3. "Time `O(V + E)`."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. When does a topological order not exist?
 2. Is the topological order unique?
@@ -135,7 +161,7 @@ Any valid order is accepted. Your answer may differ from another correct answer.
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

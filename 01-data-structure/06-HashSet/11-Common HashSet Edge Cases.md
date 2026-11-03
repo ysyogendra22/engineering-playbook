@@ -1,152 +1,171 @@
 # Common HashSet Edge Cases
 
-#### 1. Definition — Must Know
+> Read this before a hashing interview and run through it at the end of every solution. Most set bugs are on this list.
 
-1. These are the situations where HashSet code most often **breaks or gives wrong answers**.
-2. Most come from four places: **equality**, **mutation**, **order**, and **empty or extreme input**.
-3. Checking this list before submitting an answer saves many failed tests.
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+These are the situations where HashSet solutions crash, give wrong answers, or turn slow. They fall into five groups:
 
-1. Interviewers watch whether you think about edge cases before they point them out.
-2. Many "mystery bugs" in real apps come from broken `equals`/`hashCode` or from changing an item inside a set.
-3. A short mental checklist is faster than debugging.
+1. **keys that don't hash or compare as you expect** (arrays, mutable objects, floating point),
+2. **order assumptions** (`HashSet` has no order),
+3. **mutation problems** (changing the set while iterating, changing a key after adding it),
+4. **size and extreme values** (empty input, `Int` limits),
+5. **complexity traps** (`list.contains`, hash collisions).
 
-#### 3. How It Works — Must Know
+#### 2. How It Works
 
-The mutable-key bug, step by step:
+**The checklist**
 
-```text
-class Box(var v: Int)  with equals/hashCode based on v
-
-b = Box(1)
-set.add(b)           → stored in the bucket for hash(1)
-b.v = 2              → hash is now hash(2), but b still sits in the bucket for hash(1)
-set.contains(b)      → looks in the bucket for hash(2) → NOT FOUND   (but the object is still inside!)
-```
-
-The item is lost: the set still holds it, but you cannot find or remove it.
-
-#### 4. Core Concepts — Must Know
-
-| # | Edge case | What happens | Fix |
+| # | Edge case | What goes wrong | Fix |
 |---|---|---|---|
-| 1 | Empty input | Loops do nothing, `first()` throws | Check `isEmpty()` first |
-| 2 | Single element | Duplicate checks return `false` | Test with one element |
-| 3 | All elements equal | Set has size 1 | Do not assume `size == n` |
-| 4 | `IntArray` / `Array` as an element | Compared by reference, duplicates not found | Use `List<Int>`, a `String` key, or a `data class` |
-| 5 | Class without `equals`/`hashCode` | Two equal-looking objects count as different | Use a `data class` or override both |
-| 6 | Mutating an item in a set | Item becomes unfindable | Use immutable items (`val` fields) |
-| 7 | Expecting order from `HashSet` | Order can change | Use `LinkedHashSet` or `TreeSet` |
-| 8 | Removing inside a `for` loop | `ConcurrentModificationException` | Use `removeIf` or an `Iterator` |
-| 9 | `Double` / `Float` elements | `NaN` equals `NaN` in a set, but `0.0` and `-0.0` differ | Avoid; round or use `Long` |
-| 10 | Case or whitespace | `"A"` and `"a"` differ | Normalize with `lowercase()` / `trim()` |
-| 11 | `null` elements | Allowed in `HashSet`, but unsafe in `TreeSet` | Avoid or handle explicitly |
-| 12 | Integer overflow in `target - x`, `n - 1`, `n + 1` | Wrong lookup value | Use `Long` when values are extreme |
-| 13 | Huge input | Boxed `Integer`s use a lot of memory | Use `BitSet`/`BooleanArray` for dense ints |
-| 14 | Shared set in several threads | Corrupted state | Use `ConcurrentHashMap.newKeySet()` or synchronize |
-| 15 | `Set` returned as read-only | `add` fails to compile or throws | Know `Set` vs `MutableSet` |
+| 1 | `HashSet<IntArray>` | arrays compare by **identity**, so equal arrays are "different" | use `List<Int>`, a `String` key, or a data class |
+| 2 | A mutable object as a key, then changed | it sits in the wrong bucket and `contains` fails | use immutable keys, or remove before changing |
+| 3 | Class without `equals` / `hashCode` | two equal-looking objects are different | use a `data class` |
+| 4 | Expecting sorted or insertion order | `HashSet` order is arbitrary | `LinkedHashSet` / `TreeSet` |
+| 5 | Modifying the set inside `for (x in set)` | `ConcurrentModificationException` | `removeAll { }`, or iterate over a copy |
+| 6 | Empty input | `max`, `first`, `last` of an empty collection crash | check `isEmpty()` first |
+| 7 | Checking `contains` before `add` (two lookups) | works, but slower | `if (!set.add(x))` |
+| 8 | Adding before checking (Two Sum) | an element pairs with itself | check first, then add |
+| 9 | `Int` overflow for `target − x`, `x + 1` | wrong membership | use `Long` |
+| 10 | `Double` / `Float` keys | `0.1 + 0.2` is not `0.3` | avoid, or round to an integer key |
+| 11 | `-0.0` vs `0.0` | different hash codes | normalise |
+| 12 | `String` case and whitespace | `"Cat"` and `"cat"` differ | normalise (`lowercase()`, `trim()`) |
+| 13 | `Char` vs `String` | `'a'` and `"a"` are different keys | keep types consistent |
+| 14 | `Int` and `Long` mixed | `1` and `1L` are different keys | one numeric type |
+| 15 | Comparing boxed `Integer`s with `===` | identity, not value | use `==` |
+| 16 | `HashSet<Pair<Int, Int>>` for a grid | fine for small grids, slow for huge ones | encode as `r * cols + c` in an `Int`/`Long` |
+| 17 | A set where an array would do (`0..25`, `0..n`) | extra overhead | `BooleanArray` |
+| 18 | Many collisions (bad `hashCode`) | `O(n)` operations | a good `hashCode`; avoid constant hashes |
+| 19 | `TreeSet` with a comparator inconsistent with `equals` | elements "disappear" | make the comparator total and consistent |
+| 20 | `TreeSet` with `null` | `NullPointerException` | avoid nulls |
+| 21 | Very large sets | memory (each `Int` is boxed) | `BooleanArray`, bitset, or sort + scan |
+| 22 | Shared mutable set between calls (class field) | old data leaks into new tests | create a new set per call |
 
-#### 5. Algorithm — Must Know
-
-A quick checklist to run before you finish:
-
-```text
-1. Empty input?
-2. One element? All the same?
-3. Are my set items immutable and do they have correct equals/hashCode?
-4. Does the answer depend on order? Then do I use LinkedHashSet / TreeSet?
-5. Do I change the set while looping over it?
-6. Could a number overflow when I add 1, subtract 1, or add two values?
-7. Do I need counts (map) rather than existence (set)?
+```mermaid
+flowchart TD
+    Start["HashSet solution written"] --> K{"Key type OK?<br/>no arrays, immutable,<br/>equals and hashCode right"}
+    K --> O{"Do I rely on order?"}
+    O -->|"yes"| F1["LinkedHashSet / TreeSet"]
+    O -->|"no"| M{"Do I change the set<br/>while looping?"}
+    F1 --> M
+    M -->|"yes"| F2["removeAll or iterate a copy"]
+    M -->|"no"| E{"Empty input, overflow,<br/>check before add?"}
+    F2 --> E
+    E --> Done["done"]
 ```
 
-#### 6. Kotlin Implementation — Must Know
+#### 3. Brute Force vs Optimized
+
+| Habit | Better |
+|---|---|
+| `HashSet<IntArray>` | `HashSet<List<Int>>` or `HashSet<String>` |
+| `Pair(r, c)` in a hot loop | `r * cols + c` |
+| `if (!set.contains(x)) set.add(x)` | `if (set.add(x))` |
+| `HashSet<Int>` for letters | `BooleanArray(26)` |
 
 ```kotlin
-// 1. Arrays as elements: the duplicate is NOT detected
-val bad = hashSetOf(intArrayOf(1, 2), intArrayOf(1, 2))
-println(bad.size)                              // 2  (different objects)
+// The classic trap: arrays in a set
+val bad = HashSet<IntArray>()
+bad.add(intArrayOf(1, 2))
+println(bad.contains(intArrayOf(1, 2)))                // false: different array objects
 
-val good = hashSetOf(listOf(1, 2), listOf(1, 2))
-println(good.size)                             // 1  (List compares by content)
+// Fix 1: a List (compares by content)
+val good = HashSet<List<Int>>()
+good.add(listOf(1, 2))
+println(good.contains(listOf(1, 2)))                   // true
 
-// 2. A class without equals/hashCode
-class Tag(val name: String)
-println(hashSetOf(Tag("a"), Tag("a")).size)    // 2
-
-data class Label(val name: String)
-println(hashSetOf(Label("a"), Label("a")).size) // 1
-
-// 3. Mutating a key
-data class Box(var v: Int)
-val s = hashSetOf<Box>()
-val b = Box(1)
-s.add(b)
-b.v = 2
-println(b in s)                                // false — the item is lost (usually)
-
-// 4. Remove while looping
-val nums = hashSetOf(1, 2, 3, 4)
-nums.removeIf { it % 2 == 0 }                  // safe
-// for (n in nums) if (n % 2 == 0) nums.remove(n)   // ConcurrentModificationException
-
-// 5. Doubles
-val d = hashSetOf(0.0, -0.0, Double.NaN, Double.NaN)
-println(d.size)                                // 3: 0.0 and -0.0 are different, the two NaN are the same
-
-// 6. Overflow: n - 1 for Int.MIN_VALUE wraps to Int.MAX_VALUE
-val n = Int.MIN_VALUE
-println(n - 1)                                 // 2147483647
+// Fix 2: a string key
+val keys = HashSet<String>()
+keys.add("1,2")
+println(keys.contains("1,2"))                          // true
 ```
 
-#### 7. Time & Space Complexity — Must Know
+#### 4. Kotlin Code
 
-| Concern | Impact |
+```kotlin
+// A data class gets equals and hashCode for free
+data class Point(val r: Int, val c: Int)
+
+fun demo() {
+    val set = HashSet<Point>()
+    set.add(Point(1, 2))
+    println(Point(1, 2) in set)                        // true
+
+    // Safe removal while looping
+    val nums = mutableSetOf(1, 2, 3, 4, 5, 6)
+    nums.removeAll { it % 2 == 0 }
+    println(nums)                                      // [1, 3, 5]
+
+    // Compact grid key
+    val cols = 10
+    val visited = HashSet<Int>()
+    visited.add(3 * cols + 4)                          // cell (3, 4)
+    println((3 * cols + 4) in visited)                 // true
+}
+
+// Overflow-safe complement check
+fun hasPairSafe(nums: IntArray, target: Int): Boolean {
+    val seen = HashSet<Long>()
+    for (x in nums) {
+        if (target.toLong() - x in seen) return true
+        seen.add(x.toLong())
+    }
+    return false
+}
+
+// Normalised string keys
+fun countDistinctWords(words: List<String>): Int = words.map { it.trim().lowercase() }.toHashSet().size
+```
+
+Checks: the three prints for arrays show `false`, `true`, `true`. `demo()` prints `true`, `[1, 3, 5]`, `true`. `hasPairSafe(intArrayOf(Int.MAX_VALUE, 1), Int.MIN_VALUE)` → `false` (correct: no such pair). `hasPairSafe(intArrayOf(2, 7), 9)` → `true`. `countDistinctWords(listOf("Cat", " cat", "CAT ", "dog"))` → `2`.
+
+#### 5. Complexity
+
+| Fix | Effect |
 |---|---|
-| Bad `hashCode` (all items hash to the same bucket) | Operations drop toward `O(n)` (Java trees help to about `O(log n)`) |
-| Boxed `Integer` in `HashSet<Int>` | About 16–40 bytes per element, versus 4 bytes in an `IntArray` |
-| Many resizes | Pre-size with `HashSet(capacity)` when the size is known |
+| `add`'s return value | one lookup instead of two |
+| Int cell id | no `Pair` allocation per cell |
+| `BooleanArray` for small ranges | no hashing at all |
+| `LinkedHashSet` / `TreeSet` | order at `O(1)` / `O(log n)` |
 
-#### 8. Common Patterns of Bugs — Must Know
+#### 6. Common Mistakes
 
-1. **Equality bugs:** arrays, classes without `equals`.
-2. **Mutation bugs:** changing a key after adding it.
-3. **Order bugs:** assuming `HashSet` is ordered.
-4. **Loop bugs:** modifying a set during iteration.
-5. **Value bugs:** floats, case, whitespace, overflow.
-6. **Choice bugs:** a set where a map is needed (counts or indices).
+1. **Arrays or lists that you mutate as set elements.**
+2. **Expecting `HashSet` to keep order.**
+3. **Removing from the set you are looping over.**
+4. **Forgetting normalisation of strings.**
+5. **Using `==` on boxed values with `===` semantics.**
+6. **Ignoring overflow near `Int.MAX_VALUE`.**
+7. **Not testing the empty set.**
 
-#### 9. Edge Cases / Common Mistakes
+#### 7. Say This in the Interview
 
-1. Testing only the example from the problem.
-2. Using `set.first()` on an empty set (throws `NoSuchElementException`). Use `firstOrNull()`.
-3. Assuming `mutableSetOf()` is a plain `HashSet`. It is a `LinkedHashSet`.
-4. Casting a read-only `Set` to `MutableSet`. It may fail.
-5. Forgetting that `toSet()` returns a new copy and does not change the original.
-6. Comparing two sets with `==`. This works for content (`setOf(1,2) == setOf(2,1)` is `true`), which is usually what you want.
+1. "Before I finish I'll check: the key type, the empty input, duplicates, order assumptions, and overflow."
+2. "Arrays don't work as set elements in Kotlin because they compare by identity, so I'd use a list or a string key."
+3. "I check the complement before adding, so one element doesn't pair with itself."
 
-#### 10. When to Use / When Not to Use
+#### 8. Quick Check
 
-**Use this checklist when:**
+1. Does `hashSetOf(intArrayOf(1)).contains(intArrayOf(1))` return true?
+2. How do you remove all negatives from a mutable set in one safe call?
+3. What happens to a key if you change a field that its `hashCode` uses?
 
-1. You finish writing any HashSet solution.
-2. You review code that stores objects in a set.
+<details>
+<summary>Answers</summary>
 
-**Remember:**
+1. No (`false`): different array objects.
+2. `set.removeAll { it < 0 }`.
+3. The set can no longer find it, because it is stored in the bucket of its old hash.
 
-1. A set is only as correct as the `equals()` and `hashCode()` of its items.
+</details>
 
-#### 11. Related Topics
+#### 9. Related LeetCode Questions
 
-1. HashSet with Custom Objects
-2. HashSet Operations & Complexity
-3. Duplicate Detection
-4. Deduplication of Complex States
-
-#### 12. Interview Must Remember
-
-1. **Arrays do not work as set elements.** Use `List`, `String`, or a `data class`.
-2. **Never mutate an item that is inside a set.**
-3. `HashSet` has no order. `removeIf` for removal while looping.
-4. Check empty input, single element, overflow, and case.
+| # | Question | Idea |
+|---|---|---|
+| 217 | [Contains Duplicate](https://leetcode.com/problems/contains-duplicate/) (Easy) | set basics |
+| 36 | [Valid Sudoku](https://leetcode.com/problems/valid-sudoku/) (Medium) | string keys or sets per unit |
+| 49 | [Group Anagrams](https://leetcode.com/problems/group-anagrams/) (Medium) | a good key |
+| 128 | [Longest Consecutive Sequence](https://leetcode.com/problems/longest-consecutive-sequence/) (Medium) | overflow, duplicates |
+| 705 | [Design HashSet](https://leetcode.com/problems/design-hashset/) (Easy) | how buckets work |
+| 1 | [Two Sum](https://leetcode.com/problems/two-sum/) (Easy) | check before add |

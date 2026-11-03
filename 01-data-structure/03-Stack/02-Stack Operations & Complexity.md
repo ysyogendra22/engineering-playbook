@@ -50,7 +50,23 @@ tokens: 3 4 +      → push 3, push 4, then "+": pop 4, pop 3, push 3 + 4 = 7
 text: a b # c      → push a, push b, "#" pops b, push c → result "ac"
 ```
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Operation | Naive choice | Better choice |
+|---|---|---|
+| `push` / `pop` | front of an array or list: `O(n)` (shifts) | the **end**: `O(1)` |
+| `peek` the minimum | scan the whole stack: `O(n)` | a second "minimum so far" stack: `O(1)` (note 13) |
+| `search` for a value | stack is not made for it: `O(n)` | use a `HashSet` next to the stack if needed: `O(1)` |
+| Size limit | resize by copying every time: `O(n)` per push | double the array: `O(1)` amortised |
+
+```kotlin
+// Peek at the minimum the slow way: O(n) per query
+fun minOfStack(stack: ArrayDeque<Int>): Int = stack.minOrNull()!!
+```
+
+A stack answers only "what is on top?". If you need other questions answered fast, add a helper structure, do not scan.
+
+#### 4. Kotlin Code
 
 ```kotlin
 val stack = ArrayDeque<Int>()
@@ -83,7 +99,7 @@ val top: Int? = stack.removeLastOrNull()
 
 Read the items without removing them: `for (x in stack)` goes from **bottom to top**.
 
-#### 4. Complexity
+#### 5. Complexity
 
 | Operation | Time |
 |---|---|
@@ -93,20 +109,20 @@ Read the items without removing them: `for (x in stack)` goes from **bottom to t
 
 Many stack solutions have a `while` loop inside a `for` loop. That is still `O(n)`, because **each item is pushed once and popped once**.
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Pop or peek on an empty stack.** Check `isNotEmpty()` inside the `while` condition, before `last()`.
 2. **Wrong operand order.** For `-` and `/`, pop the right number first, then the left.
 3. **Using `remove(x)`.** It removes a specific value (`O(n)`), not the top. Use `removeLast()`.
 4. **Changing the stack inside `for (x in stack)`.** It crashes. Use a `while` loop.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "I push as I scan, and pop when the top no longer helps."
 2. "The `while` loop does not make it `O(n²)`, because every item is popped at most once."
 3. "I check for an empty stack before reading the top."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. Why is `while (stack.last() < x)` risky?
 2. For tokens `8 2 /`, which number do you pop first?
@@ -119,7 +135,7 @@ Many stack solutions have a `while` loop inside a `for` loop. That is still `O(n
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Pattern |
 |---|---|---|

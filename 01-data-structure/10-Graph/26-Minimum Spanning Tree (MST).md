@@ -51,7 +51,22 @@ Facts to know:
 - MST is **not** the shortest path. The MST minimises the **total** weight of the whole tree. Dijkstra minimises the path to **each** node.
 - Edges with equal weights can produce different (but equally good) MSTs.
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Approach | Time | Note |
+|---|---|---|
+| Enumerate every set of `V − 1` edges and keep the cheapest spanning tree | `O(C(E, V − 1) · V)` | exponential |
+| **Kruskal:** sort the edges, add the cheapest edge that joins two different groups | `O(E log E)` | union-find |
+| **Prim:** grow one tree, add the cheapest edge leaving it | `O(E log V)` | min-heap |
+
+Both greedy algorithms rely on the **cut property**: the cheapest edge crossing between "inside the tree" and "outside the tree" is always safe to add.
+
+```text
+4 cities, 5 possible roads: C(5, 3) = 10 candidate trees to test.
+20 cities, 50 roads:        C(50, 19) ≈ 10^14 candidates. Kruskal needs one sort and 50 checks.
+```
+
+#### 4. Kotlin Code
 
 A tiny check you can write in an interview: given a set of edges, is it a spanning tree, and what is its weight?
 
@@ -82,7 +97,7 @@ println(spanningTreeWeight(4, mst))                        // 7
 
 The full Kruskal and Prim code is in notes 27 and 28.
 
-#### 4. Complexity
+#### 5. Complexity
 
 | Algorithm | Time | Space |
 |---|---|---|
@@ -90,7 +105,7 @@ The full Kruskal and Prim code is in notes 27 and 28.
 | Prim (binary heap) | `O(E log V)` | `O(V)` |
 | Prim (array, dense graph) | `O(V²)` | `O(V)` |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Confusing MST with shortest path.**
 2. **Using MST on a directed graph.** The usual MST algorithms are for undirected graphs.
@@ -98,13 +113,13 @@ The full Kruskal and Prim code is in notes 27 and 28.
 4. **Forgetting that the MST has `V - 1` edges.**
 5. **Assuming the MST is unique.** Equal weights can give different trees.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "I need to connect everything at the lowest total cost with no cycle, which is a minimum spanning tree."
 2. "I will use Kruskal's algorithm with union-find: sort the edges and add each edge that joins two different groups. Time `O(E log E)`."
 3. "The MST has `V - 1` edges. If I cannot add that many, the graph is disconnected."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. How many edges does an MST of 6 vertices have?
 2. Does the MST give the shortest path between two nodes?
@@ -117,7 +132,7 @@ The full Kruskal and Prim code is in notes 27 and 28.
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

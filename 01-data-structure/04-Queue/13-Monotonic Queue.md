@@ -41,7 +41,23 @@ result: [3, 3, 5, 5, 6, 7]
 
 Each index is added once and removed once, so the total is `O(n)`.
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Approach | Time | Space |
+|---|---|---|
+| Scan every window for its maximum | `O(n · k)` | `O(1)` |
+| Max-heap with lazy deletion | `O(n log n)` | `O(n)` |
+| **Monotonic deque of indexes** | **`O(n)`** | `O(k)` |
+
+```kotlin
+// Brute force: recompute the maximum of every window
+fun maxSlidingWindowBrute(nums: IntArray, k: Int): IntArray =
+    IntArray(nums.size - k + 1) { i -> (i until i + k).maxOf { nums[it] } }
+```
+
+`maxSlidingWindowBrute(intArrayOf(1, 3, -1, -3, 5, 3, 6, 7), 3)` → `[3, 3, 5, 5, 6, 7]`. The deque keeps only candidates that could still become a maximum, so each index enters and leaves once.
+
+#### 4. Kotlin Code
 
 ```kotlin
 // Sliding Window Maximum
@@ -74,7 +90,7 @@ fun minSlidingWindow(nums: IntArray, k: Int): IntArray {
 
 Checks: `maxSlidingWindow([1,3,-1,-3,5,3,6,7], 3)` → `[3,3,5,5,6,7]`. `minSlidingWindow` on the same input → `[-1,-3,-3,-3,3,3]`.
 
-#### 4. Complexity
+#### 5. Complexity
 
 | Way | Time | Space |
 |---|---|---|
@@ -82,7 +98,7 @@ Checks: `maxSlidingWindow([1,3,-1,-3,5,3,6,7], 3)` → `[3,3,5,5,6,7]`. `minSlid
 | Heap with lazy deletion | `O(n log n)` | `O(n)` |
 | **Monotonic deque** | **`O(n)`** | `O(k)` |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Storing values instead of indexes.** You cannot tell when the front left the window.
 2. **Wrong expiry check.** The front is out when `index <= i - k`.
@@ -91,14 +107,14 @@ Checks: `maxSlidingWindow([1,3,-1,-3,5,3,6,7], 3)` → `[3,3,5,5,6,7]`. `minSlid
 5. **Special sizes:** `k = 1`, `k = n`, empty array.
 6. **Calling `first()` on an empty deque.** It is never empty right after you add `i`.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "Brute force is `O(n·k)`. A heap is `O(n log n)`. A monotonic deque is `O(n)`."
 2. "The deque keeps indexes with decreasing values. The front is the window maximum."
 3. "I remove from the back anything smaller than the new item, and from the front anything that left the window."
 4. "Each index enters and leaves once, so it is `O(n)`."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. Why can we throw away a smaller, older item when a bigger new item arrives?
 2. For `[4, 2]` with `k = 2`, what is in the deque after both items and what is the max?
@@ -111,7 +127,7 @@ Checks: `maxSlidingWindow([1,3,-1,-3,5,3,6,7], 3)` → `[3,3,5,5,6,7]`. `minSlid
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

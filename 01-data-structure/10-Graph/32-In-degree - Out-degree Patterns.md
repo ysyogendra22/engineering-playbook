@@ -80,7 +80,30 @@ flowchart LR
     classDef g fill:#bbf7d0,stroke:#15803d,color:#111
 ```
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Question | Brute force | With degree counts |
+|---|---|---|
+| In-degree and out-degree of every vertex | for each vertex scan all edges: `O(V · E)` | one pass over the edges: `O(V + E)` |
+| Find the Town Judge | for each person scan the whole trust list twice: `O(n · E)` | two arrays: `O(n + E)` |
+| Minimum vertices to reach all nodes in a DAG | search from each vertex | vertices with in-degree `0`: `O(V + E)` |
+| Centre of a tree | BFS from every vertex, find the minimum eccentricity | peel leaves layer by layer: `O(V)` |
+
+```kotlin
+// Brute force: Find the Town Judge by scanning the trust list for every person
+fun findJudgeBrute(n: Int, trust: Array<IntArray>): Int {
+    for (p in 1..n) {
+        val trustsSomeone = trust.any { it[0] == p }
+        val trustedBy = trust.count { it[1] == p }
+        if (!trustsSomeone && trustedBy == n - 1) return p
+    }
+    return -1
+}
+```
+
+`findJudgeBrute(3, arrayOf(intArrayOf(1, 3), intArrayOf(2, 3)))` → `3`. `findJudgeBrute(3, arrayOf(intArrayOf(1, 3), intArrayOf(2, 3), intArrayOf(3, 1)))` → `-1`.
+
+#### 4. Kotlin Code
 
 ```kotlin
 // Find the Town Judge (LeetCode 997): people are 1..n
@@ -141,7 +164,7 @@ fun findMinHeightTrees(n: Int, edges: Array<IntArray>): List<Int> {
 
 Checks: `findJudge(3, [[1,3],[2,3]])` → `3`. `findSmallestSetOfVertices(6, [[0,1],[0,2],[2,5],[3,4],[4,2]])` → `[0, 3]`. `findCenter([[1,2],[2,3],[4,2]])` → `2`. `findMinHeightTrees(4, [[1,0],[1,2],[1,3]])` → `[1]`.
 
-#### 4. Complexity
+#### 5. Complexity
 
 | | Time | Space |
 |---|---|---|
@@ -149,7 +172,7 @@ Checks: `findJudge(3, [[1,3],[2,3]])` → `3`. `findSmallestSetOfVertices(6, [[0
 | Minimum Height Trees | `O(V + E)` | `O(V + E)` |
 | Find Center of Star Graph | `O(1)` | `O(1)` |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Mixing up in-degree and out-degree** (the direction of the edge).
 2. **Town judge:** forgetting that the judge must have out-degree `0`, or the case `n = 1` (the judge is person 1 when there are no trust edges).
@@ -157,13 +180,13 @@ Checks: `findJudge(3, [[1,3],[2,3]])` → `3`. `findSmallestSetOfVertices(6, [[0
 4. **Minimum Height Trees:** forgetting `n == 1`, and stopping at `remaining > 2` (not `> 0`).
 5. **Using degrees on a graph with cycles** and expecting a "start" node. A cycle has no node with in-degree 0.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "I only need counts, so I count in-degree and out-degree in one pass over the edges. That is `O(V + E)` with no search."
 2. "The judge has in-degree `n - 1` and out-degree 0."
 3. "For a tree centre I peel leaves layer by layer, which is Kahn's idea on an undirected tree."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. A node has in-degree 0 in a DAG. What does that tell you?
 2. What is the in-degree of the town judge?
@@ -176,7 +199,7 @@ Checks: `findJudge(3, [[1,3],[2,3]])` → `3`. `findSmallestSetOfVertices(6, [[0
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

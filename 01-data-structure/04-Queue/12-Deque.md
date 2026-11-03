@@ -46,7 +46,23 @@ Names in Kotlin and in Java:
 
 Warning: on a Java `Deque`, `push(x)` adds to the **front** and `pop()` removes from the **front**. Do not mix them with `addLast`.
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Task | With a plain queue or stack | With a deque |
+|---|---|---|
+| Add or remove at **both** ends | one end is `O(n)` on a list | `O(1)` at both ends |
+| Palindrome check from both ends | copy and reverse: `O(n)` extra | compare `first` and `last`: `O(1)` extra |
+| Sliding window maximum | scan each window: `O(n · k)` | monotonic deque: `O(n)` |
+
+```kotlin
+// Add at the FRONT of a list: shifts every item, O(n)
+fun addFrontSlow(list: MutableList<Int>, x: Int) { list.add(0, x) }
+
+// Add at the front of a deque: O(1)
+fun addFrontFast(dq: ArrayDeque<Int>, x: Int) { dq.addFirst(x) }
+```
+
+#### 4. Kotlin Code
 
 ```kotlin
 val dq = ArrayDeque<Int>()
@@ -82,7 +98,7 @@ class History {
 }
 ```
 
-#### 4. Complexity
+#### 5. Complexity
 
 | Action | Time |
 |---|---|
@@ -90,7 +106,7 @@ class History {
 | `deque[i]` (Kotlin `ArrayDeque`) | `O(1)` |
 | `contains`, remove from the middle | `O(n)` |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Mixing `push`/`pop` (front) with `addLast`/`removeLast` (back)** on a Java `Deque`.
 2. **`removeFirst()` or `first()` on an empty deque** crashes. Use the `...OrNull()` versions.
@@ -98,13 +114,13 @@ class History {
 4. **Using the wrong end** and getting reversed order.
 5. **Removing from the middle** and expecting `O(1)`.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "A deque gives `O(1)` add and remove at both ends, so I can use it as a stack, a queue, or both."
 2. "For a sliding window maximum I keep a monotonic deque of indexes."
 3. "For 0-1 BFS I push 0-cost neighbours to the front and 1-cost neighbours to the back."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. Which two calls make a deque behave like a stack?
 2. Where does `push(x)` add on a Java `Deque`?
@@ -117,7 +133,7 @@ class History {
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

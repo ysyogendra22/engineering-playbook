@@ -37,7 +37,33 @@ answer 2
 
 In Kotlin, `-3 % 5` is `-3`, not `2`. Fix negative remainders with `((x % k) + k) % k`.
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Question | Brute force | Prefix + map |
+|---|---|---|
+| Count subarrays with sum `k` | `O(n²)` | `O(n)` |
+| **Longest** subarray with sum `k` | `O(n²)` | `O(n)` (store the **first** index of each prefix) |
+| Longest subarray with equal 0s and 1s | `O(n²)` | `O(n)` (treat 0 as `−1`) |
+| Subarray sum divisible by `k` | `O(n²)` | `O(n)` (store the remainder) |
+
+```kotlin
+// Brute force: longest subarray with sum k, O(n^2)
+fun maxSubArrayLenBrute(nums: IntArray, k: Int): Int {
+    var best = 0
+    for (i in nums.indices) {
+        var sum = 0
+        for (j in i until nums.size) {
+            sum += nums[j]
+            if (sum == k) best = maxOf(best, j - i + 1)
+        }
+    }
+    return best
+}
+```
+
+`maxSubArrayLenBrute(intArrayOf(1, -1, 5, -2, 3), 3)` → `4` (the subarray `[1, -1, 5, -2]`). `maxSubArrayLenBrute(intArrayOf(-2, -1, 2, 1), 1)` → `2`.
+
+#### 4. Kotlin Code
 
 ```kotlin
 // Subarray Sums Divisible by K (LeetCode 974): count
@@ -88,14 +114,14 @@ fun findMaxLength(nums: IntArray): Int {
 
 Checks: `subarraysDivByK([4,5,0,-2,-3,1], 5)` → `7`. `checkSubarraySum([23,2,4,6,7], 6)` → `true`. `findMaxLength([0,1,0])` → `2`.
 
-#### 4. Complexity
+#### 5. Complexity
 
 | | Time | Space |
 |---|---|---|
 | All of the above | `O(n)` | `O(n)` (for remainders, `O(min(n, k))`) |
 | Brute force | `O(n²)` | `O(1)` |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Negative remainders.** Fix with `((x % k) + k) % k`.
 2. **Forgetting the start entry** (`{0: 1}` or `{0: -1}`).
@@ -105,13 +131,13 @@ Checks: `subarraysDivByK([4,5,0,-2,-3,1], 5)` → `7`. `checkSubarraySum([23,2,4
 6. **Dividing by `k = 0`.** Check what the question allows.
 7. **Using a sliding window** here. It fails with negative numbers.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "The question is about equal prefix states, so I use a map from prefix state to first index (or count)."
 2. "For divisibility the state is the remainder. For equal 0s and 1s the state is a balance."
 3. "Time `O(n)`, space `O(n)`."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. In Contiguous Array, what do we do with each `0`?
 2. Two prefixes have the same remainder mod `k`. What does that tell you about the part between them?
@@ -124,7 +150,7 @@ Checks: `subarraysDivByK([4,5,0,-2,-3,1], 5)` → `7`. `checkSubarraySum([23,2,4
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

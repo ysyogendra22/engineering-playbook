@@ -1,134 +1,200 @@
 # Word Dictionary / Prefix Matching
 
-#### 1. Definition — Must Know
+> Use the trie to match **prefixes of a longer string** against a dictionary: replace words by their shortest root, find the longest buildable word, or sum values under a prefix.
 
-1. A **word dictionary** is a Trie used as a set of valid words.
-2. **Prefix matching** uses that dictionary to answer questions about the *beginnings* of other strings: "which dictionary word is a prefix of this word?" or "what do all these words have in common at the start?"
-3. This is the step between the basic operations and full autocomplete.
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+Three classic dictionary questions, all one trie walk:
 
-1. One walk through the Trie can check many prefixes of a string at once, because they are all on the same path.
-2. It replaces repeated `startsWith` calls or repeated string comparisons with a single pass.
-3. Typical tasks: replacing words with their shortest root, finding the longest common prefix, and validating input against a list.
+| Question | Goal | Trie idea |
+|---|---|---|
+| **Replace Words** (648) | replace each word by the **shortest dictionary root** that is its prefix | walk the word; stop at the **first** node with `isEnd` |
+| **Longest Word in Dictionary** (720) | longest word that can be built one letter at a time from other words | only walk through nodes that are word ends |
+| **Map Sum Pairs** (677) | sum of the values of all keys with a given prefix | store a value at end nodes, sum the subtree (or keep a running sum on each node) |
 
-#### 3. How It Works — Must Know
+**Signals:** "dictionary of roots", "replace with the shortest", "every prefix is also a word", "sum of values with prefix".
 
-Dictionary: `cat`, `bat`, `rat`. Sentence word: `cattle`.
+#### 2. How It Works
 
-```text
-Walk "cattle" through the Trie:
-c ✓ → a ✓ → t ✓ and t is an end of word → the shortest root is "cat"
+**Replace Words.** Roots `["cat", "bat", "rat"]`, sentence `"the cattle was rattled by the battery"` becomes `"the cat was rat by the bat"`.
+
+```mermaid
+flowchart TD
+    root((root)) --- c((c)) --- a1((a)) --- t1(["t ✓ cat"])
+    root --- b((b)) --- a2((a)) --- t2(["t ✓ bat"])
+    root --- r((r)) --- a3((a)) --- t3(["t ✓ rat"])
 ```
 
-Stop at the **first end-of-word node** to get the shortest matching root.
-
-Longest common prefix of `flower`, `flow`, `flight`:
-
 ```text
-root → f → l → (two children: o and i)   ← branching: stop here
-Common prefix: "fl"
+word "cattle":  c → a → t (isEnd!) → stop here, replace by "cat"
+word "was":     w has no child in the root → keep "was"
 ```
 
-#### 4. Core Concepts — Must Know
-
-1. **Shortest matching prefix** — stop at the first node with `isEndOfWord = true`.
-2. **Longest matching prefix** — keep going and remember the last end-of-word seen.
-3. **Longest common prefix of all words** — walk while the node has exactly one child and is not an end of word.
-4. One pass is `O(L)` for a word of length `L`.
-
-#### 5. Algorithm — Must Know
+**Longest Word in Dictionary.** A word counts only if **every one of its prefixes is also a word**. Insert all words. DFS from the root, **only into children that are word ends**. The deepest path (the lexicographically smallest on ties) is the answer.
 
 ```text
-shortestRoot(word):
-    node = root
-    for each character ch in word:
-        if node has no child for ch: return null
-        node = child for ch
-        append ch to the prefix so far
-        if node.isEndOfWord: return the prefix so far
-    return null
+words: w, wo, wor, worl, world, banana         →  "world"
+(banana is not buildable: "b", "ba", "ban" ... are not words)
 ```
 
-#### 6. Kotlin Implementation — Must Know
+**Map Sum Pairs.** `insert(key, val)` sets the value of a key (an **overwrite** if the key exists). `sum(prefix)` adds all values of keys under the prefix. Keep a `HashMap<String, Int>` of current values, and on each node a running `total` of the values passing through it. When a key is overwritten, add only the **difference** (`new − old`) to every node on its path.
+
+```text
+insert("apple", 3)   path totals: a=3 ap=3 app=3 appl=3 apple=3
+insert("app", 2)     path totals: a=5 ap=5 app=5
+sum("ap") = 5
+insert("apple", 5)   difference +2 → a=7 ap=7 app=7 appl=5 apple=5
+sum("ap") = 7
+```
+
+#### 3. Brute Force vs Optimized
+
+| Problem | Brute force | Trie |
+|---|---|---|
+| Replace Words | for each word, try every root with `startsWith`: `O(W · R · L)` | walk the trie: `O(W · L)` |
+| Longest Word | for each word check all prefixes in a set: `O(total L²)` | DFS over end nodes: `O(total L)` |
+| Map Sum | scan all keys for each query: `O(n · L)` | running totals: `O(L)` |
 
 ```kotlin
-// Methods inside the Trie class from "Trie Implementation"
-
-fun shortestRoot(word: String): String? {
-    var node = root
-    val prefix = StringBuilder()
-    for (ch in word) {
-        node = node.children[ch] ?: return null
-        prefix.append(ch)
-        if (node.isEndOfWord) return prefix.toString()
+// Brute force Replace Words: try every root
+fun replaceWordsBrute(roots: List<String>, sentence: String): String =
+    sentence.split(" ").joinToString(" ") { word ->
+        roots.filter { word.startsWith(it) }.minByOrNull { it.length } ?: word
     }
-    return null
+```
+
+#### 4. Kotlin Code
+
+```kotlin
+class Node {
+    val next = arrayOfNulls<Node>(26)
+    var isEnd = false
 }
 
-// Replace each word in a sentence with its shortest root, if it has one
-fun replaceWords(sentence: String): String =
-    sentence.split(" ").joinToString(" ") { shortestRoot(it) ?: it }
-
-// Longest common prefix of every word stored in the Trie
-fun longestCommonPrefix(): String {
-    val prefix = StringBuilder()
-    var node = root
-    while (node.children.size == 1 && !node.isEndOfWord) {
-        val (ch, next) = node.children.entries.first()
-        prefix.append(ch)
-        node = next
+// Replace Words (LeetCode 648)
+fun replaceWords(dictionary: List<String>, sentence: String): String {
+    val root = Node()
+    for (w in dictionary) {
+        var node = root
+        for (c in w) {
+            if (node.next[c - 'a'] == null) node.next[c - 'a'] = Node()
+            node = node.next[c - 'a']!!
+        }
+        node.isEnd = true
     }
-    return prefix.toString()
+    fun shortestRoot(word: String): String {
+        var node = root
+        for ((i, c) in word.withIndex()) {
+            node = node.next[c - 'a'] ?: return word          // no root matches
+            if (node.isEnd) return word.substring(0, i + 1)   // the first (shortest) root
+        }
+        return word
+    }
+    return sentence.split(" ").joinToString(" ") { shortestRoot(it) }
+}
+
+// Longest Word in Dictionary (LeetCode 720)
+fun longestWord(words: Array<String>): String {
+    val root = Node()
+    for (w in words) {
+        var node = root
+        for (c in w) {
+            if (node.next[c - 'a'] == null) node.next[c - 'a'] = Node()
+            node = node.next[c - 'a']!!
+        }
+        node.isEnd = true
+    }
+    var best = ""
+    fun dfs(node: Node, path: StringBuilder) {
+        if (path.length > best.length) best = path.toString()      // first found at a length is lexicographically smallest
+        for (i in 0 until 26) {
+            val child = node.next[i] ?: continue
+            if (!child.isEnd) continue                              // every prefix must be a word
+            path.append('a' + i)
+            dfs(child, path)
+            path.deleteCharAt(path.length - 1)
+        }
+    }
+    dfs(root, StringBuilder())
+    return best
+}
+
+// Map Sum Pairs (LeetCode 677)
+class MapSum {
+    private class TNode {
+        val next = arrayOfNulls<TNode>(26)
+        var total = 0                                              // sum of values of keys passing through
+    }
+
+    private val root = TNode()
+    private val values = HashMap<String, Int>()
+
+    fun insert(key: String, value: Int) {
+        val delta = value - (values[key] ?: 0)                     // overwrite: add only the change
+        values[key] = value
+        var node = root
+        for (c in key) {
+            if (node.next[c - 'a'] == null) node.next[c - 'a'] = TNode()
+            node = node.next[c - 'a']!!
+            node.total += delta
+        }
+    }
+
+    fun sum(prefix: String): Int {
+        var node = root
+        for (c in prefix) node = node.next[c - 'a'] ?: return 0
+        return node.total
+    }
 }
 ```
 
-#### 7. Time & Space Complexity — Must Know
+Checks: `replaceWords(listOf("cat", "bat", "rat"), "the cattle was rattled by the battery")` → `"the cat was rat by the bat"`. `replaceWords(listOf("a", "b", "c"), "aadsfasf absbs bbab cadsfafs")` → `"a a b c"`. `replaceWordsBrute(...)` gives the same. `longestWord(arrayOf("w", "wo", "wor", "worl", "world"))` → `"world"`. `longestWord(arrayOf("a", "banana", "app", "appl", "ap", "apply", "apple"))` → `"apple"` (`apply` has the same length, but `apple` is smaller alphabetically). `MapSum`: `insert("apple", 3)`, `sum("ap")` → `3`, `insert("app", 2)`, `sum("ap")` → `5`, `insert("apple", 5)` (overwrite), `sum("ap")` → `7`.
 
-| Operation | Time | Space |
-|---|---:|---:|
-| Build the dictionary | `O(total characters)` | `O(total characters)` |
-| `shortestRoot` for one word | `O(L)` | `O(L)` for the prefix string |
-| `replaceWords` | `O(total characters of the sentence)` | `O(sentence length)` |
-| `longestCommonPrefix` | `O(length of the answer)` | `O(length of the answer)` |
+#### 5. Complexity
 
-#### 8. Common Prefix-Matching Patterns — Must Know
+| | Time | Space |
+|---|---|---|
+| Replace Words | build `O(total root chars)`, then `O(total sentence chars)` | `O(total root chars)` |
+| Longest Word | `O(total chars)` | `O(total chars)` |
+| Map Sum | `insert` `O(L)`, `sum` `O(L)` | `O(total chars)` |
 
-1. **Replace Words** (LeetCode 648) — replace each word by its shortest dictionary root.
-2. **Longest Common Prefix** (LeetCode 14) — usually solved by comparing characters, but a Trie shows the same idea.
-3. Check that an input string starts with any dictionary word.
-4. Find the longest dictionary word that is a prefix of the input (remember the last end-of-word on the walk).
+#### 6. Common Mistakes
 
-#### 9. Edge Cases / Common Mistakes
+1. **Replace Words:** returning the **longest** matching root instead of the shortest (stop at the first `isEnd`).
+2. **Longest Word:** following nodes that are not word ends.
+3. **Longest Word:** ignoring the alphabetical tie-break. Visiting children `a..z` in order and using a strict `>` handles it.
+4. **Map Sum:** adding the full value again on overwrite (double counting). Add only the difference.
+5. **Map Sum:** returning `0` vs failing when the prefix is missing. Return `0`.
+6. **Splitting a sentence** and forgetting to join with a single space.
 
-1. Not stopping at the **first** end of word when the task asks for the *shortest* root.
-2. Returning a partial prefix that is not a dictionary word (the end-of-word check is what makes it valid).
-3. Longest common prefix: forgetting that a stored word can end before the branch (`flow` inside `flower`). The `!node.isEndOfWord` check handles this.
-4. An empty dictionary or an empty input word.
-5. Words in the sentence separated by more than one space when using `split(" ")`.
+#### 7. Say This in the Interview
 
-#### 10. When to Use / When Not to Use
+1. "For each word I walk the trie and stop at the first node that ends a root. That is the shortest root, in `O(L)` per word."
+2. "For the longest buildable word I only descend into children that are word ends, so every prefix is guaranteed to be a word."
+3. "For Map Sum, each node keeps the total of the values below it, and on overwrite I add only the difference, so `sum` is just a walk of the prefix."
 
-**Use when:**
+#### 8. Quick Check
 
-1. One dictionary is checked against many strings.
-2. You need the shortest or longest matching prefix.
+1. Roots `a`, `ab`: which root replaces `abc`?
+2. Is `"abc"` buildable from `["a", "abc"]`?
+3. In Map Sum, what changes when `insert("app", 2)` is called twice with the same value?
 
-**Avoid when:**
+<details>
+<summary>Answers</summary>
 
-1. The dictionary is tiny. A simple loop with `startsWith` on a list is clearer.
-2. You only compare a few strings once.
+1. `a` (the shortest).
+2. No: `"ab"` is not in the list.
+3. Nothing (the difference is `0`).
 
-#### 11. Related Topics
+</details>
 
-1. Search Word
-2. Prefix Search / `startsWith`
-3. Autocomplete / Prefix Suggestions
-4. String (`01-data-structure/01-Array`, `02-algorithm/08-String Algorithms`)
+#### 9. Related LeetCode Questions
 
-#### 12. Interview Must Remember
-
-1. Stop at the **first end-of-word** for the shortest root. Remember the **last** one for the longest.
-2. One walk down the Trie checks all prefixes of a string.
-3. Longest common prefix = walk while there is exactly one child and no word ends.
-4. Cost is `O(L)` per word.
+| # | Question | Idea |
+|---|---|---|
+| 648 | [Replace Words](https://leetcode.com/problems/replace-words/) (Medium) | first `isEnd` |
+| 720 | [Longest Word in Dictionary](https://leetcode.com/problems/longest-word-in-dictionary/) (Medium) | descend through word ends |
+| 677 | [Map Sum Pairs](https://leetcode.com/problems/map-sum-pairs/) (Medium) | running totals |
+| 1233 | [Remove Sub-Folders from the Filesystem](https://leetcode.com/problems/remove-sub-folders-from-the-filesystem/) (Medium) | trie of path parts |
+| 1065 | [Index Pairs of a String](https://leetcode.com/problems/index-pairs-of-a-string/) (Easy, premium) | match at each start |
+| 1268 | [Search Suggestions System](https://leetcode.com/problems/search-suggestions-system/) (Medium) | note 12 |

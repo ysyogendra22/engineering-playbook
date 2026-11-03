@@ -31,7 +31,33 @@ One special case: when the **last** item is removed, `head` becomes `null`. You 
 
 Why not just a `head` pointer? Then `enqueue` would walk the whole list to find the end (`O(n)`). The `tail` pointer makes it `O(1)`.
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Implementation | `enqueue` | `dequeue` | Memory | Note |
+|---|---|---|---|---|
+| Array, shift all items on every `dequeue` | `O(1)` | `O(n)` | fixed | naive |
+| Array, move a `head` index (never shift) | `O(1)` | `O(1)` | wastes the freed front slots | needs a reset or a circular buffer |
+| **Circular array** (note 11) | `O(1)` | `O(1)` | fixed, reused | the standard fixed-size queue |
+| Linked list with `head` and `tail` | `O(1)` | `O(1)` | one node per item | no resizing |
+
+```kotlin
+// Naive array queue: dequeue shifts everything to the left, O(n)
+class ShiftQueue(capacity: Int) {
+    private val a = IntArray(capacity)
+    private var size = 0
+    fun enqueue(x: Int) { a[size++] = x }
+    fun dequeue(): Int {
+        val v = a[0]
+        for (i in 1 until size) a[i - 1] = a[i]
+        size--
+        return v
+    }
+}
+```
+
+Keeping a moving `head` index removes the shifting. Making the array **circular** also reuses the freed space.
+
+#### 4. Kotlin Code
 
 ```kotlin
 class LinkedQueue<T> {
@@ -89,7 +115,7 @@ class SimpleQueue<T> {
 }
 ```
 
-#### 4. Complexity
+#### 5. Complexity
 
 | Action | Linked list | `ArrayDeque` |
 |---|---|---|
@@ -98,7 +124,7 @@ class SimpleQueue<T> {
 | `peek` | `O(1)` | `O(1)` |
 | Memory | one node per item | compact |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Forgetting `tail = null`** when the queue becomes empty.
 2. **Only keeping `head`.** Then `enqueue` is `O(n)`.
@@ -106,13 +132,13 @@ class SimpleQueue<T> {
 4. **Not updating `size`.**
 5. **Not handling dequeue on an empty queue** (throw a clear error or return `null`).
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "I will use a linked list with a `head` and a `tail` pointer. Enqueue adds at the tail and dequeue removes at the head, so both are `O(1)`."
 2. "When the last item is removed, I also reset the tail."
 3. "In production I would use `ArrayDeque`."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. Why do we need a `tail` pointer?
 2. After you dequeue the only item, what must `head` and `tail` be?
@@ -125,7 +151,7 @@ class SimpleQueue<T> {
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

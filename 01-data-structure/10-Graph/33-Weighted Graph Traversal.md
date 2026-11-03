@@ -57,7 +57,23 @@ dfs(cur, target, acc):
 
 Any path gives the same answer here (the equations are consistent), so DFS is enough. For a **cheapest** path you would need Dijkstra.
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Question | Brute force | Better |
+|---|---|---|
+| Value of a path (division queries) | for every query run a new search from scratch | build the graph once, one DFS per query carrying the product: `O(V + E)` per query |
+| Many queries on the same equations | repeat searches | weighted union-find, or precompute all pairs (Floyd-Warshall) |
+| **Cheapest** path | try every path | Dijkstra |
+| Any path value (all paths agree) | | plain DFS / BFS with a running value |
+
+```text
+a / b = 2.0, b / c = 3.0:   edges  a→b (2.0), b→a (0.5), b→c (3.0), c→b (0.333)
+query a / c  →  DFS a → b → c  carrying the product 2.0 * 3.0 = 6.0
+```
+
+If the question is about the **cheapest** route, a plain DFS is not enough (it finds a path, not the cheapest). Use Dijkstra.
+
+#### 4. Kotlin Code
 
 ```kotlin
 // Evaluate Division (LeetCode 399)
@@ -112,14 +128,14 @@ Other weighted-walk problems you already know:
 | Cheapest Flights Within K Stops (787) | BFS by levels with a cost array, or Bellman-Ford |
 | Path With Minimum Effort (1631) | Dijkstra with `max` as the cost |
 
-#### 4. Complexity
+#### 5. Complexity
 
 | | Time | Space |
 |---|---|---|
 | Evaluate Division, per query | `O(V + E)` | `O(V)` |
 | Dijkstra | `O((V + E) log V)` | `O(V)` |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Forgetting the reverse edge** with weight `1 / value`.
 2. **Using BFS or DFS** when the question asks for the cheapest path. Use Dijkstra.
@@ -128,13 +144,13 @@ Other weighted-walk problems you already know:
 5. **Using `0` as "not found"**, which is a possible answer. Use `-1.0` as the question says.
 6. **Floating-point equality.** Avoid `==` on doubles except for sentinel values like `-1.0`.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "Each variable is a node and each equation is a weighted edge in both directions: `value` and `1 / value`."
 2. "A query is a path, and the answer is the product of the weights along it. I use DFS with a visited set."
 3. "If I needed the cheapest path I would use Dijkstra instead."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. If `a / b = 4`, what is the weight of the edge `b → a`?
 2. Which algorithm is used for the cheapest weighted path?
@@ -147,7 +163,7 @@ Other weighted-walk problems you already know:
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

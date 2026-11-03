@@ -45,7 +45,26 @@ Hash codes of common types:
 | `List`, `Pair`, `data class` | built from the hash codes of the contents |
 | `IntArray`, `Array` | identity based. **Two arrays with the same content have different hash codes.** |
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Hash function | Quality | Example |
+|---|---|---|
+| Sum of the characters | **poor**: anagrams and many strings collide | `"abc"` and `"cab"` both give `294` |
+| Length only | terrible | every 3-letter word collides |
+| **Polynomial** (`h = h * 31 + c`) | good: order matters, spreads values | `"abc"` → `96354`, `"cab"` → `98244` (different) |
+| Constant | worst: one bucket holds everything, `O(n)` per operation | |
+
+```kotlin
+// Naive hash: the order of the letters is ignored
+fun naiveHash(s: String): Int = s.sumOf { it.code }
+
+// Polynomial hash (what String.hashCode does)
+fun polyHash(s: String): Int = s.fold(0) { h, c -> 31 * h + c.code }
+```
+
+`naiveHash("abc")` → `294` and `naiveHash("cab")` → `294` (a collision). `polyHash("abc")` → `96354` and `polyHash("cba")` → `98274` (different). A good hash spreads keys evenly, so buckets stay short.
+
+#### 4. Kotlin Code
 
 ```kotlin
 println("abc".hashCode())                       // 96354
@@ -66,7 +85,7 @@ class Point(val x: Int, val y: Int) {
 data class Point2(val x: Int, val y: Int)
 ```
 
-#### 4. Complexity
+#### 5. Complexity
 
 | Action | Time |
 |---|---|
@@ -76,7 +95,7 @@ data class Point2(val x: Int, val y: Int)
 
 A long key makes every map operation slower, because hashing and comparing read the whole key.
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Writing `equals()` but not `hashCode()`** (or the opposite). The map then loses keys.
 2. **Using different fields** in `equals` and `hashCode`.
@@ -85,13 +104,13 @@ A long key makes every map operation slower, because hashing and comparing read 
 5. **Thinking different keys always have different hash codes.** They do not.
 6. **Using `hash % size` with a negative hash.** The index can be negative. Use `and 0x7fffffff` first.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "The hash code picks the bucket. `equals()` then finds the exact key inside the bucket."
 2. "Equal keys must have equal hash codes. In Kotlin a `data class` gives me both."
 3. "I avoid arrays as keys because they use identity hash codes."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. If `a.equals(b)` is true, what must be true about their hash codes?
 2. Why can't an `IntArray` be a good map key?
@@ -104,7 +123,7 @@ A long key makes every map operation slower, because hashing and comparing read 
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

@@ -42,7 +42,31 @@ The inner `max` is a sliding window maximum over `dp`. Use a decreasing deque of
 - **Front:** while `prefix[j] - prefix[front] >= k`, record the length `j - front` and remove the front. A later `j` can never give a shorter subarray for that start.
 - **Back:** while `prefix[back] >= prefix[j]`, remove the back. The new index is later and has a smaller (or equal) prefix, so it is a better start.
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Problem | Brute force | Monotonic queue |
+|---|---|---|
+| DP with the best of the last `k` states (Jump Game VI, Constrained Subsequence Sum) | try all `k` previous states: `O(n · k)` | keep the max of the window in a deque: `O(n)` |
+| Longest subarray with `max − min ≤ limit` | check every subarray: `O(n²)` | two deques (max and min): `O(n)` |
+| Shortest subarray with sum ≥ K (negatives allowed) | all subarrays: `O(n²)` | prefix sums + deque: `O(n)` |
+
+```kotlin
+// Brute force DP for Jump Game VI: dp[i] = nums[i] + max(dp[i - k .. i - 1]). O(n * k).
+fun maxResultBrute(nums: IntArray, k: Int): Int {
+    val dp = IntArray(nums.size)
+    dp[0] = nums[0]
+    for (i in 1 until nums.size) {
+        var best = Int.MIN_VALUE
+        for (j in maxOf(0, i - k) until i) best = maxOf(best, dp[j])
+        dp[i] = nums[i] + best
+    }
+    return dp[nums.size - 1]
+}
+```
+
+`maxResultBrute(intArrayOf(1, -1, -2, 4, -7, 3), 2)` → `7`. The deque keeps the best `dp` value of the window at the front, so each step is `O(1)` amortised.
+
+#### 4. Kotlin Code
 
 ```kotlin
 // Longest Continuous Subarray With Absolute Diff <= limit (LeetCode 1438)
@@ -107,7 +131,7 @@ fun shortestSubarray(nums: IntArray, k: Int): Int {
 
 Checks: `longestSubarray([8,2,4,7], 4)` → `2`. `longestSubarray([10,1,2,4,7,2], 5)` → `4`. `maxResult([1,-1,-2,4,-7,3], 2)` → `7`. `shortestSubarray([2,-1,2], 3)` → `3`. `shortestSubarray([1], 1)` → `1`.
 
-#### 4. Complexity
+#### 5. Complexity
 
 | Problem | Time | Space |
 |---|---|---|
@@ -116,7 +140,7 @@ Checks: `longestSubarray([8,2,4,7], 4)` → `2`. `longestSubarray([10,1,2,4,7,2]
 
 Each index enters and leaves a deque once.
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Storing values instead of indexes.**
 2. **Wrong comparison direction** for max versus min.
@@ -125,13 +149,13 @@ Each index enters and leaves a deque once.
 5. **Using a plain sliding window with negative numbers.** It fails. Use prefix sums + deque.
 6. **1438: forgetting to drop deque fronts that fall left of `left`.**
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "Brute force is `O(n·k)` or `O(n²)`. A monotonic deque makes it `O(n)`."
 2. "I keep only candidates that can still be the answer, in sorted order. Each index enters and leaves once."
 3. "With negative numbers a normal window fails, so I use prefix sums and an increasing deque."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. Which two deques does Longest Subarray (1438) use?
 2. Why are prefix sums needed in 862?
@@ -144,7 +168,7 @@ Each index enters and leaves a deque once.
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

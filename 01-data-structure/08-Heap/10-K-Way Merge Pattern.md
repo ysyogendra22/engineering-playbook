@@ -1,151 +1,141 @@
 # K-Way Merge Pattern
 
-#### 1. Definition — Must Know
+> Merge `K` sorted lists into one sorted list. A min-heap holds **one item from each list**, so the smallest is always on top.
 
-1. The **K-Way Merge** pattern combines **`k` sorted sources** into one sorted result (or finds something in that merged order).
-2. The heap holds **one current item from each source**.
-3. Repeatedly remove the smallest item from the heap, then add the **next item from the same source**.
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+You have `K` **sorted** lists (or arrays, or streams). You want the smallest item overall, then the next one, and so on. Looking at the front of all `K` lists each time would cost `O(K)` per item. A **min-heap of the `K` current front items** gives the smallest in `O(log K)`.
 
-1. The smallest item overall must be the smallest of the `k` front items. A heap finds it in `O(log k)`.
-2. It avoids merging everything and re-sorting. Total cost is `O(N log k)`, where `N` is the total number of items.
-3. It works on any sorted source, including files, streams, and database result pages.
+**Signals:** "merge K sorted", "K sorted lists / arrays / streams", "smallest range covering K lists", "Kth smallest in a sorted matrix", "K pairs with smallest sums".
 
-#### 3. How It Works — Must Know
+#### 2. How It Works
 
-Merge three sorted lists: `A = [1, 4, 7]`, `B = [2, 5, 8]`, `C = [3, 6, 9]`.
-
-```text
-Start: put the first item of each list in the heap
-heap: (1, A), (2, B), (3, C)
-
-poll (1, A) → output 1 → add next of A: (4, A)      heap: (2,B) (3,C) (4,A)
-poll (2, B) → output 2 → add next of B: (5, B)      heap: (3,C) (4,A) (5,B)
-poll (3, C) → output 3 → add next of C: (6, C)      heap: (4,A) (5,B) (6,C)
-poll (4, A) → output 4 → add next of A: (7, A)
-... and so on
-
-Output: 1 2 3 4 5 6 7 8 9
+```mermaid
+flowchart LR
+    subgraph L["Three sorted lists"]
+        a["A: 1, 4, 5"]
+        b["B: 1, 3, 4"]
+        c["C: 2, 6"]
+    end
+    L --> H["min-heap holds the front of each list"]
+    H --> O["output: 1, 1, 2, 3, 4, 4, 5, 6"]
 ```
 
-The heap never holds more than `k` items.
+**Steps**
 
-#### 4. Core Concepts — Must Know
-
-1. **Heap entry** = the value plus **where it came from** (source index, and position or iterator).
-2. **Initialisation:** push the first item of every non-empty source.
-3. **Loop:** poll the smallest, output it, push the next item of that source (if any).
-4. **Heap size is at most `k`**, so each step costs `O(log k)`.
-5. **Signal words:** "k sorted lists", "k sorted arrays", "merge", "smallest range", "kth smallest in a sorted matrix", "smallest sums of pairs".
-
-#### 5. Algorithm — Must Know
+1. Put the **first item of each list** in a min-heap. Store `(value, list index, position in that list)`.
+2. Pop the smallest. Add its value to the output.
+3. If that list has a next item, push it.
+4. Repeat until the heap is empty.
 
 ```text
-heap = min-heap ordered by value
-for each source i that is not empty:
-    heap.add((first value of source i, i))
-
-while heap is not empty:
-    (value, i) = heap.poll()
-    output value
-    if source i has another item:
-        heap.add((next value of source i, i))
+lists: A = [1,4,5]   B = [1,3,4]   C = [2,6]
+heap = {(1,A,0), (1,B,0), (2,C,0)}
+pop (1,A) → out [1]          push (4,A)      heap {1B, 2C, 4A}
+pop (1,B) → out [1,1]        push (3,B)      heap {2C, 3B, 4A}
+pop (2,C) → out [1,1,2]      push (6,C)      heap {3B, 4A, 6C}
+pop (3,B) → out [1,1,2,3]    push (4,B)      heap {4A, 4B, 6C}
+pop (4,A) → push (5,A) ...   out [1,1,2,3,4]
+... final: [1, 1, 2, 3, 4, 4, 5, 6]
 ```
 
-#### 6. Kotlin Implementation — Must Know
+The heap never has more than `K` items.
 
-A generic version that works with any sorted sources:
+**Other ways**
+
+| Way | Time | Note |
+|---|---|---|
+| Put everything in one array and sort | `O(N log N)` | ignores that lists are sorted |
+| Merge two lists at a time, left to right | `O(N · K)` | the early lists are copied again and again |
+| **Heap of size `K`** | **`O(N log K)`** | the standard answer |
+| Divide and conquer (merge pairs) | `O(N log K)` | no heap, same speed (note 11) |
+
+`N` is the total number of items.
+
+#### 3. Brute Force vs Optimized
+
+| Approach | Time | Space |
+|---|---|---|
+| Concatenate and sort | `O(N log N)` | `O(N)` |
+| Merge lists one after another | `O(N · K)` | `O(N)` |
+| Min-heap of size `K` | `O(N log K)` | `O(K)` extra |
+
+```kotlin
+// Brute force: concatenate and sort
+fun mergeSortedBrute(lists: List<IntArray>): IntArray =
+    lists.flatMap { it.toList() }.sorted().toIntArray()
+```
+
+#### 4. Kotlin Code
 
 ```kotlin
 import java.util.PriorityQueue
 
-fun <T : Comparable<T>> kWayMerge(sources: List<Iterator<T>>): List<T> {
-    val heap = PriorityQueue<Pair<T, Int>>(compareBy<Pair<T, Int>> { it.first })
-    sources.forEachIndexed { index, source ->
-        if (source.hasNext()) heap.add(source.next() to index)
+// Merge K sorted arrays with a heap of [value, list index, position]
+fun mergeKSortedArrays(lists: List<IntArray>): IntArray {
+    val heap = PriorityQueue<IntArray>(compareBy<IntArray> { it[0] })
+    for ((i, list) in lists.withIndex()) {
+        if (list.isNotEmpty()) heap.add(intArrayOf(list[0], i, 0))
     }
-
-    val result = mutableListOf<T>()
+    val result = ArrayList<Int>()
     while (heap.isNotEmpty()) {
-        val (value, index) = heap.poll()
+        val (value, listIndex, pos) = heap.poll()
         result.add(value)
-        if (sources[index].hasNext()) heap.add(sources[index].next() to index)
+        if (pos + 1 < lists[listIndex].size) {
+            heap.add(intArrayOf(lists[listIndex][pos + 1], listIndex, pos + 1))
+        }
     }
-    return result
+    return result.toIntArray()
 }
-
-// Usage
-val merged = kWayMerge(
-    listOf(
-        listOf(1, 4, 7).iterator(),
-        listOf(2, 5, 8).iterator(),
-        listOf(3, 6, 9).iterator()
-    )
-)
-println(merged)   // [1, 2, 3, 4, 5, 6, 7, 8, 9]
 ```
 
-Concrete versions for arrays and linked lists are in "Merge K Sorted Lists / Arrays".
+Checks: `mergeKSortedArrays(listOf(intArrayOf(1, 4, 5), intArrayOf(1, 3, 4), intArrayOf(2, 6)))` → `[1, 1, 2, 3, 4, 4, 5, 6]`. `mergeKSortedArrays(listOf())` → `[]`. `mergeKSortedArrays(listOf(intArrayOf(), intArrayOf(7)))` → `[7]`. `mergeSortedBrute(...)` gives the same answer as the heap version.
 
-#### 7. Time & Space Complexity — Must Know
+#### 5. Complexity
 
-`N` = total number of items across all sources, `k` = number of sources.
+| | Time | Space |
+|---|---|---|
+| Heap merge | `O(N log K)` | `O(K)` heap + `O(N)` output |
+| Concatenate + sort | `O(N log N)` | `O(N)` |
+| Pairwise one by one | `O(N · K)` | `O(N)` |
 
-| Case | Time | Space |
-|---|---:|---:|
-| Full merge | `O(N log k)` | `O(k)` for the heap, plus the output |
-| Find only the R-th smallest overall (stop after `R` polls) | `O((k + R) log k)` | `O(k)` |
+#### 6. Common Mistakes
 
-Compare:
+1. **Pushing all items** into the heap (it becomes `O(N log N)`). Only the front of each list belongs there.
+2. **Losing track of which list** the popped item came from. Store the list index and position.
+3. **Not handling empty lists** at the start.
+4. **Comparing the wrong field** in the comparator (compare the value, `it[0]`).
+5. **Merging lists one by one** and getting `O(N · K)`.
+6. **Forgetting to push the next item** after a pop.
 
-| Method | Time |
-|---|---:|
-| Put everything in one list, then sort | `O(N log N)` |
-| Merge two lists at a time, left to right | `O(N · k)` |
-| **Heap K-way merge** | **`O(N log k)`** |
+#### 7. Say This in the Interview
 
-#### 8. Common K-Way Merge Patterns — Must Know
+1. "I keep a min-heap with one element from each list, so the smallest of all fronts is on top. Each pop outputs the next item, and I push that list's next item."
+2. "The heap has at most `K` items, so each step costs `O(log K)`, and the total is `O(N log K)`."
+3. "That's better than concatenating and sorting, `O(N log N)`, because it uses the fact that the lists are already sorted."
 
-1. **Merge K Sorted Lists / Arrays** (LeetCode 23).
-2. **Kth Smallest Element in a Sorted Matrix** (LeetCode 378) — each row is a sorted source. Stop after `k` polls.
-3. **Find K Pairs with Smallest Sums** (LeetCode 373) — each row of the pair table is sorted.
-4. **Smallest Range Covering Elements from K Lists** (LeetCode 632) — see "Smallest / Largest Range Problems".
-5. **External sorting** — merge sorted chunks that do not fit in memory (`02-algorithm/01-sorting`, "External Sort" is awareness only).
+#### 8. Quick Check
 
-#### 9. Edge Cases / Common Mistakes
+1. How many items are in the heap at the start?
+2. What is the time for `K = 1000` lists with `N = 1,000,000` items in total?
+3. What do you store with each heap item?
 
-1. Forgetting to push the **next** item from the same source after polling.
-2. Not remembering the source. Without it you cannot find the next item.
-3. Empty sources. Skip them at the start.
-4. `k = 0` (no sources) or `k = 1` (just return the single source).
-5. Comparing only the value in a `Pair` with a default comparator. Use a comparator on the value field.
-6. Duplicates across sources. They are all kept, in any order among equal values.
-7. Putting **all** items in the heap at the start. That turns it into a normal heap sort.
+<details>
+<summary>Answers</summary>
 
-#### 10. When to Use / When Not to Use
+1. At most `K` (one per non-empty list).
+2. About `N log K ≈ 1,000,000 × 10`.
+3. The value, which list it came from, and its position in that list.
 
-**Use when:**
+</details>
 
-1. The sources are already sorted.
-2. `k` is large, or the sources are streams or files.
+#### 9. Related LeetCode Questions
 
-**Avoid when:**
-
-1. `k = 2`. A simple two-pointer merge is enough.
-2. The sources are not sorted. Sort them first, or use another approach.
-
-#### 11. Related Topics
-
-1. Merge K Sorted Lists / Arrays
-2. Smallest / Largest Range Problems
-3. Heap Fundamentals
-4. Merge Sort (`02-algorithm/01-sorting/04-Merge Sort.md`)
-5. Divide and Conquer (`02-algorithm/03-Recursion & Divide and Conquer`)
-
-#### 12. Interview Must Remember
-
-1. Heap of **one item per source**: poll the smallest, push the next from the same source.
-2. Heap size ≤ `k`, so total time is **`O(N log k)`**.
-3. Each heap entry must remember **which source** it came from.
-4. Recognise it from "`k` sorted ...".
+| # | Question | Idea |
+|---|---|---|
+| 88 | [Merge Sorted Array](https://leetcode.com/problems/merge-sorted-array/) (Easy) | two lists, from the end |
+| 23 | [Merge k Sorted Lists](https://leetcode.com/problems/merge-k-sorted-lists/) (Hard) | heap of heads (note 11) |
+| 378 | [Kth Smallest Element in a Sorted Matrix](https://leetcode.com/problems/kth-smallest-element-in-a-sorted-matrix/) (Medium) | rows as lists |
+| 373 | [Find K Pairs with Smallest Sums](https://leetcode.com/problems/find-k-pairs-with-smallest-sums/) (Medium) | note 11 |
+| 632 | [Smallest Range Covering Elements from K Lists](https://leetcode.com/problems/smallest-range-covering-elements-from-k-lists/) (Hard) | note 21 |
+| 264 | [Ugly Number II](https://leetcode.com/problems/ugly-number-ii/) (Medium) | merge three multiples |

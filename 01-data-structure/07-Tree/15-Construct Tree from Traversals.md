@@ -1,191 +1,168 @@
 # Construct Tree from Traversals
 
-#### 1. Definition — Must Know
+> Given two traversals, rebuild the tree. The rule: **preorder (or postorder) tells you the root, inorder tells you the left and right parts.**
 
-1. **Construct Tree from Traversals** means rebuilding a Binary Tree using its traversal sequences.
-2. The most important interview case is:
-   - **Preorder + Inorder**
-3. Also know:
-   - **Postorder + Inorder**
+#### 1. What Is It?
 
-#### 2. Core Traversal Rules — Must Know
+You are given two traversal lists of a binary tree with **unique values**, and you must rebuild the tree.
 
-```text id="ct001"
-Preorder  → Root → Left → Right
-Inorder   → Left → Root → Right
-Postorder → Left → Right → Root
+| Given | Root comes from | Split with |
+|---|---|---|
+| Preorder + Inorder | the **first** value of preorder | inorder |
+| Postorder + Inorder | the **last** value of postorder | inorder |
+
+**Why two lists?** One traversal alone is ambiguous. Preorder + **postorder** is also ambiguous in general (a single child could be left or right). Inorder is the one that separates left from right.
+
+**Signals:** "construct", "build the tree from", "preorder and inorder".
+
+#### 2. How It Works
+
+`preorder = [3, 9, 20, 15, 7]`, `inorder = [9, 3, 15, 20, 7]`
+
+```text
+1. The first preorder value is the root: 3.
+2. Find 3 in inorder:   [9]  3  [15, 20, 7]
+                         left     right
+   Left subtree has 1 node, right subtree has 3 nodes.
+3. Take the next 1 preorder values for the left  → [9]
+   and the next 3 preorder values for the right → [20, 15, 7]
+4. Repeat: the right part has root 20 (first in its preorder).
+   In inorder [15, 20, 7]:  left [15], right [7].
 ```
 
-The key idea:
-
-1. Preorder tells us the **root first**.
-2. Postorder tells us the **root last**.
-3. Inorder tells us which nodes belong to the **left and right subtrees**.
-
-#### 3. How It Works — Preorder + Inorder
-
-Given:
-
-```text id="ct002"
-Preorder → [3, 9, 20, 15, 7]
-Inorder  → [9, 3, 15, 20, 7]
+```mermaid
+flowchart TD
+    n3((3)) --- n9((9))
+    n3 --- n20((20))
+    n20 --- n15((15))
+    n20 --- n7((7))
 ```
 
-Step 1 — First preorder value is root:
+**The efficient way.** Do not cut the arrays (copying is slow). Instead:
 
-```text id="ct003"
-Root = 3
-```
+1. Put every inorder value's **index in a hash map**, so finding the root in inorder is `O(1)`.
+2. Keep one **moving pointer** into preorder. Every call takes the next value as its root.
+3. Recurse on index ranges of inorder: `build(lo, hi)`. **Build the left subtree first**, because preorder lists the left subtree before the right one.
 
-Step 2 — Find `3` in inorder:
+**Postorder + inorder.** Same idea, but the root is the **last** postorder value, and you move the pointer **backwards**. Build the **right** subtree **first**.
 
-```text id="ct004"
-[9] | 3 | [15, 20, 7]
+#### 3. Brute Force vs Optimized
 
-Left        Right
-```
+| Approach | Idea | Time | Space |
+|---|---|---|---|
+| Brute force | find the root in inorder with `indexOf` and copy sub-arrays for each call | `O(n²)` | `O(n²)` in the worst case (copies) |
+| Optimized | hash map for inorder positions + index ranges + a moving pointer | `O(n)` | `O(n)` |
 
-Step 3 — Recursively build both subtrees.
-
-Result:
-
-```text id="ct005"
-        3
-       / \
-      9   20
-         /  \
-        15   7
-```
-
-#### 4. Core Algorithm — Must Know
-
-For **Preorder + Inorder**:
-
-```text id="ct006"
-1. Take next value from preorder → Root.
-2. Find root position in inorder.
-3. Values left of root → Left subtree.
-4. Values right of root → Right subtree.
-5. Recursively construct Left.
-6. Recursively construct Right.
-```
-
-Important:
-
-```text id="ct007"
-Build Left before Right
-```
-
-because preorder is:
-
-```text id="ct008"
-Root → Left → Right
-```
-
-#### 5. Optimized Kotlin Implementation — Must Know
-
-```kotlin id="ct009"
-fun buildTree(
-    preorder: IntArray,
-    inorder: IntArray
-): TreeNode? {
-
-    val indexMap = mutableMapOf<Int, Int>()
-
-    for (i in inorder.indices) {
-        indexMap[inorder[i]] = i
-    }
-
-    var preorderIndex = 0
-
-    fun build(left: Int, right: Int): TreeNode? {
-        if (left > right) return null
-
-        val rootValue = preorder[preorderIndex++]
-        val root = TreeNode(rootValue)
-
-        val inorderIndex = indexMap[rootValue]!!
-
-        root.left = build(left, inorderIndex - 1)
-        root.right = build(inorderIndex + 1, right)
-
-        return root
-    }
-
-    return build(0, inorder.lastIndex)
+```kotlin
+// Brute force: linear search + array copies
+fun buildTreeBrute(preorder: IntArray, inorder: IntArray): TreeNode? {
+    if (preorder.isEmpty()) return null
+    val rootValue = preorder[0]
+    val mid = inorder.indexOf(rootValue)                         // O(n) search every time
+    val left = buildTreeBrute(preorder.copyOfRange(1, mid + 1), inorder.copyOfRange(0, mid))
+    val right = buildTreeBrute(preorder.copyOfRange(mid + 1, preorder.size), inorder.copyOfRange(mid + 1, inorder.size))
+    return TreeNode(rootValue, left, right)
 }
 ```
 
-#### 6. Why Use a HashMap? — Must Know
+#### 4. Kotlin Code
 
-Without a map:
+```kotlin
+class TreeNode(val value: Int, var left: TreeNode? = null, var right: TreeNode? = null)
 
-```text id="ct010"
-Find root in inorder → O(n)
+// Construct Binary Tree from Preorder and Inorder Traversal (LeetCode 105)
+fun buildTreePreIn(preorder: IntArray, inorder: IntArray): TreeNode? {
+    val indexOf = HashMap<Int, Int>()
+    for ((i, v) in inorder.withIndex()) indexOf[v] = i
+    var pre = 0                                                  // moving pointer into preorder
+
+    fun build(lo: Int, hi: Int): TreeNode? {
+        if (lo > hi) return null
+        val rootValue = preorder[pre++]                          // next root
+        val mid = indexOf[rootValue]!!
+        val left = build(lo, mid - 1)                            // LEFT first
+        val right = build(mid + 1, hi)
+        return TreeNode(rootValue, left, right)
+    }
+    return build(0, inorder.size - 1)
+}
+
+// Construct Binary Tree from Inorder and Postorder Traversal (LeetCode 106)
+fun buildTreeInPost(inorder: IntArray, postorder: IntArray): TreeNode? {
+    val indexOf = HashMap<Int, Int>()
+    for ((i, v) in inorder.withIndex()) indexOf[v] = i
+    var post = postorder.size - 1                                // moving pointer, from the end
+
+    fun build(lo: Int, hi: Int): TreeNode? {
+        if (lo > hi) return null
+        val rootValue = postorder[post--]
+        val mid = indexOf[rootValue]!!
+        val right = build(mid + 1, hi)                           // RIGHT first
+        val left = build(lo, mid - 1)
+        return TreeNode(rootValue, left, right)
+    }
+    return build(0, inorder.size - 1)
+}
 ```
 
-Doing this repeatedly can make construction:
+`toLevelList` is in note 3.
 
-```text id="ct011"
-O(n²)
+Checks: `toLevelList(buildTreePreIn(intArrayOf(3, 9, 20, 15, 7), intArrayOf(9, 3, 15, 20, 7)))` → `[3, 9, 20, null, null, 15, 7]`. `toLevelList(buildTreeInPost(intArrayOf(9, 3, 15, 20, 7), intArrayOf(9, 15, 7, 20, 3)))` → the same list. `buildTreePreIn(intArrayOf(-1), intArrayOf(-1))` → one node with value `-1`. `buildTreePreIn(intArrayOf(), intArrayOf())` → `null`. `buildTreeBrute(...)` gives the same tree as the optimized one.
+
+Trace of `buildTreePreIn` (`pre` is the pointer):
+
+```text
+build(0,4): root = pre[0] = 3, mid = 1
+   build(0,0): root = 9, mid = 0 → build(0,-1) null, build(1,0) null → leaf 9
+   build(2,4): root = 20, mid = 3
+      build(2,2): root = 15 → leaf
+      build(4,4): root = 7  → leaf
 ```
 
-With:
+#### 5. Complexity
 
-```text id="ct012"
-value → inorder index
-```
+| | Time | Space |
+|---|---|---|
+| Optimized (map + pointer) | `O(n)` | `O(n)` map + `O(h)` stack |
+| Brute force | `O(n²)` | `O(n²)` worst case |
 
-lookup becomes `O(1)`.
+#### 6. Common Mistakes
 
-Total:
+1. **Building the right subtree first** with a preorder pointer (the wrong order). Preorder is node, left, right. For postorder it is reversed: right first.
+2. **Cutting arrays** instead of passing index ranges (copies make it slow).
+3. **Linear search for the root** in inorder (`indexOf`) at every call.
+4. **Duplicate values.** These methods need **unique** values.
+5. **Off-by-one** on the ranges (`mid - 1` and `mid + 1`).
+6. **Trying to build from preorder + postorder only** and expecting a unique tree.
 
-```text id="ct013"
-O(n)
-```
+#### 7. Say This in the Interview
 
-#### 7. Postorder + Inorder — Good to Know
+1. "Preorder gives me the root first. Inorder tells me how many nodes are on the left and right of that root."
+2. "I store the inorder indexes in a map so finding the root costs `O(1)`, and I recurse on index ranges. Total `O(n)`."
+3. "I must build the left subtree before the right, because preorder lists the left subtree first. With postorder it is the opposite."
 
-Postorder:
+#### 8. Quick Check
 
-```text id="ct014"
-Left → Right → Root
-```
+1. What are the preorder and inorder of a tree with root `1` and only a right child `2`?
+2. In `buildTreePreIn`, why does `left` come before `right`?
+3. Can preorder + postorder always rebuild a unique tree?
 
-Therefore:
+<details>
+<summary>Answers</summary>
 
-1. Last postorder value → Root.
-2. Inorder still separates left/right subtrees.
-3. When processing postorder **backwards**, construct:
+1. Preorder `[1, 2]`, inorder `[1, 2]`.
+2. The moving `pre` pointer reads the preorder list in order, and the whole left subtree appears right after the root.
+3. No. A node with one child can have it as left or right, and both give the same preorder and postorder lists.
 
-```text id="ct015"
-Right subtree first
-Left subtree second
-```
+</details>
 
-This is the main difference from preorder construction.
+#### 9. Related LeetCode Questions
 
-#### 8. Important Limitation — Must Know
-
-Traversal combinations matter.
-
-```text id="ct016"
-Preorder + Inorder   → Unique tree
-Postorder + Inorder  → Unique tree
-
-Preorder alone       → Not generally unique
-Postorder alone      → Not generally unique
-```
-
-This assumes node values are **unique**, which is the standard form of this interview problem.
-
-#### 9. Complexity & Key Points — Must Know
-
-1. Time → `O(n)` with an inorder index HashMap.
-2. Space → `O(n)` for HashMap + recursion.
-3. Preorder → **root first**.
-4. Postorder → **root last**.
-5. Inorder → separates **left and right subtrees**.
-6. Preorder + Inorder → construct **left before right**.
-7. Reverse Postorder + Inorder → construct **right before left**.
-8. Avoid repeatedly scanning inorder; use a **HashMap** for `O(1)` index lookup.
+| # | Question | Idea |
+|---|---|---|
+| 108 | [Convert Sorted Array to Binary Search Tree](https://leetcode.com/problems/convert-sorted-array-to-binary-search-tree/) (Easy) | middle as root |
+| 105 | [Construct Binary Tree from Preorder and Inorder Traversal](https://leetcode.com/problems/construct-binary-tree-from-preorder-and-inorder-traversal/) (Medium) | map + pointer |
+| 106 | [Construct Binary Tree from Inorder and Postorder Traversal](https://leetcode.com/problems/construct-binary-tree-from-inorder-and-postorder-traversal/) (Medium) | pointer from the end |
+| 889 | [Construct Binary Tree from Preorder and Postorder Traversal](https://leetcode.com/problems/construct-binary-tree-from-preorder-and-postorder-traversal/) (Medium) | one valid answer |
+| 1008 | [Construct Binary Search Tree from Preorder Traversal](https://leetcode.com/problems/construct-binary-search-tree-from-preorder-traversal/) (Medium) | BST: bounds, no inorder needed |
+| 654 | [Maximum Binary Tree](https://leetcode.com/problems/maximum-binary-tree/) (Medium) | max as root |

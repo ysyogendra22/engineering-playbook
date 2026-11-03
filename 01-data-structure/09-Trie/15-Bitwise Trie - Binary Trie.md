@@ -1,150 +1,159 @@
 # Bitwise Trie / Binary Trie
 
-#### 1. Definition — Must Know
+> A trie where each node has only **two children, `0` and `1`**. Numbers are stored bit by bit. It solves "maximum XOR" in `O(n)`.
 
-1. A **bitwise trie** (binary trie) stores **numbers**, one **bit** per level.
-2. Every node has at most **two children**: bit `0` and bit `1`.
-3. A number is inserted from its **most significant bit** down to the least significant bit, so every number of the same bit-length has a path of the same length.
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+A **binary trie** (bitwise trie) stores numbers by their **bits**, from the **most significant** bit to the least significant. Every node has two children: bit `0` and bit `1`. A path of 31 (or 32) edges spells one number.
 
-1. It lets you search by the *bit pattern* of numbers, not by value comparison.
-2. Its best-known use is the **maximum XOR** problem: for a number, find the stored number that gives the largest XOR. The Trie answers it by choosing, at every bit, the opposite bit when it exists.
-3. Each operation costs the number of bits (for example 31), which is a constant. That is why it is faster than comparing against every stored number.
+**Why:** to **maximise `a XOR b`**, you want the bits of `a` and `b` to be **different**, starting from the highest bit. A binary trie lets you choose, bit by bit, the **opposite** bit if it exists.
 
-#### 3. How It Works — Must Know
+**Signals:** "maximum XOR", "XOR of two numbers", "XOR with a query value", "bit by bit".
 
-Store `5` (`101`) and `3` (`011`). Three bits are shown to keep the picture small. Real code uses 31 bits for non-negative `Int` values.
+#### 2. How It Works
 
-```text
-root
-├── 0 → 1 → 1*     ← 011 = 3
-└── 1 → 0 → 1*     ← 101 = 5
+Numbers `[3, 10, 5, 25, 2, 8]`. In binary (5 bits): `00011, 01010, 00101, 11001, 00010, 01000`.
+
+```mermaid
+flowchart TD
+    root((root)) -->|"0"| n0((0))
+    root -->|"1"| n1((1))
+    n0 -->|"0"| n00((0))
+    n0 -->|"1"| n01((1))
+    n1 -->|"1"| n11((1))
+    n11 -->|"0"| n110((0))
+    n110 -->|"0"| n1100((0))
+    n1100 -->|"1"| n11001(["1  = 25"])
 ```
 
-Reading a number's bits from the top and following the matching child gives its path.
+*(Only part of the trie is drawn. The path `1 → 1 → 0 → 0 → 1` is the number `25`.)*
 
-Idea behind maximum XOR for `x = 5` (`101`): at each level, prefer the child with the **opposite** bit, because `1 XOR 0 = 1` makes the result larger.
+**Maximum XOR of two numbers in the array (LeetCode 421).**
 
-```text
-x = 101
-level 1: x has 1 → prefer 0 → exists (3 starts with 0)   → this bit of the XOR is 1
-level 2: x has 0 → prefer 1 → exists (3 has 1)           → this bit of the XOR is 1
-level 3: x has 1 → prefer 0 → 3 has 1, so take 1         → this bit of the XOR is 0
-Best partner = 011 = 3, XOR = 110 = 6
-```
-
-#### 4. Core Concepts — Must Know
-
-1. **Two children only:** index `0` and index `1`.
-2. **Fixed depth:** every number uses the same number of bits (for example bits 30 down to 0).
-3. **Bit extraction:** `(num shr bit) and 1`.
-4. **Greedy choice for XOR:** take the opposite bit when possible, otherwise the same bit.
-5. **Negative numbers:** they use bit 31 as the sign. Either handle that bit as well or restrict the input to non-negative values.
-
-#### 5. Algorithm — Must Know
+1. **Insert** every number into the trie, bit `30` down to bit `0` (for non-negative `Int`).
+2. For each number `x`, walk the trie from the top. At each bit, **prefer the opposite bit** (`1 − bit`). If that child exists, go there and set that bit in the result. Otherwise follow the same bit.
+3. The best result over all `x` is the answer.
 
 ```text
-insert(num):
-    node = root
-    for bit from 30 down to 0:
-        b = (num >> bit) & 1
-        if node has no child b: create it
-        node = child b
-
-contains(num):
-    node = root
-    for bit from 30 down to 0:
-        b = (num >> bit) & 1
-        if node has no child b: return false
-        node = child b
-    return true
+x = 5 = 00101.   Walk the trie, preferring the opposite bit at every level:
+  bit4 of 5 is 0 → want 1: exists (25 starts with 1)       result bit4 = 1
+  bit3 of 5 is 0 → want 1: exists (25 = 11001)             result bit3 = 1
+  bit2 of 5 is 1 → want 0: exists (25 has 0 here)          result bit2 = 1
+  bit1 of 5 is 0 → want 1: not on this path → take 0        result bit1 = 0
+  bit0 of 5 is 1 → want 0: not on this path → take 1        result bit0 = 0   (we ended at 25: 5 XOR 25)
+  result bits 1 1 1 0 0 = 11100 = 28
 ```
 
-#### 6. Kotlin Implementation — Must Know
+`5 XOR 25 = 28`, the maximum for this array.
+
+The trie works because a **higher bit matters more than all lower bits together**. So we always fix the high bits first.
+
+#### 3. Brute Force vs Optimized
+
+| Approach | Time | Space |
+|---|---|---|
+| Try every pair | `O(n²)` | `O(1)` |
+| **Binary trie** | **`O(32 · n)` = `O(n)`** | `O(32 · n)` |
+| Hash set of prefixes, bit by bit | `O(32 · n)` | `O(n)` |
 
 ```kotlin
-class BinaryTrieNode {
-    val children = arrayOfNulls<BinaryTrieNode>(2)
-}
-
-class BinaryTrie {
-
-    private val root = BinaryTrieNode()
-
-    fun insert(num: Int) {
-        var node = root
-        for (bit in 30 downTo 0) {
-            val b = (num shr bit) and 1
-            val next = node.children[b] ?: BinaryTrieNode().also { node.children[b] = it }
-            node = next
-        }
-    }
-
-    fun contains(num: Int): Boolean {
-        var node = root
-        for (bit in 30 downTo 0) {
-            val b = (num shr bit) and 1
-            node = node.children[b] ?: return false
-        }
-        return true
-    }
+// Brute force: every pair
+fun findMaximumXORBrute(nums: IntArray): Int {
+    var best = 0
+    for (i in nums.indices) for (j in i + 1 until nums.size) best = maxOf(best, nums[i] xor nums[j])
+    return best
 }
 ```
 
-The bit operations used here are explained in `02-algorithm/09-Bit Manipulation`.
+#### 4. Kotlin Code
 
-#### 7. Time & Space Complexity — Must Know
+```kotlin
+class BitNode {
+    val next = arrayOfNulls<BitNode>(2)        // index 0 and 1
+}
 
-`B` = number of bits (31 for non-negative `Int`).
+// Maximum XOR of Two Numbers in an Array (LeetCode 421): numbers are 0 <= x < 2^31
+fun findMaximumXOR(nums: IntArray): Int {
+    val root = BitNode()
+    for (x in nums) {                          // insert from the highest bit (30) to bit 0
+        var node = root
+        for (b in 30 downTo 0) {
+            val bit = (x shr b) and 1
+            if (node.next[bit] == null) node.next[bit] = BitNode()
+            node = node.next[bit]!!
+        }
+    }
+    var best = 0
+    for (x in nums) {
+        var node = root
+        var current = 0
+        for (b in 30 downTo 0) {
+            val bit = (x shr b) and 1
+            val want = 1 - bit                 // the opposite bit gives a 1 in the XOR
+            if (node.next[want] != null) {
+                current = current or (1 shl b)
+                node = node.next[want]!!
+            } else {
+                node = node.next[bit]!!
+            }
+        }
+        best = maxOf(best, current)
+    }
+    return best
+}
+```
 
-| Operation | Time |
-|---|---:|
-| `insert` | `O(B)` |
-| `contains` | `O(B)` |
-| Maximum XOR for one number | `O(B)` |
-| Space | `O(N · B)` nodes in the worst case |
+Checks: `findMaximumXOR(intArrayOf(3, 10, 5, 25, 2, 8))` → `28`. `findMaximumXOR(intArrayOf(14, 70, 53, 83, 49, 91, 36, 80, 92, 51, 66, 70))` → `127`. `findMaximumXOR(intArrayOf(0))` → `0`. `findMaximumXOR(intArrayOf(8, 10, 2))` → `10` (`8 XOR 2`). `findMaximumXORBrute(intArrayOf(3, 10, 5, 25, 2, 8))` → `28`.
 
-Because `B` is a constant, each operation is effectively `O(1)`. Building the Trie for `N` numbers is `O(N · B)`.
+For a query "maximum XOR of `x` with any number in a set" (LeetCode 1707), build the trie once and run the inner loop for each query.
 
-#### 8. Common Binary Trie Patterns — Must Know
+#### 5. Complexity
 
-1. **Maximum XOR of Two Numbers in an Array** (LeetCode 421) — insert every number, then query each number for its best XOR partner.
-2. Maximum XOR with a query value.
-3. Find a number that matches the most leading bits of a given number.
-4. Count numbers that share a bit-prefix (add counts to the nodes, as in "Counting Words / Prefixes").
+| | Time | Space |
+|---|---|---|
+| Insert one number | `O(B)` for `B = 31` bits | `O(B)` new nodes |
+| Maximum XOR query | `O(B)` | |
+| Whole problem | `O(n · B)` = `O(n)` | `O(n · B)` |
+| Brute force | `O(n²)` | `O(1)` |
 
-#### 9. Edge Cases / Common Mistakes
+#### 6. Common Mistakes
 
-1. Using too few bits, so large numbers collide or get cut off.
-2. Handling bits from the **least** significant end. The Trie needs the **most** significant bit first.
-3. Negative numbers and the sign bit.
-4. Querying an empty Trie, where there is no child to follow.
-5. Forgetting that a child may be missing when you prefer the opposite bit. Fall back to the same bit.
-6. `node` captured inside `also` while it is being reassigned. Compute `next` first, as above.
+1. **Inserting from the lowest bit.** The trie must go from the **most significant** bit.
+2. **Using the wrong number of bits.** Use `31` for non-negative `Int` (bits `30..0`).
+3. **Not preferring the opposite bit** (taking the same bit gives `0` in the XOR).
+4. **Forgetting `current or (1 shl b)`** when the opposite child exists.
+5. **Querying before inserting** or querying an empty trie (`node.next[bit]!!` crashes).
+6. **Negative numbers:** the sign bit changes the picture. Treat the numbers as 32-bit patterns, and say so.
+7. **Pairing a number with itself** (XOR `0`). It is harmless for the maximum.
 
-#### 10. When to Use / When Not to Use
+#### 7. Say This in the Interview
 
-**Use when:**
+1. "To maximise XOR I want the highest bits to differ. I put the numbers in a trie by their bits from the most significant down, and for each number I walk the trie, always taking the opposite bit when it exists."
+2. "That's `O(32 · n)` instead of the `O(n²)` pair check. Space is `O(32 · n)`."
+3. "The reason greedy works is that one higher bit is worth more than all lower bits together."
 
-1. The problem is about XOR, bit prefixes, or "closest by bits".
-2. You must query many numbers against a changing set.
+#### 8. Quick Check
 
-**Avoid when:**
+1. How many children does a binary trie node have?
+2. At a bit where `x` has `1`, which child do you want?
+3. What is the XOR of `5` and `25`?
 
-1. A simple loop over all pairs is fast enough for the given size.
-2. A `HashSet` of prefixes solves the task more simply (this alternative exists for maximum XOR).
+<details>
+<summary>Answers</summary>
 
-#### 11. Related Topics
+1. Two (`0` and `1`).
+2. The `0` child (the opposite bit), which makes that bit `1` in the XOR.
+3. `28` (`00101 XOR 11001 = 11100`).
 
-1. TrieNode Structure
-2. Counting Words / Prefixes
-3. Bit Manipulation (`02-algorithm/09-Bit Manipulation`): shifts, masks, and XOR
-4. Greedy choice (`02-algorithm/04-Greedy Algorithms`)
+</details>
 
-#### 12. Interview Must Remember
+#### 9. Related LeetCode Questions
 
-1. Binary trie: **two children, one bit per level, most significant bit first.**
-2. Maximum XOR = at each level, take the **opposite bit** if it exists.
-3. Each operation is `O(B)`, which is a constant for `Int`.
-4. State how you handle negative numbers and how many bits you use.
+| # | Question | Idea |
+|---|---|---|
+| 421 | [Maximum XOR of Two Numbers in an Array](https://leetcode.com/problems/maximum-xor-of-two-numbers-in-an-array/) (Medium) | binary trie |
+| 1707 | [Maximum XOR With an Element From Array](https://leetcode.com/problems/maximum-xor-with-an-element-from-array/) (Hard) | offline queries + trie |
+| 1938 | [Maximum Genetic Difference Query](https://leetcode.com/problems/maximum-genetic-difference-query/) (Hard) | trie on a tree |
+| 1803 | [Count Pairs With XOR in a Range](https://leetcode.com/problems/count-pairs-with-xor-in-a-range/) (Hard) | trie with counts |
+| 136 | [Single Number](https://leetcode.com/problems/single-number/) (Easy) | XOR basics |
+| 268 | [Missing Number](https://leetcode.com/problems/missing-number/) (Easy) | XOR basics |

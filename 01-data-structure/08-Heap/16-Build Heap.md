@@ -1,154 +1,160 @@
 # Build Heap
 
-#### 1. Definition — Must Know
+> Turning an unordered array into a heap in **`O(n)`**, faster than adding items one by one (`O(n log n)`). A common "why is this O(n)?" follow-up.
 
-1. **Build Heap** turns an unordered array into a valid heap **in place**.
-2. The method: start at the **last parent** and **heapify down** every node, going backwards to the root.
-3. It runs in **`O(n)`**, which is faster than inserting the items one by one (`O(n log n)`).
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+**Build heap** (also *heapify the array*) converts any array into a valid heap **in place**.
 
-1. It is the first phase of heap sort.
-2. It is how `PriorityQueue(collection)` is built quickly.
-3. It is a classic interview question: "why is building a heap `O(n)` and not `O(n log n)`?"
+Two ways:
 
-#### 3. How It Works — Must Know
+| Way | Idea | Time |
+|---|---|---|
+| **Insert one by one** | `add` each item (sift up) | `O(n log n)` |
+| **Bottom-up heapify** | start from the **last parent** and sift down each node, going back to the root | **`O(n)`** |
 
-Build a **min-heap** from `[4, 10, 3, 5, 1]`:
+**Signals:** "build a heap from an array", "heap sort", "is it `O(n)` or `O(n log n)`?", "initialise a priority queue with all items".
 
-```text
-Array:  [4, 10, 3, 5, 1]            n = 5, last parent = n/2 - 1 = 1
+#### 2. How It Works
 
-        4
-      /   \
-    10     3
-   /  \
-  5    1
+Leaves are already valid heaps of size 1, so skip them. The **last parent** is at index `n / 2 − 1`. Sift down every parent from there to index 0.
+
+```mermaid
+flowchart TD
+    subgraph B["Start: [5, 3, 8, 1, 9]"]
+        a5((5)) --- a3((3))
+        a5 --- a8((8))
+        a3 --- a1((1))
+        a3 --- a9((9))
+    end
+    subgraph A["After build heap: [1, 3, 8, 5, 9]"]
+        b1((1)) --- b3((3))
+        b1 --- b8((8))
+        b3 --- b5((5))
+        b3 --- b9((9))
+    end
 ```
 
 ```text
-Step 1: heapify down node at index 1 (value 10).
-        Children: 5 and 1. Smallest is 1 → swap.     [4, 1, 3, 5, 10]
-
-Step 2: heapify down node at index 0 (value 4).
-        Children: 1 and 3. Smallest is 1 → swap.     [1, 4, 3, 5, 10]
-        Node 4 is now at index 1, children 5 and 10. 4 is smaller than both → stop.
-
-Result: [1, 4, 3, 5, 10]   ← a valid min-heap
+array [5, 3, 8, 1, 9], n = 5, last parent index = 5/2 - 1 = 1
+sift down index 1 (3): children 1 and 9 → smallest 1 → swap       [5, 1, 8, 3, 9]
+sift down index 0 (5): children 1 and 8 → smallest 1 → swap       [1, 5, 8, 3, 9]
+   continue at index 1 (5): children 3 and 9 → smallest 3 → swap  [1, 3, 8, 5, 9]
+result: [1, 3, 8, 5, 9]  ✓ valid min-heap
 ```
 
-Leaves (indexes 2, 3, 4) are already valid heaps, so they are skipped.
+**Why `O(n)` and not `O(n log n)`?** A sift down costs the **height of the node**, not `log n`. Most nodes are near the bottom, where the height is small:
 
-#### 4. Core Concepts — Must Know
+| Level (from the bottom) | Nodes | Cost each | Total |
+|---|---|---|---|
+| leaves | about `n / 2` | 0 (skipped) | 0 |
+| height 1 | about `n / 4` | 1 | `n / 4` |
+| height 2 | about `n / 8` | 2 | `2n / 8` |
+| height 3 | about `n / 16` | 3 | `3n / 16` |
+| ... | | | |
 
-1. **Start at `n / 2 - 1`.** Every node after it is a leaf.
-2. **Go backwards to index 0**, so the children of a node are already heaps when you reach it (the precondition for heapify).
-3. **Heapify down**, not up.
-4. Why it is `O(n)`: most nodes are near the bottom and move very little.
+The total is `n × (1/4 + 2/8 + 3/16 + ...)`, and that sum is a small constant (it converges to 1). So the whole build is `O(n)`.
 
-| Height of node | Number of nodes (about) | Max work per node |
-|---|---:|---:|
-| 0 (leaves) | `n / 2` | 0 |
-| 1 | `n / 4` | 1 |
-| 2 | `n / 8` | 2 |
-| `h` | `n / 2^(h+1)` | `h` |
+Inserting one by one is `O(n log n)` because each insert may climb `log n` levels, and half of the nodes are leaves that could climb the most.
 
-Total work = `Σ (n / 2^(h+1)) · h` = `O(n)`.
+In Kotlin: `PriorityQueue<Int>(listOf(...))` or `PriorityQueue(collection)` builds the heap in `O(n)`. Calling `addAll` adds one at a time (`O(n log n)`).
 
-5. Inserting `n` items one at a time costs `O(n log n)`, because each insert may sift up `log n` levels.
+#### 3. Brute Force vs Optimized
 
-#### 5. Algorithm — Must Know
-
-```text
-buildHeap(array):
-    n = array.size
-    for i from n/2 - 1 down to 0:
-        heapifyDown(array, i, n)
-```
-
-#### 6. Kotlin Implementation — Must Know
+| Approach | Time | Space |
+|---|---|---|
+| `n` inserts (sift up) | `O(n log n)` | `O(n)` extra if copying |
+| Sort the array (a sorted array is a heap) | `O(n log n)` | |
+| **Bottom-up heapify** | **`O(n)`** | `O(1)` in place |
 
 ```kotlin
-fun buildMinHeap(arr: IntArray) {
-    val n = arr.size
-    for (i in n / 2 - 1 downTo 0) {
-        heapifyDown(arr, i, n)
+// Brute force: insert one by one with a heap built on a list (sift up)
+fun buildByInsert(a: IntArray): IntArray {
+    val heap = ArrayList<Int>()
+    for (x in a) {
+        heap.add(x)
+        var i = heap.size - 1
+        while (i > 0 && heap[(i - 1) / 2] > heap[i]) {
+            val p = (i - 1) / 2
+            val t = heap[p]; heap[p] = heap[i]; heap[i] = t
+            i = p
+        }
     }
+    return heap.toIntArray()
+}
+```
+
+#### 4. Kotlin Code
+
+```kotlin
+// Build a min-heap in place in O(n)
+fun buildMinHeap(a: IntArray) {
+    for (i in a.size / 2 - 1 downTo 0) siftDown(a, a.size, i)
 }
 
-fun heapifyDown(arr: IntArray, start: Int, size: Int) {
+fun siftDown(a: IntArray, size: Int, start: Int) {
     var i = start
     while (true) {
-        val left = 2 * i + 1
-        val right = left + 1
+        val l = 2 * i + 1
+        val r = 2 * i + 2
         var smallest = i
-        if (left < size && arr[left] < arr[smallest]) smallest = left
-        if (right < size && arr[right] < arr[smallest]) smallest = right
+        if (l < size && a[l] < a[smallest]) smallest = l
+        if (r < size && a[r] < a[smallest]) smallest = r
         if (smallest == i) return
-        val temp = arr[i]; arr[i] = arr[smallest]; arr[smallest] = temp
+        val t = a[i]; a[i] = a[smallest]; a[smallest] = t
         i = smallest
     }
 }
-
-// Usage
-val data = intArrayOf(4, 10, 3, 5, 1)
-buildMinHeap(data)
-println(data.toList())   // [1, 4, 3, 5, 10]
 ```
 
-With the library:
+Checks: `val a = intArrayOf(5, 3, 8, 1, 9); buildMinHeap(a)` → `a` is `[1, 3, 8, 5, 9]`. `buildByInsert(intArrayOf(5, 3, 8, 1, 9))` → `[1, 3, 8, 5, 9]` (the same here, but the two methods can give **different** valid heaps on other inputs). `buildMinHeap(intArrayOf())` does nothing. `buildMinHeap(intArrayOf(7))` does nothing. A reversed array `[5, 4, 3, 2, 1]` becomes `[1, 2, 3, 5, 4]`.
 
-```kotlin
-import java.util.PriorityQueue
+Trace of `[5, 4, 3, 2, 1]`: last parent index 1 (`4`): children `2` and `1` → smallest `1` (index 4) → swap → `[5, 1, 3, 2, 4]`. Index 0 (`5`): children `1`, `3` → smallest `1` → swap → `[1, 5, 3, 2, 4]`, then index 1 (`5`): children `2` (index 3) and `4` (index 4) → smallest `2` → swap → `[1, 2, 3, 5, 4]`.
 
-val heap = PriorityQueue<Int>(listOf(4, 10, 3, 5, 1))   // builds in O(n)
-// heap.addAll(...) on an empty queue would be O(n log n)
-```
+#### 5. Complexity
 
-#### 7. Time & Space Complexity — Must Know
+| | Time | Space |
+|---|---|---|
+| Bottom-up build heap | `O(n)` | `O(1)` |
+| Build by repeated insert | `O(n log n)` | |
+| Then `n` polls (heap sort) | `O(n log n)` | |
 
-| Approach | Time | Extra space |
-|---|---:|---:|
-| **Bottom-up build heap** | **`O(n)`** | `O(1)` |
-| Insert `n` items one by one | `O(n log n)` | `O(n)` for the new heap |
+#### 6. Common Mistakes
 
-#### 8. Common Build-Heap Patterns — Must Know
+1. **Looping from `0` upward** instead of from the last parent down to `0`.
+2. **Starting at `n − 1`** instead of `n / 2 − 1` (wasted work on leaves, but still correct).
+3. **Saying build heap is `O(n log n)`.** It is `O(n)`.
+4. **Using `addAll` on a `PriorityQueue`** and expecting `O(n)`.
+5. **Comparing the final arrays of two methods** and expecting them to be equal. A heap is not unique.
+6. **Forgetting the order in the loop.** Parents must be sifted down after their children are fixed.
 
-1. First step of **heap sort**.
-2. Start a `PriorityQueue` from existing data.
-3. Create a Top K heap from the first `k` items, then process the rest.
-4. Convert a min-heap into a max-heap by building again with the opposite comparison.
+#### 7. Say This in the Interview
 
-#### 9. Edge Cases / Common Mistakes
+1. "I start at the last parent, index `n / 2 − 1`, and sift each node down while moving back to the root."
+2. "It's `O(n)`, not `O(n log n)`: a sift down costs the node's height, and most nodes are near the bottom with a tiny height."
+3. "In Kotlin, `PriorityQueue(collection)` does this heapify, while adding items one by one is `O(n log n)`."
 
-1. Starting at the last index instead of `n / 2 - 1`. It works but wastes time on leaves.
-2. Going **forwards** (from index 0). The children are not heaps yet, so the result is wrong.
-3. Using heapify **up** instead of down.
-4. Saying it is `O(n log n)`. The tight bound is `O(n)`.
-5. Empty array or one element. The loop does nothing, which is correct.
-6. Using `addAll` on a `PriorityQueue` and expecting `O(n)`.
+#### 8. Quick Check
 
-#### 10. When to Use / When Not to Use
+1. What is the index of the last parent for `n = 8`?
+2. Is build heap `O(n)` or `O(n log n)`?
+3. Is the heap built from an array unique?
 
-**Use when:**
+<details>
+<summary>Answers</summary>
 
-1. All data is available at the start.
-2. You want a heap, or a heap sort, quickly.
+1. `8 / 2 − 1 = 3`.
+2. `O(n)`.
+3. No. Different build methods can produce different valid heaps.
 
-**Avoid when:**
+</details>
 
-1. Data arrives one item at a time. Use normal inserts.
+#### 9. Related LeetCode Questions
 
-#### 11. Related Topics
-
-1. Heapify — Basic Concept
-2. Heap Sort — Concept
-3. Heap Operations & Complexity
-4. Complete Binary Tree Property
-
-#### 12. Interview Must Remember
-
-1. **Heapify down from `n/2 - 1` to `0`.**
-2. Build Heap is **`O(n)`**. Repeated insertion is `O(n log n)`.
-3. Going backwards guarantees that the children are already heaps.
-4. Explain `O(n)`: most nodes are near the bottom and sift very little.
+| # | Question | Idea |
+|---|---|---|
+| 912 | [Sort an Array](https://leetcode.com/problems/sort-an-array/) (Medium) | heap sort |
+| 1046 | [Last Stone Weight](https://leetcode.com/problems/last-stone-weight/) (Easy) | heap from an array |
+| 215 | [Kth Largest Element in an Array](https://leetcode.com/problems/kth-largest-element-in-an-array/) (Medium) | heapify, then poll |
+| 1337 | [The K Weakest Rows in a Matrix](https://leetcode.com/problems/the-k-weakest-rows-in-a-matrix/) (Easy) | heap with a key |
+| 1005 | [Maximize Sum Of Array After K Negations](https://leetcode.com/problems/maximize-sum-of-array-after-k-negations/) (Easy) | repeatedly take the smallest |

@@ -58,7 +58,19 @@ X X O X           X X O X                X X X X                X X X X
 X O X X           X T X X                X T X X                X O X X
 ```
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Approach | Time | Note |
+|---|---|---|
+| Scan the whole grid again and again, spreading the colour one step each pass | `O((R · C)²)` worst case | easy, slow |
+| **DFS / BFS from the start cell** | **`O(R · C)`** | each cell is changed once |
+| For each cell search for a path to the start | `O((R · C)²)` | repeats work |
+
+Flood fill is just DFS or BFS on a grid. The rule for a cell to join is "same colour as the start cell and not yet changed". Recolouring the cell is also the `visited` marker.
+
+For problems about **regions touching the border** (Surrounded Regions, Pacific Atlantic), do not test each cell: start the fill **from the border** and mark what is reachable, then use the complement.
+
+#### 4. Kotlin Code
 
 ```kotlin
 private val DIRS = arrayOf(intArrayOf(1, 0), intArrayOf(-1, 0), intArrayOf(0, 1), intArrayOf(0, -1))
@@ -122,14 +134,14 @@ fun numEnclaves(grid: Array<IntArray>): Int {
 
 Check: `floodFill([[1,1,1],[1,1,0],[1,0,1]], 1, 1, 2)` → `[[2,2,2],[2,2,0],[2,0,1]]`.
 
-#### 4. Complexity
+#### 5. Complexity
 
 | | Time | Space |
 |---|---|---|
 | Flood fill, one region | `O(R · C)` | `O(R · C)` (recursion) |
 | Whole-grid versions (Surrounded Regions) | `O(R · C)` | `O(R · C)` |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Flood fill with the same colour.** If the new colour equals the old one, the DFS never stops marking. Return early.
 2. **Checking bounds after the cell.** Check bounds first.
@@ -138,13 +150,13 @@ Check: `floodFill([[1,1,1],[1,1,0],[1,0,1]], 1, 1, 2)` → `[[2,2,2],[2,2,0],[2,
 5. **Starting from every cell** instead of from the border, which is slower and harder.
 6. **Deep recursion** on a big grid. Use BFS or a stack.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "I flood fill with DFS: change the cell, then spread to the four neighbours that match."
 2. "For 'surrounded' questions I start from the border and mark everything safe. What is left is the answer."
 3. "Time and space are `O(R · C)`."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. Why return early when the new colour equals the old colour?
 2. In Surrounded Regions, why start from the border?
@@ -157,7 +169,7 @@ Check: `floodFill([[1,1,1],[1,1,0],[1,0,1]], 1, 1, 2)` → `[[2,2,2],[2,2,0],[2,
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

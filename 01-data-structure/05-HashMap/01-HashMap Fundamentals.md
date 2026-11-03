@@ -41,7 +41,30 @@ The hash code jumps straight to the right bucket, so you never scan all the pair
 
 Java's `HashMap` starts with 16 buckets and doubles them when it is 75% full.
 
-#### 4. Kotlin Code
+#### 4. Brute Force vs Optimized
+
+| Task | Without a hash map | With a `HashMap` |
+|---|---|---|
+| Find the value for a key | scan a list of pairs: `O(n)` | `get(key)`: `O(1)` average |
+| Count how many times each item appears | nested loops: `O(n²)` | one pass: `O(n)` |
+| Group items by a property | compare every pair: `O(n²)` | `getOrPut(key)`: `O(n)` |
+| Check if a key exists | `list.any { it.first == key }`: `O(n)` | `containsKey`: `O(1)` |
+
+```kotlin
+// Brute force "map": a list of pairs. Every lookup scans the list.
+class PairListMap {
+    private val pairs = mutableListOf<Pair<String, Int>>()
+    fun put(key: String, value: Int) {
+        val i = pairs.indexOfFirst { it.first == key }
+        if (i >= 0) pairs[i] = key to value else pairs.add(key to value)    // O(n)
+    }
+    fun get(key: String): Int? = pairs.firstOrNull { it.first == key }?.second   // O(n)
+}
+```
+
+`put("a", 1)`, `put("b", 2)`, `put("a", 3)` then `get("a")` → `3`, `get("z")` → `null`. A `HashMap` gives the same answers with `O(1)` operations.
+
+#### 5. Kotlin Code
 
 ```kotlin
 val map = HashMap<String, Int>()          // empty map: String keys, Int values
@@ -69,7 +92,7 @@ println(counts)                            // {a=3, b=1, n=2}
 
 `map[key]` gives `Int?` (nullable), so `counts[c]++` does not compile. Write `(counts[c] ?: 0) + 1`.
 
-#### 5. Which Map to Use
+#### 6. Which Map to Use
 
 | Type | Order | Speed | Use when |
 |---|---|---|---|
@@ -80,7 +103,7 @@ println(counts)                            // {a=3, b=1, n=2}
 
 Note: `mutableMapOf()` gives a `LinkedHashMap`, not a plain `HashMap`.
 
-#### 6. How to Spot a HashMap Problem
+#### 7. How to Spot a HashMap Problem
 
 | If the question says... | Think... |
 |---|---|
@@ -92,7 +115,7 @@ Note: `mutableMapOf()` gives a `LinkedHashMap`, not a plain `HashMap`.
 | "cache", "least recently used" | map + linked list |
 | the brute force has two nested loops | try to replace one loop with a map lookup |
 
-#### 7. Complexity
+#### 8. Complexity
 
 | Action | Average time |
 |---|---|
@@ -102,7 +125,7 @@ Note: `mutableMapOf()` gives a `LinkedHashMap`, not a plain `HashMap`.
 
 Say "`O(1)` on average". In the very worst case (many keys in one bucket) it is slower, but modern Java handles that well.
 
-#### 8. Common Mistakes
+#### 9. Common Mistakes
 
 1. **Forgetting that `map[key]` can be `null`.** Use `?: 0`, `getOrDefault` or `getOrPut`.
 2. **Writing `map[key]++`.** It does not compile. Use `map[key] = (map[key] ?: 0) + 1`.
@@ -110,13 +133,13 @@ Say "`O(1)` on average". In the very worst case (many keys in one bucket) it is 
 4. **Using an array as a key.** Arrays compare by reference, so lookups fail. Use a `List`, `String` or `data class`.
 5. **Changing a key** after putting it in the map.
 
-#### 9. Say This in the Interview
+#### 10. Say This in the Interview
 
 1. "Brute force is `O(n²)`. With a HashMap I can look up in `O(1)`, so I get `O(n)` time and `O(n)` space."
 2. "My key is ... and my value is ..." (always say this out loud).
 3. "I handle the missing key with a default."
 
-#### 10. Quick Check
+#### 11. Quick Check
 
 1. What does `map["x"]` return if `"x"` is not in the map?
 2. What happens if you `put` the same key twice?
@@ -129,7 +152,7 @@ Say "`O(1)` on average". In the very worst case (many keys in one bucket) it is 
 
 </details>
 
-#### 11. Related LeetCode Questions (Often Asked)
+#### 12. Related LeetCode Questions (Often Asked)
 
 Solve them in this order. Search by title if a number looks wrong.
 

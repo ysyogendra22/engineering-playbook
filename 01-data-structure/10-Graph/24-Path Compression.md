@@ -43,7 +43,31 @@ Two ways to write it:
 
 (There is also "path halving": `parent[x] = parent[parent[x]]` while walking.)
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| `find` strategy | One `find` on a chain of `n` nodes | `n` finds |
+|---|---|---|
+| Walk to the root every time | `O(n)` | `O(n²)` |
+| **Path compression** (point every node on the path at the root) | `O(n)` once, then `O(1)` | about `O(n)` |
+
+```kotlin
+// Naive find: no compression, walks the whole chain every time
+fun findNaive(parent: IntArray, x: Int): Int {
+    var r = x
+    while (parent[r] != r) r = parent[r]
+    return r
+}
+
+// With path compression (recursive)
+fun findCompressed(parent: IntArray, x: Int): Int {
+    if (parent[x] != x) parent[x] = findCompressed(parent, parent[x])
+    return parent[x]
+}
+```
+
+On the chain `parent = [0, 0, 1, 2, 3]` (`4 → 3 → 2 → 1 → 0`): the first `findCompressed(parent, 4)` → `0` and afterwards `parent` is `[0, 0, 0, 0, 0]`. The next `find(4)` takes one step.
+
+#### 4. Kotlin Code
 
 ```kotlin
 // Recursive (the shortest)
@@ -73,7 +97,7 @@ println(parent.toList())          // [0, 0, 0, 0, 0]  (the chain is flat now)
 
 Without union by size, path compression alone already gives `O(log n)` amortized per operation. Together with union by size (note 25), it gives `O(α(n))`.
 
-#### 4. Complexity
+#### 5. Complexity
 
 | | Time per `find` |
 |---|---|
@@ -81,19 +105,19 @@ Without union by size, path compression alone already gives `O(log n)` amortized
 | Path compression only | `O(log n)` amortized |
 | Path compression + union by size | `O(α(n))`, almost constant |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Writing `return find(parent[x])` without setting `parent[x]`.** Then nothing is compressed.
 2. **Compressing a copy** of the array instead of the real one.
 3. **Recursion depth** on a very long chain with the recursive version. Use the iterative one for huge inputs.
 4. **Mixing it up with union by size.** They are two different tricks.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "Path compression re-points each node I visit in `find` to the root, so later finds are one step."
 2. "Together with union by size, each operation is almost constant, `O(α(n))`."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. What changes in the array during `find(4)` on the chain above?
 2. Does path compression change which group a node belongs to?
@@ -106,7 +130,7 @@ Without union by size, path compression alone already gives `O(log n)` amortized
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

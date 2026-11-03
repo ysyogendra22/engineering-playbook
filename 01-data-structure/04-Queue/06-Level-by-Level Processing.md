@@ -42,7 +42,32 @@ Which value you keep from each level decides the question:
 | Minimum Depth (111) | stop at the first leaf |
 | Maximum Depth (104) | the number of rounds |
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Approach | How it separates levels | Cost |
+|---|---|---|
+| Marker (`null` or a sentinel) pushed after each level | check the marker, re-add it | extra queue entries, easy to get wrong |
+| Two queues (current level and next level) | swap them each level | extra memory |
+| DFS with a `depth` parameter | `result[depth].add(value)` | `O(n)`, recursion depth `O(h)` |
+| **One queue with `queue.size` read before the loop** | `repeat(size) { ... }` | `O(n)`, `O(width)` memory |
+
+```kotlin
+// DFS alternative: use the depth to decide the level
+fun levelsDfs(graph: Array<List<Int>>, root: Int): List<List<Int>> {
+    val result = mutableListOf<MutableList<Int>>()
+    fun dfs(node: Int, depth: Int) {
+        if (depth == result.size) result.add(mutableListOf())
+        result[depth].add(node)
+        for (child in graph[node]) dfs(child, depth + 1)
+    }
+    dfs(root, 0)
+    return result
+}
+```
+
+For a tree-shaped graph, this gives the same levels as BFS. For a general graph (with cycles) it needs a `visited` check, so BFS is simpler.
+
+#### 4. Kotlin Code
 
 ```kotlin
 class TreeNode(var `val`: Int) {
@@ -111,7 +136,7 @@ On the tree above: `levelOrder` â†’ `[[3], [9, 20], [15, 7]]`, `rightSideView` â
 
 For zigzag, build each level the same way and call `level.reversed()` on every second level.
 
-#### 4. Complexity
+#### 5. Complexity
 
 | | Time | Space |
 |---|---|---|
@@ -119,7 +144,7 @@ For zigzag, build each level the same way and call `level.reversed()` on every s
 
 Every node is added and removed once.
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Reading the size inside the loop condition** (`while (i < queue.size)`). New children make it grow, so levels mix. `repeat(queue.size)` and `for (i in 0 until size)` read it once, which is correct.
 2. **Not creating a new list for each level.**
@@ -127,13 +152,13 @@ Every node is added and removed once.
 4. **Off-by-one in depth.** Decide if the root is depth 0 or 1.
 5. **Zigzag:** reversing the wrong levels.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "I use BFS. At the start of each round I read the queue size, which is the size of the current level."
 2. "Outer loop is the levels, inner loop is the nodes of one level."
 3. "Time `O(n)`, space `O(width of the tree)`."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. How do you get the number of nodes in the current level?
 2. For the right side view, which node of each level do you keep?
@@ -146,7 +171,7 @@ Every node is added and removed once.
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

@@ -54,7 +54,32 @@ flowchart LR
     c0["Course 0<br/>(prerequisite)"] -->|"[1, 0]"| c1["Course 1"]
 ```
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Mistake (naive) | What goes wrong | Right way |
+|---|---|---|
+| Store a one-way relation as two-way | cycles and paths appear that do not exist (Course Schedule says `A → B`, but you also add `B → A`) | add **one** edge `a → b` |
+| Store a two-way relation as one-way | half of the graph is unreachable | add **both** `a → b` and `b → a` |
+| Use the undirected "parent" check on a directed graph | misses cycles or reports false ones | 3-state DFS, or Kahn's algorithm |
+| Run topological sort on an undirected graph | no order exists | only a directed acyclic graph has one |
+
+```kotlin
+fun buildUndirected(n: Int, edges: Array<IntArray>): Array<MutableList<Int>> {
+    val g = Array(n) { mutableListOf<Int>() }
+    for ((a, b) in edges) { g[a].add(b); g[b].add(a) }          // both directions
+    return g
+}
+
+fun buildDirected(n: Int, edges: Array<IntArray>): Array<MutableList<Int>> {
+    val g = Array(n) { mutableListOf<Int>() }
+    for ((a, b) in edges) g[a].add(b)                           // one direction only
+    return g
+}
+```
+
+For `edges = [[0, 1], [1, 2]]`: undirected gives `1: [0, 2]`, directed gives `1: [2]`.
+
+#### 4. Kotlin Code
 
 ```kotlin
 // One function for both kinds
@@ -79,27 +104,27 @@ fun buildCourseGraph(n: Int, prerequisites: Array<IntArray>): List<List<Int>> {
 }
 ```
 
-#### 4. Complexity
+#### 5. Complexity
 
 | | Undirected | Directed |
 |---|---|---|
 | Memory (adjacency list) | `O(V + 2E)` | `O(V + E)` |
 | Walk the whole graph | `O(V + E)` | `O(V + E)` |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Forgetting the reverse edge** in an undirected graph. Half of the graph becomes unreachable.
 2. **Adding the reverse edge** in a directed graph. You create wrong paths.
 3. **Getting the edge direction wrong** when the input is `[a, b]`. Read the statement: is it `a → b` or `b → a`?
 4. **Using the undirected cycle check** (parent check) on a directed graph. It gives wrong answers.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "Is the graph directed? It decides how I store the edges and which cycle check I use."
 2. "For an undirected edge I add it in both directions."
 3. "In Course Schedule the edge goes from the prerequisite to the course."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. How many entries does an undirected edge add to an adjacency list?
 2. For `[course, prerequisite] = [1, 0]`, which way does the edge point?
@@ -112,7 +137,7 @@ fun buildCourseGraph(n: Int, prerequisites: Array<IntArray>): List<List<Int>> {
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

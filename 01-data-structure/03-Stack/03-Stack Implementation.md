@@ -36,7 +36,27 @@ push(40):  new node 40 points to the old top, then top = new node
 pop():     value = top.value, then top = top.next
 ```
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Implementation | `push` | `pop` | Memory | Note |
+|---|---|---|---|---|
+| Array, fixed size | `O(1)` | `O(1)` | fixed | overflows when full |
+| Array, **doubling** | `O(1)` amortised | `O(1)` | up to 2x | the usual choice |
+| Array, grow by 1 each time | `O(n)` (copy each time) | `O(1)` | exact | naive: `n` pushes cost `O(n²)` |
+| Linked list (push and pop at the head) | `O(1)` | `O(1)` | one node per item | no resizing, more memory |
+
+```kotlin
+// Naive array stack: grows by one slot per push, copying the array every time. n pushes = O(n^2).
+class GrowBy1Stack {
+    private var data = IntArray(0)
+    fun push(x: Int) { data = data.copyOf(data.size + 1); data[data.size - 1] = x }
+    fun pop(): Int { val v = data[data.size - 1]; data = data.copyOf(data.size - 1); return v }
+}
+```
+
+Doubling the capacity when full makes the copy cost rare, so the average push is `O(1)`.
+
+#### 4. Kotlin Code
 
 **Array version (with growth)**
 
@@ -101,7 +121,7 @@ println(s.pop())    // a
 println(s.isEmpty())// true
 ```
 
-#### 4. Complexity
+#### 5. Complexity
 
 | Operation | Array stack | Linked-list stack |
 |---|---|---|
@@ -109,7 +129,7 @@ println(s.isEmpty())// true
 | `pop`, `peek` | `O(1)` | `O(1)` |
 | Memory | compact | one extra pointer per item |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Off-by-one.** The top is at `size - 1`. The next free slot is `size`.
 2. **Not growing the array.** Pushing into a full array throws `ArrayIndexOutOfBoundsException`.
@@ -117,14 +137,14 @@ println(s.isEmpty())// true
 4. **Linked list: pushing at the tail.** Then `pop` needs to walk the whole list (`O(n)`).
 5. **Not handling an empty stack** in `pop` and `peek`.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "I will use an array and a `size` counter. The top is at `size - 1`."
 2. "When the array is full I double it, so push is `O(1)` on average."
 3. "With a linked list, push and pop both happen at the head, so both are `O(1)`."
 4. "In real code I would just use `ArrayDeque`."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. In an array stack with `size = 3`, where is the top item?
 2. Why double the array instead of adding one slot?
@@ -137,7 +157,7 @@ println(s.isEmpty())// true
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

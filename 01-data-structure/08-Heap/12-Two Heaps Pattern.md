@@ -1,142 +1,152 @@
 # Two Heaps Pattern
 
-#### 1. Definition — Must Know
+> Use **two heaps** when you need the **middle** of a changing collection, or when one condition **unlocks** items for another choice.
 
-1. The **Two Heaps** pattern splits data into two halves and keeps each half in its own heap:
-   - a **max-heap** for the **lower half** (smaller values),
-   - a **min-heap** for the **upper half** (larger values).
-2. The tops of the two heaps are the two **middle** values.
-3. It gives the median, or any "middle of the data" value, in `O(1)`, even while data keeps arriving.
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+The **two heaps pattern** splits the data in two halves, each held in a heap, so that the **boundary** between the halves is available in `O(1)`.
 
-1. Finding the median of changing data by sorting each time costs `O(n log n)` per query. Two heaps cost `O(log n)` per insert and `O(1)` per query.
-2. A single heap only exposes one end of the data. Two heaps expose both sides of the middle.
-3. It is the standard answer to *Find Median from Data Stream*.
+| Heap | Holds | Type | Root is |
+|---|---|---|---|
+| **low** | the **smaller** half | **max**-heap | the largest of the smaller half |
+| **high** | the **larger** half | **min**-heap | the smallest of the larger half |
 
-#### 3. How It Works — Must Know
+The two roots are the two numbers **in the middle**. Typical uses:
 
-Data `1, 2, 3, 4, 5, 6`:
+- **running median** (note 13)
+- sliding window median
+- **"unlock then pick best"** problems such as IPO (below)
 
-```text
- lower half (max-heap)        upper half (min-heap)
-      [ 1, 2, 3 ]                  [ 4, 5, 6 ]
-   top = 3 (largest of low)     top = 4 (smallest of high)
+**Signals:** "median", "middle element", "balance two halves", "among the items I can afford, pick the best".
 
- median = (3 + 4) / 2 = 3.5
+#### 2. How It Works
+
+```mermaid
+flowchart LR
+    subgraph LOW["Max-heap: smaller half"]
+        l["1, 2, 3<br/>root = 3"]
+    end
+    subgraph HIGH["Min-heap: larger half"]
+        h["5, 8, 9<br/>root = 5"]
+    end
+    LOW -->|"every low value ≤ every high value"| HIGH
 ```
 
-With an odd count, let the lower heap hold one extra item. Its top is the median:
+**Rules for the halves**
+
+1. Every number in `low` is `≤` every number in `high`.
+2. The sizes differ by at most 1 (`low` may have one extra).
+3. Median: if `low` is bigger, it is `low.peek()`. If equal, it is the average of both roots.
+
+**A second use: IPO (LeetCode 502).** You have `k` projects to pick, starting capital `w`. Each project has a `capital` needed and a `profit`. After each project your capital grows by its profit. Pick the best order to **maximize the final capital**.
+
+- Heap 1 (**min**-heap by capital): projects you **cannot afford yet**.
+- Heap 2 (**max**-heap by profit): projects you **can afford now**.
+
+Each round: move every project with `capital <= w` from heap 1 to heap 2, then take the most profitable one from heap 2.
 
 ```text
- low  = [ 1, 2, 3 ]     high = [ 4, 5 ]
- median = 3
+k = 2, w = 0, profits = [1, 2, 3], capital = [0, 1, 1]
+round 1: afford capital 0 → project (profit 1).  best = 1.  w = 1
+round 2: now afford capital 1 → profits 2 and 3.  best = 3.  w = 4
+answer 4
 ```
 
-#### 4. Core Concepts — Must Know
+#### 3. Brute Force vs Optimized
 
-Two rules (**invariants**) must hold after every insert:
+| Problem | Brute force | Two heaps |
+|---|---|---|
+| Median of a stream | insert into a sorted list: `O(n)` per number | `O(log n)` per number |
+| IPO | each round scan all projects: `O(k · n)` | sort/heap by capital + max-heap by profit: `O((n + k) log n)` |
 
-1. **Order rule:** every value in the lower half is `≤` every value in the upper half.
-2. **Size rule:** the sizes differ by at most one. By convention `low.size == high.size` or `low.size == high.size + 1`.
-
-Reading the answer:
-
-| Count | Median |
-|---|---|
-| Odd | top of the larger heap (the lower heap) |
-| Even | average of the two tops |
-
-#### 5. Algorithm — Must Know
-
-```text
-addNum(x):
-    low.add(x)                       // 1. put in the lower half
-    high.add(low.poll())             // 2. move the largest of the lower half to the upper half
-    if high.size > low.size:         // 3. keep sizes balanced
-        low.add(high.poll())
+```kotlin
+// Brute force IPO: each round, scan all projects for the best affordable one
+fun findMaximizedCapitalBrute(k: Int, w: Int, profits: IntArray, capital: IntArray): Int {
+    var money = w
+    val used = BooleanArray(profits.size)
+    repeat(k) {
+        var best = -1
+        for (i in profits.indices) {
+            if (!used[i] && capital[i] <= money && (best == -1 || profits[i] > profits[best])) best = i
+        }
+        if (best == -1) return money
+        used[best] = true
+        money += profits[best]
+    }
+    return money
+}
 ```
 
-Why this works:
-
-```text
-Step 1+2 pass every new value through low, so the value that moves to high is the largest of low.
-That keeps "everything in low ≤ everything in high".
-Step 3 restores the size rule.
-```
-
-#### 6. Kotlin Implementation — Must Know
+#### 4. Kotlin Code
 
 ```kotlin
 import java.util.PriorityQueue
 
-class TwoHeaps {
-
-    private val low = PriorityQueue<Int>(compareByDescending<Int> { it })   // max-heap
-    private val high = PriorityQueue<Int>()                                  // min-heap
-
-    fun add(x: Int) {
-        low.add(x)
-        high.add(low.poll())
-        if (high.size > low.size) low.add(high.poll())
+// IPO (LeetCode 502)
+fun findMaximizedCapital(k: Int, w: Int, profits: IntArray, capital: IntArray): Int {
+    val locked = PriorityQueue<IntArray>(compareBy<IntArray> { it[0] })               // [capital, profit], min capital first
+    for (i in profits.indices) locked.add(intArrayOf(capital[i], profits[i]))
+    val available = PriorityQueue<Int>(compareByDescending<Int> { it })              // profits, max first
+    var money = w
+    repeat(k) {
+        while (locked.isNotEmpty() && locked.peek()[0] <= money) {
+            available.add(locked.poll()[1])                                          // now affordable
+        }
+        if (available.isEmpty()) return money
+        money += available.poll()                                                    // take the most profitable
     }
-
-    fun median(): Double {
-        require(low.isNotEmpty()) { "no data" }
-        return if (low.size > high.size) low.peek().toDouble()
-        else (low.peek().toDouble() + high.peek().toDouble()) / 2.0
-    }
+    return money
 }
 ```
 
-`toDouble()` first, so two large `Int` values do not overflow when added.
+Checks: `findMaximizedCapital(2, 0, intArrayOf(1, 2, 3), intArrayOf(0, 1, 1))` → `4`. `findMaximizedCapital(3, 0, intArrayOf(1, 2, 3), intArrayOf(0, 1, 2))` → `6`. `findMaximizedCapital(1, 0, intArrayOf(5), intArrayOf(1))` → `0` (cannot afford anything). `findMaximizedCapitalBrute(2, 0, intArrayOf(1, 2, 3), intArrayOf(0, 1, 1))` → `4`.
 
-#### 7. Time & Space Complexity — Must Know
+The running-median version (`MedianFinder`) is in note 13.
 
-| Operation | Time |
-|---|---:|
-| Add a number | `O(log n)` |
-| Read the median | `O(1)` |
-| Space | `O(n)` |
+#### 5. Complexity
 
-#### 8. Common Two Heaps Patterns — Must Know
+| | Time | Space |
+|---|---|---|
+| IPO | `O((n + k) log n)` | `O(n)` |
+| Median stream, `add` | `O(log n)` | `O(n)` |
+| Median stream, `findMedian` | `O(1)` | |
 
-1. **Find Median from Data Stream** (LeetCode 295) — see the next topic.
-2. **Sliding Window Median** (LeetCode 480) — two heaps with lazy deletion (see "Multiple Heap / Advanced Two-Heaps Patterns").
-3. **IPO** (LeetCode 502) — two heaps with different orders, one to unlock projects and one to choose the best (see the same topic).
-4. A "balance" pattern: split into the smaller half and the larger half to look at the middle.
+#### 6. Common Mistakes
 
-#### 9. Edge Cases / Common Mistakes
+1. **Putting numbers into the wrong heap.** The max-heap must hold the smaller half.
+2. **Not rebalancing** after each insert (sizes drift apart by more than 1).
+3. **IPO:** moving projects only once instead of **every round** (capital grows).
+4. **IPO:** forgetting the early return when no project is affordable.
+5. **Comparing sizes with `>` and getting an off-by-one** in the median for odd counts. Pick one rule (`low` may be larger) and keep it.
+6. **Using `a - b`** in a comparator.
 
-1. Putting the max-heap and min-heap the wrong way round.
-2. Breaking the size rule so the median reads the wrong top.
-3. Reading `peek()` on an empty heap when only one number exists.
-4. Integer overflow when averaging two large `Int` values. Convert to `Double` first.
-5. Inserting directly into the "right" heap by comparing with the tops, and mishandling the balance. The three-step rule above avoids this.
-6. Even count: forgetting to average the two tops.
+#### 7. Say This in the Interview
 
-#### 10. When to Use / When Not to Use
+1. "I'll keep the smaller half in a max-heap and the larger half in a min-heap. The two roots give me the middle in `O(1)`."
+2. "Each insert goes to one heap and I rebalance so their sizes differ by at most one: `O(log n)`."
+3. "For IPO, one heap holds projects I can't afford yet (by capital), and another holds affordable ones (by profit). I always take the most profitable affordable one."
 
-**Use when:**
+#### 8. Quick Check
 
-1. You need the median or a middle value while data changes.
-2. You need the "smaller half" and "larger half" separately.
+1. Which heap holds the smaller half of a stream?
+2. For the numbers `1, 2, 3, 4`, what are the two roots?
+3. In IPO, what unlocks a project?
 
-**Avoid when:**
+<details>
+<summary>Answers</summary>
 
-1. The data is fixed. Sort once and index the middle.
-2. The values are in a small, known range. A counting array is simpler.
+1. The **max**-heap (its root is the largest of the smaller half).
+2. `2` (max-heap root) and `3` (min-heap root). The median is `2.5`.
+3. Having enough capital (`capital <= w`).
 
-#### 11. Related Topics
+</details>
 
-1. Min Heap vs Max Heap
-2. Find Median from Data Stream
-3. Multiple Heap / Advanced Two-Heaps Patterns
-4. Sliding Window (`03-leetcode-patterns`, topic 5)
+#### 9. Related LeetCode Questions
 
-#### 12. Interview Must Remember
-
-1. **Max-heap for the lower half, min-heap for the upper half.**
-2. Keep sizes equal, or the lower half one larger.
-3. Add: `low → high → rebalance`. Median is read from the tops in `O(1)`.
-4. Insert is `O(log n)`.
+| # | Question | Idea |
+|---|---|---|
+| 295 | [Find Median from Data Stream](https://leetcode.com/problems/find-median-from-data-stream/) (Hard) | two heaps (note 13) |
+| 502 | [IPO](https://leetcode.com/problems/ipo/) (Hard) | locked heap + available heap |
+| 480 | [Sliding Window Median](https://leetcode.com/problems/sliding-window-median/) (Hard) | two heaps + lazy deletion |
+| 1642 | [Furthest Building You Can Reach](https://leetcode.com/problems/furthest-building-you-can-reach/) (Medium) | heap of climbs (note 14) |
+| 2542 | [Maximum Subsequence Score](https://leetcode.com/problems/maximum-subsequence-score/) (Medium) | sort + min-heap |

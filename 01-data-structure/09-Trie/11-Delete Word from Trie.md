@@ -1,158 +1,181 @@
 # Delete Word from Trie
 
-#### 1. Definition — Must Know
+> Deleting is the hardest trie operation. The rule: **unmark the word, then remove only the nodes that no other word needs.**
 
-1. **Delete** removes a word from the Trie.
-2. The word must stop being found by `search`.
-3. Other words must keep working. Nodes that other words still use must **not** be removed.
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+**Delete** removes a word from the trie. Two things can be true after unmarking `isEnd`:
 
-1. Real dictionaries change: words are removed, expired, or corrected.
-2. It is a common follow-up question, because the careful part is *how much to remove*.
-3. It tests whether you understand shared prefixes.
+| Case | Example (trie has `car`, `cart`, `cat`) | What to do |
+|---|---|---|
+| **Word is a prefix of another word** | delete `car` (`cart` still needs `c → a → r`) | only set `isEnd = false` |
+| **Word has a unique tail** | delete `cart` (the `t` under `r` is used only by `cart`) | unmark, then **remove nodes** going back up while they have no children and are not word ends |
+| **Word does not exist** | delete `cow` | do nothing |
 
-#### 3. How It Works — Must Know
+**Signals:** "remove a word from the dictionary", "Implement Trie II (erase)", "delete".
 
-Trie holds `car`, `cat`, `do`, `dog`, `fan`:
+Many interview solutions only **unmark** `isEnd` (a **lazy** delete). That is correct for `search`, but leaves unused nodes (wasted memory). Pruning is the better answer.
 
-```text
-root
-├── c
-│   └── a
-│       ├── r*
-│       └── t*
-├── d
-│   └── o*
-│       └── g*
-└── f
-    └── a
-        └── n*
+#### 2. How It Works
+
+Delete `cart` from `car`, `cart`, `cat`:
+
+```mermaid
+flowchart TD
+    subgraph B["Before"]
+        a1((root)) --- c1((c)) --- aa1((a))
+        aa1 --- r1(["r ✓ car"])
+        aa1 --- t1(["t ✓ cat"])
+        r1 --- tt1(["t ✓ cart"])
+    end
+    subgraph A["After delete cart"]
+        a2((root)) --- c2((c)) --- aa2((a))
+        aa2 --- r2(["r ✓ car"])
+        aa2 --- t2(["t ✓ cat"])
+    end
+    classDef gone fill:#fecaca,stroke:#b91c1c,color:#111
+    class tt1 gone
 ```
 
-Four cases:
+**Recursive method.** Go down to the last node. On the way back up, each call tells its parent "you can remove me" if the node has **no children** and is **not the end of another word**.
 
 ```text
-delete("fan")  → unique chain f → a → n. Remove all three nodes.
-delete("car")  → shares "ca" with "cat". Remove only the node r. Keep c and a.
-delete("do")   → "do" is a prefix of "dog". Only unmark the end flag. Keep every node.
-delete("cow")  → not in the Trie. Do nothing.
+remove(node, depth):
+    if depth == word.length:
+        node.isEnd = false
+        return node has no children          // true → the parent may delete this node
+    child = node.next[word[depth]]
+    if remove(child, depth + 1):  node.next[word[depth]] = null
+    return (not node.isEnd) and node has no children
 ```
-
-#### 4. Core Concepts — Must Know
-
-1. **Unmark** the end-of-word flag on the last node. That alone makes `search` return `false`.
-2. **Prune** (remove) nodes upward only while a node:
-   - is not an end of word, **and**
-   - has no children left.
-3. **Stop pruning** at the first node that another word still needs.
-4. Two valid strategies:
-   - **Lazy delete** — only unmark. Simple, but unused nodes stay in memory.
-   - **Full delete** — unmark and prune. Frees memory, needs recursion or a stack.
-
-#### 5. Algorithm — Must Know
 
 ```text
-delete(word):
-    if word is not in the Trie: return
-    deleteHelper(root, word, 0)
-
-deleteHelper(node, word, index):    // returns true if the caller should remove this node
-    if index == word.length:
-        node.isEndOfWord = false
-        return node has no children
-
-    child = node.children[word[index]]
-    if deleteHelper(child, word, index + 1):
-        remove that child from node.children
-
-    return (not node.isEndOfWord) and node has no children
+delete "cart":  remove goes c → a → r → t
+   at t:  isEnd = false, t has no children → return true
+   at r:  remove t. r.isEnd is true (car) → return false   (keep r)
+   at a, c: nothing to remove
+delete "car" (when cart exists):  at r: isEnd = false, r has child t → return false. Nothing is removed.
 ```
 
-#### 6. Kotlin Implementation — Must Know
+Always check that the word exists first (`search(word)`), or you may remove nodes that belong to nothing.
+
+**Alternative:** keep a `pass` counter on each node (how many words go through it). On delete, decrement along the path and remove a node when its counter reaches 0. (This is how *Implement Trie II* works, note 14.)
+
+#### 3. Brute Force vs Optimized
+
+| Approach | Time | Space |
+|---|---|---|
+| Lazy: only unmark `isEnd` | `O(L)` | nodes stay (wasted memory) |
+| Prune with the recursive method | `O(L)` | frees unused nodes |
+| Rebuild the whole trie without the word | `O(total characters)` | |
 
 ```kotlin
-// Methods inside the Trie class from "Trie Implementation"
-
-// Lazy delete: simple, keeps the nodes
-fun deleteLazy(word: String) {
-    findNode(word)?.isEndOfWord = false
-}
-
-// Full delete: unmark, then prune nodes nobody needs
-fun delete(word: String) {
-    if (!search(word)) return                  // not stored: nothing to do
-    deleteHelper(root, word, 0)
-}
-
-// Returns true when the caller should remove this node from its parent
-private fun deleteHelper(node: TrieNode, word: String, index: Int): Boolean {
-    if (index == word.length) {
-        node.isEndOfWord = false
-        return node.children.isEmpty()
-    }
-    val ch = word[index]
-    val child = node.children[ch] ?: return false
-    if (deleteHelper(child, word, index + 1)) {
-        node.children.remove(ch)
-    }
-    return !node.isEndOfWord && node.children.isEmpty()
+// Rebuild: simplest idea, but O(total characters) per delete
+fun deleteByRebuild(words: MutableSet<String>, word: String): Trie {
+    words.remove(word)
+    val t = Trie()
+    for (w in words) t.insert(w)
+    return t
 }
 ```
 
-The return value of the very first call (for the root) is ignored. The root is never removed.
+#### 4. Kotlin Code
 
-Trace `delete("car")` with `cat` present:
+```kotlin
+class TrieNode {
+    val next = arrayOfNulls<TrieNode>(26)
+    var isEnd = false
+    fun hasChildren(): Boolean = next.any { it != null }
+}
 
-```text
-r: isEndOfWord = false, no children          → return true  (remove r)
-a: removes r, still has child t              → return false (stop pruning)
-c, root: nothing more to remove
+class Trie {
+    private val root = TrieNode()
+
+    fun insert(word: String) {
+        var node = root
+        for (c in word) {
+            if (node.next[c - 'a'] == null) node.next[c - 'a'] = TrieNode()
+            node = node.next[c - 'a']!!
+        }
+        node.isEnd = true
+    }
+
+    private fun find(s: String): TrieNode? {
+        var node = root
+        for (c in s) node = node.next[c - 'a'] ?: return null
+        return node
+    }
+
+    fun search(word: String): Boolean = find(word)?.isEnd == true
+    fun startsWith(prefix: String): Boolean = find(prefix) != null
+
+    // Delete a word and prune the nodes that nothing else needs. Returns false if the word is not there.
+    fun delete(word: String): Boolean {
+        if (!search(word)) return false
+
+        fun remove(node: TrieNode, depth: Int): Boolean {         // true = the caller may drop this node
+            if (depth == word.length) {
+                node.isEnd = false
+                return !node.hasChildren()
+            }
+            val i = word[depth] - 'a'
+            val child = node.next[i]!!
+            if (remove(child, depth + 1)) node.next[i] = null
+            return !node.isEnd && !node.hasChildren()
+        }
+
+        remove(root, 0)
+        return true
+    }
+}
 ```
 
-#### 7. Time & Space Complexity — Must Know
+Checks (insert `car`, `cart`, `cat`): `delete("cow")` → `false`. `delete("cart")` → `true`; then `search("cart")` → `false`, `startsWith("cart")` → `false` (the node was removed), `search("car")` → `true`, `search("cat")` → `true`. Starting fresh with the same words, `delete("car")` → `true`; then `search("car")` → `false`, `search("cart")` → `true`, `startsWith("car")` → `true` (nothing removed, only `isEnd` changed). After deleting all three words, `startsWith("c")` → `false` (every node was pruned). `deleteByRebuild(mutableSetOf("car", "cart"), "cart")` → a trie where `search("cart")` is `false`.
 
-| Strategy | Time | Extra space |
-|---|---:|---:|
-| Lazy delete | `O(L)` | `O(1)` |
-| Full delete | `O(L)` | `O(L)` recursion |
+#### 5. Complexity
 
-#### 8. Common Delete Patterns — Must Know
+| | Time | Space |
+|---|---|---|
+| `delete` | `O(L)` | `O(L)` recursion |
+| `hasChildren` | `O(26)` | `O(1)` |
+| Rebuild | `O(total chars)` | |
 
-1. Remove a word from a live dictionary.
-2. Remove a user's history or a banned word.
-3. With counts: decrement along the path instead of removing (see "Counting Words / Prefixes").
+#### 6. Common Mistakes
 
-#### 9. Edge Cases / Common Mistakes
+1. **Removing a node that another word still uses** (`cart` deleted removes `r`, breaking `car`).
+2. **Not checking that the word exists.**
+3. **Removing the whole branch** instead of only unused nodes.
+4. **Forgetting to unmark `isEnd`** when the word is a prefix of another word.
+5. **Pruning the root** (it must always stay).
+6. **Using `node.next.isEmpty()`** on a fixed array (it is never empty). Use `any { it != null }`.
 
-1. Removing nodes that another word uses (deleting `car` also deletes `cat`).
-2. Removing the whole chain when the deleted word is a prefix of a longer word (`do` and `dog`).
-3. Crashing when the word is not in the Trie. Check with `search` first.
-4. Removing the root.
-5. Forgetting to unmark `isEndOfWord`, so the word still appears after "deleting".
+#### 7. Say This in the Interview
 
-#### 10. When to Use / When Not to Use
+1. "Deleting has two parts: unmark `isEnd`, then remove nodes on the way back up while they have no children and aren't the end of another word."
+2. "If the word is a prefix of another word, I only unmark it and remove nothing."
+3. "A simpler alternative is lazy deletion: only unmark `isEnd`. Search stays correct, but the unused nodes waste memory."
 
-**Use full delete when:**
+#### 8. Quick Check
 
-1. The Trie is large, and words are removed often.
+1. What changes when you delete `car` while `cart` is stored?
+2. What changes when you delete `cart` while `car` is stored?
+3. Why check `search(word)` first?
 
-**Use lazy delete when:**
+<details>
+<summary>Answers</summary>
 
-1. Deletes are rare, or you want the simplest correct code.
-2. The Trie is rebuilt regularly anyway.
+1. Only `isEnd` on the `r` node becomes `false`.
+2. The `t` node is removed. `r` stays because `car` still ends there.
+3. Deleting a word that is not stored could remove nodes that other words need.
 
-#### 11. Related Topics
+</details>
 
-1. Insert Word
-2. Search Word
-3. Common Trie Edge Cases
-4. Counting Words / Prefixes
-5. Recursion (`02-algorithm/03-Recursion & Divide and Conquer`)
+#### 9. Related LeetCode Questions
 
-#### 12. Interview Must Remember
-
-1. Always **unmark** the end flag first.
-2. **Prune only nodes that are not a word and have no children.**
-3. A word that is a prefix of another word is only unmarked, never pruned.
-4. Lazy delete is acceptable. Say it, then offer the full version.
+| # | Question | Idea |
+|---|---|---|
+| 1804 | [Implement Trie II (Prefix Tree)](https://leetcode.com/problems/implement-trie-ii-prefix-tree/) (Medium, premium) | `erase` with counters |
+| 208 | [Implement Trie (Prefix Tree)](https://leetcode.com/problems/implement-trie-prefix-tree/) (Medium) | the base |
+| 1233 | [Remove Sub-Folders from the Filesystem](https://leetcode.com/problems/remove-sub-folders-from-the-filesystem/) (Medium) | prune by prefix |
+| 212 | [Word Search II](https://leetcode.com/problems/word-search-ii/) (Hard) | prune found words from the trie |
+| 648 | [Replace Words](https://leetcode.com/problems/replace-words/) (Medium) | uses the trie |

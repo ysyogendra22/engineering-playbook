@@ -41,7 +41,27 @@ Three shapes of values appear again and again:
 | a list | a group | Group Anagrams |
 | an object | extra data | `id → User` |
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Way to store key-value pairs | Lookup | Insert | Note |
+|---|---|---|---|
+| Two parallel lists (keys and values) | `O(n)` scan | `O(1)` | easy to get out of sync |
+| List of pairs | `O(n)` | `O(n)` if you check for an existing key | |
+| Sorted array + binary search | `O(log n)` | `O(n)` (shift) | keeps order |
+| Balanced tree (`TreeMap`) | `O(log n)` | `O(log n)` | keeps order |
+| **Hash table** (`HashMap`) | **`O(1)` average** | **`O(1)` average** | no order |
+
+```kotlin
+// Parallel lists: the value of a key is found by scanning the keys
+fun getFromLists(keys: List<String>, values: List<Int>, key: String): Int? {
+    val i = keys.indexOf(key)                      // O(n)
+    return if (i >= 0) values[i] else null
+}
+```
+
+Use a `HashMap` for the fastest lookups, a `TreeMap` when you also need the keys sorted.
+
+#### 4. Kotlin Code
 
 ```kotlin
 val scores = hashMapOf("Asha" to 90, "Ben" to 75)
@@ -69,7 +89,7 @@ val nameById = users.associate { it.id to it.name } // id → name
 
 `associateBy` and `associate` keep only the **last** item when two items have the same key. Use `groupBy` to keep all of them.
 
-#### 4. Complexity
+#### 5. Complexity
 
 | Action | Time |
 |---|---|
@@ -79,7 +99,7 @@ val nameById = users.associate { it.id to it.name } // id → name
 
 For a fast reverse lookup, keep a second map the other way round.
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Choosing the wrong key**, so you cannot find the thing you need quickly.
 2. **Overwriting a value by accident** when two items share a key.
@@ -88,13 +108,13 @@ For a fast reverse lookup, keep a second map the other way round.
 5. **Using `associateBy` when you need all items.** It keeps only the last.
 6. **Joining fields into a `String` key without a separator.** `"1" + "23"` and `"12" + "3"` are both `"123"`. Use `"1,23"`.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "My key is the number, and my value is its index."
 2. "I need to look up by X, so X is the key."
 3. "The value is a list, because several items can share a key."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. For "count how many times each word appears", what are the key and the value?
 2. For "group words that are anagrams", what is the value?
@@ -107,7 +127,7 @@ For a fast reverse lookup, keep a second map the other way round.
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Key → value |
 |---|---|---|

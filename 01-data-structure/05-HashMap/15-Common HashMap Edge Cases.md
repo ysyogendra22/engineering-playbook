@@ -35,7 +35,27 @@ These are the situations where HashMap solutions most often **crash** or **give 
 | 17 | `associateBy` with repeated keys | the last item wins | `groupBy` |
 | 18 | Shared by threads | corrupted data | `ConcurrentHashMap` |
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Mistake (naive) | Fix |
+|---|---|
+| `map[key]!!` when the key may be missing | `map[key] ?: default`, or `getOrDefault` |
+| `map[key] = map[key] + 1` (null error) | `map[key] = (map[key] ?: 0) + 1` |
+| `IntArray` as a key | `List<Int>` or a data class |
+| Changing a mutable key after `put` | use immutable keys |
+| Removing entries while iterating the map | `map.entries.removeAll { }` or iterate over a copy |
+| Expecting insertion or sorted order from `HashMap` | `LinkedHashMap` / `TreeMap` |
+| `Int` overflow in sums used as keys | `Long` |
+
+```kotlin
+// Naive: crashes with a NullPointerException when the key is new
+fun incrementBad(map: HashMap<String, Int>, key: String) { map[key] = map[key]!! + 1 }
+
+// Safe
+fun increment(map: HashMap<String, Int>, key: String) { map[key] = (map[key] ?: 0) + 1 }
+```
+
+#### 4. Kotlin Code
 
 ```kotlin
 val count = HashMap<Char, Int>()
@@ -76,11 +96,11 @@ println(Int.MAX_VALUE + 1)                                 // -2147483648
 println(Int.MAX_VALUE.toLong() + 1)                        // 2147483648
 ```
 
-#### 4. Complexity
+#### 5. Complexity
 
 Edge cases do not change the complexity. They change **correctness**. Two exceptions: a bad `hashCode` can make every operation `O(n)`, and `containsValue` in a loop makes the solution `O(n²)`.
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Testing only the example from the question.** Also test: empty input, one item, all items equal, all different.
 2. **Using `map.keys.first()` on an empty map.** It throws.
@@ -88,13 +108,13 @@ Edge cases do not change the complexity. They change **correctness**. Two except
 4. **Treating `'1'` (a character) as `1` (a number).**
 5. **Returning a map and then changing it**, so the caller sees the changes.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "Edge cases I will check: empty input, a single item, and a missing key."
 2. "I handle a missing key with `getOrDefault` or `getOrPut`."
 3. "My keys are immutable `data class` or `String` values, never arrays."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. What does `map.getOrDefault(k, mutableListOf()).add(1)` do to the map?
 2. Why remove a key when its count hits `0`?
@@ -107,7 +127,7 @@ Edge cases do not change the complexity. They change **correctness**. Two except
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Edge case to watch |
 |---|---|---|

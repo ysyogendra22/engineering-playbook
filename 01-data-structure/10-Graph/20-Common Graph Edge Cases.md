@@ -59,7 +59,34 @@ flowchart LR
 | 20 | Very deep recursion | `StackOverflowError` | BFS or an explicit stack |
 | 21 | Changing the input graph or grid | caller's data is damaged | copy, or use a separate `visited` |
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Naive solution | Fix |
+|---|---|
+| No `visited` set on a graph with cycles | add one |
+| Mark visited when a node is dequeued | mark when it is **enqueued** |
+| Search from one node only | loop over all nodes (disconnected graphs) |
+| Store an undirected edge one way | add both directions |
+| Store a directed edge both ways | add one direction only |
+| Undirected cycle check without the parent | ignore the node you came from |
+| BFS on a weighted graph | Dijkstra |
+| Dijkstra with negative edges | Bellman-Ford |
+| `Int.MAX_VALUE + w` | check for "infinity" first, or use `Long` |
+| Read the grid cell before the bounds check | check bounds first |
+| Node labels from `1` in a 0-based array | allocate `n + 1` |
+| Deep recursion on a long chain | BFS or an explicit stack |
+
+```kotlin
+// Naive: overflow when the distance is still "infinity"
+fun relaxBad(dist: IntArray, u: Int, v: Int, w: Int) { if (dist[u] + w < dist[v]) dist[v] = dist[u] + w }
+
+// Safe
+fun relax(dist: IntArray, u: Int, v: Int, w: Int) {
+    if (dist[u] != Int.MAX_VALUE && dist[u] + w < dist[v]) dist[v] = dist[u] + w
+}
+```
+
+#### 4. Kotlin Code
 
 ```kotlin
 // 1 and 2. visited, marked when you add to the queue
@@ -122,24 +149,24 @@ fun indegrees(n: Int, edges: Array<IntArray>): IntArray {
 }
 ```
 
-#### 4. Complexity
+#### 5. Complexity
 
 Edge cases do not change the complexity. They change **correctness**. Two exceptions: marking visited on dequeue can make a BFS far slower, and a recursive DFS can use too much stack.
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Testing only the example from the question.** Also test: empty graph, one node, no edges, a cycle, a disconnected graph, start equals target.
 2. **Not asking** whether the graph is directed, weighted, or can have duplicates and self-loops.
 3. **Assuming node labels** are `0..n-1`.
 4. **Returning the number of nodes** when the question asks for edges (or the reverse).
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "Let me clarify: is the graph directed? Weighted? Can it be disconnected, or have cycles, self-loops, or duplicate edges?"
 2. "Edge cases I will check: empty input, one node, start equals target, and unreachable targets."
 3. "I mark nodes visited when I enqueue them."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. A graph has two separate parts. What must your loop do?
 2. What can go wrong with `Int.MAX_VALUE + weight`?
@@ -152,7 +179,7 @@ Edge cases do not change the complexity. They change **correctness**. Two except
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Edge case to watch |
 |---|---|---|

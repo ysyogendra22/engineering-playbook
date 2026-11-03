@@ -1,192 +1,149 @@
 # Maximum Path Sum
 
-#### 1. Definition — Must Know
+> The hardest standard tree question, but it is the same pattern as Diameter: **return one thing, record another**. This time the values can be negative.
 
-1. **Maximum Path Sum** is the largest sum obtainable from any valid path in a Binary Tree.
-2. A path can start and end at **any nodes**.
-3. Each connected node can appear only once in the path.
-4. The path does **not** need to pass through the root.
+#### 1. What Is It?
 
-#### 2. How It Works — Must Know
+A **path** is any sequence of connected nodes, going up and then down (it can start and end at any node, and does not need to pass through the root). The **path sum** is the sum of the node values on it. Return the **maximum path sum** (LeetCode 124).
 
-```text id="mps001"
-       -10
-       /  \
-      9    20
-          /  \
-         15   7
+Node values can be **negative**, so a longer path is not always better.
+
+**Signals:** "maximum path sum", "any node to any node", "values can be negative".
+
+#### 2. How It Works
+
+```mermaid
+flowchart TD
+    n10(("-10")) --- n9((9))
+    n10 --- n20((20))
+    n20 --- n15((15))
+    n20 --- n7((7))
+    linkStyle 2,3 stroke:#15803d,stroke-width:4px
+    classDef g fill:#bbf7d0,stroke:#15803d,color:#111
+    class n15,n20,n7 g
 ```
 
-Best path:
+The best path is `15 → 20 → 7 = 42`. It does not include the root `-10`.
 
-```text id="mps002"
-15 → 20 → 7
+**Two different numbers at every node. Keep them apart.**
+
+| | Meaning | Used for |
+|---|---|---|
+| **gain(node)** (returned) | the best sum of a path that **starts at this node and goes down one side** | the parent can extend it upward |
+| **bend(node)** (recorded) | the best path that **uses this node as the highest point**: `value + leftGain + rightGain` | the global answer |
+
+```text
+gain(node):
+    if null: return 0
+    left  = max(0, gain(node.left))      // ignore a branch that makes the sum smaller
+    right = max(0, gain(node.right))
+    best  = max(best, node.value + left + right)      // path that bends here
+    return node.value + max(left, right)               // path that continues up: ONE side only
 ```
 
-Sum:
+- `max(0, ...)` means "if a branch is negative, do not take it".
+- A path that goes **up to the parent** can use only **one** child side (it cannot fork), so the returned value uses `max(left, right)`.
 
-```text id="mps003"
-15 + 20 + 7 = 42
+```text
+node 15: left=0, right=0 → best = 15          returns 15
+node 7 : best = max(15, 7) = 15               returns 7
+node 20: left=15, right=7 → bend = 20+15+7 = 42   best = 42     returns 20 + 15 = 35
+node 9 : best stays 42                        returns 9
+node -10: left=9, right=35 → bend = -10+9+35 = 34  best stays 42
+answer 42
 ```
 
-Answer → `42`
+This is exactly the diameter pattern (note 11), with values instead of edge counts and `max(0, ...)` to skip negative branches.
 
-#### 3. Core Idea — Must Know
+#### 3. Brute Force vs Optimized
 
-At every node calculate two different things:
+| Approach | Idea | Time | Space |
+|---|---|---|---|
+| Brute force | for each node, recompute the best downward gain of each side | `O(n²)` | `O(h)` |
+| Optimized | one bottom-up pass with a global best | `O(n)` | `O(h)` |
 
-```text id="mps004"
-1. Path through current node
-   = node + leftGain + rightGain
+```kotlin
+// Brute force: for every node, compute the downward gains again from scratch
+fun gainDown(node: TreeNode?): Int {
+    if (node == null) return 0
+    return node.value + maxOf(0, gainDown(node.left), gainDown(node.right))
+}
 
-2. Path returned to parent
-   = node + max(leftGain, rightGain)
-```
-
-Why?
-
-A path going **up to the parent cannot take both branches**.
-
-```text id="mps005"
-        Parent
-          |
-         Node
-        /    \
-      Left   Right
-
-Return upward → choose Left OR Right
-
-Final answer at Node → can use Left + Node + Right
-```
-
-This distinction is the key to the problem.
-
-#### 4. Core Logic — Must Know
-
-Use **bottom-up DFS / Postorder**.
-
-```text id="mps006"
-1. Get maximum gain from left subtree.
-2. Get maximum gain from right subtree.
-3. Ignore negative gains.
-4. Calculate path through current node.
-5. Update global maximum.
-6. Return the best one-branch path to parent.
-```
-
-Formula:
-
-```text id="mps007"
-left  = max(0, dfs(left))
-right = max(0, dfs(right))
-
-currentPath = node.value + left + right
-
-answer = max(answer, currentPath)
-
-return node.value + max(left, right)
-```
-
-#### 5. Kotlin Implementation — Must Know
-
-```kotlin id="mps008"
-fun maxPathSum(root: TreeNode?): Int {
-    var maxSum = Int.MIN_VALUE
-
-    fun dfs(node: TreeNode?): Int {
-        if (node == null) return 0
-
-        val left = maxOf(0, dfs(node.left))
-        val right = maxOf(0, dfs(node.right))
-
-        val currentPath = node.value + left + right
-
-        maxSum = maxOf(maxSum, currentPath)
-
-        return node.value + maxOf(left, right)
-    }
-
-    dfs(root)
-
-    return maxSum
+fun maxPathSumBrute(root: TreeNode?): Int {
+    if (root == null) return Int.MIN_VALUE
+    val bend = root.value + maxOf(0, gainDown(root.left)) + maxOf(0, gainDown(root.right))
+    return maxOf(bend, maxPathSumBrute(root.left), maxPathSumBrute(root.right))
 }
 ```
 
-#### 6. Why Ignore Negative Paths? — Must Know
+#### 4. Kotlin Code
 
-Example:
+```kotlin
+class TreeNode(val value: Int, var left: TreeNode? = null, var right: TreeNode? = null)
 
-```text id="mps009"
-       10
-      /  \
-    -20   5
+// Binary Tree Maximum Path Sum (LeetCode 124): O(n)
+fun maxPathSum(root: TreeNode?): Int {
+    var best = Int.MIN_VALUE                              // not 0: every value may be negative
+    fun gain(node: TreeNode?): Int {
+        if (node == null) return 0
+        val left = maxOf(0, gain(node.left))             // drop a negative branch
+        val right = maxOf(0, gain(node.right))
+        best = maxOf(best, node.value + left + right)    // path bending at this node
+        return node.value + maxOf(left, right)           // continue up with ONE side
+    }
+    gain(root)
+    return best
+}
 ```
 
-Including `-20` makes the path worse.
+`buildTree` is in note 3.
 
-Therefore:
+Checks: `maxPathSum(buildTree(listOf(-10, 9, 20, null, null, 15, 7)))` → `42`. `maxPathSum(buildTree(listOf(1, 2, 3)))` → `6`. `maxPathSum(TreeNode(-3))` → `-3` (the best is the single node). `maxPathSum(buildTree(listOf(2, -1)))` → `2`. `maxPathSum(buildTree(listOf(-2, -1)))` → `-1`. `maxPathSumBrute(buildTree(listOf(-10, 9, 20, null, null, 15, 7)))` → `42`.
 
-```text id="mps010"
-max(0, subtreeGain)
-```
+#### 5. Complexity
 
-means:
+| | Time | Space |
+|---|---|---|
+| Optimized | `O(n)` | `O(h)` |
+| Brute force | `O(n²)` | `O(h)` |
 
-```text id="mps011"
-Negative contribution → Don't use it
-```
+#### 6. Common Mistakes
 
-#### 7. Important Edge Case — Must Know
+1. **Starting `best` at `0`.** If all values are negative the answer is negative. Start at `Int.MIN_VALUE`.
+2. **Returning the bend sum** (`value + left + right`) to the parent. A path cannot fork on its way up.
+3. **Forgetting `max(0, ...)`** and adding a negative branch.
+4. **Assuming the path passes through the root.**
+5. **Overflow:** with big values, sums can exceed `Int`. Use `Long` if limits are large.
+6. **Mixing this up with Diameter:** diameter counts edges, here we add values.
 
-All values can be negative:
+#### 7. Say This in the Interview
 
-```text id="mps012"
-       -10
-       / \
-     -20 -3
-```
+1. "At each node there are two numbers. The best path that **bends** here is `value + leftGain + rightGain`. The best path that **continues up** can use only one side."
+2. "I ignore negative gains with `max(0, ...)`."
+3. "The recursion returns the gain, and the answer is kept in a variable. One pass: `O(n)` time, `O(h)` space."
 
-Answer:
+#### 8. Quick Check
 
-```text id="mps013"
--3
-```
+1. Answer for a single node `-5`?
+2. Why does the function return `node.value + max(left, right)` and not `+ left + right`?
+3. When does a negative child gain get used?
 
-This is why:
+<details>
+<summary>Answers</summary>
 
-```kotlin id="mps014"
-var maxSum = Int.MIN_VALUE
-```
+1. `-5`.
+2. The returned path goes up to the parent and then possibly further. A path cannot branch into both children and still continue upward.
+3. Never: `max(0, gain)` turns it into `0`, which means "do not include that branch". (The only exception is a path that is a single negative node.)
 
-is important.
+</details>
 
-Initializing it to `0` would incorrectly return `0`.
+#### 9. Related LeetCode Questions
 
-#### 8. Connection to Diameter — Must Know
-
-The pattern is very similar to **Diameter of Binary Tree**.
-
-```text id="mps015"
-Diameter:
-Track  → leftHeight + rightHeight
-Return → 1 + max(leftHeight, rightHeight)
-
-Maximum Path Sum:
-Track  → node + leftGain + rightGain
-Return → node + max(leftGain, rightGain)
-```
-
-Both use **bottom-up DFS**.
-
-#### 9. Complexity & Key Points — Must Know
-
-1. Time → `O(n)` — every node is processed once.
-2. Space → `O(h)` — recursion stack.
-3. Balanced tree → `O(log n)` stack space.
-4. Skewed tree → `O(n)` stack space.
-5. Path can start/end at **any node**.
-6. Global answer can use **both branches**.
-7. Value returned to parent can use only **one branch**.
-8. Ignore negative subtree gains using `maxOf(0, gain)`.
-9. Initialize global maximum with `Int.MIN_VALUE`.
-10. Recognize this as a classic **bottom-up DFS + global maximum** pattern.
+| # | Question | Idea |
+|---|---|---|
+| 543 | [Diameter of Binary Tree](https://leetcode.com/problems/diameter-of-binary-tree/) (Easy) | same pattern, edge counts |
+| 124 | [Binary Tree Maximum Path Sum](https://leetcode.com/problems/binary-tree-maximum-path-sum/) (Hard) | gain + global best |
+| 687 | [Longest Univalue Path](https://leetcode.com/problems/longest-univalue-path/) (Medium) | same pattern, equal values |
+| 337 | [House Robber III](https://leetcode.com/problems/house-robber-iii/) (Medium) | return two values per node |
+| 968 | [Binary Tree Cameras](https://leetcode.com/problems/binary-tree-cameras/) (Hard) | return a state per node |
+| 53 | [Maximum Subarray](https://leetcode.com/problems/maximum-subarray/) (Medium) | the array version of this idea |

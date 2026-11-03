@@ -38,7 +38,26 @@ The result is `map.values`. The order of the groups and of the words inside a gr
 
 Why a key works: all anagrams have the same letters, so they have the same sorted form (or the same counts). Different words give different keys.
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Key for an anagram group | Cost per word of length `L` | Note |
+|---|---|---|
+| Compare with every group (note 9) | `O(groups · L log L)` | slowest |
+| **Sorted letters** | `O(L log L)` | simple |
+| **Letter-count signature** | **`O(L)`** | best for long words |
+
+```kotlin
+// Count signature: 26 counts joined into a string, e.g. "eat" -> "1#0#0#0#1#0#...#1#...".
+fun signature(word: String): String {
+    val count = IntArray(26)
+    for (c in word) count[c - 'a']++
+    return count.joinToString("#")
+}
+```
+
+`signature("eat") == signature("tea")` → `true`. `signature("eat") == signature("tan")` → `false`. The map groups words by this key in one pass.
+
+#### 4. Kotlin Code
 
 ```kotlin
 // Key = sorted letters
@@ -69,7 +88,7 @@ fun groupAnagramsShort(strs: Array<String>): List<List<String>> =
 
 Check: `groupAnagrams(["eat","tea","tan","ate","nat","bat"])` → `[[eat, tea, ate], [tan, nat], [bat]]` (the order may differ).
 
-#### 4. Complexity
+#### 5. Complexity
 
 For `n` words of length up to `k`:
 
@@ -78,7 +97,7 @@ For `n` words of length up to `k`:
 | Sorted letters | `O(n · k log k)` | `O(n · k)` |
 | Letter counts | `O(n · k)` | `O(n · k)` |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Using an `IntArray` as the key.** Arrays compare by reference, so nothing groups. Use `count.toList()` or a `String`.
 2. **A count key without separators** if you make it a `String` (`"11"` could mean `1,1` or `11`). Use `"1,1"`.
@@ -87,13 +106,13 @@ For `n` words of length up to `k`:
 5. **The empty string** `""` forms its own group. That is correct.
 6. **Adding to a read-only list.** Use `MutableList` in the map.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "All anagrams have the same sorted letters, so I use the sorted word as the key and group words under it."
 2. "That is `O(n · k log k)`. For long words I can use a 26-letter count as the key and get `O(n · k)`."
 3. "Never use an `IntArray` as a key. I convert it to a `List` or a `String`."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. What is the sorted-letter key of `"listen"` and `"silent"`?
 2. Why can't an `IntArray` be the key?
@@ -106,7 +125,7 @@ For `n` words of length up to `k`:
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

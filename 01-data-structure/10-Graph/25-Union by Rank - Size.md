@@ -46,7 +46,26 @@ Rule: the root with the smaller size gets a new parent: the root with the bigger
 
 With union by size, the height of any tree is at most `log n`. So `find` costs `O(log n)` even without path compression. With both tricks, `O(α(n))`.
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| `union` strategy | Tree height after `n` unions | `find` cost |
+|---|---|---|
+| Always attach the second root under the first | up to `n` (a chain) | `O(n)` |
+| Attach the **smaller** tree under the **bigger** one | at most `log₂ n` | `O(log n)` |
+| Union by size **and** path compression | almost flat | `O(α(n))` |
+
+```kotlin
+// Naive union: parent[rootOfB] = rootOfA, no matter the sizes
+fun unionNaive(parent: IntArray, a: Int, b: Int) {
+    var ra = a; while (parent[ra] != ra) ra = parent[ra]
+    var rb = b; while (parent[rb] != rb) rb = parent[rb]
+    if (ra != rb) parent[rb] = ra
+}
+```
+
+Doing `union(1, 0)`, `union(2, 1)`, `union(3, 2)`, `union(4, 3)` with this rule builds a chain `0 → 1 → 2 → 3 → 4` (root `4`), so `find(0)` walks four links. Union by size attaches the smaller tree under the bigger one every time, so the tree stays flat.
+
+#### 4. Kotlin Code
 
 ```kotlin
 class UnionFindBySize(n: Int) {
@@ -109,7 +128,7 @@ fun largestGroup(n: Int, pairs: Array<IntArray>): Int {
 
 Check: `largestGroup(5, [[0,1],[1,2],[3,4]])` → `3`.
 
-#### 4. Complexity
+#### 5. Complexity
 
 | Tricks used | Time per operation |
 |---|---|
@@ -118,7 +137,7 @@ Check: `largestGroup(5, [[0,1],[1,2],[3,4]])` → `3`.
 | path compression only | `O(log n)` amortized |
 | **both** | **`O(α(n))`** (almost constant) |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Comparing the sizes of the nodes** and not of their roots. Always `find` first.
 2. **Updating the size of the wrong root.** Add to the root that stays.
@@ -126,13 +145,13 @@ Check: `largestGroup(5, [[0,1],[1,2],[3,4]])` → `3`.
 4. **Mixing up size and rank.** Pick one and keep it consistent.
 5. **Using only this trick** and thinking it makes `find` constant. You also want path compression.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "When I union two groups, I attach the smaller tree under the bigger one, so trees stay shallow."
 2. "With path compression as well, each operation is `O(α(n))`, which is practically constant."
 3. "Tracking size also lets me answer 'how big is this group?' directly."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. Which root becomes the parent in a union by size?
 2. What is the height of a tree with union by size, at most?
@@ -145,7 +164,7 @@ Check: `largestGroup(5, [[0,1],[1,2],[3,4]])` → `3`.
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

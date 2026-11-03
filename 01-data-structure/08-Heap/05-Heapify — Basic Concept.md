@@ -1,138 +1,136 @@
-# Heapify — Basic Concept
+# Heapify: Basic Concept
 
-#### 1. Definition — Must Know
+> **Heapify** fixes **one** node that may be out of place by moving it down. It is the same "sift down" from the last note, now used as a tool to repair or to build a heap.
 
-1. **Heapify** means fixing a heap at **one node**, by moving that node to its correct place.
-2. The usual form is **heapify down** (sift down): when a node is worse than one of its children, swap it with the better child and repeat.
-3. The precondition is important: **both subtrees of the node are already valid heaps**. Only the node itself may be out of place.
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+**Heapify** (also "sift down" or "percolate down") takes a node whose **two subtrees are already valid heaps**, and moves the node down until the heap property holds again.
 
-1. It is the repair step behind `extract`, `build heap`, and `heap sort`.
-2. It restores the order rule without rebuilding anything.
-3. Understanding it makes "Build Heap" and "Heap Sort" easy.
+Use it to:
 
-#### 3. How It Works — Must Know
+- repair the heap after removing the root,
+- **build a heap from an unordered array** (note 16),
+- do heap sort (note 17).
 
-A min-heap where only the root is wrong. Subtrees at `3` and `4` are valid heaps:
+#### 2. How It Works
 
 ```text
-        9                       3                      3
-      /   \     swap 9 and 3   /   \   swap 9 and 5   /   \
-     3     4    ───────────►  9     4  ───────────►  5     4
-    / \                      / \                    / \
-   5   6                    5   6                  9   6
+heapify(i):
+    smallest = i
+    if left child exists  and  a[left]  < a[smallest]: smallest = left
+    if right child exists and a[right] < a[smallest]: smallest = right
+    if smallest != i:
+        swap a[i] and a[smallest]
+        heapify(smallest)        // the swapped value may be out of place again
 ```
 
-1. Compare `9` with its children `3` and `4`. The smaller child is `3`. `3 < 9`, so swap.
-2. Now `9` sits where `3` was, with children `5` and `6`. The smaller child is `5`. `5 < 9`, so swap.
-3. `9` is now a leaf. Stop.
-
-**Heapify up** is the mirror image. A new item at the bottom moves up while it is better than its parent. It is used by `insert`.
-
-#### 4. Core Concepts — Must Know
-
-1. **Precondition:** both child subtrees are valid heaps.
-2. **Pick the better child** (smaller for a min-heap, larger for a max-heap) before comparing with the node.
-3. **Stop** when the node is as good as both children, or it has none.
-4. **Work moves down one level per step**, so the cost is at most the height of the node.
-5. **Heapify down** is for removals and building. **Heapify up** is for insertions.
-
-#### 5. Algorithm — Must Know
+```mermaid
+flowchart TD
+    subgraph B["Before: root 9 breaks the rule"]
+        a9((9)) --- a3((3))
+        a9 --- a5((5))
+        a3 --- a7((7))
+        a3 --- a8((8))
+    end
+    subgraph A["After heapify(0)"]
+        b3((3)) --- b7((7))
+        b3 --- b5((5))
+        b7 --- b9((9))
+        b7 --- b8((8))
+    end
+    classDef r fill:#fecaca,stroke:#b91c1c,color:#111
+    classDef g fill:#bbf7d0,stroke:#15803d,color:#111
+    class a9 r
+    class b9 g
+```
 
 ```text
-heapifyDown(array, i, size):
-    loop:
-        left = 2*i + 1, right = 2*i + 2
-        smallest = i
-        if left < size and array[left] < array[smallest]: smallest = left
-        if right < size and array[right] < array[smallest]: smallest = right
-        if smallest == i: stop
-        swap(array[i], array[smallest])
-        i = smallest
+array [9, 3, 5, 7, 8]
+heapify(0): children 3 (idx 1) and 5 (idx 2), smallest = 3 → swap  [3, 9, 5, 7, 8]
+heapify(1): children 7 (idx 3) and 8 (idx 4), smallest = 7 → swap  [3, 7, 5, 9, 8]
+heapify(3): no children → stop
+result: [3, 7, 5, 9, 8]
 ```
 
-For a max-heap, change `<` to `>` and name the variable `largest`.
+(Each step moves the value one level down, so heapify costs `O(log n)` for one node.)
 
-#### 6. Kotlin Implementation — Must Know
+**Precondition:** both subtrees must already be heaps. Heapify only fixes **one** bad node at the top.
+
+#### 3. Brute Force vs Optimized
+
+| Goal | Brute force | With heapify |
+|---|---|---|
+| Fix a heap after the root changed | sort the whole array, `O(n log n)` | one heapify, `O(log n)` |
+| Make a heap from an array | `n` inserts, `O(n log n)` | heapify from the last parent up, `O(n)` (note 16) |
 
 ```kotlin
-// Min-heap heapify down on an IntArray, looking only at the first `size` items
-fun heapifyDown(arr: IntArray, start: Int, size: Int) {
+// Brute force repair: just sort. A sorted array is always a valid min-heap, but it costs O(n log n).
+fun repairBySorting(a: IntArray) = a.sort()
+```
+
+#### 4. Kotlin Code
+
+```kotlin
+// Heapify a single node (min-heap) within the first `size` items
+fun heapifyDown(a: IntArray, size: Int, start: Int) {
     var i = start
     while (true) {
-        val left = 2 * i + 1
-        val right = left + 1
+        val l = 2 * i + 1
+        val r = 2 * i + 2
         var smallest = i
-        if (left < size && arr[left] < arr[smallest]) smallest = left
-        if (right < size && arr[right] < arr[smallest]) smallest = right
+        if (l < size && a[l] < a[smallest]) smallest = l
+        if (r < size && a[r] < a[smallest]) smallest = r
         if (smallest == i) return
-        val temp = arr[i]; arr[i] = arr[smallest]; arr[smallest] = temp
+        val tmp = a[i]; a[i] = a[smallest]; a[smallest] = tmp
         i = smallest
     }
 }
-
-// Heapify up, used after adding an item at index `start`
-fun heapifyUp(arr: IntArray, start: Int) {
-    var i = start
-    while (i > 0) {
-        val parent = (i - 1) / 2
-        if (arr[parent] <= arr[i]) return
-        val temp = arr[i]; arr[i] = arr[parent]; arr[parent] = temp
-        i = parent
-    }
-}
 ```
 
-#### 7. Time & Space Complexity — Must Know
+Checks: `val a = intArrayOf(9, 3, 5, 7, 8); heapifyDown(a, a.size, 0)` → `a` becomes `[3, 7, 5, 9, 8]`. On `[1, 3, 5]` the call changes nothing. `heapifyDown(intArrayOf(5), 1, 0)` changes nothing. `heapifyDown(intArrayOf(4, 1), 2, 0)` → `[1, 4]`.
 
-| Operation | Time | Space |
-|---|---:|---:|
-| Heapify down from node `i` | `O(height of i)`, at most `O(log n)` | `O(1)` |
-| Heapify up from node `i` | `O(depth of i)`, at most `O(log n)` | `O(1)` |
+#### 5. Complexity
 
-Why `O(log n)`?
+| | Time | Space |
+|---|---|---|
+| Heapify one node | `O(log n)` (at most the height) | `O(1)` iterative |
+| Recursive version | `O(log n)` | `O(log n)` stack |
 
-```text
-Each swap moves the item one level. A heap has about log n levels.
-```
+#### 6. Common Mistakes
 
-#### 8. Common Heapify Patterns — Must Know
+1. **Calling heapify when the subtrees are not heaps.** It will not fix the whole array.
+2. **Choosing the wrong child** (always the smaller one in a min-heap).
+3. **Not looping** after a swap. The moved value may still be too large.
+4. **Reading a child index past `size`.** Check `l < size` and `r < size`.
+5. **Using the array length instead of the heap size** during heap sort.
 
-1. After `extract`: put the last item at the root, then heapify down.
-2. After `insert`: heapify up from the last index.
-3. For `build heap`: heapify down from every parent, starting at the last parent (see "Build Heap").
-4. For `heap sort`: swap the root to the end, shrink the size, heapify down (see "Heap Sort — Concept").
+#### 7. Say This in the Interview
 
-#### 9. Edge Cases / Common Mistakes
+1. "Heapify takes a node whose two subtrees are heaps, and moves the node down, swapping with the smaller child, until the order is restored. That is `O(log n)`."
+2. "It is the same step that `poll()` uses after moving the last item to the root."
+3. "Running heapify on every parent from the bottom up builds a heap in `O(n)`."
 
-1. Calling heapify on a node whose subtrees are **not** valid heaps. The result is wrong.
-2. Comparing the node with the **first** child instead of the **better** child.
-3. Not passing a `size`, so the loop reads items that were already removed (in heap sort).
-4. Stopping after one swap. Keep going until the item is in place.
-5. Mixing up heapify up and heapify down.
+#### 8. Quick Check
 
-#### 10. When to Use / When Not to Use
+1. What must be true before you call heapify on a node?
+2. What is the result of heapify at index 0 on `[4, 1]`?
+3. How many nodes can heapify move at most?
 
-**Use when:**
+<details>
+<summary>Answers</summary>
 
-1. A single item is out of place in an otherwise valid heap.
-2. You build or sort a heap in place.
+1. Both of its subtrees must already be valid heaps.
+2. `[1, 4]`.
+3. One value moves down at most `log n` levels.
 
-**Avoid when:**
+</details>
 
-1. Many items are out of place in an unordered array. Use the "Build Heap" loop.
+#### 9. Related LeetCode Questions
 
-#### 11. Related Topics
-
-1. Heap Operations & Complexity
-2. Build Heap
-3. Heap Sort — Concept
-4. Complete Binary Tree Property
-
-#### 12. Interview Must Remember
-
-1. Heapify = repair **one node**, assuming both subtrees are valid heaps.
-2. **Down** after a removal. **Up** after an insertion.
-3. Swap with the **better child** each time.
-4. Cost is at most `O(log n)` per call.
+| # | Question | Idea |
+|---|---|---|
+| 912 | [Sort an Array](https://leetcode.com/problems/sort-an-array/) (Medium) | heap sort uses heapify |
+| 215 | [Kth Largest Element in an Array](https://leetcode.com/problems/kth-largest-element-in-an-array/) (Medium) | build a heap, poll |
+| 1046 | [Last Stone Weight](https://leetcode.com/problems/last-stone-weight/) (Easy) | heap from an array |
+| 1337 | [The K Weakest Rows in a Matrix](https://leetcode.com/problems/the-k-weakest-rows-in-a-matrix/) (Easy) | heap with tie-break |
+| 506 | [Relative Ranks](https://leetcode.com/problems/relative-ranks/) (Easy) | max-heap of scores |

@@ -1,121 +1,146 @@
 # Search Word
 
-#### 1. Definition — Must Know
+> Follow the path for the word. It must **exist** and the last node must be **marked as an end**.
 
-1. **Search** checks whether an exact word is stored in the Trie.
-2. Walk down the characters. If a character has no matching child, the word is **not** there.
-3. If you reach the last character, the word exists only if that node is marked as an **end of word**.
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+**Search** answers: "Is this **exact word** in the trie?"
 
-1. It is the dictionary lookup: "is this a valid word?"
-2. It takes `O(L)` regardless of how many words are stored.
-3. It teaches the key idea of a Trie: **a path existing is not enough**.
+Two conditions, both needed:
 
-#### 3. How It Works — Must Know
+1. Every character has a matching child (the **path exists**).
+2. The last node has **`isEnd = true`** (a word **ends** there).
 
-Trie holds `car` and `cat`:
+If only the first holds, the string is a **prefix** of some word, not a word itself.
 
-```text
-root
-└── c
-    └── a
-        ├── r*
-        └── t*
-```
+**Signals:** "does the dictionary contain the word", "exact match", "valid word".
+
+#### 2. How It Works
+
+Trie containing `car`, `cart`, `cat`:
 
 ```text
-search("car") → c ✓ → a ✓ → r ✓ → r is end of word   → true
-search("ca")  → c ✓ → a ✓ → a is NOT end of word      → false  (only a prefix)
-search("cow") → c ✓ → o ✗                             → false
-search("cart")→ c ✓ → a ✓ → r ✓ → t ✗                 → false
+search "car":    c ✓ → a ✓ → r ✓,  r.isEnd = true      → TRUE
+search "ca":     c ✓ → a ✓,        a.isEnd = false     → FALSE   (a prefix, not a word)
+search "cow":    c ✓ → o ✗                              → FALSE   (path breaks)
+search "cartoon":c ✓ → a ✓ → r ✓ → t ✓ → o ✗           → FALSE
 ```
 
-#### 4. Core Concepts — Must Know
+```mermaid
+flowchart LR
+    S["search(word)"] --> W["walk each character"]
+    W --> Q{"child exists?"}
+    Q -->|"no"| F["return false"]
+    Q -->|"yes, go on"| W
+    W --> E{"all characters used<br/>and isEnd is true?"}
+    E -->|"yes"| T["return true"]
+    E -->|"no"| F
+```
 
-1. **Walk the path** one character at a time.
-2. **Missing child** → return `false` immediately.
-3. **End of path** → return `isEndOfWord`, not `true`.
-4. A helper `findNode(text)` that returns the final node (or `null`) is reused by search and by prefix check.
-
-#### 5. Algorithm — Must Know
+**Algorithm**
 
 ```text
 node = root
-
 for each character ch in word:
-    if node has no child for ch:
-        return false
+    if node has no child for ch: return false
     node = child for ch
-
-return node.isEndOfWord
+return node.isEnd
 ```
 
-#### 6. Kotlin Implementation — Must Know
+`startsWith` (note 5) is the same walk, with `return true` instead of `return node.isEnd`.
+
+#### 3. Brute Force vs Optimized
+
+| Approach | Time per search |
+|---|---|
+| Scan a list of words | `O(n · L)` |
+| `HashSet<String>` | `O(L)` |
+| **Trie** | `O(L)` |
+
+For **exact** search alone, a `HashSet` is just as good and simpler. The trie pays off when you also need **prefix** queries.
 
 ```kotlin
-private fun findNode(text: String): TrieNode? {
-    var node = root
-    for (ch in text) {
-        node = node.children[ch] ?: return null
+// Brute force: scan a list
+fun searchBrute(words: List<String>, word: String): Boolean = word in words     // O(n * L)
+```
+
+#### 4. Kotlin Code
+
+```kotlin
+class TrieNode {
+    val next = arrayOfNulls<TrieNode>(26)
+    var isEnd = false
+}
+
+class Trie {
+    private val root = TrieNode()
+
+    fun insert(word: String) {
+        var node = root
+        for (c in word) {
+            val i = c - 'a'
+            if (node.next[i] == null) node.next[i] = TrieNode()
+            node = node.next[i]!!
+        }
+        node.isEnd = true
     }
-    return node
-}
 
-fun search(word: String): Boolean {
-    return findNode(word)?.isEndOfWord == true
+    fun search(word: String): Boolean {
+        var node = root
+        for (c in word) {
+            node = node.next[c - 'a'] ?: return false       // the path breaks
+        }
+        return node.isEnd                                   // a word must END here
+    }
 }
 ```
 
-#### 7. Time & Space Complexity — Must Know
+Checks (insert `car`, `cart`, `cat`): `search("car")` → `true`. `search("cart")` → `true`. `search("ca")` → `false`. `search("cow")` → `false`. `search("cartoon")` → `false`. `search("")` → `false` (the root is not marked, unless you inserted `""`). `searchBrute(listOf("car", "cart", "cat"), "cat")` → `true`.
 
-| Case | Time |
-|---|---:|
-| Best (first character missing) | `O(1)` |
-| Worst | `O(L)` |
-| Space | `O(1)` |
+#### 5. Complexity
 
-Why `O(L)`?
+| | Time | Space |
+|---|---|---|
+| `search` | `O(L)` | `O(1)` |
 
-```text
-At most one step per character of the searched word.
-```
+The time depends only on the **length of the word**, not on how many words are stored.
 
-#### 8. Common Search Patterns — Must Know
+#### 6. Common Mistakes
 
-1. Exact dictionary lookup.
-2. Check whether a candidate word is valid before using it.
-3. The base for wildcard search (see "Wildcard Search").
-4. The base for prefix matching and autocomplete.
+1. **Returning `true` when the path exists** but `isEnd` is false (prefix vs word).
+2. **Returning `isEnd` of a null node** (crash). Return `false` as soon as a child is missing.
+3. **Searching an empty string** without deciding what it should return.
+4. **Case problems:** `"Car"` is not `"car"`. Normalise or use a map.
+5. **Using `==` on strings in a loop** instead of walking the trie.
+6. **Forgetting that a deleted word** may leave the path in place (note 11).
 
-#### 9. Edge Cases / Common Mistakes
+#### 7. Say This in the Interview
 
-1. Returning `true` when the path exists but the last node is not an end of word (the `ca` case above).
-2. Not handling the empty string. It is found only if the root itself was marked as a word.
-3. Using `!!` on a missing child and crashing instead of returning `false`.
-4. Case mismatch: searching `Car` when `car` was inserted.
-5. Searching a word longer than any stored word. The walk fails at the first missing character.
+1. "I follow the word one character at a time. If a child is missing I return false. At the end I check `isEnd`, because a path can exist only as a prefix of a longer word."
+2. "It is `O(L)`, independent of the number of words."
+3. "For exact lookup alone a hash set is simpler. I use a trie because I also need prefix queries."
 
-#### 10. When to Use / When Not to Use
+#### 8. Quick Check
 
-**Use when:**
+1. With only `apple` inserted, does `search("app")` return true?
+2. What does `search` return if the path breaks?
+3. What is its time?
 
-1. You also need prefix queries on the same data.
+<details>
+<summary>Answers</summary>
 
-**Avoid when:**
+1. No. The path exists, but the second `p` has `isEnd = false`.
+2. `false` immediately.
+3. `O(L)`.
 
-1. You only ever check exact words. A `HashSet` does the same job with less code and memory.
+</details>
 
-#### 11. Related Topics
+#### 9. Related LeetCode Questions
 
-1. Insert Word
-2. Prefix Search / `startsWith`
-3. Word Dictionary / Prefix Matching
-4. Wildcard Search
-
-#### 12. Interview Must Remember
-
-1. Walk the path. Missing child → `false`.
-2. At the end, return **`isEndOfWord`**, not `true`.
-3. Search is `O(L)`.
-4. `search("ca")` is `false` when only `car` is stored. This is the classic trap.
+| # | Question | Idea |
+|---|---|---|
+| 208 | [Implement Trie (Prefix Tree)](https://leetcode.com/problems/implement-trie-prefix-tree/) (Medium) | `search` |
+| 211 | [Design Add and Search Words Data Structure](https://leetcode.com/problems/design-add-and-search-words-data-structure/) (Medium) | `search` with `.` |
+| 676 | [Implement Magic Dictionary](https://leetcode.com/problems/implement-magic-dictionary/) (Medium) | search with one change |
+| 1032 | [Stream of Characters](https://leetcode.com/problems/stream-of-characters/) (Hard) | trie of reversed words |
+| 720 | [Longest Word in Dictionary](https://leetcode.com/problems/longest-word-in-dictionary/) (Medium) | check every prefix is a word |

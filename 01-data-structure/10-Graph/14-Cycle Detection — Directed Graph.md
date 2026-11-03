@@ -78,7 +78,38 @@ dfs(0) visiting
 
 Reaching a **done** node is fine. Only reaching a **visiting** node is a cycle.
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Approach | Time | Note |
+|---|---|---|
+| From every vertex search for a way back to it | `O(V · (V + E))` | one search per vertex |
+| **3-state DFS** (unvisited, on the current path, done) | **`O(V + E)`** | a cycle is an edge into a vertex on the current path |
+| Kahn's algorithm (cannot process all vertices) | `O(V + E)` | also gives an order |
+
+```kotlin
+// Brute force: a cycle exists if some vertex can reach itself
+fun hasCycleDirectedBrute(n: Int, edges: Array<IntArray>): Boolean {
+    val g = Array(n) { mutableListOf<Int>() }
+    for ((a, b) in edges) g[a].add(b)
+    for (s in 0 until n) {
+        val seen = BooleanArray(n)
+        val stack = ArrayDeque<Int>()
+        stack.addLast(s)
+        while (stack.isNotEmpty()) {
+            val u = stack.removeLast()
+            for (v in g[u]) {
+                if (v == s) return true
+                if (!seen[v]) { seen[v] = true; stack.addLast(v) }
+            }
+        }
+    }
+    return false
+}
+```
+
+`hasCycleDirectedBrute(3, arrayOf(intArrayOf(0, 1), intArrayOf(1, 2), intArrayOf(2, 0)))` → `true`. With only `[[0,1],[1,2]]` → `false`. The 3-state DFS does it in one pass instead of one search per vertex.
+
+#### 4. Kotlin Code
 
 ```kotlin
 // Is there a cycle in a directed graph?
@@ -128,14 +159,14 @@ fun eventualSafeNodes(graph: Array<IntArray>): List<Int> {
 
 Checks: `canFinish(2, [[1,0]])` → `true`. `canFinish(2, [[1,0],[0,1]])` → `false`. `eventualSafeNodes([[1,2],[2,3],[5],[0],[5],[],[]])` → `[2, 4, 5, 6]`.
 
-#### 4. Complexity
+#### 5. Complexity
 
 | | Time | Space |
 |---|---|---|
 | DFS with 3 states | `O(V + E)` | `O(V)` |
 | Kahn's algorithm | `O(V + E)` | `O(V)` |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Using only a `visited` flag** (2 states). A node reached by two different paths looks like a cycle. You need the third state.
 2. **Forgetting to set the state to "done"** after exploring a node.
@@ -143,13 +174,13 @@ Checks: `canFinish(2, [[1,0]])` → `true`. `canFinish(2, [[1,0],[0,1]])` → `f
 4. **Checking only one start node.** Loop over all nodes.
 5. **Wrong edge direction** in Course Schedule. The edge is `prerequisite → course`.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "In a directed graph I use DFS with three states: unvisited, on the current path, and done. Reaching a node that is on the current path means a cycle."
 2. "Alternatively Kahn's algorithm: if I cannot process every node, there is a cycle."
 3. "Time `O(V + E)`."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. Why is reaching a "done" node not a cycle?
 2. For `[[1, 0]]` in Course Schedule, which way does the edge point?
@@ -162,7 +193,7 @@ Checks: `canFinish(2, [[1,0]])` → `true`. `canFinish(2, [[1,0],[0,1]])` → `f
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

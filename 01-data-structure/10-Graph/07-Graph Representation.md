@@ -49,7 +49,25 @@ Most interview graphs are **sparse**, so use the adjacency list. For a grid, you
 
 A weighted adjacency list stores `(neighbour, weight)`.
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Question | Edge list | Adjacency matrix | **Adjacency list** |
+|---|---|---|---|
+| Is there an edge `a - b`? | `O(E)` scan | **`O(1)`** | `O(degree)` |
+| Neighbours of `a` | `O(E)` scan | `O(V)` row scan | **`O(degree)`** |
+| Memory | `O(E)` | `O(V²)` | `O(V + E)` |
+| BFS / DFS time | `O(V · E)` | `O(V²)` | **`O(V + E)`** |
+| Best for | Kruskal, input as pairs | dense graphs, many edge checks | most interview problems |
+
+```kotlin
+// Neighbours from an edge list: scans every edge, O(E) per vertex
+fun neighboursFromEdges(edges: Array<IntArray>, v: Int): List<Int> =
+    edges.mapNotNull { if (it[0] == v) it[1] else if (it[1] == v) it[0] else null }
+```
+
+If you ask for the neighbours of every vertex, that is `O(V · E)` in total. Build the adjacency list once in `O(V + E)` and each lookup is cheap.
+
+#### 4. Kotlin Code
 
 ```kotlin
 // Adjacency list (undirected)
@@ -90,7 +108,7 @@ println(adjacencyMatrix(4, edges)[0][1])          // true: edge 0-1 exists, chec
 
 Sometimes the input is **already** a matrix or a list (e.g. `isConnected[i][j] == 1` in *Number of Provinces*, or `graph[i]` = neighbours of `i` in *Is Graph Bipartite?*). Use it directly. Do not convert it.
 
-#### 4. Complexity
+#### 5. Complexity
 
 | | Adjacency list | Adjacency matrix | Edge list |
 |---|---|---|---|
@@ -99,7 +117,7 @@ Sometimes the input is **already** a matrix or a list (e.g. `isConnected[i][j] =
 | All neighbours of `a` | `O(degree)` | `O(V)` | `O(E)` |
 | Walk the whole graph | `O(V + E)` | `O(V²)` | — |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Using a matrix for a big sparse graph.** `V = 100,000` needs 10 billion cells.
 2. **Forgetting the reverse edge** for an undirected graph.
@@ -107,13 +125,13 @@ Sometimes the input is **already** a matrix or a list (e.g. `isConnected[i][j] =
 4. **Using `Array(n) { mutableListOf<Int>() }` incorrectly as `Array(n, mutableListOf())`.** That shares one list between all nodes. Use the lambda form.
 5. **Node numbers that start at `1`** while the array starts at `0`. Allocate `n + 1` or subtract 1.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "I will use an adjacency list, because the graph is sparse. Memory is `O(V + E)` and a full walk is `O(V + E)`."
 2. "An adjacency matrix would need `O(V²)` memory, which is too much here."
 3. "For Kruskal's algorithm I keep an edge list so I can sort it."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. Which representation gives an `O(1)` check for an edge between `a` and `b`?
 2. Why is `Array(n, mutableListOf<Int>())` a bug?
@@ -126,7 +144,7 @@ Sometimes the input is **already** a matrix or a list (e.g. `isConnected[i][j] =
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

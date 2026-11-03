@@ -52,7 +52,24 @@ Two rules:
 
 Works with DFS (recursion) or BFS (queue).
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Approach | Time | Problem |
+|---|---|---|
+| For each neighbour, search the already-copied nodes by value | `O(V²)` | slow, and wrong if values repeat |
+| Copy without a map | infinite recursion on a cycle | no visited set |
+| **Map old node → clone** (also the visited set) | **`O(V + E)`** | each node copied once |
+
+Two rules:
+
+1. **Register the clone in the map before visiting the neighbours**, or a cycle sends you back to a node that has no clone yet.
+2. If the node is already in the map, **return its clone** instead of creating a new one.
+
+```text
+triangle 1 - 2 - 3 - 1:   clone(1) puts 1 → 1' in the map first, so when 3 points back at 1 it finds 1' and stops.
+```
+
+#### 4. Kotlin Code
 
 ```kotlin
 class Node(var `val`: Int) {
@@ -121,14 +138,14 @@ fun copyRandomList(head: ListNode?): ListNode? {
 }
 ```
 
-#### 4. Complexity
+#### 5. Complexity
 
 | | Time | Space |
 |---|---|---|
 | Clone Graph | `O(V + E)` | `O(V)` (the map + the recursion or queue) |
 | Copy List with Random Pointer | `O(n)` | `O(n)` |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Adding the clone to the map after visiting the neighbours.** A cycle loops forever.
 2. **Creating a new clone for a node that already has one.**
@@ -136,13 +153,13 @@ fun copyRandomList(head: ListNode?): ListNode? {
 4. **Giving the node class an `equals()` based on the value.** Two different nodes with the same value would share one map entry. Keep identity equality.
 5. **Forgetting the empty graph** (`null`).
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "I use a HashMap from each original node to its clone. It also works as my visited set."
 2. "I put the clone in the map before visiting the neighbours, so cycles do not cause an infinite loop."
 3. "Time `O(V + E)`, space `O(V)`."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. Why do we need the map?
 2. When must the clone be stored in the map?
@@ -155,7 +172,7 @@ fun copyRandomList(head: ListNode?): ListNode? {
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

@@ -49,7 +49,32 @@ total = 3 + 6 + 4 + 4 = 17  ✓
 
 Then each subarray is counted exactly once.
 
-#### 3. Kotlin Code
+#### 3. Brute Force vs Optimized
+
+| Approach | Idea | Time |
+|---|---|---|
+| Enumerate every subarray and compute its minimum (or maximum) | two loops, running minimum | `O(n²)` |
+| Compute the minimum of each subarray from scratch | three loops | `O(n³)` |
+| **Contribution with a monotonic stack** | for each element count how many subarrays it is the minimum of: `left × right` | `O(n)` |
+
+```kotlin
+// Brute force: sum of subarray minimums, O(n^2)
+fun sumSubarrayMinsBrute(arr: IntArray): Long {
+    var total = 0L
+    for (i in arr.indices) {
+        var min = arr[i]
+        for (j in i until arr.size) {
+            min = minOf(min, arr[j])
+            total += min
+        }
+    }
+    return total
+}
+```
+
+`sumSubarrayMinsBrute(intArrayOf(3, 1, 2, 4))` → `17`. The monotonic-stack version finds, for each `arr[i]`, how far it can extend to the left and to the right while staying the minimum, and adds `arr[i] × left × right`.
+
+#### 4. Kotlin Code
 
 ```kotlin
 // Sum over all subarrays of the minimum (isMin = true) or the maximum (isMin = false)
@@ -83,14 +108,14 @@ fun subArrayRanges(nums: IntArray): Long =
 
 Checks: `sumOfSubarrayExtremes([3,1,2,4], isMin = true)` → `17`. `subArrayRanges([1,2,3])` → `4`. `subArrayRanges([4,-2,-3,4,1])` → `59`.
 
-#### 4. Complexity
+#### 5. Complexity
 
 | | Time | Space |
 |---|---|---|
 | Contribution + stack | `O(n)` | `O(n)` |
 | Check every subarray | `O(n²)` or worse | `O(1)` |
 
-#### 5. Common Mistakes
+#### 6. Common Mistakes
 
 1. **Ties.** Strict on both sides counts equal values twice. Non-strict on both sides misses subarrays. Use strict on one side only.
 2. **Forgetting `right[j] = n - j`** for numbers left in the stack.
@@ -98,14 +123,14 @@ Checks: `sumOfSubarrayExtremes([3,1,2,4], isMin = true)` → `17`. `subArrayRang
 4. **`Int` overflow.** Use `Long` for `value × left × right` and for the total.
 5. **Using the min code for a max question** without flipping the comparisons.
 
-#### 6. Say This in the Interview
+#### 7. Say This in the Interview
 
 1. "Instead of looking at every subarray, I count for each element in how many subarrays it is the minimum."
 2. "That count is `left × right`, where left and right come from the previous and next smaller elements, found with a monotonic stack."
 3. "I use strict on one side and non-strict on the other so equal values are counted once."
 4. "Sum of ranges is the sum of maximums minus the sum of minimums. Time `O(n)`."
 
-#### 7. Quick Check
+#### 8. Quick Check
 
 1. In `[3, 1, 2, 4]`, in how many subarrays is `1` the minimum?
 2. Why do we multiply `left × right`?
@@ -118,7 +143,7 @@ Checks: `sumOfSubarrayExtremes([3,1,2,4], isMin = true)` → `17`. `subArrayRang
 
 </details>
 
-#### 8. Related LeetCode Questions
+#### 9. Related LeetCode Questions
 
 | # | Question | Idea |
 |---|---|---|

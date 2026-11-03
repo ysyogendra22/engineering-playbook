@@ -1,86 +1,62 @@
 # Longest Consecutive Sequence
 
-#### 1. Definition — Must Know
+> Put every number in a set. Start counting **only from numbers that begin a run** (no `x − 1` in the set). That makes it `O(n)`, not `O(n log n)`.
 
-1. Given an unsorted array, find the **length of the longest run of consecutive numbers** (like `1, 2, 3, 4`), in any order in the input.
-2. It is *Longest Consecutive Sequence* (LeetCode 128). If a number and a title ever disagree, trust the title.
-3. It must run in **`O(n)`**, so sorting (`O(n log n)`) is not the target answer.
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+Given an **unsorted** array, find the length of the longest run of **consecutive integers** (`x, x + 1, x + 2, ...`), in **`O(n)`** time. (LeetCode 128.)
 
-1. It is a very common HashSet interview question.
-2. It teaches a clever trick: **only start counting from the beginning of a sequence**.
-3. That trick keeps the total work linear.
+`[100, 4, 200, 1, 3, 2]` → the run `1, 2, 3, 4` has length `4`.
 
-#### 3. How It Works — Must Know
+The `O(n)` requirement rules out sorting (`O(n log n)`). A `HashSet` gives `O(1)` membership, which is the key.
 
-`nums = [100, 4, 200, 1, 3, 2]`
+**Signals:** "consecutive", "longest streak", "in O(n)", "unsorted array".
+
+#### 2. How It Works
+
+1. Put all numbers in a set (this also removes duplicates).
+2. For each number `x` in the set, check if `x − 1` is in the set.
+   - **If yes**, `x` is in the middle of a run. **Skip it.** Another number is the start of that run.
+   - **If no**, `x` **starts a run**. Count upwards: `x + 1`, `x + 2`, ... while they are in the set.
+3. The answer is the longest count.
 
 ```text
 set = {100, 4, 200, 1, 3, 2}
-
-For each number, ask: "is there a number just BEFORE me (n - 1)?"
-
-100 → 99 is not in the set  → 100 is a START. Count: 100 → 101? no.            length 1
-4   → 3 is in the set       → NOT a start. Skip.
-200 → 199 is not in the set → START. 201? no.                                  length 1
-1   → 0 is not in the set   → START. 2 yes, 3 yes, 4 yes, 5 no.               length 4
-3   → 2 is in the set       → skip
-2   → 1 is in the set       → skip
-
-Answer: 4   (1, 2, 3, 4)
+100: is 99 in the set? no  → start. count 100 → 1.            length 1
+4:   is 3 in the set? yes → skip (not a start)
+200: is 199? no → start. length 1
+1:   is 0? no → start. 1, 2, 3, 4 are all in the set → length 4  ← best
+3:   is 2? yes → skip
+2:   is 1? yes → skip
+answer 4
 ```
-
-#### 4. Core Concepts — Must Know
-
-1. **Put all numbers in a set** for `O(1)` lookups.
-2. **A number starts a sequence only if `n - 1` is not in the set.**
-3. **From a start, walk up** while `cur + 1` is in the set.
-4. **Why it is `O(n)`:** each number is walked over at most once, because only starts begin a walk.
-5. **Duplicates** do not matter, because the set removes them.
-6. Iterate over the **set** (not the array) so repeated numbers do not repeat the work.
-
-#### 5. Algorithm — Must Know
 
 ```text
-set = all numbers
-best = 0
-for each n in set:
-    if (n - 1) is not in set:          // n is the start of a sequence
-        cur = n
-        length = 1
-        while (cur + 1) is in set:
-            cur += 1
-            length += 1
-        best = max(best, length)
-return best
+number line:   1  2  3  4 ............ 100 ............ 200
+runs:         [1..4] (length 4)       [100]            [200]
 ```
 
-#### 6. Kotlin Implementation — Must Know
+**Why `O(n)` and not `O(n²)`?** The inner `while` only runs from a **run start**. Each number is visited by the inner loop **at most once** (as part of one run). So the total work across all runs is `O(n)`, plus `O(n)` for the outer loop.
+
+**Alternatives**
+
+| Method | Time | Space |
+|---|---|---|
+| Sort, then count runs | `O(n log n)` | `O(1)` or `O(n)` |
+| Set + run starts | **`O(n)`** | `O(n)` |
+| Union-Find (merge `x` with `x + 1`) | `O(n α(n))` | `O(n)` |
+
+#### 3. Brute Force vs Optimized
+
+| Approach | Time | Space |
+|---|---|---|
+| For each `x`, extend upward with a `list.contains` | `O(n³)` | `O(1)` |
+| For each `x`, extend upward with a set (no start check) | `O(n²)` worst | `O(n)` |
+| Sort + scan | `O(n log n)` | `O(1)` to `O(n)` |
+| **Set + only start from run starts** | **`O(n)`** | `O(n)` |
 
 ```kotlin
-fun longestConsecutive(nums: IntArray): Int {
-    val set = nums.toHashSet()
-    var best = 0
-
-    for (n in set) {
-        if ((n - 1) !in set) {          // start of a sequence
-            var cur = n
-            var length = 1
-            while ((cur + 1) in set) {
-                cur++
-                length++
-            }
-            best = maxOf(best, length)
-        }
-    }
-    return best
-}
-```
-
-**Sorting version (simpler, `O(n log n)`)**
-
-```kotlin
+// Sort and scan: simple, O(n log n)
 fun longestConsecutiveSort(nums: IntArray): Int {
     if (nums.isEmpty()) return 0
     val sorted = nums.distinct().sorted()
@@ -94,56 +70,71 @@ fun longestConsecutiveSort(nums: IntArray): Int {
 }
 ```
 
-#### 7. Time & Space Complexity — Must Know
+#### 4. Kotlin Code
 
-| Approach | Time | Space |
-|---|---:|---:|
-| **HashSet, start-only walk** | **`O(n)`** | `O(n)` |
-| Sort + scan | `O(n log n)` | `O(n)` |
-| Walk from every number (no start check) | `O(n²)` worst case | `O(n)` |
+```kotlin
+// Longest Consecutive Sequence (LeetCode 128): O(n)
+fun longestConsecutive(nums: IntArray): Int {
+    val set = nums.toHashSet()
+    var best = 0
+    for (x in set) {
+        if (x - 1 in set) continue                 // not the start of a run
+        var end = x
+        while (end + 1 in set) end++               // extend the run
+        best = maxOf(best, end - x + 1)
+    }
+    return best
+}
+```
 
-#### 8. Common Variations — Must Know
+Checks: `longestConsecutive(intArrayOf(100, 4, 200, 1, 3, 2))` → `4`. `longestConsecutive(intArrayOf(0, 3, 7, 2, 5, 8, 4, 6, 0, 1))` → `9` (`0..8`, with a duplicate `0`). `longestConsecutive(intArrayOf())` → `0`. `longestConsecutive(intArrayOf(5))` → `1`. `longestConsecutive(intArrayOf(1, 2, 0, 1))` → `3`. `longestConsecutive(intArrayOf(-1, -2, -3, 5))` → `3`. `longestConsecutiveSort(...)` gives the same answers.
 
-1. **Longest Consecutive Sequence** (LeetCode 128).
-2. **Binary Tree Longest Consecutive Sequence** (LeetCode 298, premium) — DFS, not a set.
-3. **Missing ranges / summary ranges** — usually a sorted array scan.
-4. **Union-Find alternative** — merge `n` with `n + 1`. Same `O(n)` idea with a different tool.
-5. **Return the sequence itself** — remember the best start and length.
+Overflow note: `x - 1` and `end + 1` on `Int.MIN_VALUE` / `Int.MAX_VALUE` wrap around. For extreme inputs use `Long`.
 
-#### 9. Edge Cases / Common Mistakes
+#### 5. Complexity
 
-1. Skipping the `n - 1` start check. The solution then becomes `O(n²)` on inputs like `1..n`.
-2. Looping over the array (with duplicates) instead of the set.
-3. Empty array. The answer is `0`.
-4. Integer overflow at the extremes: `Int.MIN_VALUE - 1` wraps around. LeetCode's limits avoid it; mention it.
-5. Duplicates counted twice in the sorting version. Remove them first.
-6. Assuming the order of the input matters. It does not.
-7. Treating "consecutive" as "adjacent in the array". It means adjacent in value.
+| | Time | Space |
+|---|---|---|
+| Set + run starts | `O(n)` | `O(n)` |
+| Sort + scan | `O(n log n)` | `O(n)` (with `distinct`) |
 
-#### 10. When to Use / When Not to Use
+#### 6. Common Mistakes
 
-**Use when:**
+1. **Starting the count from every number** (no `x − 1` check). It becomes `O(n²)` on a long run.
+2. **Sorting** when the question requires `O(n)`.
+3. **Counting duplicates** twice in a run (`[1, 2, 2, 3]` is length `3`, not `4`).
+4. **Iterating the array** (with duplicates) instead of the set (harmless for correctness, but repeats work).
+5. **Empty array** returning `1` instead of `0`.
+6. **Overflow** at the `Int` limits.
 
-1. The input is unsorted and `O(n)` is required.
+#### 7. Say This in the Interview
 
-**Use sorting when:**
+1. "Sorting is `O(n log n)`. To get `O(n)` I put the numbers in a set, and only start counting from numbers whose predecessor `x − 1` is not in the set."
+2. "The inner `while` only runs from run starts, so each number is touched at most once by it, giving `O(n)` overall."
+3. "Duplicates don't matter because the set removes them."
 
-1. The input is small, or you prefer simpler code and `O(n log n)` is accepted.
+#### 8. Quick Check
 
-**Avoid a set when:**
+1. Which numbers start a run in `{1, 2, 3, 10, 11}`?
+2. Why skip a number whose `x − 1` is in the set?
+3. The answer for `[1, 1, 1]`?
 
-1. Values are in a small dense range. A `BooleanArray` works too.
+<details>
+<summary>Answers</summary>
 
-#### 11. Related Topics
+1. `1` and `10`.
+2. It is in the middle of a run that is counted from its start. Counting from it would repeat work and cause `O(n²)`.
+3. `1`.
 
-1. Fast Membership / Lookup Pattern
-2. Unique Elements Pattern
-3. Union-Find (`02-algorithm/07-Graph Algorithms`)
-4. Sorting (`02-algorithm/01-sorting`)
+</details>
 
-#### 12. Interview Must Remember
+#### 9. Related LeetCode Questions
 
-1. **Only start counting when `n - 1` is not in the set.**
-2. Walk up with `cur + 1` while it is in the set.
-3. `O(n)` time, `O(n)` space. Each number is walked once.
-4. Iterate the set, not the array.
+| # | Question | Idea |
+|---|---|---|
+| 128 | [Longest Consecutive Sequence](https://leetcode.com/problems/longest-consecutive-sequence/) (Medium) | set + run starts |
+| 298 | [Binary Tree Longest Consecutive Sequence](https://leetcode.com/problems/binary-tree-longest-consecutive-sequence/) (Medium, premium) | tree DFS |
+| 549 | [Binary Tree Longest Consecutive Sequence II](https://leetcode.com/problems/binary-tree-longest-consecutive-sequence-ii/) (Medium, premium) | tree DFS, both ways |
+| 674 | [Longest Continuous Increasing Subsequence](https://leetcode.com/problems/longest-continuous-increasing-subsequence/) (Easy) | one pass |
+| 1887 | [Reduction Operations to Make the Array Elements Equal](https://leetcode.com/problems/reduction-operations-to-make-the-array-elements-equal/) (Medium) | sorting by values |
+| 217 | [Contains Duplicate](https://leetcode.com/problems/contains-duplicate/) (Easy) | the basic set idea |
