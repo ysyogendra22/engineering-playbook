@@ -12,6 +12,19 @@ Think of exploring a maze: walk down a corridor until you hit a dead end, then g
 
 #### 2. How It Works
 
+*DFS goes deep first: 0 → 1 → 3. Then it backtracks to 0 and visits 2. The dashed red edge is skipped because 3 is already visited.*
+
+```mermaid
+flowchart TD
+    n0(["0<br/>1st"]) -->|"go deep"| n1(["1<br/>2nd"])
+    n1 -->|"go deep"| n3(["3<br/>3rd"])
+    n0 -->|"backtrack to 0, next neighbour"| n2(["2<br/>4th"])
+    n2 -.->|"3 already visited: skip"| n3
+    linkStyle 3 stroke:#b91c1c,stroke-dasharray:5
+    class n0,n1,n3,n2 g
+    classDef g fill:#bbf7d0,stroke:#15803d,color:#111
+```
+
 ```text
 Graph:  0 → [1, 2]    1 → [3]    2 → [3]    3 → []
 

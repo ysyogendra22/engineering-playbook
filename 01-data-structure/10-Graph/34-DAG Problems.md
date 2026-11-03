@@ -27,6 +27,16 @@ It works like dynamic programming on a graph.
 
 For each course keep `finish[course]` = the earliest month it can be finished.
 
+*Each course finishes at (latest prerequisite finish) + (its own time). Course 3 must wait for both 1 and 2.*
+
+```mermaid
+flowchart LR
+    c1["Course 1<br/>takes 3<br/>finish = 3"] --> c3["Course 3<br/>takes 5<br/>start = max(3, 2) = 3<br/>finish = 8"]
+    c2["Course 2<br/>takes 2<br/>finish = 2"] --> c3
+    class c3 g
+    classDef g fill:#bbf7d0,stroke:#15803d,color:#111
+```
+
 ```text
 courses: 1 (3 months), 2 (2 months), 3 (5 months)       relations: 1 → 3,  2 → 3
 
@@ -40,6 +50,20 @@ answer = the largest finish time = 8
 Process with Kahn's algorithm (note 16): when you take a course from the queue, for each course `next` it unlocks, update `finish[next] = max(finish[next], finish[course] + time[next])`.
 
 *All Paths From Source to Target* (LeetCode 797): because the graph is a DAG, plain DFS with backtracking works and **needs no visited set** (note 8).
+
+*Example: graph = [[1,2],[3],[3],[]]. There are 2 paths from 0 to 3: 0 → 1 → 3 and 0 → 2 → 3.*
+
+```mermaid
+flowchart LR
+    s((0 source)) --> a((1))
+    s --> b((2))
+    a --> t((3 target))
+    b --> t
+    class s g
+    class t b
+    classDef g fill:#bbf7d0,stroke:#15803d,color:#111
+    classDef b fill:#bfdbfe,stroke:#1d4ed8,color:#111
+```
 
 #### 3. Kotlin Code
 

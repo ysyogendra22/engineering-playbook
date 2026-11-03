@@ -21,6 +21,29 @@ It looks like Dijkstra, with one change: the priority is the **edge weight**, no
 
 #### 2. How It Works
 
+*Prim grows one tree (green). Dashed lines are the edges that leave the tree. Take the cheapest one each time.*
+
+```mermaid
+flowchart LR
+    subgraph P1["Tree = A. Cheapest leaving edge: A-B (1)"]
+        a1((A)) -.-|1| b1((B))
+        a1 -.-|3| c1((C))
+    end
+    subgraph P2["Tree = A,B. Cheapest: B-C (2)"]
+        a2((A)) ---|1| b2((B))
+        b2 -.-|2| c2((C))
+        a2 -.-|3| c2
+        b2 -.-|5| d2((D))
+    end
+    subgraph P3["Tree = A,B,C. Cheapest: C-D (4)"]
+        a3((A)) ---|1| b3((B)) ---|2| c3((C))
+        c3 -.-|4| d3((D))
+        b3 -.-|5| d3
+    end
+    class a1,a2,b2,a3,b3,c3 g
+    classDef g fill:#bbf7d0,stroke:#15803d,color:#111
+```
+
 ```text
 Edges: A-B 1, B-C 2, A-C 3, C-D 4, B-D 5          start at A
 

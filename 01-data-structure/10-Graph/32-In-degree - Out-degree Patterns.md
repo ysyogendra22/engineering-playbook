@@ -37,9 +37,48 @@ in-degree:  3→2
 Node 3: out-degree 0 and in-degree 2 = n - 1  → the judge
 ```
 
+*Town Judge: everyone trusts node 3, and node 3 trusts nobody (in-degree 2 = n - 1, out-degree 0).*
+
+```mermaid
+flowchart LR
+    t1((1)) -->|trusts| t3(["3<br/>in 2, out 0"])
+    t2((2)) -->|trusts| t3
+    class t3 g
+    classDef g fill:#bbf7d0,stroke:#15803d,color:#111
+```
+
 *Minimum Number of Vertices to Reach All Nodes* (LeetCode 1557): in a DAG, you must start from every node with **in-degree 0**. Nothing can reach them. Every other node is reachable from one of them.
 
+*Sources (in-degree 0, green) cannot be reached from anywhere, so you must start from them. Sinks (out-degree 0, red) lead nowhere.*
+
+```mermaid
+flowchart LR
+    s1(["1<br/>source"]) --> m1((3))
+    s2(["2<br/>source"]) --> m1
+    m1 --> k1(["4<br/>sink"])
+    m1 --> k2(["5<br/>sink"])
+    class s1,s2 g
+    class k1,k2 r
+    classDef g fill:#bbf7d0,stroke:#15803d,color:#111
+    classDef r fill:#fecaca,stroke:#b91c1c,color:#111
+```
+
 *Minimum Height Trees* (LeetCode 310): the best root is at the **centre** of the tree. Remove the leaves (degree 1) layer by layer. The last one or two nodes are the centres.
+
+*Peel the leaves (yellow, degree 1) layer by layer. The last nodes left (green) are the centres, the best roots.*
+
+```mermaid
+flowchart LR
+    l0((0)) --- c3((3))
+    l1((1)) --- c3
+    l2((2)) --- c3
+    c3 --- c4((4))
+    l5((5)) --- c4
+    class l0,l1,l2,l5 y
+    class c3,c4 g
+    classDef y fill:#fde68a,stroke:#b45309,color:#111
+    classDef g fill:#bbf7d0,stroke:#15803d,color:#111
+```
 
 #### 3. Kotlin Code
 

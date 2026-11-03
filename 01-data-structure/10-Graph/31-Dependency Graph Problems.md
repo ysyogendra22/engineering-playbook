@@ -24,6 +24,20 @@ The questions are always one of three:
 
 If the dependencies contain a **cycle**, no order exists.
 
+*An arrow means 'needed first'. Left: a valid plan (a DAG). Right: a cycle, so no order exists.*
+
+```mermaid
+flowchart LR
+    subgraph OKG["Valid: a DAG"]
+        m1["Math"] --> m2["Calculus"] --> m3["Physics"]
+        m1 --> m3
+    end
+    subgraph BADG["Invalid: a cycle"]
+        x1((A)) --> x2((B)) --> x3((C)) --> x1
+    end
+    linkStyle 3,4,5 stroke:#b91c1c,stroke-width:3px
+```
+
 #### 2. How It Works
 
 Recipe for any dependency problem:
@@ -36,6 +50,16 @@ Recipe for any dependency problem:
 *Alien Dictionary* (LeetCode 269): you get words sorted in an alien language. Find the order of the letters.
 
 The trick: the **first different letter** of two **neighbouring** words gives one rule.
+
+*Alien Dictionary: each pair of neighbouring words gives one arrow. Reading the arrows from left to right gives the order w, e, r, t, f.*
+
+```mermaid
+flowchart LR
+    w((w)) -->|"wrf vs er"| e((e))
+    e -->|"ett vs rftt"| r((r))
+    r -->|"er vs ett"| t((t))
+    t -->|"wrt vs wrf"| f((f))
+```
 
 ```text
 words: "wrt", "wrf", "er", "ett", "rftt"

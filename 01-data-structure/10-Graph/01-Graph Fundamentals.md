@@ -11,13 +11,39 @@ A **graph** is a set of **things** and the **connections** between them.
 
 Real-life examples: people and friendships, cities and roads, web pages and links, courses and prerequisites.
 
-```text
-A ----- B            Vertices: A, B, C, D
-|       |            Edges:    A-B, A-C, B-D, C-D
-C ----- D
+*Four vertices (the circles) and four edges (the lines).*
+
+```mermaid
+flowchart LR
+    A((A)) --- B((B))
+    A --- C((C))
+    B --- D((D))
+    C --- D
 ```
 
+Vertices: A, B, C, D. Edges: A-B, A-C, B-D, C-D.
+
 Unlike a tree, a graph can have **cycles** (a way back to the start), **many paths** between two nodes, and **separate pieces**.
+
+*A tree is the simple case. A graph may have a cycle or be split into pieces.*
+
+```mermaid
+flowchart LR
+    subgraph T["Tree: no cycle, one piece"]
+        t1((1)) --- t2((2))
+        t1 --- t3((3))
+    end
+    subgraph C["Graph with a cycle"]
+        c1((A)) --- c2((B))
+        c2 --- c3((C))
+        c3 --- c1
+    end
+    subgraph S["Graph in separate pieces"]
+        s1((P)) --- s2((Q))
+        s3((R))
+    end
+    linkStyle 2,3,4 stroke:#b91c1c,stroke-width:3px
+```
 
 #### 2. Words You Must Know
 

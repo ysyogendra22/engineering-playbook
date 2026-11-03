@@ -22,6 +22,18 @@ Always find out which kind it is. It changes the code and the algorithms:
 
 Edges `[[0,1],[1,2]]`:
 
+*Same edges, drawn both ways.*
+
+```mermaid
+flowchart LR
+    subgraph U["Undirected: you can walk both ways"]
+        u0((0)) --- u1((1)) --- u2((2))
+    end
+    subgraph Dd["Directed: you can walk only along the arrow"]
+        d0((0)) --> d1((1)) --> d2((2))
+    end
+```
+
 ```text
 Undirected:                    Directed:
 0: [1]                         0: [1]
@@ -34,6 +46,13 @@ You can go 0→1, 1→0, 1→2, 2→1.     You can go only 0→1 and 1→2.
 **An undirected edge is the same as two directed edges** (`A → B` and `B → A`). That is how you store it.
 
 Example of why it matters: *Course Schedule* gives pairs `[course, prerequisite]`. The edge is **one-way** (prerequisite → course). Treating it as undirected hides the real order.
+
+*The pair [1, 0] means: to take course 1, finish course 0 first. So the edge goes 0 → 1.*
+
+```mermaid
+flowchart LR
+    c0["Course 0<br/>(prerequisite)"] -->|"[1, 0]"| c1["Course 1"]
+```
 
 #### 3. Kotlin Code
 

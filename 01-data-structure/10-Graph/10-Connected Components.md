@@ -22,6 +22,27 @@ Two ways to count them:
 
 #### 2. How It Works
 
+*Three components. Each DFS start paints one of them.*
+
+```mermaid
+flowchart LR
+    subgraph C1["Component 1: DFS from 0"]
+        n0((0)) --- n1((1)) --- n2((2))
+    end
+    subgraph C2["Component 2: DFS from 3"]
+        n3((3)) --- n4((4))
+    end
+    subgraph C3["Component 3: DFS from 5"]
+        n5((5))
+    end
+    class n0,n1,n2 g
+    class n3,n4 y
+    class n5 b
+    classDef g fill:#bbf7d0,stroke:#15803d,color:#111
+    classDef y fill:#fde68a,stroke:#b45309,color:#111
+    classDef b fill:#bfdbfe,stroke:#1d4ed8,color:#111
+```
+
 ```text
 Graph:  0-1, 1-2, 3-4,  5 (alone)
 

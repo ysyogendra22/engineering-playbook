@@ -17,6 +17,18 @@ Where it appears: *Graph Valid Tree* (a tree has no cycle), *Redundant Connectio
 
 **DFS with a parent.** In an undirected graph every edge also points back to where you came from. That back edge is *not* a cycle. So pass the `parent` down and ignore it.
 
+*DFS walks 0 → 1 → 2. The edge back to the parent is ignored. The edge from 2 to 0 is a different, already visited node: that is the cycle.*
+
+```mermaid
+flowchart LR
+    n0((0)) -->|"dfs(0) goes to 1"| n1((1))
+    n1 -->|"dfs(1) goes to 2"| n2((2))
+    n2 -.->|"2 sees 0: visited and NOT the parent → CYCLE"| n0
+    n1 -.->|"1 sees 0: that is the parent → ignore"| n0
+    linkStyle 2 stroke:#b91c1c,stroke-width:3px
+    linkStyle 3 stroke:#6b7280,stroke-dasharray:5
+```
+
 ```text
 Graph (triangle):  0 - 1,  1 - 2,  2 - 0
 
@@ -26,6 +38,24 @@ dfs(0, parent = -1): visit 0
        neighbour 2: not visited → dfs(2, parent = 1)
            neighbour 1: parent → ignore
            neighbour 0: visited and NOT the parent → CYCLE!
+```
+
+*Union-Find view: add the edges one by one. The third edge joins two nodes that are already in the same group, so it closes a cycle.*
+
+```mermaid
+flowchart LR
+    subgraph S1["Add 0-1: different groups, union"]
+        a0((0)) --- a1((1))
+        a2((2))
+    end
+    subgraph S2["Add 1-2: different groups, union"]
+        b0((0)) --- b1((1)) --- b2((2))
+    end
+    subgraph S3["Add 2-0: SAME group, cycle"]
+        c0((0)) --- c1((1)) --- c2((2))
+        c2 -.-|"cycle"| c0
+    end
+    linkStyle 5 stroke:#b91c1c,stroke-width:3px
 ```
 
 **Union-Find.** For each edge `(a, b)`:

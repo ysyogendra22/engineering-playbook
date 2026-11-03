@@ -8,6 +8,15 @@ A **topological sort** puts the vertices of a **directed acyclic graph (DAG)** i
 
 Think of it as an order in which you can do tasks when some tasks must be done first.
 
+*An arrow means 'do this first'. Many orders are valid, for example: shirt, pants, tie, belt, shoes, jacket.*
+
+```mermaid
+flowchart LR
+    shirt --> tie --> jacket
+    pants --> shoes
+    pants --> belt --> jacket
+```
+
 ```text
 Edges: shirt → tie → jacket,  pants → shoes,  pants → belt → jacket
 
@@ -25,6 +34,16 @@ Typical stories: course prerequisites, build order, task scheduling, package dep
 #### 2. How It Works
 
 **DFS method:** do a DFS. When a node is **finished** (all its descendants are done), add it to a list. The finish list is in reverse topological order. Reverse it at the end.
+
+*DFS finish order is 3, 1, 2, 0. Reverse it to get a valid topological order: 0, 2, 1, 3.*
+
+```mermaid
+flowchart LR
+    n0(["0<br/>finishes 4th"]) --> n1(["1<br/>finishes 2nd"])
+    n0 --> n2(["2<br/>finishes 3rd"])
+    n1 --> n3(["3<br/>finishes 1st"])
+    n2 --> n3
+```
 
 ```text
 Graph: 0 → 1, 0 → 2, 1 → 3, 2 → 3

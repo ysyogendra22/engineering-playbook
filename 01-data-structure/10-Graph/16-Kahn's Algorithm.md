@@ -15,6 +15,18 @@ It also **detects cycles**: if you cannot take all the nodes, the rest are stuck
 
 #### 2. How It Works
 
+*In-degree is written under each node. Only node 0 has in-degree 0, so it goes first. Then 1 and 2 drop to 0, then 3.*
+
+```mermaid
+flowchart LR
+    n0(["0<br/>in 0"]) --> n1(["1<br/>in 1"])
+    n0 --> n2(["2<br/>in 1"])
+    n1 --> n3(["3<br/>in 2"])
+    n2 --> n3
+    class n0 g
+    classDef g fill:#bbf7d0,stroke:#15803d,color:#111
+```
+
 ```text
 Edges: 0 → 1, 0 → 2, 1 → 3, 2 → 3
 
@@ -33,6 +45,15 @@ processed 4 nodes = all nodes → no cycle
 ```
 
 If the number of processed nodes is **less than `n`**, there is a cycle.
+
+*Cycle: every node waits for the other, so no node ever reaches in-degree 0 and the queue starts empty.*
+
+```mermaid
+flowchart LR
+    c0(["0<br/>in 1"]) --> c1(["1<br/>in 1"])
+    c1 --> c0
+    linkStyle 0,1 stroke:#b91c1c,stroke-width:3px
+```
 
 ```text
 Edges: 0 → 1, 1 → 0       in-degree: 0:1  1:1   → no node with in-degree 0 → queue is empty → 0 processed < 2 → cycle

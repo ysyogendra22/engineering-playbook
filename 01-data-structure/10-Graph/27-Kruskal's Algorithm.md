@@ -14,6 +14,30 @@ The "different groups?" check is exactly what **union-find** answers in almost c
 
 #### 2. How It Works
 
+*Kruskal in four steps. Dashed red = skipped edge. The groups grow until all nodes are joined.*
+
+```mermaid
+flowchart LR
+    subgraph K1["Edge A-B (1): add"]
+        a1((A)) ---|1| b1((B))
+        c1((C))
+        d1((D))
+    end
+    subgraph K2["Edge B-C (2): add"]
+        a2((A)) ---|1| b2((B)) ---|2| c2((C))
+        d2((D))
+    end
+    subgraph K3["Edge A-C (3): SKIP"]
+        a3((A)) ---|1| b3((B)) ---|2| c3((C))
+        a3 -.-|3| c3
+        d3((D))
+    end
+    subgraph K4["Edge C-D (4): add, total 7"]
+        a4((A)) ---|1| b4((B)) ---|2| c4((C)) ---|4| d4((D))
+    end
+    linkStyle 5 stroke:#b91c1c,stroke-width:3px
+```
+
 ```text
 Edges (sorted):  A-B 1,  B-C 2,  A-C 3,  C-D 4,  B-D 5        V = 4 → need 3 edges
 

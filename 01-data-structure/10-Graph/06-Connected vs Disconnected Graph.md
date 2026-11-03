@@ -5,11 +5,26 @@
 - A graph is **connected** if you can get from **any** vertex to **any** other vertex.
 - A graph is **disconnected** if it has two or more separate pieces. Each piece is a **connected component**.
 
-```text
-Connected:             Disconnected (2 components):
-A --- B --- C          A --- B        D --- E
-                             |
-                             C
+*One piece (connected) versus two separate pieces (disconnected).*
+
+```mermaid
+flowchart LR
+    subgraph CON["Connected: 1 component"]
+        a1((A)) --- b1((B)) --- c1((C))
+    end
+    subgraph D1["Disconnected: component 1"]
+        a2((A)) --- b2((B))
+        b2 --- c2((C))
+    end
+    subgraph D2["Disconnected: component 2"]
+        d2((D)) --- e2((E))
+    end
+    class a1,b1,c1 g
+    class a2,b2,c2 y
+    class d2,e2 b
+    classDef g fill:#bbf7d0,stroke:#15803d,color:#111
+    classDef y fill:#fde68a,stroke:#b45309,color:#111
+    classDef b fill:#bfdbfe,stroke:#1d4ed8,color:#111
 ```
 
 Why it matters in interviews:
@@ -19,6 +34,19 @@ Why it matters in interviews:
 - "Can I reach B from A?" means "are A and B in the same component?".
 
 For **directed** graphs there are two ideas: *weakly* connected (connected if you ignore directions) and *strongly* connected (you can follow the arrows from any node to any other). Interviews mostly ask the undirected kind.
+
+*Weakly connected: connected only if you ignore the arrows. Strongly connected: you can follow the arrows from any node to any other.*
+
+```mermaid
+flowchart LR
+    subgraph W["Weakly connected only (no way from B back to A)"]
+        w1((A)) --> w2((B))
+        w3((C)) --> w2
+    end
+    subgraph S["Strongly connected (a loop of arrows)"]
+        s1((A)) --> s2((B)) --> s3((C)) --> s1
+    end
+```
 
 #### 2. How It Works
 
@@ -30,6 +58,27 @@ for each node s:
     if s is not visited:
         components++
         run DFS/BFS from s, marking everything it reaches as visited
+```
+
+*Each DFS start counts one component.*
+
+```mermaid
+flowchart LR
+    subgraph P1["Start s=0: component 1"]
+        n0((0)) --- n1((1)) --- n2((2))
+    end
+    subgraph P2["Start s=3: component 2"]
+        n3((3)) --- n4((4))
+    end
+    subgraph P3["Start s=5: component 3"]
+        n5((5))
+    end
+    class n0,n1,n2 g
+    class n3,n4 y
+    class n5 b
+    classDef g fill:#bbf7d0,stroke:#15803d,color:#111
+    classDef y fill:#fde68a,stroke:#b45309,color:#111
+    classDef b fill:#bfdbfe,stroke:#1d4ed8,color:#111
 ```
 
 ```text

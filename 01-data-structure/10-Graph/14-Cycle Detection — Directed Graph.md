@@ -10,9 +10,12 @@ Example: `A → B → C → A`. In a course schedule, "A needs B, B needs C, C n
 
 The undirected "parent" check does **not** work here. In a directed graph, two different paths can reach the same node without any cycle:
 
-```text
-A → B → D        D is reached by two paths, but there is no cycle.
-A → C → D
+*D is reached by two paths, but there is no cycle. This is why the undirected parent check fails here.*
+
+```mermaid
+flowchart LR
+    A((A)) --> B((B)) --> D((D))
+    A --> C((C)) --> D
 ```
 
 Two standard ways:
@@ -33,6 +36,27 @@ Give every node one of three states:
 | `2` done | fully explored, **no cycle through it** |
 
 Rule: if DFS reaches a node whose state is `1` (visiting), we came back to the current path → **cycle**.
+
+*White = unvisited, yellow = visiting (on the current path), blue = done. A cycle is an edge into a yellow node. Reaching a blue node is fine.*
+
+```mermaid
+flowchart LR
+    subgraph CY["Cycle: node 2 reaches 0, which is still visiting"]
+        a0((0)) --> a1((1)) --> a2((2))
+        a2 -.->|"back edge: CYCLE"| a0
+    end
+    subgraph OK["No cycle: node 3 is already done when 2 reaches it"]
+        b0((0)) --> b1((1)) --> b3((3))
+        b0 --> b2((2))
+        b2 -->|"3 is done: fine"| b3
+    end
+    linkStyle 2 stroke:#b91c1c,stroke-width:3px
+    class a0,a1,a2 y
+    class b0,b2 y
+    class b1,b3 b
+    classDef y fill:#fde68a,stroke:#b45309,color:#111
+    classDef b fill:#bfdbfe,stroke:#1d4ed8,color:#111
+```
 
 ```text
 Graph: 0 → 1, 1 → 2, 2 → 0

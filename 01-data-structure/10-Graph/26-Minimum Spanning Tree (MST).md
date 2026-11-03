@@ -23,14 +23,24 @@ Both give the same total weight (the tree itself may differ if several edges hav
 
 #### 2. How It Works
 
+*Green thick edges are the MST (total 1 + 2 + 4 = 7). Red dashed edges are skipped because they would close a cycle.*
+
+```mermaid
+flowchart LR
+    A((A)) ---|1| B((B))
+    B ---|2| C((C))
+    A ---|3| C
+    C ---|4| D((D))
+    B ---|5| D
+    linkStyle 0,1,3 stroke:#15803d,stroke-width:4px
+    linkStyle 2,4 stroke:#b91c1c,stroke-width:2px,stroke-dasharray:5
+```
+
 ```text
-Graph:   A —1— B      edges: A-B 1, B-C 2, A-C 3, C-D 4, B-D 5
-         |   / |
-         3  2  5      MST needs 4 - 1 = 3 edges.
-         | /   |
-         C —4— D      pick A-B (1), B-C (2), C-D (4)  → total 7
-                      skip A-C (3): A and C are already connected (cycle)
-                      skip B-D (5): B and D are already connected (cycle)
+MST needs V - 1 = 3 edges.
+pick A-B (1), B-C (2), C-D (4)  → total 7
+skip A-C (3): A and C are already connected (cycle)
+skip B-D (5): B and D are already connected (cycle)
 ```
 
 The key fact: the cheapest edge that crosses between "inside the tree" and "outside the tree" is always safe to add. Both algorithms use this.

@@ -14,6 +14,19 @@ It fits things that **spread together**: rot, fire, water, infection, a signal.
 
 #### 2. How It Works
 
+*Two sources (green) start together. Each node gets the distance to its nearest source.*
+
+```mermaid
+flowchart LR
+    n0(["0<br/>d=0"]) --- n1(["1<br/>d=1"]) --- n2(["2<br/>d=2"]) --- n3(["3<br/>d=2"]) --- n4(["4<br/>d=1"]) --- n5(["5<br/>d=0"])
+    class n0,n5 g
+    class n1,n4 y
+    class n2,n3 b
+    classDef g fill:#bbf7d0,stroke:#15803d,color:#111
+    classDef y fill:#fde68a,stroke:#b45309,color:#111
+    classDef b fill:#bfdbfe,stroke:#1d4ed8,color:#111
+```
+
 ```text
 Graph (a line):  0 — 1 — 2 — 3 — 4 — 5
 Sources: 0 and 5
@@ -27,6 +40,16 @@ dist = [0, 1, 2, 2, 1, 0]       each node knows its distance to the nearest sour
 ```
 
 The code is the normal BFS. Only the **starting queue** is different.
+
+*On a grid (01 Matrix): every `0` is a source. The waves spread out one step per round.*
+
+```text
+Grid                      Distance to the nearest 0
+
+0 0 0                     0 0 0
+0 1 0          →          0 1 0       (1,1) is reached in round 1
+1 1 1                     1 2 1       (2,0) and (2,2) in round 1, (2,1) in round 2
+```
 
 Common questions and what the sources are:
 

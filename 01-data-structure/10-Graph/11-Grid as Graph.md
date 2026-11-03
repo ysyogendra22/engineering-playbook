@@ -15,6 +15,26 @@ So all graph tools work on a grid: DFS, BFS, shortest path, connected components
 
 #### 2. How It Works
 
+*A grid is a graph: every cell is a vertex, and every cell is joined to the cells next to it.*
+
+```text
+Grid (3 rows × 4 columns)               The same grid as a graph
+
+       c0   c1   c2   c3                (0,0)─(0,1)─(0,2)─(0,3)
+ r0   [ 1 ] [ 1 ] [ 0 ] [ 1 ]             │     │     │     │
+ r1   [ 1 ] [ 0 ] [ 1 ] [ 1 ]           (1,0)─(1,1)─(1,2)─(1,3)
+ r2   [ 0 ] [ 1 ] [ 1 ] [ 0 ]             │     │     │     │
+                                        (2,0)─(2,1)─(2,2)─(2,3)
+```
+
+Cells at the border have fewer neighbours. The number in each cell is how many in-grid neighbours it has (4 directions):
+
+```text
+2  3  3  2
+3  4  4  3
+2  3  3  2
+```
+
 For the cell `(r, c)`, the neighbours are:
 
 ```text

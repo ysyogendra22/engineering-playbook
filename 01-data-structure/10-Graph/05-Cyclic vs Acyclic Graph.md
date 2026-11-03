@@ -13,6 +13,23 @@ Three names to know:
 | **Forest** | several trees (undirected, no cycle) |
 | **DAG** | **D**irected **A**cyclic **G**raph: one-way edges, no cycle |
 
+*A tree with V vertices has exactly V - 1 edges. A forest is several trees.*
+
+```mermaid
+flowchart LR
+    subgraph TR["Tree: V = 5, E = 4"]
+        r1((1)) --- r2((2))
+        r1 --- r3((3))
+        r2 --- r4((4))
+        r2 --- r5((5))
+    end
+    subgraph FO["Forest: 2 trees (V = 5, E = 3)"]
+        f1((1)) --- f2((2))
+        f3((3)) --- f4((4))
+        f3 --- f5((5))
+    end
+```
+
 Why it matters:
 
 - A **DAG** can be put in order: **topological sort**. Task dependencies must be a DAG. A cycle means "A needs B, B needs A": impossible.
@@ -21,16 +38,30 @@ Why it matters:
 
 #### 2. How It Works
 
-```text
-Cyclic (undirected):       Acyclic (undirected, a tree):
-A --- B                    A --- B
-|     |                    |
-C --- D                    C --- D
+*Red edges form a cycle. Green graphs have none. The DAG has two paths from A to C, but no way back to A.*
 
-Cyclic (directed):         DAG (directed, no cycle):
-A → B → C                  A → B → C
-↑       |                  |       ↑
-└───────┘                  └───────┘     (two paths to C, but no way back to A)
+```mermaid
+flowchart LR
+    subgraph G1["Cyclic, undirected"]
+        a1((A)) --- b1((B))
+        b1 --- d1((D))
+        d1 --- c1((C))
+        c1 --- a1
+    end
+    subgraph G2["Acyclic, undirected (a tree)"]
+        a2((A)) --- b2((B))
+        a2 --- c2((C))
+        c2 --- d2((D))
+    end
+    subgraph G3["Cyclic, directed"]
+        a3((A)) --> b3((B)) --> c3((C)) --> a3
+    end
+    subgraph G4["DAG: directed, no cycle"]
+        a4((A)) --> b4((B)) --> c4((C))
+        a4 --> c4
+    end
+    linkStyle 0,1,2,3,7,8,9 stroke:#b91c1c,stroke-width:3px
+    linkStyle 4,5,6,10,11,12 stroke:#15803d,stroke-width:2px
 ```
 
 How to detect a cycle:

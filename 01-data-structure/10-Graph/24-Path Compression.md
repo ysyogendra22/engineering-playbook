@@ -12,12 +12,24 @@ It is a very common interview follow-up: "how do you make union-find fast?".
 
 #### 2. How It Works
 
+*Left: a long chain, so find(4) walks 4 steps. Right: after one find(4) with path compression, every node on the path points straight at the root 0.*
+
+```mermaid
+flowchart LR
+    subgraph BEF["Before find(4): a chain"]
+        a4((4)) --> a3((3)) --> a2((2)) --> a1((1)) --> a0((0))
+    end
+    subgraph AFT["After find(4): flat"]
+        b4((4)) --> b0((0))
+        b3((3)) --> b0
+        b2((2)) --> b0
+        b1((1)) --> b0
+    end
+    class a0,b0 g
+    classDef g fill:#bbf7d0,stroke:#15803d,color:#111
+```
+
 ```text
-Before find(4):                  After find(4) with path compression:
-
-0 ← 1 ← 2 ← 3 ← 4                0 ← 1,  0 ← 2,  0 ← 3,  0 ← 4
-(a long chain)                   (every node points straight to the root 0)
-
 find(4): walk 4 → 3 → 2 → 1 → 0 (root). On the way back, set parent[4], parent[3], parent[2], parent[1] = 0.
 Next find(4): 4 → 0   (one step)
 ```

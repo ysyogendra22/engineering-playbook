@@ -19,6 +19,21 @@ The same idea copies a linked list with random pointers (LeetCode 138).
 
 Graph: `1 — 2`, `2 — 3`, `3 — 1` (a triangle). Each node stores its neighbours.
 
+*Each original node (left) has one clone (right). The dotted arrows are the map: original → clone. The map is also the visited set.*
+
+```mermaid
+flowchart LR
+    subgraph ORIG["Original graph"]
+        u1((1)) --- u2((2)) --- u3((3)) --- u1
+    end
+    subgraph CLONE["Clone: new objects, same shape"]
+        v1(("1'")) --- v2(("2'")) --- v3(("3'")) --- v1
+    end
+    u1 -.->|"map"| v1
+    u2 -.->|"map"| v2
+    u3 -.->|"map"| v3
+```
+
 ```text
 clone(1):
    no clone of 1 yet → create 1', put 1 → 1' in the map            (before visiting neighbours!)

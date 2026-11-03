@@ -21,6 +21,17 @@ Each variable is a **node**. The equation `a / b = 2.0` is an edge `a → b` wit
 
 #### 2. How It Works
 
+*Each equation gives two arrows: a / b = 2.0 means a → b with weight 2.0 and b → a with weight 0.5. The query a / c multiplies the weights along the green path: 2.0 × 3.0 = 6.0.*
+
+```mermaid
+flowchart LR
+    a((a)) -->|"2.0"| b((b))
+    b -->|"0.5"| a
+    b -->|"3.0"| c((c))
+    c -->|"0.333"| b
+    linkStyle 0,2 stroke:#15803d,stroke-width:4px
+```
+
 ```text
 a / b = 2.0   →  a → b (2.0),  b → a (0.5)
 b / c = 3.0   →  b → c (3.0),  c → b (0.333...)

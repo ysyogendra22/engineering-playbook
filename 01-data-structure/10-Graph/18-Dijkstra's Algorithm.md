@@ -14,13 +14,22 @@ It does **not** work with negative weights (use Bellman-Ford then).
 
 #### 2. How It Works
 
+*Numbers on the edges are weights. Final distances are inside the nodes. Green edges are the cheapest routes from 0.*
+
+```mermaid
+flowchart LR
+    n0(["0<br/>dist 0"]) ---|4| n1(["1<br/>dist 3"])
+    n0 ---|1| n2(["2<br/>dist 1"])
+    n1 ---|2| n3(["3<br/>dist 4"])
+    n2 ---|3| n3
+    n1 ---|2| n2
+    linkStyle 1,4,3 stroke:#15803d,stroke-width:4px
+    class n0 g
+    classDef g fill:#bbf7d0,stroke:#15803d,color:#111
+```
+
 ```text
-Graph (weights on edges):
-    0 —4— 1
-    |     |
-    1     2
-    |     |
-    2 —3— 3        edges: 0-1:4, 0-2:1, 1-3:2, 2-3:3, 1-2:2
+Edges: 0-1:4, 0-2:1, 1-3:2, 2-3:3, 1-2:2
 
 Start at 0.  dist = [0, ∞, ∞, ∞]    heap = [(0, node 0)]
 

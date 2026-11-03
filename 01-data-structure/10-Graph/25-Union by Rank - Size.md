@@ -13,6 +13,24 @@ Both work. **Size** is easier to explain and also lets you read the size of a gr
 
 #### 2. How It Works
 
+*Joining a group of size 3 (root 0) with a single node 5. Attach the small tree under the big one, so the tree stays flat.*
+
+```mermaid
+flowchart LR
+    subgraph GOOD["Smaller under bigger: depth stays 1"]
+        g1((1)) --> g0((0))
+        g2((2)) --> g0
+        g5((5)) --> g0
+    end
+    subgraph BAD["Bigger under smaller: nodes 1 and 2 get deeper"]
+        h1((1)) --> h0((0))
+        h2((2)) --> h0
+        h0 --> h5((5))
+    end
+    class g0,h5 g
+    classDef g fill:#bbf7d0,stroke:#15803d,color:#111
+```
+
 ```text
 Group A (root 0, size 3):  0 ← 1, 0 ← 2          Group B (root 5, size 1): just 5
 

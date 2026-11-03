@@ -26,6 +26,42 @@ Use BFS (or DFS) to colour the graph:
 3. If a neighbour already has the **same colour** as the current node → **not bipartite**.
 4. Repeat for every component (the graph may be disconnected).
 
+*A square is bipartite: put 0 and 2 in Group A, 1 and 3 in Group B, and every edge goes between the two groups.*
+
+```mermaid
+flowchart TB
+    subgraph GA["Group A (colour 0)"]
+        n0((0))
+        n2((2))
+    end
+    subgraph GB["Group B (colour 1)"]
+        n1((1))
+        n3((3))
+    end
+    n0 --- n1
+    n0 --- n3
+    n2 --- n1
+    n2 --- n3
+    classDef g fill:#bbf7d0,stroke:#15803d,color:#111
+    classDef y fill:#fde68a,stroke:#b45309,color:#111
+    class n0,n2 g
+    class n1,n3 y
+```
+
+*A triangle is not bipartite: 0 gets colour A, so 1 and 2 must both be B, but 1 and 2 are joined by an edge.*
+
+```mermaid
+flowchart LR
+    t0(["0<br/>colour A"]) --- t1(["1<br/>colour B"])
+    t0 --- t2(["2<br/>colour B"])
+    t1 ---|"both B: conflict"| t2
+    linkStyle 2 stroke:#b91c1c,stroke-width:4px
+    classDef g fill:#bbf7d0,stroke:#15803d,color:#111
+    classDef y fill:#fde68a,stroke:#b45309,color:#111
+    class t0 g
+    class t1,t2 y
+```
+
 ```text
 Graph: 0-1, 1-2, 2-3, 3-0   (a square: even cycle)
 

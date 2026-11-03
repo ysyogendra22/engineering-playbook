@@ -21,11 +21,27 @@ These are the basic words used to describe a graph.
 
 #### 2. How It Works
 
-```text
-Graph:   A --- B       E --- F
-         |     |
-         C --- D
+*Green edges are the path A → B → D. The four edges of the left piece also form a cycle (A → B → D → C → A).*
 
+```mermaid
+flowchart LR
+    subgraph K1["Component 1"]
+        A(["A<br/>degree 2"]) --- B((B))
+        A --- C((C))
+        B --- D((D))
+        C --- D
+    end
+    subgraph K2["Component 2"]
+        E((E)) --- F((F))
+    end
+    linkStyle 0,2 stroke:#15803d,stroke-width:4px
+    class A y
+    class B,D g
+    classDef y fill:#fde68a,stroke:#b45309,color:#111
+    classDef g fill:#bbf7d0,stroke:#15803d,color:#111
+```
+
+```text
 Vertices:     A, B, C, D, E, F                  (6)
 Edges:        A-B, A-C, B-D, C-D, E-F           (5)
 Degree of A:  2 (edges A-B and A-C)
@@ -41,8 +57,15 @@ Two facts worth remembering:
 
 For a **directed** graph:
 
-```text
-A → B       A has out-degree 1;  B has in-degree 1
+*In a directed graph, count the arrows going in and going out of each vertex. A has in-degree 2 and out-degree 1.*
+
+```mermaid
+flowchart LR
+    X((X)) --> A(["A<br/>in 2, out 1"])
+    Y((Y)) --> A
+    A --> Z((Z))
+    class A y
+    classDef y fill:#fde68a,stroke:#b45309,color:#111
 ```
 
 In-degree is the key number in topological sort (Kahn's algorithm, note 16).

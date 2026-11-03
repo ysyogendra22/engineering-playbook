@@ -12,6 +12,32 @@ Because closer nodes are always handled first, BFS finds the **shortest path** (
 
 #### 2. How It Works
 
+*BFS visits rings around the start: distance 0, then distance 1, then distance 2.*
+
+```mermaid
+flowchart TD
+    subgraph L0["Distance 0"]
+        n0((0))
+    end
+    subgraph L1["Distance 1"]
+        n1((1))
+        n2((2))
+    end
+    subgraph L2["Distance 2"]
+        n3((3))
+    end
+    n0 --- n1
+    n0 --- n2
+    n1 --- n3
+    n2 --- n3
+    class n0 g
+    class n1,n2 y
+    class n3 b
+    classDef g fill:#bbf7d0,stroke:#15803d,color:#111
+    classDef y fill:#fde68a,stroke:#b45309,color:#111
+    classDef b fill:#bfdbfe,stroke:#1d4ed8,color:#111
+```
+
 ```text
 Graph:  0 — 1 — 3          0: [1, 2]    1: [0, 3]    2: [0, 3]    3: [1, 2]
         |       |
@@ -38,6 +64,26 @@ BFS or DFS?
 | Uses | queue | stack / recursion |
 | Memory | wide graphs use more | deep graphs use more |
 | Good for | nearest target, levels | cycles, all paths, components |
+
+*The same tree. The number under each letter is the visit order.*
+
+```mermaid
+flowchart TD
+    subgraph BF["BFS: level by level"]
+        b1(["A<br/>1"]) --- b2(["B<br/>2"])
+        b1 --- b3(["C<br/>3"])
+        b2 --- b4(["D<br/>4"])
+        b2 --- b5(["E<br/>5"])
+        b3 --- b6(["F<br/>6"])
+    end
+    subgraph DF["DFS: deep first"]
+        d1(["A<br/>1"]) --- d2(["B<br/>2"])
+        d1 --- d5(["C<br/>5"])
+        d2 --- d3(["D<br/>3"])
+        d2 --- d4(["E<br/>4"])
+        d5 --- d6(["F<br/>6"])
+    end
+```
 
 #### 3. Kotlin Code
 

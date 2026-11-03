@@ -16,6 +16,16 @@ There are three standard ways to store a graph in code.
 
 The graph: edges `0-1`, `0-2`, `1-3`, `2-3`.
 
+*The graph used for all three ways below.*
+
+```mermaid
+flowchart LR
+    n0((0)) --- n1((1))
+    n0 --- n2((2))
+    n1 --- n3((3))
+    n2 --- n3
+```
+
 ```text
 Adjacency list:           Adjacency matrix:            Edge list:
 0: [1, 2]                     0  1  2  3               [0, 1]

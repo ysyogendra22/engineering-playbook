@@ -26,6 +26,32 @@ Each group is a small tree. Each node points to a **parent**. The root points to
 
 Start with each item alone: `parent[i] = i`.
 
+*Each group is a tree. An arrow points from a node to its parent. The root (green) points to itself.*
+
+```mermaid
+flowchart TD
+    subgraph S0["Start: parent = [0, 1, 2, 3, 4]"]
+        a0((0))
+        a1((1))
+        a2((2))
+        a3((3))
+        a4((4))
+    end
+    subgraph S1["union(0,1) and union(2,3)"]
+        b1((1)) --> b0((0))
+        b3((3)) --> b2((2))
+        b4((4))
+    end
+    subgraph S2["union(1,3): root 2 goes under root 0"]
+        c1((1)) --> c0((0))
+        c2((2)) --> c0
+        c3((3)) --> c2
+        c4((4))
+    end
+    class a0,a1,a2,a3,a4,b0,b2,b4,c0,c4 g
+    classDef g fill:#bbf7d0,stroke:#15803d,color:#111
+```
+
 ```text
 Items 0..4, each its own group:    parent = [0, 1, 2, 3, 4]
 

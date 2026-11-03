@@ -18,6 +18,27 @@ A graph can be:
 | **Sparse** (few edges) | `V` | adjacency list |
 | **Dense** (many edges) | `V²` | adjacency matrix |
 
+*Same 5 vertices. Sparse: 4 edges. Dense: 10 edges (every pair).*
+
+```mermaid
+flowchart LR
+    subgraph SP["Sparse: E is about V"]
+        a1((1)) --- a2((2)) --- a3((3)) --- a4((4)) --- a5((5))
+    end
+    subgraph DE["Dense: E is about V²"]
+        b1((1)) --- b2((2))
+        b1 --- b3((3))
+        b1 --- b4((4))
+        b1 --- b5((5))
+        b2 --- b3
+        b2 --- b4
+        b2 --- b5
+        b3 --- b4
+        b3 --- b5
+        b4 --- b5
+    end
+```
+
 For a **grid** with `R` rows and `C` columns: `V = R · C` and `E` is about `4 · R · C`, so grid walks are `O(R · C)`.
 
 #### 2. How It Works

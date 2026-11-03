@@ -47,6 +47,25 @@ for ((a, b) in edges) { graph[a].add(b); graph[b].add(a) }     // undirected: ad
 
 #### 4. Patterns and How to Identify Them
 
+*Which graph tool? Follow the question.*
+
+```mermaid
+flowchart TD
+    Q["Graph question"] --> P1{"Shortest path?"}
+    P1 -->|"all edges cost 1"| BFS["BFS"]
+    P1 -->|"costs differ, none negative"| DIJ["Dijkstra"]
+    P1 -->|"negative costs"| BF["Bellman-Ford"]
+    P1 -->|"no, something else"| P2{"What is asked?"}
+    P2 -->|"count groups or regions"| CC["DFS / BFS from each unvisited node, or Union-Find"]
+    P2 -->|"is there a cycle?"| P3{"Directed?"}
+    P3 -->|"yes"| DC["DFS with 3 states, or Kahn"]
+    P3 -->|"no"| UC["DFS with parent, or Union-Find"]
+    P2 -->|"order with prerequisites"| TS["Topological sort (Kahn)"]
+    P2 -->|"connect everything at least cost"| MST["Kruskal or Prim"]
+    P2 -->|"two groups, or 2 colours"| BP["Bipartite check (BFS colouring)"]
+    P2 -->|"copy a graph"| CL["Clone with an old to new map"]
+```
+
 | Signal in the question | Pattern | Note | Example |
 |---|---|---|---|
 | "connections", "friends", "provinces", "islands" | connected components | 10, 11 | Number of Provinces |

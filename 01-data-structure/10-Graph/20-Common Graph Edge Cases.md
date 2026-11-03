@@ -12,6 +12,27 @@ These are the situations where graph solutions most often **crash**, **loop fore
 4. **weights** (negative, zero, large),
 5. **bad or tiny input** (empty, one node, self-loops, duplicates).
 
+*Four shapes that break solutions: a self-loop, parallel edges, a disconnected graph with an isolated node, and a cycle (an endless loop without a visited set).*
+
+```mermaid
+flowchart LR
+    subgraph G1["Self-loop"]
+        s1((A)) --> s1
+    end
+    subgraph G2["Parallel edges"]
+        p((P)) --> q((Q))
+        p --> q
+    end
+    subgraph G3["Disconnected + isolated node"]
+        d1((1)) --- d2((2))
+        d3((3))
+    end
+    subgraph G4["Cycle"]
+        c1((X)) --> c2((Y)) --> c3((Z)) --> c1
+    end
+    linkStyle 4,5,6 stroke:#b91c1c,stroke-width:2px
+```
+
 #### 2. The Checklist
 
 | # | Edge case | What goes wrong | Fix |

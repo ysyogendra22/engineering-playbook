@@ -32,6 +32,27 @@ Steps:
 
 *Open the Lock* (LeetCode 752): a lock has 4 wheels `0–9`. Start at `"0000"`. Each move turns one wheel one step (`9` wraps to `0`). Some codes are **dead ends** (the lock gets stuck). Find the fewest moves to reach `target`.
 
+*Each lock code is a node. One turn of one wheel is an edge, so '0000' has 8 neighbours. A dead end (red) is treated as already visited.*
+
+```mermaid
+flowchart LR
+    s0(("0000")) --> a1["1000"]
+    s0 --> a2["9000"]
+    s0 --> a3["0100<br/>dead end"]
+    s0 --> a4["0900"]
+    s0 --> a5["0010"]
+    s0 --> a6["0090"]
+    s0 --> a7["0001"]
+    s0 --> a8["0009"]
+    a1 --> b1["2000"]
+    a1 --> b2["1100"]
+    a1 --> b3["... more"]
+    class a3 r
+    class s0 g
+    classDef r fill:#fecaca,stroke:#b91c1c,color:#111
+    classDef g fill:#bbf7d0,stroke:#15803d,color:#111
+```
+
 ```text
 state: "0000".  Neighbours (8): 1000, 9000, 0100, 0900, 0010, 0090, 0001, 0009
 Each state has 8 neighbours. Skip dead ends and visited states.
@@ -39,6 +60,42 @@ BFS level 1: the 8 neighbours.  Level 2: their neighbours ... until we reach the
 ```
 
 Treat the dead ends as already visited, so BFS never enters them.
+
+*Another state graph: Word Ladder. Words are nodes. Two words are joined when they differ by one letter. BFS levels give the fewest steps from 'hit' to 'cog'.*
+
+```mermaid
+flowchart LR
+    subgraph L0["Level 0"]
+        hit
+    end
+    subgraph L1["Level 1"]
+        hot
+    end
+    subgraph L2["Level 2"]
+        dot
+        lot
+    end
+    subgraph L3["Level 3"]
+        dog
+        log
+    end
+    subgraph L4["Level 4"]
+        cog
+    end
+    hit --- hot
+    hot --- dot
+    hot --- lot
+    dot --- lot
+    dot --- dog
+    lot --- log
+    dog --- log
+    dog --- cog
+    log --- cog
+    class hit g
+    class cog b
+    classDef g fill:#bbf7d0,stroke:#15803d,color:#111
+    classDef b fill:#bfdbfe,stroke:#1d4ed8,color:#111
+```
 
 #### 3. Kotlin Code
 

@@ -15,10 +15,23 @@ The "node" can be a city, a grid cell, a word, a lock code or a number. Question
 
 #### 2. How It Works
 
+*BFS distances are written in the nodes. The green path 0 → 1 → 2 → 5 is the shortest (3 edges). The other route 0 → 3 → 4 → 2 is longer.*
+
+```mermaid
+flowchart LR
+    n0(["0<br/>d=0"]) --- n1(["1<br/>d=1"])
+    n1 --- n2(["2<br/>d=2"])
+    n2 --- n5(["5<br/>d=3"])
+    n0 --- n3(["3<br/>d=1"])
+    n3 --- n4(["4<br/>d=2"])
+    n4 --- n2
+    linkStyle 0,1,2 stroke:#15803d,stroke-width:4px
+    class n0,n1,n2,n5 g
+    classDef g fill:#bbf7d0,stroke:#15803d,color:#111
+```
+
 ```text
-Graph:   0 — 1 — 2 — 5          edges: 0-1, 1-2, 2-5, 0-3, 3-4, 4-2
-         |        |
-         3 ———————4
+Graph edges: 0-1, 1-2, 2-5, 0-3, 3-4, 4-2 (see the picture above).
 
 Shortest path from 0 to 5?
 

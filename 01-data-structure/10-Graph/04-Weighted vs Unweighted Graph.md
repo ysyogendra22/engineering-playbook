@@ -18,19 +18,29 @@ This difference decides **which shortest-path algorithm** you must use. This is 
 #### 2. How It Works
 
 ```text
-Unweighted:  A --- B --- C            "shortest" = fewest edges
-Weighted:    A -5- B -1- C            "shortest" = smallest total weight
-             A ---------2--- C        A → C directly costs 2, but A → B → C costs 6
+Unweighted: "shortest" = fewest edges          (A → C is 1 edge)
+Weighted:   "shortest" = smallest total weight (A → B → C costs 1 + 1 = 2, A → C costs 5)
 ```
 
-BFS thinks `A → B → C` (2 edges) is longer than `A → C` (1 edge). But in the weighted graph, the cheapest route depends on the weights, not on the number of edges.
+*Numbers on the edges are the weights. The green route has 2 edges but costs only 2. The red route has 1 edge but costs 5.*
+
+```mermaid
+flowchart LR
+    A((A)) ---|1| B((B))
+    B ---|1| C((C))
+    A ---|5| C
+    linkStyle 0,1 stroke:#15803d,stroke-width:4px
+    linkStyle 2 stroke:#b91c1c,stroke-width:2px,stroke-dasharray:5
+```
+
+BFS counts edges, so it would pick `A → C` (1 edge, cost 5). The cheapest route is `A → B → C` (2 edges, cost 2). With weights, the cheapest route depends on the weights, not on the number of edges.
 
 A weighted edge is stored as **(neighbour, weight)**:
 
 ```text
-0: [(1, 5), (2, 2)]
-1: [(0, 5), (2, 1)]
-2: [(0, 2), (1, 1)]
+0: [(1, 1), (2, 5)]
+1: [(0, 1), (2, 1)]
+2: [(0, 5), (1, 1)]
 ```
 
 #### 3. Kotlin Code
@@ -57,9 +67,9 @@ fun pathCost(graph: List<List<Pair<Int, Int>>>, path: List<Int>): Int {
 }
 
 // Usage
-val g = buildWeightedGraph(3, arrayOf(intArrayOf(0, 1, 5), intArrayOf(0, 2, 2), intArrayOf(1, 2, 1)))
-println(pathCost(g, listOf(0, 1, 2)))     // 6
-println(pathCost(g, listOf(0, 2)))        // 2
+val g = buildWeightedGraph(3, arrayOf(intArrayOf(0, 1, 1), intArrayOf(0, 2, 5), intArrayOf(1, 2, 1)))
+println(pathCost(g, listOf(0, 1, 2)))     // 2  (2 edges)
+println(pathCost(g, listOf(0, 2)))        // 5  (1 edge)
 ```
 
 How to choose in an interview:

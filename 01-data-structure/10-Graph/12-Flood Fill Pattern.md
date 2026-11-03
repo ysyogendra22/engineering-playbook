@@ -16,6 +16,15 @@ Many interview questions are flood fill with a different goal:
 | find regions **not** touching the border | Surrounded Regions, Number of Enclaves |
 | find cells that **can reach** the border | Pacific Atlantic Water Flow |
 
+*Counting regions (Number of Islands): each group of connected `1` cells is one island. Here there are 3.*
+
+```text
+1 1 0 0 0         A A . . .
+1 1 0 0 0   →     A A . . .      A, B, C = the three islands
+0 0 1 0 0         . . B . .
+0 0 0 1 1         . . . C C
+```
+
 #### 2. How It Works
 
 *Flood Fill* (LeetCode 733): change the colour of the region that contains `(sr, sc)`.
@@ -35,6 +44,18 @@ Notice the bottom-right `1` is **not** connected (it only touches `0` cells), so
 1. Flood fill from every 'O' on the border, marking them 'T' (temporary).
 2. Now every remaining 'O' is surrounded → turn it into 'X'.
 3. Turn every 'T' back into 'O'.
+```
+
+
+*Surrounded Regions on a 4 × 4 board. The `O` on the bottom border is safe. The `O` group in the middle has no way out, so it flips.*
+
+```text
+Start             Step 1: flood from     Step 2: remaining      Step 3: T → O
+                  border O, mark T       O → X
+X X X X           X X X X                X X X X                X X X X
+X O O X           X O O X                X X X X                X X X X
+X X O X           X X O X                X X X X                X X X X
+X O X X           X T X X                X T X X                X O X X
 ```
 
 #### 3. Kotlin Code
