@@ -2,6 +2,8 @@
 
 > Track groups. `find` tells you which group an item is in, and `union` merges two groups, both in nearly `O(1)`.
 
+**Go deeper:** `DS Graph` (Union-Find, path compression, union by rank, Kruskal), `ALG 7.2` (MST and the redundant-connection idea).
+
 #### 1. What Is It?
 
 **Union Find** (Disjoint Set Union, DSU) keeps a set of groups. Each group has one **root**. Two items are connected if they have the same root.
@@ -51,6 +53,16 @@ With both tricks the cost per operation is the inverse Ackermann function: below
 **Cycle detection.** Before `union(a, b)`, if `find(a) == find(b)` they are already connected, so this edge closes a cycle. That edge is the "redundant connection".
 
 **Kruskal MST.** Sort edges by weight. Add an edge if its ends are in different groups. Stop at `n − 1` edges.
+
+**Picture:** Processing one edge.
+
+```mermaid
+flowchart TD
+    A["edge (a, b)"] --> B["ra = find(a), rb = find(b)"]
+    B --> C{"ra == rb ?"}
+    C -->|"yes"| D["already connected:<br/>this edge closes a cycle"]
+    C -->|"no"| E["attach the smaller tree under the larger,<br/>count--"]
+```
 
 #### 3. Brute Force vs Optimized
 

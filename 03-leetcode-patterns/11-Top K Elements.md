@@ -2,6 +2,8 @@
 
 > Keep only the best K items in a heap of size K. Do not sort everything.
 
+**Go deeper:** `DS Heap`, `ALG 1.7` (heap sort), `ALG 2.13` (quickselect), `ALG 1.10` (bucket sort: Top K Frequent in `O(n)`).
+
 #### 1. What Is It?
 
 A **heap** (priority queue) always gives you the smallest (min-heap) or largest (max-heap) item in `O(1)`, and updates in `O(log n)`.
@@ -43,6 +45,18 @@ top = 5  → the 2nd largest is 5
 **Merge K sorted lists.** Put the head of each list in a min-heap, pop the smallest, push that node's next. (Code in `DS LinkedList` note 23.)
 
 **Quickselect.** Partition like quicksort and recurse into one side only. `O(n)` average, `O(n²)` worst. Good to name, rarely required to write.
+
+**Picture:** Top K largest with a min-heap of size K.
+
+```mermaid
+flowchart TD
+    A["next x"] --> B["heap.add(x)"]
+    B --> C{"heap.size > K ?"}
+    C -->|"yes"| D["heap.poll(): drop the smallest"]
+    C -->|"no"| E["continue"]
+    D --> E
+    E --> A
+```
 
 #### 3. Brute Force vs Optimized
 
@@ -140,7 +154,7 @@ fun lastStoneWeight(stones: IntArray): Int {
 
 Checks: `findKthLargest([3,2,1,5,6,4], 2)` → `5`; `([3,2,3,1,2,4,5,5,6], 4)` → `4`. `topKFrequent([1,1,1,2,2,3], 2)` → `[1, 2]` (any order is accepted). `kClosest([[1,3],[-2,2]], 1)` → `[[-2,2]]` (distances 10 and 8). `MedianFinder`: add `1`, add `2` → median `1.5`; add `3` → median `2.0`. `lastStoneWeight([2,7,4,1,8,1])` → `1`.
 
-(Task Scheduler and Reorganize String use a max-heap of counts. See `ALG Greedy Algorithms` note 13.)
+(Task Scheduler and Reorganize String use a max-heap of counts. See `ALG 4.13`.)
 
 #### 5. Complexity
 

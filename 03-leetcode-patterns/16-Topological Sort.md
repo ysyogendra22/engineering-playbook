@@ -2,6 +2,8 @@
 
 > Order the nodes so every dependency comes before the thing that needs it. If you can't, there is a cycle.
 
+**Go deeper:** `DS Graph` (topological sort, Kahn's algorithm, DAG problems, dependency graphs). Shortest path in a DAG: `ALG 7.3`.
+
 #### 1. What Is It?
 
 A **topological order** of a directed graph lists the nodes so that for every edge `a → b`, `a` comes before `b`. It exists only for a **DAG** (directed acyclic graph).
@@ -48,6 +50,20 @@ take 3 → order [0,1,2,3]
 | Minimum Height Trees | trim leaves layer by layer; the last 1 or 2 nodes are the roots |
 
 **DFS version.** Run DFS. After visiting all neighbours, push the node on a stack. Reverse the finish order. Use colours (0 new, 1 in path, 2 done) to detect a cycle.
+
+**Picture:** Kahn's algorithm.
+
+```mermaid
+flowchart TD
+    A["count in-degrees"] --> B["queue every node with in-degree 0"]
+    B --> C{"queue empty?"}
+    C -->|"no"| D["pop u, append to order"]
+    D --> E["for each edge u to v:<br/>inDegree[v]--, enqueue v when it hits 0"]
+    E --> C
+    C -->|"yes"| F{"order.size == n ?"}
+    F -->|"yes"| G["valid order"]
+    F -->|"no"| H["cycle: impossible"]
+```
 
 #### 3. Brute Force vs Optimized
 

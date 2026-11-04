@@ -2,7 +2,7 @@
 
 How each algorithm works and why its complexity is what it is — recognising and applying it in an interview is `03-leetcode-patterns`. Named data structures (trees, heaps, tries, graphs) live in `01-data-structure`.
 
-- **Numbering:** own, 1–11. Every topic has a folder; topics 1–2 have full per-algorithm notes, 3–11 currently have an index only.
+- **Numbering:** own, 1–11. Every topic has a folder with per-algorithm notes in one layout (what it is, how it works with a diagram, brute force vs optimized, Kotlin code with checked outputs, complexity, mistakes, what to say, quick check, Easy → Medium LeetCode links) and a revision page, `99-... Cheat Sheet`.
 - **References:** `7` = this folder · `DS` = `01-data-structure` (e.g. `DS Graph`) · `LC` = `03-leetcode-patterns` · `BE`/`SD` = `04-backend-engineering`/`05-system-design`
 - **Marks:** 🟢 must have · 🟡 good to have · ⚪ awareness only — know the name and idea, don't implement from memory
 
@@ -10,7 +10,7 @@ How each algorithm works and why its complexity is what it is — recognising an
 
 ## Index
 
-| #   | Topic                                   | Stage                     | Folder                              |
+| #   | Topic                                   | Stage                     | Folder                               |
 | --- | --------------------------------------- | ------------------------- | ------------------------------------ |
 | 1   | Sorting Algorithms                      | 1. Foundations            | `01-sorting`                         |
 | 2   | Searching Algorithms                    | 1. Foundations            | `02-searching`                       |
@@ -61,6 +61,8 @@ How each algorithm works and why its complexity is what it is — recognising an
 - 🟡 Stable vs unstable, and why it matters (sorting objects by a secondary key)
 - ⚪ Tim Sort, Shell Sort, Cycle Sort, Comb Sort, Pigeonhole Sort, External Sort: names and the one idea each is known for
 - 🟢 Kotlin's built-in `sort`, `sortedBy`, `sortedWith`: know what they use, and that you rarely hand-write a sort in real code
+- 🟢 Sorting as a tool: sort then scan, two pointers, merge intervals, greedy; custom comparators (`01-sorting` note 12)
+- 🟡 Cyclic sort for numbers in `1..n`: missing and duplicate numbers in O(n) time and O(1) space
 
 **Complexity quick reference**
 
@@ -72,7 +74,7 @@ How each algorithm works and why its complexity is what it is — recognising an
 | Heap Sort | O(n log n) | O(n log n) | O(n log n) | O(1) | No |
 | Counting / Radix Sort | O(n + k) | O(n + k) | O(n + k) | O(n + k) | Yes |
 
-**Read the full notes:** `01-sorting/00-Contents.md` and its per-algorithm files.
+**Read the full notes:** `01-sorting/00-Content.md` and its per-algorithm files. Revision page: `01-sorting/99-Sorting Cheat Sheet.md`.
 
 ## 2. Searching Algorithms
 
@@ -88,7 +90,7 @@ How each algorithm works and why its complexity is what it is — recognising an
 - 🟡 Searching with a hash map or hash set: O(1) average lookup instead of a search
 - ⚪ Jump Search, Exponential Search, Interpolation Search, Fibonacci Search, Ternary Search, Sentinel Search: names and the one idea each is known for
 
-**Read the full notes:** `02-searching/00-Content.md` and its per-algorithm files.
+**Read the full notes:** `02-searching/00-Content.md` and its per-algorithm files. Revision page: `02-searching/99-Searching Cheat Sheet.md`.
 
 ---
 
@@ -106,6 +108,7 @@ How each algorithm works and why its complexity is what it is — recognising an
 - 🟡 Turning recursion into an iterative version with an explicit stack
 - 🟡 Memoization as the bridge from plain recursion to Dynamic Programming (`5`)
 - 🟡 Classic divide and conquer beyond sorting: binary search, the maximum subarray problem, closest pair of points (name only), fast exponentiation (`10`)
+- 🟢 Recursion on trees and linked lists: pass information down (top-down) or return it up (bottom-up)
 
 ## 4. Greedy Algorithms
 
@@ -126,6 +129,7 @@ How each algorithm works and why its complexity is what it is — recognising an
 - 🟢 Top-down (recursion plus memoization) and bottom-up (iterative table filling), and why they give the same answer
 - 🟢 The four steps: define the state, write the recurrence, set base cases, decide the fill order
 - 🟢 1D DP (Fibonacci, climbing stairs), 2D DP (grid paths, edit distance), and knapsack-style DP
+- 🟢 Subsequence DP (Longest Increasing Subsequence), unbounded knapsack (combinations vs permutations), and how to choose between DP, greedy and backtracking
 - 🟢 Space optimisation: when the recurrence only needs the last row or two, drop the extra dimension
 - 🟢 Complexity: number of distinct states × work to compute each one
 - 🟡 Reconstructing the actual solution, not only its value, by remembering choices as you fill the table
@@ -142,6 +146,7 @@ How each algorithm works and why its complexity is what it is — recognising an
 - 🟢 Pruning: stop exploring a branch as soon as you know it cannot work, which is what keeps backtracking usable in practice
 - 🟡 Branch and bound: like backtracking, but also tracks a "best so far" bound and prunes any branch that cannot beat it (used in optimisation problems, not just yes/no ones)
 - 🟡 Classic examples: N-Queens, Sudoku, subset sum, the travelling salesman problem (name and idea only for TSP)
+- 🟢 The three core families (subsets, combinations, permutations), handling duplicates, and grid and string backtracking (Word Search, parentheses, partitions)
 - 🟡 When a backtracking solution has repeated subproblems, it is a sign that DP could replace it (`5`)
 
 ---
@@ -159,6 +164,7 @@ How each algorithm works and why its complexity is what it is — recognising an
 - 🟡 Floyd-Warshall: shortest path between every pair of nodes at once, O(V³), simple to code, fine for small graphs
 - 🟡 A* search: Dijkstra plus a heuristic that guesses the remaining distance, used in pathfinding and maps
 - ⚪ Network flow (max flow / min cut): name and the one problem shape it solves (capacities on edges, maximum throughput)
+- 🟢 Shortest-path variants in interviews: minimise the largest edge, maximum probability, count shortest paths, "at most K stops"
 - 🟡 Complexity comparison table below; the graph traversal patterns and problems live in `LC 12`, `LC 13`, `LC 15`, `LC 16`, `LC 17`
 
 **Complexity quick reference**
@@ -174,6 +180,7 @@ How each algorithm works and why its complexity is what it is — recognising an
 
 ## 8. String Algorithms
 
+- 🟢 String basics in Kotlin: immutability, `StringBuilder`, character arithmetic, frequency arrays
 - 🟢 Naive substring search: O(n·m), compare the pattern at every position
 - 🟢 When naive search is fine: most interview inputs are small, so know it before reaching for anything cleverer
 - 🟡 KMP (Knuth-Morris-Pratt): builds a "failure function" so the search never re-checks a character twice, O(n + m)
@@ -194,6 +201,7 @@ How each algorithm works and why its complexity is what it is — recognising an
 - 🟡 Bitmask to represent a set of up to about 20 items, used in bitmask DP and subset enumeration
 - 🟡 Two's complement, and why negative numbers behave the way they do in shifts
 - 🟡 Iterating all subsets of a bitmask
+- 🟡 More tricks (reverse bits, add without `+`, range AND) and the medium-level patterns (Single Number II and III, maximum XOR)
 - 🟡 Complexity: bit tricks are O(1) or O(number of bits), and often replace an O(n) loop or extra memory
 
 ## 10. Math & Number Theory
@@ -205,6 +213,8 @@ How each algorithm works and why its complexity is what it is — recognising an
 - 🟢 Modular arithmetic basics: `(a + b) mod m`, `(a * b) mod m`, and why you take the modulo at each step to avoid overflow
 - 🟡 Combinatorics basics: factorial, `nCr`, and computing them with modular inverse for large numbers
 - 🟡 Overflow awareness: use `Long` for sums and products in Kotlin, and know `Int` limits (`LC 3`)
+- 🟢 Digit and number manipulation: palindrome number, happy number, adding and multiplying numbers given as strings
+- 🟡 Math tricks: integer square root, Boyer-Moore majority vote, Fisher-Yates shuffle, reservoir sampling
 - ⚪ Matrix exponentiation for fast recurrences, and the extended Euclidean algorithm (name only)
 
 ---
@@ -267,7 +277,7 @@ Plain meanings, with a priority. The last column is the topic that explains the 
 
 ## How to Proceed
 
-1. Use topics 1 and 2 as they exist today: the `01-sorting` and `02-searching` folders. Read them fully before moving on.
+1. Start with topics 1 and 2: the `01-sorting` and `02-searching` folders. Read the main notes, then the cheat sheet, before moving on.
 2. Do topic 3 (recursion and divide and conquer) next. Nearly every later topic builds on it.
 3. Do topics 4 to 6 (greedy, DP, backtracking) as one set. For each, work one classic example fully by hand before coding it.
 4. Do topics 7 to 10 as a reference set: read each once, know when to reach for it, and come back when a specific problem needs it.

@@ -2,6 +2,8 @@
 
 > Use two indexes instead of a nested loop. Sorted order (or a read/write split) tells you which pointer to move.
 
+**Go deeper:** `ALG 1.12` (sort, then two pointers), `ALG 8.3` (pointers and windows on strings), `ALG 8.4` (palindromes). Cheat sheet: `ALG 8.99`.
+
 #### 1. What Is It?
 
 Two pointers walk through an array or string together. This turns many `O(n²)` pair searches into `O(n)`.
@@ -46,6 +48,17 @@ Result prefix: [0, 1, 2], length 3
 **3Sum:** sort, fix `i`, then run the opposite-ends search on the rest. Skip equal values for `i`, `left` and `right`.
 
 **Dutch flag:** `low` is the end of the 0s, `high` the start of the 2s, `mid` scans. Swap 0 to the front, 2 to the back, leave 1.
+
+**Picture:** Which two-pointer shape fits?
+
+```mermaid
+flowchart TD
+    A["array or string problem"] --> B{"sorted, or can you sort it?"}
+    B -->|"yes: pair, triplet, target"| C["opposite ends:<br/>move left or right by the sum"]
+    B -->|"in-place rewrite"| D["read / write pointers"]
+    B -->|"only values 0, 1, 2"| E["three pointers:<br/>low, mid, high"]
+    B -->|"no, and order matters"| F["hash map or sliding window"]
+```
 
 #### 3. Brute Force vs Optimized
 

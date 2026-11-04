@@ -2,6 +2,8 @@
 
 > Solve a big problem from smaller ones, and remember each answer so you never solve the same small problem twice.
 
+**Go deeper:** `ALG 5` (all 15 notes): `5.3` the four steps, `5.13` LIS, `5.14` unbounded knapsack, `5.15` DP vs greedy vs backtracking; `ALG 3.8` (memoization). Cheat sheet: `ALG 5.99`.
+
 #### 1. What Is It?
 
 **Dynamic programming (DP)** works when a problem has:
@@ -66,6 +68,17 @@ dp: 0 1 1 2 2 1 2 2 3 3 2 3        → dp[11] = 3 (5+5+1)
 **Space optimization.** If `dp[i]` depends only on the previous row or the last two values, keep only those.
 
 **Why greedy is not enough:** coins `{1,3,4}`, amount 6. Greedy picks 4+1+1 (3 coins). DP finds 3+3 (2 coins).
+
+**Picture:** DP, greedy or backtracking?
+
+```mermaid
+flowchart TD
+    A["count / optimise / decide"] --> B{"does the same sub-problem repeat?"}
+    B -->|"yes"| C["DP: state, transition,<br/>base case, order, answer"]
+    B -->|"no"| D{"is a local choice always safe?"}
+    D -->|"yes, and it survives a counter-example"| E["greedy"]
+    D -->|"no, and you must list all answers"| F["backtracking"]
+```
 
 #### 3. Brute Force vs Optimized
 

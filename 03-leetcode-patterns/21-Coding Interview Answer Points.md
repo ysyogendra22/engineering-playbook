@@ -2,6 +2,8 @@
 
 > A correct solution is not enough. You also need to show how you think, so the interviewer can say "hire".
 
+**Go deeper:** `ALG 11.4` and `ALG 11.5` (recognising an NP-hard shape and what to say instead of searching for a fast exact answer).
+
 #### 1. What Is It?
 
 Interviewers usually score four things:
@@ -50,7 +52,15 @@ The structure of a strong answer:
 
 **When you are stuck:** say it. "I'm stuck on the second half. Let me try a smaller example." Silence is worse than a wrong idea said out loud.
 
-#### 3. Weak Answer vs Strong Answer
+**Picture:** A strong answer, in order.
+
+```mermaid
+flowchart LR
+    A["restate + ask"] --> B["brute force + Big-O"] --> C["name the pattern and why"] --> D["plan, get a nod"]
+    D --> E["code while narrating"] --> F["dry-run + edge cases"] --> G["time and space"] --> H["follow-ups, trade-offs"]
+```
+
+#### 3. Brute Force vs Optimized: Weak Answer vs Strong Answer
 
 | | Weak | Strong |
 |---|---|---|

@@ -2,6 +2,8 @@
 
 > A stack kept in sorted order. Each new value pops the items it beats, and every pop is an answer.
 
+**Go deeper:** `DS Stack`, `ALG 3.7` (explicit stacks), `ALG 3.2` (the call stack and space).
+
 #### 1. What Is It?
 
 A **monotonic stack** keeps its values increasing (or decreasing) from bottom to top. Before pushing a new value, pop everything that breaks the order. The popped items have just found their "next greater / smaller" element: the new value.
@@ -44,6 +46,17 @@ answer [1,1,4,2,1,1,0,0]
 **Largest rectangle in a histogram.** Keep an increasing stack of bar indexes. When a shorter bar arrives, pop a taller bar: its right edge is the current index, its left edge is the new top of the stack. Width = `i − left − 1`. Add a final height of `0` to flush the stack.
 
 **Basic stack problems first:** matching brackets and Min Stack are not monotonic, but they build the habit.
+
+**Picture:** The monotonic stack loop. Every pop is an answer.
+
+```mermaid
+flowchart TD
+    A["next index i"] --> B{"stack not empty and<br/>nums[i] > nums[top] ?"}
+    B -->|"yes"| C["pop top: its answer is i<br/>(distance i - top)"]
+    C --> B
+    B -->|"no"| D["push i"]
+    D --> A
+```
 
 #### 3. Brute Force vs Optimized
 

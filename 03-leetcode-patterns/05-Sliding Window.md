@@ -2,6 +2,8 @@
 
 > A moving range over an array or string. Add on the right, remove on the left, and never recompute from scratch.
 
+**Go deeper:** `ALG 8.3` (fixed and variable windows on strings, with the `O(n)` argument), `DS HashMap`, `ALG 8.6` (rolling hash).
+
 #### 1. What Is It?
 
 A **window** is a contiguous range `[left, right]`. You slide it along the data and update its state (sum, count, frequency map) in `O(1)` per move.
@@ -60,6 +62,17 @@ for right in 0..n-1:
 **"Exactly K" trick:** `atMost(K) − atMost(K − 1)`.
 
 **Window maximum:** a monotonic deque of indexes (values decreasing from front to back). The front is always the max of the window.
+
+**Picture:** The longest-valid-window loop.
+
+```mermaid
+flowchart TD
+    A["right moves forward:<br/>add s[right] to the window"] --> B{"window invalid?"}
+    B -->|"yes"| C["remove s[left], left++"]
+    C --> B
+    B -->|"no"| D["best = max(best, right - left + 1)"]
+    D --> A
+```
 
 #### 3. Brute Force vs Optimized
 

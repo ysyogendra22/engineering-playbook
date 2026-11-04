@@ -1,84 +1,164 @@
 # NP-Hard vs NP-Complete
 
-#### 1. Definition — Must Know
+> **NP-hard** means "at least as hard as every problem in NP". **NP-complete** means NP-hard *and* in NP. An NP-hard problem may be even harder, and may not be a yes/no question at all.
 
-1. **NP-Complete** = in NP (a proposed solution can be checked fast, topic 2), **and** at least as hard as every other problem in NP.
-2. **NP-Hard** = at least as hard as every problem in NP (same difficulty bar), **but not necessarily in NP itself** — meaning a proposed solution might not even be checkable quickly.
-3. Every NP-Complete problem is NP-Hard, but not every NP-Hard problem is NP-Complete.
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+| Class | Definition | Must be in NP? |
+|---|---|---|
+| **NP-hard** | every problem in NP reduces to it | **no** |
+| **NP-complete** | NP-hard **and** in NP | yes |
 
-This distinction is a small but real vocabulary trap — using "NP-Hard" and "NP-Complete" interchangeably is technically incorrect, and precise language here signals real understanding rather than memorised buzzwords.
+`NP-complete = NP ∩ NP-hard`
 
-#### 3. How It Works — Must Know
+| Example | Class | Why |
+|---|---|---|
+| TSP decision: is there a tour of length ≤ `L`? | NP-complete | a tour can be verified fast |
+| TSP optimisation: find the shortest tour | NP-hard | not a yes/no question, so not in NP as stated |
+| Subset Sum decision | NP-complete | verify by adding |
+| Halting problem | NP-hard (even undecidable) | no algorithm at all, can't be verified |
+| Sorting | P (not NP-hard unless P = NP) | easy |
 
-```text
-NP-Complete example: Travelling Salesman Problem (decision version —
-  "is there a route under length X?")
-  - Checking a proposed route: fast (add up distances) → it's in NP
-  - At least as hard as every NP problem → NP-Complete
+**Decision vs optimisation.** NP classes are defined for yes/no questions. Optimisation versions ("find the minimum") are **NP-hard**. They are no easier than their decision versions, and often no harder: you can solve the optimisation problem by asking the decision question repeatedly with binary search.
 
-NP-Hard but NOT NP-Complete example: Travelling Salesman Problem
-  (OPTIMIZATION version — "what is the shortest possible route?",
-  not just yes/no)
-  - This version doesn't have a simple yes/no answer to "check" in the
-    same way — you'd need to somehow verify a number IS the true minimum,
-    which isn't obviously fast
-  - Still at least as hard as NP → NP-Hard
-  - But not cleanly verifiable in polynomial time the way the yes/no
-    "decision" version is → not classified as NP-Complete (it isn't
-    even confirmed to be IN NP at all)
+**Signals:** "is TSP NP-complete or NP-hard?" (both answers appear in the wild), "what is the difference", "optimisation vs decision".
+
+#### 2. How It Works
+
+```mermaid
+flowchart TB
+    subgraph HARD["NP-hard: at least as hard as everything in NP"]
+        subgraph NP["NP"]
+            P1["P (easy)"]
+            NPC["NP-complete = in NP and NP-hard"]
+        end
+        OPT["TSP optimisation,<br/>Halting problem, ..."]
+    end
 ```
 
-```text
-Rough picture:
-
-   NP-Hard  ─────────────────────────────
-   │                                       │
-   │        NP ─────────────────           │
-   │        │                    │          │
-   │        │   NP-Complete       │          │
-   │        │  ┌──────────┐      │          │
-   │        │  │TSP(yes/no│      │          │
-   │        │  └──────────┘      │          │
-   │        └────────────────────           │
-   │   TSP (optimization version) lives HERE, outside NP but still NP-Hard
-   └───────────────────────────────────────
-```
-
-#### 4. Algorithm — Must Know
+**Optimisation from decision (why the two are linked).** Suppose an oracle answers "is there a tour of length at most `L`?". Binary search on `L` finds the shortest tour length using about `log₂(max length)` oracle calls. So if the decision version were in P, the optimisation version would be too.
 
 ```text
-To classify a problem:
-1. Can a proposed solution be VERIFIED in polynomial time?
-     Yes → it's in NP
-     No / unclear → it might still be NP-Hard, but not NP-Complete
-2. Is it at least as hard as every problem in NP (provable by reduction)?
-     Yes → it's NP-Hard (and NP-Complete too, if step 1 was also yes)
+lengths 0..35, optimum is 16 for the 5-city matrix in note 05
+ask L = 17 → yes   (hi = 17)
+ask L =  8 → no    (lo = 9)
+ask L = 13 → no    (lo = 14)
+ask L = 15 → no    (lo = 16)    ask L = 16 → yes → answer 16
 ```
 
-#### 5. Kotlin Implementation — Must Know
+**Some problems are NP-hard but beyond NP**
 
-*(Not applicable — this is a classification concept.)*
+- **Undecidable** problems (Halting) are NP-hard.
+- Games like generalised chess on an `n × n` board are EXPTIME-complete: harder than NP, so also NP-hard.
+- **#P**-style counting problems ("how many Hamiltonian cycles?") are NP-hard in the sense of reductions, but counting is not a decision problem.
 
-#### 6. Complexity — Must Know
+**How to use the words correctly**
 
-Not applicable directly — both categories describe problems with no known polynomial-time exact algorithm, same as NP-Complete (topic 3).
+| You want to say | Use |
+|---|---|
+| "A solution can be checked quickly, and it's as hard as anything in NP" | NP-complete |
+| "It's at least as hard as NP-complete problems; don't claim it's in NP" | NP-hard |
+| "Find the best / minimum / maximum ..." | NP-hard (optimisation) |
+| "Is there ... with value ≤ `k`?" | NP-complete (decision) |
 
-#### 7. Common Mistakes — Must Know
+#### 3. Brute Force vs Optimized
 
-1. Using "NP-Hard" and "NP-Complete" as if they mean exactly the same thing — they're related but distinct, as shown by the TSP example above.
-2. Assuming "NP-Hard" is somehow a stronger or scarier label than "NP-Complete" — it's actually the *broader* category; NP-Complete is the more specific overlap with NP.
-3. Getting stuck trying to precisely classify every problem during an interview — for practical purposes, "this looks NP-Hard/NP-Complete, so I expect no fast exact solution" is usually the useful-enough takeaway (see topic 5).
+| Question | Slow way | Better |
+|---|---|---|
+| Shortest tour length | enumerate all tours and take the min `O(n!)` | binary search on the decision version (same oracle cost per call) |
+| Decision oracle | try all tours | bitmask DP `O(2ⁿ n²)` for small `n` |
 
-#### 8. Related Topics
+```kotlin
+// Decision oracle by brute force: is there a tour of length at most `limit`?
+fun existsTourAtMost(d: Array<IntArray>, limit: Int): Boolean {
+    val n = d.size
+    val used = BooleanArray(n)
+    used[0] = true
+    fun go(cur: Int, count: Int, cost: Int): Boolean {
+        if (cost > limit) return false
+        if (count == n) return cost + d[cur][0] <= limit
+        for (next in 1 until n) if (!used[next]) {
+            used[next] = true
+            val ok = go(next, count + 1, cost + d[cur][next])
+            used[next] = false
+            if (ok) return true
+        }
+        return false
+    }
+    return go(0, 1, 0)
+}
+```
 
-1. `3` NP-Complete — the Hardest Problems in NP
-2. `2` NP — Checkable in Polynomial Time
-3. `4` Recognising an NP-Complete Shape in an Interview
+#### 4. Kotlin Code
 
-#### 9. Interview Must Remember
+```kotlin
+// Optimisation (NP-hard) built from the decision problem (NP-complete) by binary search
+fun minTourLength(d: Array<IntArray>): Int {
+    var lo = 0
+    var hi = d.sumOf { row -> row.max() }            // any tour costs at most this much
+    while (lo < hi) {
+        val mid = lo + (hi - lo) / 2
+        if (existsTourAtMost(d, mid)) hi = mid else lo = mid + 1
+    }
+    return lo
+}
 
-1. **NP-Complete = NP-Hard AND in NP. NP-Hard alone just means "at least as hard as NP", with no promise about verification speed.**
-2. The optimization version of a problem (find the *best* answer) is often NP-Hard without necessarily being NP-Complete; the decision version (yes/no, under some threshold) usually is NP-Complete.
-3. In practice, both labels lead to the same next step (topic 5) — knowing the distinction is about precision, not changing your approach.
+// Number of oracle calls the binary search needs
+fun oracleCalls(maxLength: Int): Int {
+    var calls = 0
+    var range = maxLength + 1
+    while (range > 1) { range = (range + 1) / 2; calls++ }
+    return calls
+}
+```
+
+Checks, with the 5-city matrix from note 05: `existsTourAtMost(D, 16)` → `true`; `existsTourAtMost(D, 15)` → `false`; `minTourLength(D)` → `16`. `oracleCalls(35)` → `6` (the worst case for a range of 36 values; the trace in section 2 needed 5). A 3-city triangle `d = [[0,1,2],[1,0,3],[2,3,0]]`: `minTourLength(d)` → `6` (every tour uses all three edges: 1 + 3 + 2).
+
+#### 5. Complexity
+
+| | Time |
+|---|---|
+| Decision oracle (brute force) | `O(n!)` |
+| Optimisation via binary search | `O(log(maxLength))` oracle calls |
+| If the oracle were polynomial | the optimiser would be too |
+
+#### 6. Common Mistakes
+
+1. **Saying "NP-hard means harder than NP-complete".** NP-complete problems are NP-hard; NP-hard is a lower bound.
+2. **Calling optimisation problems NP-complete** (strictly, they are NP-hard).
+3. **Believing NP-hard problems are always in NP.**
+4. **Using "NP-hard" for "very slow".** It is about reductions, not a particular running time.
+5. **Mixing up "NP" and "non-polynomial".**
+6. **Claiming an NP-hardness proof by reducing in the wrong direction.**
+
+#### 7. Say This in the Interview
+
+1. "The decision version of this problem is NP-complete, and finding the optimum is NP-hard. We can get the optimum from the decision version with binary search."
+2. "NP-hard means at least as hard as every NP problem. It doesn't need to be in NP itself."
+3. "In practice the label tells me: don't search for a polynomial algorithm."
+
+#### 8. Quick Check
+
+1. NP-complete = ?
+2. Is "find the shortest tour" NP-complete or NP-hard?
+3. Is the Halting problem NP-complete?
+
+<details>
+<summary>Answers</summary>
+
+1. NP ∩ NP-hard.
+2. NP-hard (it is an optimisation problem, so it is not in NP as stated).
+3. No. It is NP-hard (and undecidable), but not in NP.
+
+</details>
+
+#### 9. Related LeetCode Questions
+
+| # | Question | Idea |
+|---|---|---|
+| 847 | [Shortest Path Visiting All Nodes](https://leetcode.com/problems/shortest-path-visiting-all-nodes/) (Hard) | optimisation version, small `n` |
+| 943 | [Find the Shortest Superstring](https://leetcode.com/problems/find-the-shortest-superstring/) (Hard) | NP-hard optimisation, bitmask DP |
+| 698 | [Partition to K Equal Sum Subsets](https://leetcode.com/problems/partition-to-k-equal-sum-subsets/) (Medium) | decision version |
+| 1879 | [Minimum XOR Sum of Two Arrays](https://leetcode.com/problems/minimum-xor-sum-of-two-arrays/) (Hard) | assignment, bitmask DP |
+| 1595 | [Minimum Cost to Connect Two Groups of Points](https://leetcode.com/problems/minimum-cost-to-connect-two-groups-of-points/) (Hard) | optimisation, bitmask DP |
+| 410 | [Split Array Largest Sum](https://leetcode.com/problems/split-array-largest-sum/) (Hard) | optimisation via decision + binary search |

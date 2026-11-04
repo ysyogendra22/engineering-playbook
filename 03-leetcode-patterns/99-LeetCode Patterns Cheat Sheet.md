@@ -35,7 +35,26 @@
 | `O(1)` lookup, count, group, "seen before?" | Hash map or set | 20 |
 | Missing/duplicate in `1..n`, single number | Cyclic sort, XOR | 20 |
 | Prefix search | Trie | 20 |
+| Answer "modulo 10⁹ + 7", huge exponent, divisible subarrays | modular arithmetic, fast power (`ALG 10.4`, `10.5`) | 7, 20 |
+| `n ≤ 20` and "visit every node" / "split into k groups" | bitmask DP or backtracking (`ALG 9.7`, `ALG 11.4`) | 14 |
 | Reverse / merge / rearrange list | Pointer manipulation | 20 |
+
+**Picture:** a first pass over the signals.
+
+```mermaid
+flowchart TD
+    A["new problem"] --> B{"What does it ask for?"}
+    B -->|"all answers / arrangements"| C["Backtracking (14)"]
+    B -->|"count ways / min or max cost"| D["DP (18), or Greedy (19) if a local choice is safe"]
+    B -->|"shortest path or levels"| E["BFS (12), Dijkstra (15)"]
+    B -->|"dependencies / order"| F["Topological sort (16)"]
+    B -->|"connected? merge groups?"| G["Union Find (17)"]
+    B -->|"best subarray / substring"| H{"sorted, or yes/no flips once?"}
+    H -->|"sorted pair"| I["Two pointers (4)"]
+    H -->|"contiguous + condition"| J["Sliding window (5), prefix sum (7)"]
+    H -->|"flips once"| K["Binary search (8)"]
+    B -->|"K best / next greater / ranges"| L["Heap (11), Monotonic stack (10), Intervals (9)"]
+```
 
 #### 3. Constraints Hint
 
@@ -289,3 +308,17 @@ for (iv in intervals.sortedBy { it[1] }) if (iv[0] >= lastEnd) { kept++; lastEnd
 | Medium | [Coin Change](https://leetcode.com/problems/coin-change/) | DP |
 | Medium | [Jump Game](https://leetcode.com/problems/jump-game/) | greedy |
 | Medium | [LRU Cache](https://leetcode.com/problems/lru-cache/) | design |
+
+#### 10. Cheat Sheets to Read Next
+
+The night before an interview, read this page first, then the cheat sheet of your weakest area.
+
+| Area | Page |
+|---|---|
+| Sorting, searching | `ALG 1.99`, `ALG 2.99` |
+| Recursion, divide and conquer | `ALG 3.99` |
+| Greedy, DP, backtracking | `ALG 4.99`, `ALG 5.99`, `ALG 6.99` |
+| Graphs (shortest path, MST) | `ALG 7.99`, and `DS Graph` `99-Graph Cheat Sheet` |
+| Strings, bits, math | `ALG 8.99`, `ALG 9.99`, `ALG 10.99` |
+| "This looks impossible" | `ALG 11.99` |
+| Data structures | the `99-… Cheat Sheet` in each `DS` folder |

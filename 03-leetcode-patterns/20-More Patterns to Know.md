@@ -2,6 +2,8 @@
 
 > The smaller patterns that still show up in interviews: hash map, linked-list moves, design, bits, cyclic sort, matrix.
 
+**Go deeper:** `DS Trie`, `DS LinkedList` note 25 (LRU cache), `ALG 1.11` (cyclic sort), `ALG 9` (bit manipulation), `ALG 10.10` (math tricks), `ALG 8.5` to `8.7` (KMP, Rabin-Karp, Z).
+
 #### 1. What Is It?
 
 These are not big topics, but each one solves a whole group of questions.
@@ -16,7 +18,7 @@ These are not big topics, but each one solves a whole group of questions.
 | Bit manipulation | "single number", "missing number", powers of two | XOR, `n and (n−1)` |
 | Cyclic sort | numbers in `1..n`, "first missing", "find duplicates" | swap into the right index |
 | Matrix | rotate, spiral, set zeroes | transpose, boundaries |
-| Names only | segment tree, Fenwick tree, KMP, rolling hash, sweep line, math (gcd, primes, mod, fast power) | know what they are for |
+| Names only | segment tree, Fenwick tree, KMP, rolling hash (`ALG 8.5`, `8.6`), sweep line, math: gcd, primes, mod, fast power (`ALG 10`) | know what they are for |
 
 #### 2. How It Works
 
@@ -43,6 +45,17 @@ These are not big topics, but each one solves a whole group of questions.
 | `O(1)` min of a stack | stack of `(value, min so far)` |
 | `O(1)` insert, delete, random | `ArrayList` + `HashMap` (swap with last on delete) |
 | Prefix search | trie |
+
+**Picture:** From the signal to the tool.
+
+```mermaid
+flowchart LR
+    S["signal"] --> A["seen before, count, group"] --> A1["HashMap / HashSet"]
+    S --> B["numbers 1..n, missing or duplicate"] --> B1["cyclic sort / XOR"]
+    S --> C["prefix search"] --> C1["Trie"]
+    S --> D["O(1) design operations"] --> D1["map + list / deque"]
+    S --> E["reverse, merge, rearrange a list"] --> E1["dummy node + pointers"]
+```
 
 #### 3. Brute Force vs Optimized
 
@@ -128,7 +141,7 @@ class MinStack {
     fun getMin(): Int = stack.last()[1]
 }
 
-// LRU Cache (LeetCode 146): LinkedHashMap in access order. The manual version is in DS LinkedList note 25.
+// LRU Cache (LeetCode 146): LinkedHashMap in access order. The manual version is in `DS LinkedList` note 25.
 class LRUCache(private val capacity: Int) {
     private val map = object : LinkedHashMap<Int, Int>(capacity, 0.75f, true) {
         override fun removeEldestEntry(eldest: MutableMap.MutableEntry<Int, Int>?): Boolean = size > capacity
@@ -277,7 +290,7 @@ Checks: `groupAnagrams(["eat","tea","tan","ate","nat","bat"])` → `[["eat","tea
 3. **Linked lists:** losing `next` before re-pointing; no dummy node when the head can change.
 4. **LRU:** a `get` must also mark the key as recently used.
 5. **RandomizedSet remove:** forgetting to update the moved element's index, or deleting before overwriting when `v` is the last element.
-6. **Bits:** `Int` has 32 bits; `>>` keeps the sign, so use `ushr` for unsigned shifts.
+6. **Bits:** `Int` has 32 bits; `shr` keeps the sign, so use `ushr` for unsigned shifts.
 7. **Cyclic sort:** `while` with a swap and no `i++`, which loops forever on duplicates. Check `nums[v − 1] != v`.
 8. **Rotate:** transposing the whole matrix (both triangles) swaps twice and undoes itself.
 

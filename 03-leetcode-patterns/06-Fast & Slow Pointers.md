@@ -2,6 +2,8 @@
 
 > Two pointers at different speeds. They meet if there is a cycle, and the slow one sits in the middle when the fast one finishes.
 
+**Go deeper:** `DS LinkedList` notes 6 to 9 (slow and fast pointers, middle, cycle, cycle start), `ALG 10.9` (happy number), `ALG 1.11` (cyclic sort for the duplicate-number trick).
+
 #### 1. What Is It?
 
 Also called **Floyd's tortoise and hare**. `slow` moves 1 step and `fast` moves 2 steps. It uses `O(1)` space where a hash set would use `O(n)`.
@@ -38,6 +40,18 @@ If `fast` reaches `null`, there is no cycle. Inside a cycle, `fast` gains one st
 Why: if the head is `a` steps from the cycle start and the meeting point is `b` steps inside the cycle, then `a` equals the remaining distance to the start (mod the cycle length).
 
 **Numbers as pointers.** For a number `x`, define `next(x)`. Happy number: `next` is the sum of squares of the digits. Find the duplicate: `next(i) = nums[i]`. Both form a "linked list" with a cycle.
+
+**Picture:** Floyd's two pointers.
+
+```mermaid
+flowchart LR
+    A["slow = head, fast = head"] --> B{"fast and fast.next exist?"}
+    B -->|"no"| C["no cycle, or slow is the middle"]
+    B -->|"yes"| D["slow moves 1, fast moves 2"]
+    D --> E{"slow === fast ?"}
+    E -->|"yes"| F["cycle: reset one pointer to head,<br/>move both by 1 to find the start"]
+    E -->|"no"| B
+```
 
 #### 3. Brute Force vs Optimized
 

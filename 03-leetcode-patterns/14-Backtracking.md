@@ -2,6 +2,8 @@
 
 > Try a choice, explore, then undo it and try the next. It is DFS over a decision tree.
 
+**Go deeper:** `ALG 6` (all 11 notes): `6.1` template, `6.3` pruning, `6.9` subsets, combinations and permutations, `6.10` duplicates, `6.11` grid and string backtracking. Cheat sheet: `ALG 6.99`.
+
 #### 1. What Is It?
 
 **Backtracking** builds a solution step by step. At each step you choose one option, recurse, and then **undo** the choice. It enumerates all valid answers and **prunes** branches that cannot work.
@@ -54,6 +56,21 @@ Draw the decision tree before coding. Subsets of `[1, 2, 3]` (each node is the c
 **Pruning** makes it fast: stop when the running sum exceeds the target, when the path can't be completed, or when a rule is already broken.
 
 **Duplicates rule:** `i > start && nums[i] == nums[i-1]` skips an equal value at the **same level** but still allows it deeper (so `[1,2,2]` is kept).
+
+**Picture:** Choose, explore, un-choose.
+
+```mermaid
+flowchart TD
+    A["backtrack(state)"] --> B{"complete?"}
+    B -->|"yes"| C["save a COPY and return"]
+    B -->|"no"| D["for each choice"]
+    D --> E{"valid?"}
+    E -->|"no: prune"| D
+    E -->|"yes"| F["choose"]
+    F --> G["backtrack(next state)"]
+    G --> H["un-choose"]
+    H --> D
+```
 
 #### 3. Brute Force vs Optimized
 

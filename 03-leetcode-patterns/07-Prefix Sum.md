@@ -2,6 +2,8 @@
 
 > Pre-compute running totals once. Any range sum becomes one subtraction.
 
+**Go deeper:** `ALG 10.5` (prefix remainders for divisible subarrays), `ALG 9.3` (prefix XOR), `DS Array`, `DS HashMap`.
+
 #### 1. What Is It?
 
 `prefix[i]` is the sum of the first `i` elements. Then:
@@ -49,6 +51,16 @@ answer 2
 | Equal 0s and 1s | treat 0 as −1, find equal prefix sums, map stores the first index |
 | Divisible by K | store `prefix % K`; equal remainders mean the part in between is divisible |
 | Difference array | `diff[l] += v; diff[r+1] −= v`, then prefix-sum `diff` to get the final array |
+
+**Picture:** Prefix sum with a hash map, for subarray sum = K.
+
+```mermaid
+flowchart TD
+    A["seen = {0: 1}, sum = 0"] --> B["next x: sum += x"]
+    B --> C["count += seen[sum - k]"]
+    C --> D["seen[sum] = seen[sum] + 1"]
+    D --> B
+```
 
 #### 3. Brute Force vs Optimized
 

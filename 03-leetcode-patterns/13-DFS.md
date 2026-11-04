@@ -2,6 +2,8 @@
 
 > Go as deep as you can, then come back. Recursion does the bookkeeping for you.
 
+**Go deeper:** `DS Tree`, `ALG 3.10` (top-down vs bottom-up recursion on trees), `ALG 3.7` (explicit stack), `ALG 3.2` (stack depth and overflow).
+
 #### 1. What Is It?
 
 **Depth-first search** follows one path to its end before trying another. On trees it is plain recursion. On grids and graphs it needs a `visited` set.
@@ -55,6 +57,16 @@ Diameter: height(node) returns 1 + max(left, right)
 **Iterative DFS.** Use an explicit stack when depth can reach `10⁵` (a skewed tree or a long chain), because deep recursion can overflow the JVM stack.
 
 **BST.** Inorder is sorted. For validation, pass `(low, high)` bounds down.
+
+**Picture:** Which way does the information flow?
+
+```mermaid
+flowchart TD
+    A["tree or grid problem"] --> B{"the answer depends on"}
+    B -->|"what is below (subtrees)"| C["return up:<br/>height, diameter, LCA"]
+    B -->|"what is above (ancestors)"| D["pass down:<br/>BST bounds, remaining sum"]
+    B -->|"a region in a grid"| E["mark visited,<br/>recurse in 4 directions"]
+```
 
 #### 3. Brute Force vs Optimized
 

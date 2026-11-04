@@ -2,6 +2,8 @@
 
 > Sort the ranges, then scan once and compare each range with the one before it.
 
+**Go deeper:** `ALG 1.12` (sort then sweep, meeting rooms), `ALG 4.4` (activity and interval selection), `ALG 4.3` (why sorting by end works).
+
 #### 1. What Is It?
 
 An interval is `[start, end]`. Most interval questions become easy after **sorting**.
@@ -40,6 +42,16 @@ answer [[1,6],[8,10],[15,18]]
 **Sweep line.** Turn each interval into `+1` at start and `−1` at end. Sort events and keep a running total. The max total is the maximum overlap. (A difference array does the same for small ranges: Car Pooling.)
 
 **Two lists (intersection).** Two pointers. The overlap is `[max(starts), min(ends)]` if `max(starts) <= min(ends)`. Then advance the pointer with the **smaller end**.
+
+**Picture:** Pick the sort key from the question.
+
+```mermaid
+flowchart TD
+    A["intervals"] --> B{"what is asked?"}
+    B -->|"merge, insert, rooms"| C["sort by START,<br/>compare with the last kept range"]
+    B -->|"most kept, fewest removed, arrows"| D["sort by END,<br/>keep what finishes first"]
+    B -->|"two sorted lists"| E["two pointers,<br/>advance the one that ends first"]
+```
 
 #### 3. Brute Force vs Optimized
 

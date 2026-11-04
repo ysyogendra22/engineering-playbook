@@ -2,6 +2,8 @@
 
 > Halve the search space every step. It works on sorted data, and on any yes/no question that flips once.
 
+**Go deeper:** `ALG 2` (all 15 notes): `2.3` binary search, `2.5` lower and upper bound, `2.7` and `2.8` rotated arrays, `2.11` search on the answer, `2.12` edge cases, `2.15` advanced. Cheat sheet: `ALG 2.99`.
+
 #### 1. What Is It?
 
 Binary search discards half of the candidates each step: `O(log n)`.
@@ -53,6 +55,17 @@ answer 4
 **Rotated array.** One half is always sorted. Check which half, then check if the target is inside it.
 
 **Find minimum in rotated array.** Compare `nums[mid]` with `nums[right]`. If `nums[mid] > nums[right]`, the minimum is to the right.
+
+**Picture:** What is monotonic in your problem?
+
+```mermaid
+flowchart TD
+    A["need O(log n)"] --> B{"what is monotonic?"}
+    B -->|"the array is sorted"| C["exact match, or lower bound"]
+    B -->|"a yes/no check flips once"| D["search on the answer:<br/>first true"]
+    B -->|"sorted, then rotated"| E["one half is sorted:<br/>compare with left / right"]
+    B -->|"a peak exists"| F["compare mid with mid + 1"]
+```
 
 #### 3. Brute Force vs Optimized
 

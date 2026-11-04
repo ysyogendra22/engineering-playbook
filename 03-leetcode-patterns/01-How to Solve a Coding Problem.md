@@ -2,6 +2,8 @@
 
 > A fixed routine you can repeat under stress. Interviewers score your **process** as much as your code.
 
+**Go deeper:** `ALG 11.1` (how fast different growth rates blow up) and `ALG 11.5` (what to say when a problem looks NP-hard).
+
 #### 1. What Is It?
 
 A 9-step routine for any coding question. Say each step out loud.
@@ -55,6 +57,15 @@ Example: **Two Sum.** Given `nums` and `target`, return the indexes of two numbe
 | Ask for a hint | Say what you tried first. Use the hint and say what you learned |
 
 **Edge cases to check every time:** empty, one element, all equal, duplicates, negatives, zero, very large values, already sorted, and sorted in reverse.
+
+**Picture:** The nine steps in order. Steps 1, 4 and 8 are the ones to protect.
+
+```mermaid
+flowchart LR
+    A["1 Clarify"] --> B["2 Examples"] --> C["3 Brute force + Big-O"] --> D["4 Find the pattern"] --> E["5 Improve"]
+    E --> F["6 Plan"] --> G["7 Code"] --> H["8 Test"] --> I["9 Wrap up: time and space"]
+    H -.->|"bug found"| G
+```
 
 #### 3. Brute Force vs Optimized
 

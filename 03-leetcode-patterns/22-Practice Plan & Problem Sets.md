@@ -2,6 +2,8 @@
 
 > Depth beats volume. 80 to 120 problems you truly understand are worth more than 500 you half remember.
 
+**Go deeper:** the `99-… Cheat Sheet` of each `ALG` folder (see the list under the problem sets).
+
 #### 1. What Is It?
 
 A plan for **how** to practise, a six-week schedule, and a topic-wise problem set (Easy → Medium → one harder) with direct links.
@@ -138,3 +140,19 @@ Easy → Medium → one harder. Premium problems are marked; use the free altern
 | 18 | Dynamic Programming | [Climbing Stairs](https://leetcode.com/problems/climbing-stairs/), [Min Cost Climbing Stairs](https://leetcode.com/problems/min-cost-climbing-stairs/), [N-th Tribonacci Number](https://leetcode.com/problems/n-th-tribonacci-number/) | [House Robber](https://leetcode.com/problems/house-robber/), [Coin Change](https://leetcode.com/problems/coin-change/), [Longest Increasing Subsequence](https://leetcode.com/problems/longest-increasing-subsequence/) | [Burst Balloons](https://leetcode.com/problems/burst-balloons/) |
 | 19 | Greedy | [Assign Cookies](https://leetcode.com/problems/assign-cookies/), [Lemonade Change](https://leetcode.com/problems/lemonade-change/), [Best Time to Buy and Sell Stock](https://leetcode.com/problems/best-time-to-buy-and-sell-stock/) | [Jump Game](https://leetcode.com/problems/jump-game/), [Jump Game II](https://leetcode.com/problems/jump-game-ii/), [Gas Station](https://leetcode.com/problems/gas-station/) | [Candy](https://leetcode.com/problems/candy/) |
 | 20 | More Patterns | [Two Sum](https://leetcode.com/problems/two-sum/), [Reverse Linked List](https://leetcode.com/problems/reverse-linked-list/), [Single Number](https://leetcode.com/problems/single-number/) | [Group Anagrams](https://leetcode.com/problems/group-anagrams/), [Longest Consecutive Sequence](https://leetcode.com/problems/longest-consecutive-sequence/), [LRU Cache](https://leetcode.com/problems/lru-cache/) | [First Missing Positive](https://leetcode.com/problems/first-missing-positive/) |
+
+**Cheat sheets to read alongside** (the `99-…` file in each `ALG` folder). Read the one that matches the pattern you are practising, before the problem set and again after:
+
+| Pattern (`LC`) | Cheat sheet |
+|---|---|
+| 4, 5 Two Pointers, Sliding Window | `ALG 8.99` String Algorithms, `ALG 1.99` Sorting |
+| 7 Prefix Sum | `ALG 10.99` Math & Number Theory |
+| 8 Binary Search | `ALG 2.99` Searching |
+| 9 Merge Intervals, 19 Greedy | `ALG 4.99` Greedy, `ALG 1.99` Sorting |
+| 11 Top K | `ALG 1.99` Sorting, `ALG 2.99` Searching (quickselect) |
+| 13 DFS, 18 DP (memoization) | `ALG 3.99` Recursion |
+| 14 Backtracking | `ALG 6.99` Backtracking |
+| 15 Graph Traversal, 17 Union Find | `ALG 7.99` Graph Algorithms |
+| 18 Dynamic Programming | `ALG 5.99` Dynamic Programming |
+| 20 More Patterns | `ALG 9.99` Bit Manipulation, `ALG 10.99` Math, `ALG 8.99` Strings |
+| 21 Answer Points ("this looks impossible") | `ALG 11.99` Complexity Classes |

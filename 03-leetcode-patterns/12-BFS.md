@@ -2,6 +2,8 @@
 
 > Explore level by level with a queue. The first time BFS reaches a node is the shortest way (when every step costs the same).
 
+**Go deeper:** `DS Graph` (BFS, multi-source BFS, grid as a graph), `DS Queue`, `ALG 7.3` (0-1 BFS and choosing by weights), `ALG 7.6` (A* and bidirectional ideas).
+
 #### 1. What Is It?
 
 **Breadth-first search** visits all nodes at distance 1, then distance 2, and so on, using a **queue**.
@@ -62,6 +64,18 @@ minute 1: (0,1) and (1,0) rot. minute 2: (0,2),(1,1). minute 3: (2,1). minute 4:
 | 0-1 BFS | deque: push 0-cost moves at the front, 1-cost at the back |
 | Weighted edges | use Dijkstra (note 15) |
 | Bidirectional BFS | search from both ends and stop when they meet |
+
+**Picture:** BFS processes one whole level per round.
+
+```mermaid
+flowchart TD
+    A["queue = sources, mark them visited"] --> B{"queue empty?"}
+    B -->|"yes"| Z["done: steps is the answer"]
+    B -->|"no"| C["size = queue.size,<br/>process exactly size nodes"]
+    C --> D["each unvisited neighbour:<br/>mark visited, enqueue"]
+    D --> E["steps++"]
+    E --> B
+```
 
 #### 3. Brute Force vs Optimized
 

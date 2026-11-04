@@ -2,6 +2,8 @@
 
 > The small set of Kotlin tools that cover about 95% of LeetCode solutions. Know these cold and you will not lose time on syntax.
 
+**Go deeper:** `ALG 8.1` (String Basics in Kotlin), `ALG 10.7` (`Int` vs `Long`), `ALG 9.1` (bit operators and their Kotlin precedence).
+
 #### 1. What Is It?
 
 A cheat sheet of the collections, comparators, map helpers, string tools, and traps you use in interview code. Kotlin is shorter than Java, but a few details (arrays vs lists, comparators, `Char` arithmetic, `Int` overflow) cause most bugs.

@@ -2,6 +2,8 @@
 
 > The input size tells you which complexity is allowed, and the complexity tells you which pattern to try.
 
+**Go deeper:** `ALG 3.4` (recursion trees), `ALG 3.5` (recurrences and the Master Theorem), `ALG 11.1` (growth table and constraints to complexity), `ALG 10.7` (`Int` vs `Long` overflow).
+
 #### 1. What Is It?
 
 **Big-O** describes how time or extra memory grows when the input grows. Ignore constants and small terms: `3n² + 5n + 2` is `O(n²)`.
@@ -57,6 +59,18 @@
 | `sorted()`, `sort()` | `O(n log n)` |
 
 **Amortized cost.** One `ArrayList.add` sometimes costs `O(n)` (when it grows), but averaged over many adds it is `O(1)`. Sliding window and monotonic stack are `O(n)` for the same reason: each element enters and leaves **once**, even with a loop inside a loop.
+
+**Picture:** From the constraint to the complexity to the pattern.
+
+```mermaid
+flowchart TD
+    A["read n in the constraints"] --> B{"n"}
+    B -->|"<= 20"| C["O(2^n) / O(n!):<br/>backtracking, bitmask"]
+    B -->|"<= 500"| D["O(n^3): triple loops, 2D DP"]
+    B -->|"<= 5,000"| E["O(n^2): nested loops, 2D DP"]
+    B -->|"<= 100,000"| F["O(n log n) or O(n):<br/>sort, heap, binary search, map, window"]
+    B -->|">= 10^6"| G["O(n) or O(log n):<br/>one pass, prefix sum, formula"]
+```
 
 #### 3. Brute Force vs Optimized
 

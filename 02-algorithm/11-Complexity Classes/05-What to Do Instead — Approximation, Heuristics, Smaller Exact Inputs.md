@@ -1,100 +1,225 @@
-# What to Do Instead — Approximation, Heuristics, Smaller Exact Inputs
+# What to Do Instead: Approximation, Heuristics, Smaller Exact Inputs
 
-#### 1. Definition — Must Know
+> You recognised an NP-hard problem. Now what? Pick the weakest tool that works: exact search for small `n`, pseudo-polynomial DP for small numbers, an approximation with a guarantee, or a heuristic with no guarantee.
 
-Once a problem is recognised as NP-Complete (topics 3, 4), there are three practical paths forward, instead of continuing to search for a fast exact algorithm that doesn't exist: **exact solutions for small inputs**, **approximation algorithms** (provably close to optimal, fast), and **heuristics** (fast, reasonable, but no guarantee).
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+| Strategy | When | Guarantee |
+|---|---|---|
+| **Exact exponential search** (backtracking, bitmask DP, branch and bound) | `n ≤ 20` or so | optimal |
+| **Pseudo-polynomial DP** | the numbers are small (`T ≤ 10⁵`) | optimal |
+| **Exploit special structure** | tree, DAG, bipartite, interval, planar | optimal, often polynomial |
+| **Approximation algorithm** | large `n`, need a provable bound | within a known factor of optimal |
+| **Heuristic / local search** | large `n`, "good enough" is acceptable | none |
+| **SAT / ILP solver** | real systems | optimal, fast on many real inputs |
 
-This is the actual, practical payoff of recognising NP-Completeness — it's not a dead end, it's a fork toward the right kind of solution for the actual constraints of the problem in front of you.
+**Approximation examples**
 
-#### 3. How It Works — Must Know
+| Problem | Algorithm | Guarantee |
+|---|---|---|
+| Vertex cover | take both ends of any uncovered edge | ≤ 2 × optimal |
+| Metric TSP | build an MST, walk it (shortcut repeats) | ≤ 2 × optimal (Christofides: 1.5) |
+| Set cover | repeatedly take the set covering the most uncovered items | ≤ `ln n` × optimal |
+| Bin packing | first-fit decreasing | ≤ 11/9 × optimal + 1 |
+| Knapsack | scale values, then DP (FPTAS) | ≤ (1 + ε) × optimal |
 
-```text
-1. Exact, for small n:
-   n ≤ ~20-25?  → bitmask DP (`05-Dynamic Programming/12`) or
-                   backtracking with branch and bound
-                   (`06-Backtracking & Branch and Bound/06`)
-                   Gives the TRUE optimal answer, just only feasible at small scale.
+**Heuristic examples:** nearest neighbour, 2-opt, simulated annealing, genetic algorithms, greedy choices.
 
-2. Approximation algorithms:
-   Provide a solution with a PROVEN bound on how far it can be from
-   optimal (for example, "never more than 2x the true minimum"),
-   and run in polynomial time.
-   Example: for TSP with the triangle inequality, a minimum-spanning-tree
-   based approach gives a route at most 2x the optimal length.
+**Signals:** "n is up to 10⁵ but the problem looks like TSP", "good enough", "approximately", "real-world scale", "how would you handle it in production".
 
-3. Heuristics:
-   Fast, practical rules that usually give a good answer, with NO
-   mathematical guarantee on how close to optimal it is.
-   Examples: nearest-neighbour for TSP (always go to the closest
-   unvisited city next), greedy graph coloring (color each node with
-   the first available color), simulated annealing, genetic algorithms.
+#### 2. How It Works
+
+```mermaid
+flowchart TD
+    A["NP-hard problem"] --> B{"Is n small, <= 20?"}
+    B -->|"yes"| C["exact: backtracking / bitmask DP / branch and bound"]
+    B -->|"no"| D{"Are the numbers small?"}
+    D -->|"yes"| E["pseudo-polynomial DP"]
+    D -->|"no"| F{"Special structure?<br/>tree, DAG, bipartite, intervals"}
+    F -->|"yes"| G["polynomial algorithm for that case"]
+    F -->|"no"| H{"Need a guarantee?"}
+    H -->|"yes"| I["approximation algorithm"]
+    H -->|"no"| J["heuristic + local search"]
 ```
 
-#### 4. Algorithm — Must Know
+**Vertex cover, 2-approximation.** Take any edge not yet covered, add **both** endpoints, repeat. The chosen edges share no endpoints (a matching), and the optimal cover needs at least one endpoint per matched edge, so the answer is at most twice optimal.
 
 ```text
-Decision guide:
-  Do I need the EXACT optimal answer, and is n small?
-      → exact algorithm (bitmask DP / branch and bound)
-
-  Do I need a MATHEMATICAL GUARANTEE on how close to optimal, at larger scale?
-      → look for a known approximation algorithm for this problem
-
-  Do I just need something reasonable, fast, with no guarantee needed?
-      → a heuristic (nearest-neighbour, greedy, etc.)
+path 0-1-2-3:   take edge (0,1) → cover {0,1}
+                edge (1,2) already covered
+                take edge (2,3) → cover {0,1,2,3}   size 4
+optimal cover {1,2}                                   size 2      ratio 2 ✓
 ```
 
-#### 5. Kotlin Implementation — Must Know
+**TSP heuristics.**
+
+1. **Nearest neighbour:** from the current city, go to the closest unvisited city. Fast, `O(n²)`, can be much worse than optimal.
+2. **2-opt:** remove two edges and reconnect by reversing the part in between if the tour gets shorter. Repeat until no improvement.
+
+Example 5-city matrix (rows are cities 0..4):
+
+```text
+     0  1  2  3  4
+0:   0  8  1  1  1
+1:   8  0  6  5  8
+2:   1  6  0  5  6
+3:   1  5  5  0  3
+4:   1  8  6  3  0
+nearest neighbour from 0: 0 → 2 → 3 → 4 → 1 → 0   cost 1+5+3+8+8 = 25
+2-opt improves it to:     0 → 4 → 3 → 1 → 2 → 0   cost 1+3+5+6+1 = 16  (optimal)
+```
+
+**How to frame it in an interview.** State the hardness, state the scale, pick a strategy, and say what you give up: "optimal for `n ≤ 16`; for bigger inputs a 2-approximation (or a heuristic with no guarantee)."
+
+#### 3. Brute Force vs Optimized
+
+| Approach | TSP, `n` cities | Quality |
+|---|---|---|
+| Try all tours | `O(n!)` | optimal, `n ≤ 10` |
+| Held-Karp bitmask DP | `O(2ⁿ n²)` | optimal, `n ≤ 20` (see `6` Backtracking note 08) |
+| Nearest neighbour | `O(n²)` | can be far from optimal |
+| Nearest neighbour + 2-opt | `O(n²)` per pass | usually within a few percent |
 
 ```kotlin
-// A simple heuristic for TSP: nearest-neighbour. Fast, no optimality guarantee.
-fun nearestNeighbourTSP(distances: Array<IntArray>, start: Int): List<Int> {
-    val n = distances.size
-    val visited = BooleanArray(n)
-    val route = mutableListOf(start)
-    visited[start] = true
-    var current = start
-    repeat(n - 1) {
-        var nearest = -1
-        var nearestDist = Int.MAX_VALUE
-        for (next in 0 until n) {
-            if (!visited[next] && distances[current][next] < nearestDist) {
-                nearest = next
-                nearestDist = distances[current][next]
-            }
+// Brute force TSP: cost of the best tour over all orders (n <= 9)
+fun tspBruteForce(d: Array<IntArray>): Int {
+    val n = d.size
+    var best = Int.MAX_VALUE
+    val used = BooleanArray(n)
+    used[0] = true
+    fun go(cur: Int, count: Int, cost: Int) {
+        if (cost >= best) return                            // prune
+        if (count == n) { best = minOf(best, cost + d[cur][0]); return }
+        for (next in 1 until n) if (!used[next]) {
+            used[next] = true
+            go(next, count + 1, cost + d[cur][next])
+            used[next] = false
         }
-        visited[nearest] = true
-        route.add(nearest)
-        current = nearest
     }
-    return route
+    go(0, 1, 0)
+    return best
 }
 ```
 
-#### 6. Complexity — Must Know
+#### 4. Kotlin Code
 
-| Approach | Time | Guarantee |
+```kotlin
+fun tourCost(d: Array<IntArray>, tour: List<Int>): Int {
+    var c = 0
+    for (i in tour.indices) c += d[tour[i]][tour[(i + 1) % tour.size]]
+    return c
+}
+
+// Heuristic: nearest neighbour
+fun nearestNeighbour(d: Array<IntArray>, start: Int = 0): List<Int> {
+    val n = d.size
+    val tour = arrayListOf(start)
+    val visited = BooleanArray(n)
+    visited[start] = true
+    var cur = start
+    while (tour.size < n) {
+        val next = (0 until n).filter { !visited[it] }.minByOrNull { d[cur][it] }!!
+        visited[next] = true
+        tour.add(next)
+        cur = next
+    }
+    return tour
+}
+
+// Heuristic: 2-opt local search (reverse a segment if it shortens the tour)
+fun twoOpt(d: Array<IntArray>, start: List<Int>): List<Int> {
+    var tour = start
+    var improved = true
+    while (improved) {
+        improved = false
+        for (i in 1 until tour.size - 1) for (j in i + 1 until tour.size) {
+            val candidate = tour.subList(0, i) + tour.subList(i, j + 1).reversed() + tour.subList(j + 1, tour.size)
+            if (tourCost(d, candidate) < tourCost(d, tour)) { tour = candidate; improved = true }
+        }
+    }
+    return tour
+}
+
+// Approximation: vertex cover within a factor of 2
+fun vertexCoverApprox(edges: Array<IntArray>): Set<Int> {
+    val cover = LinkedHashSet<Int>()
+    for ((u, v) in edges) if (u !in cover && v !in cover) { cover.add(u); cover.add(v) }
+    return cover
+}
+
+fun isVertexCover(edges: Array<IntArray>, cover: Set<Int>): Boolean =
+    edges.all { (u, v) -> u in cover || v in cover }
+
+// Exact vertex cover for small graphs: smallest subset found by trying all subsets
+fun vertexCoverExactSize(n: Int, edges: Array<IntArray>): Int {
+    var best = n
+    for (mask in 0 until (1 shl n)) {
+        val cover = (0 until n).filter { ((mask shr it) and 1) == 1 }.toSet()
+        if (cover.size < best && isVertexCover(edges, cover)) best = cover.size
+    }
+    return best
+}
+
+// Pseudo-polynomial DP for Subset Sum: O(n · T)
+fun subsetSumDp(nums: IntArray, target: Int): Boolean {
+    val dp = BooleanArray(target + 1)
+    dp[0] = true
+    for (x in nums) for (s in target downTo x) if (dp[s - x]) dp[s] = true
+    return dp[target]
+}
+```
+
+Checks, with the 5-city matrix `D` above: `nearestNeighbour(D)` → `[0, 2, 3, 4, 1]`, `tourCost` → `25`. `twoOpt(D, nearestNeighbour(D))` → `[0, 4, 3, 1, 2]`, cost `16`. `tspBruteForce(D)` → `16`. For the path `edges = [[0,1],[1,2],[2,3]]`: `vertexCoverApprox(edges)` → `{0, 1, 2, 3}` (size 4); `vertexCoverExactSize(4, edges)` → `2`; `isVertexCover(edges, setOf(1, 2))` → `true`; `isVertexCover(edges, setOf(0, 3))` → `false`. `subsetSumDp(intArrayOf(3, 34, 4, 12, 5, 2), 9)` → `true`; `(…, 30)` → `false`.
+
+#### 5. Complexity
+
+| | Time | Quality |
 |---|---|---|
-| Exact (bitmask DP / branch and bound) | Exponential, only feasible for small n | Optimal |
-| Approximation algorithm | Polynomial | Provably within a known factor of optimal |
-| Heuristic | Usually fast, polynomial | None — "usually good" |
+| Vertex cover 2-approximation | `O(E)` | ≤ 2 × optimal |
+| Nearest neighbour | `O(n²)` | no guarantee |
+| 2-opt (per sweep) | `O(n²)` evaluations (each `O(n)` here) | local optimum |
+| Subset sum DP | `O(n · T)` | exact, pseudo-polynomial |
+| Exact vertex cover (brute) | `O(2ⁿ · E)` | optimal |
 
-#### 7. Common Mistakes — Must Know
+#### 6. Common Mistakes
 
-1. Giving up entirely once a problem is identified as NP-Complete, instead of proposing one of these three practical paths — the identification is the start of the answer, not the end of it.
-2. Presenting a heuristic as if it were guaranteed optimal — be explicit that heuristics have no such guarantee, while approximation algorithms do (of a specific, stated factor).
-3. Not checking the actual `n` in the problem's constraints before deciding which path fits — this is the same check as in topic 4, and it directly decides which of these three options is appropriate.
+1. **Presenting a heuristic as optimal.**
+2. **Claiming an approximation ratio without a reason** (be able to explain the factor).
+3. **Skipping the "small `n`" check** and jumping to an approximation when an exact solution is feasible.
+4. **Greedy as an exact method** (e.g. greedy for knapsack or coin change with arbitrary coins).
+5. **Forgetting pseudo-polynomial DP** when the numbers are small.
+6. **Applying metric-TSP guarantees to non-metric distances.**
+7. **Not stating what you give up** (optimality, determinism, worst-case time).
 
-#### 8. Related Topics
+#### 7. Say This in the Interview
 
-1. `4` Recognising an NP-Complete Shape in an Interview — the step before this one
-2. `06-Backtracking & Branch and Bound/06` Branch and Bound — Tracking a Best-So-Far Bound — the exact, small-n approach
-3. `12` Interval DP & Bitmask DP — Names Only (in `05-Dynamic Programming`) — the exact, small-n DP approach
+1. "This is NP-hard, but `n ≤ 16`, so an exact bitmask DP in `O(2ⁿ n²)` is fine."
+2. "For large `n` I'd use a 2-approximation: take both ends of any uncovered edge. The result is at most twice the optimum."
+3. "The target sum is at most 10⁴, so a pseudo-polynomial DP `O(n · T)` solves it exactly."
+4. "A nearest-neighbour tour followed by 2-opt gives a good tour fast, but with no guarantee."
 
-#### 9. Interview Must Remember
+#### 8. Quick Check
 
-1. **Three paths after recognising NP-Completeness:** exact for small n, approximation with a guarantee, or a heuristic with none.
-2. Always check `n` first — it decides which of the three actually fits the problem in front of you.
-3. This is the strongest possible finish to an NP-Complete-shaped question: name the shape, then propose a concrete, practical way forward.
+1. Ratio of the vertex-cover matching algorithm?
+2. When is a pseudo-polynomial DP a good answer?
+3. Name a heuristic with no guarantee.
+
+<details>
+<summary>Answers</summary>
+
+1. At most 2 × optimal.
+2. When the numeric values (like the target sum) are small.
+3. Nearest neighbour, 2-opt, simulated annealing, or genetic algorithms.
+
+</details>
+
+#### 9. Related LeetCode Questions
+
+| # | Question | Idea |
+|---|---|---|
+| 416 | [Partition Equal Subset Sum](https://leetcode.com/problems/partition-equal-subset-sum/) (Medium) | pseudo-polynomial DP |
+| 494 | [Target Sum](https://leetcode.com/problems/target-sum/) (Medium) | subset-sum DP |
+| 1049 | [Last Stone Weight II](https://leetcode.com/problems/last-stone-weight-ii/) (Medium) | partition into two near-equal groups |
+| 698 | [Partition to K Equal Sum Subsets](https://leetcode.com/problems/partition-to-k-equal-sum-subsets/) (Medium) | exact search for small `n` |
+| 322 | [Coin Change](https://leetcode.com/problems/coin-change/) (Medium) | DP where greedy fails |
+| 1723 | [Find Minimum Time to Finish All Jobs](https://leetcode.com/problems/find-minimum-time-to-finish-all-jobs/) (Hard) | backtracking with pruning |

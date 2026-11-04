@@ -2,11 +2,13 @@
 
 > Take the best choice right now and never look back. It is only correct when you can justify it.
 
+**Go deeper:** `ALG 4` (all 15 notes): `4.3` exchange argument, `4.9` why greedy fails, `4.10` greedy vs DP. Cheat sheet: `ALG 4.99`.
+
 #### 1. What Is It?
 
 A **greedy** algorithm builds the answer by making the locally best choice at each step. It is fast (usually `O(n log n)` for a sort, or `O(n)`), but only correct when the problem has the **greedy choice property**: a local best choice never blocks the global best.
 
-The full theory and 15 notes are in `ALG Greedy Algorithms`. This note is the interview shortcut.
+The full theory and 15 notes are in `ALG 4`. This note is the interview shortcut.
 
 **Signals**
 
@@ -53,6 +55,16 @@ If the greedy rule fails on any small input, switch to DP.
 **Jump Game II.** Think in levels like BFS: `curEnd` is the end of the current jump range. When you reach it, take one more jump and move `curEnd` to `farthest`.
 
 **Gas Station.** If total gas ≥ total cost, a solution exists. Keep a running tank. When it goes negative at `i`, no start in `[start, i]` works, so set `start = i + 1`.
+
+**Picture:** Test a greedy rule before you trust it.
+
+```mermaid
+flowchart LR
+    A["state the rule in one sentence"] --> B["try to break it<br/>with 3 to 5 small cases"]
+    B --> C{"counter-example?"}
+    C -->|"yes"| D["use DP"]
+    C -->|"no"| E["give the exchange argument,<br/>then code it"]
+```
 
 #### 3. Brute Force vs Optimized
 
@@ -151,7 +163,7 @@ fun partitionLabels(s: String): List<Int> {
 }
 ```
 
-Intervals (Non-overlapping Intervals, Minimum Arrows) are in note 09. Task Scheduler is in `ALG Greedy Algorithms` note 13.
+Intervals (Non-overlapping Intervals, Minimum Arrows) are in note 09. Task Scheduler is in `ALG 4.13`.
 
 Checks: `canJump([2,3,1,1,4])` → `true`; `([3,2,1,0,4])` → `false`. `jump([2,3,1,1,4])` → `2`; `([2,3,0,1,4])` → `2`. `findContentChildren([1,2,3], [1,1])` → `1`; `([1,2], [1,2,3])` → `2`. `canCompleteCircuit([1,2,3,4,5], [3,4,5,1,2])` → `3`; `([2,3,4], [3,4,3])` → `-1`. `maxProfitUnlimited([7,1,5,3,6,4])` → `7`. `partitionLabels("ababcbacadefegdehijhklij")` → `[9,7,8]`.
 

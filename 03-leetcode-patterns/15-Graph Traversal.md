@@ -2,6 +2,8 @@
 
 > Build the adjacency list, loop over every node, and search from each unvisited one.
 
+**Go deeper:** `DS Graph` (representation, cycles, bipartite, Dijkstra), `ALG 7.1` Dijkstra, `ALG 7.2` MST, `ALG 7.3` choosing by weights, `ALG 7.4` Bellman-Ford, `ALG 7.8` shortest-path variants. Cheat sheet: `ALG 7.99`.
+
 #### 1. What Is It?
 
 A **graph** is nodes (vertices) and edges. Traversal means visiting every reachable node once, with BFS (note 12) or DFS (note 13) and a `visited` set.
@@ -58,6 +60,19 @@ for node in 0..n-1:
 | Connect all nodes with the least total weight | **MST**: Kruskal (sort edges + Union Find) or Prim |
 
 **Multi-source search from borders** (Pacific Atlantic): instead of starting from every cell, start from the ocean cells and search *inward* to what can reach them.
+
+**Picture:** The edge weights choose the algorithm.
+
+```mermaid
+flowchart TD
+    A["graph problem"] --> B{"asked for"}
+    B -->|"components, cycle, bipartite, clone"| C["DFS / BFS with visited,<br/>loop over all nodes"]
+    B -->|"shortest path"| D{"edge weights"}
+    D -->|"all equal"| E["BFS"]
+    D -->|"non-negative"| F["Dijkstra"]
+    D -->|"negative, or at most K edges"| G["Bellman-Ford"]
+    B -->|"connect everything cheaply"| H["MST: Kruskal / Prim"]
+```
 
 #### 3. Brute Force vs Optimized
 
