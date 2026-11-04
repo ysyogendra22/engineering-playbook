@@ -3,36 +3,39 @@
 Part 2 of the roadmap: **topics 13–33**. Finish part 1 (topics 1–12, including the Notes API) in `04-backend-engineering` first.
 
 - **Marks:** 🟢 must have · 🟡 good to have · (New) beyond the original two roadmaps
+- **Every note has the same layout:** what it is and how to spot it in an interview, how it works (with a diagram), naive vs better design, code (Kotlin, SQL, config) with checked outputs, numbers and capacity, common mistakes and edge cases, what to say in the interview, a quick check, and practice (interview questions, hands-on tasks, LeetCode design problems where they fit).
+- **References:** `04-backend-engineering` is part 1 (build a backend); `10-database` goes deeper on data; `06-mobile-engineering` covers the client side; `02-algorithm` and `03-leetcode-patterns` are the coding rounds.
 
 ---
 
 ## Index
 
-| #   | Topic                                 | Stage                        |
-| --- | ------------------------------------- | ---------------------------- |
-| 13  | Requirements & Estimation             | 4. Scale                     |
-| 14  | Scaling & Load Balancing              | 4. Scale                     |
-| 15  | Caching                               | 4. Scale                     |
-| 16  | File Storage & CDN                    | 4. Scale                     |
-| 17  | Choosing a Database                   | 4. Scale                     |
-| 18  | Replication                           | 4. Scale                     |
-| 19  | Partitioning & Sharding               | 4. Scale                     |
-| 20  | Unique ID Generation (New)            | 4. Scale                     |
-| 21  | Queues, Events & Background Jobs      | 5. Async & Reliability       |
-| 22  | Reliable Requests & External Services | 5. Async & Reliability       |
-| 23  | Consistency & CAP                     | 5. Async & Reliability       |
-| 24  | Real-Time Communication & Push        | 5. Async & Reliability       |
-| 25  | Overload & Failure Handling           | 5. Async & Reliability       |
-| 26  | Service Boundaries & Architecture     | 6. Architecture & Production |
-| 27  | Observability                         | 6. Architecture & Production |
-| 28  | Deployment & Release                  | 6. Architecture & Production |
-| 29  | Backup, Recovery, Security & Cost     | 6. Architecture & Production |
-| 30  | Mobile-Specific Topics (New)          | 7. Mobile                    |
-| 31  | Interview Answer Structure            | 8. Interview                 |
-| 32  | Practice: Projects & Designs          | 8. Interview                 |
-| 33  | Follow-Up Topics                      | 8. Interview                 |
+| #   | Topic                                 | Stage                        | Mark |
+| --- | ------------------------------------- | ---------------------------- | ---- |
+| 13  | Requirements & Estimation             | 4. Scale                     | 🟢   |
+| 14  | Scaling & Load Balancing              | 4. Scale                     | 🟢   |
+| 15  | Caching                               | 4. Scale                     | 🟢   |
+| 16  | File Storage & CDN                    | 4. Scale                     | 🟢   |
+| 17  | Choosing a Database                   | 4. Scale                     | 🟢   |
+| 18  | Replication                           | 4. Scale                     | 🟢   |
+| 19  | Partitioning & Sharding               | 4. Scale                     | 🟢   |
+| 20  | Unique ID Generation (New)            | 4. Scale                     | 🟢   |
+| 21  | Queues, Events & Background Jobs      | 5. Async & Reliability       | 🟢   |
+| 22  | Reliable Requests & External Services | 5. Async & Reliability       | 🟢   |
+| 23  | Consistency & CAP                     | 5. Async & Reliability       | 🟢   |
+| 24  | Real-Time Communication & Push        | 5. Async & Reliability       | 🟢   |
+| 25  | Overload & Failure Handling           | 5. Async & Reliability       | 🟢   |
+| 26  | Service Boundaries & Architecture     | 6. Architecture & Production | 🟢   |
+| 27  | Observability                         | 6. Architecture & Production | 🟢   |
+| 28  | Deployment & Release                  | 6. Architecture & Production | 🟢   |
+| 29  | Backup, Recovery, Security & Cost     | 6. Architecture & Production | 🟢   |
+| 30  | Mobile-Specific Topics (New)          | 7. Mobile                    | 🟢   |
+| 31  | Interview Answer Structure            | 8. Interview                 | 🟢   |
+| 32  | Practice: Projects & Designs          | 8. Interview                 | 🟢   |
+| 33  | Follow-Up Topics                      | 8. Interview                 | 🟡   |
+| 99  | System Design Cheat Sheet             | Revision                     | 🟢   |
 
-**Short on time (2 weeks):** after topics 1, 2, 3, 5, 8, 10, 11 in `04-backend-engineering`, do 13, 14, 15, 16, 17, 18, 19, 21, 22, 23, 24, 25, 30, 31, 32. 🟢 items only.
+**Short on time (2 weeks):** after topics 1, 2, 3, 5, 8, 10, 11 in `04-backend-engineering`, do 13, 14, 15, 16, 17, 18, 19, 21, 22, 23, 24, 25, 30, 31, 32, then the cheat sheet (99). 🟢 items only.
 
 ---
 
@@ -288,3 +291,4 @@ Part 2 of the roadmap: **topics 13–33**. Finish part 1 (topics 1–12, includi
 2. Start practice designs after topic 16 (notes app, file storage, rate limiter). Revisit the URL shortener after topics 18–20.
 3. Add the remaining designs as you learn their concepts. Don't wait to finish all theory.
 4. For each topic: what it is, what problem it solves, how it works, one downside.
+5. The night before an interview, read `99-System-Design-Cheat-Sheet`, then the `Say This in the Interview` part of the topics you are least sure of.

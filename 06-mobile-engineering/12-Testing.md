@@ -1,176 +1,325 @@
 # Testing
 
+> Tests let you change code without fear. Write many fast unit tests, fewer integration tests, and only a few UI tests. Make the code testable by injecting what it depends on.
+
 Roadmap topic 12 · Stage 4: Quality
 
-**Marks:** 🟢 Must Know · 🟡 Good to Know · (New) beyond the basics, or still changing
+**Go deeper:** `3` Coroutines (`runTest`) · `6` Architecture (what to test) · `7` DI (fakes) · `5` Compose · `9` Offline-First (migration tests) · `04-backend-engineering/07-Testing-and-Debugging` · `15` Build, Release & Monitoring (CI) · `16` iOS (XCTest).
 
-**In simple words:** mobile testing follows the same test pyramid as backend testing (`BE 7`) — many fast unit tests, fewer integration tests, very few slow UI tests. What's mobile-specific is testing coroutines, Compose UI, and Room, each of which needs its own small set of tools.
+**Marks:** 🟢 must know · 🟡 good to know
 
 ---
 
-#### 1. The Test Pyramid — 🟢 Must Know
+#### 1. What Is It?
 
-```text
-        /\
-       /UI\        few, slow, brittle — the whole screen, real device/emulator
-      /----\
-     /Integr-\     some — a repository with a real (in-memory) database
-    /----------\
-   / Unit tests  \  many, fast — ViewModels, use cases, mappers
-  /----------------\
+*Checking that the code does what you expect, automatically.*
+
+| 🟢 Must know | 🟡 Good to know |
+|---|---|
+| the test pyramid | Robolectric vs instrumented tests |
+| unit tests for `ViewModel`s, use cases, mappers | screenshot tests |
+| fakes vs mocks | testing migrations and offline behaviour |
+| testing coroutines and flows | CI: fast and reliable |
+| testable code: injected dependencies | flaky tests |
+| Compose UI tests, Espresso | iOS: XCTest |
+| repository tests: fake network, in-memory Room | |
+
+1. **Unit tests:** one class, no Android framework, milliseconds.
+2. **Integration tests:** several parts together (repository + in-memory Room + fake network).
+3. **UI tests:** the real screen on a device or emulator; slower and more fragile.
+4. **Fake:** a simple working replacement. **Mock:** an object that records calls and checks them.
+
+**Signals in an interview:** "how do you test a `ViewModel`?", "fake vs mock?", "how do you test coroutines?", "how do you avoid flaky tests?", "what do you test first?".
+
+---
+
+#### 2. How It Works
+
+**The test pyramid.**
+
+```mermaid
+flowchart TD
+    UI["UI / end-to-end tests: few, slow, real device"]
+    INT["Integration tests: some, medium (Room, network, navigation)"]
+    UNIT["Unit tests: many, fast, plain JVM (ViewModel, use cases, mappers, reducers)"]
+    UI --> INT --> UNIT
 ```
 
-Most of an app's test coverage should live at the bottom — fast, focused, and reliable.
+**Testable code.** Dependencies come through constructors (topic 7); time and dispatchers are injected; no hidden globals; business logic is not in the Activity or composable. This is why architecture and testing go together.
+
+**Where tests run.**
+
+| Kind | Runs on | Speed | Use for |
+|---|---|---|---|
+| Local unit test (`src/test`) | JVM | ms | logic, `ViewModel`, mappers |
+| Robolectric | JVM with simulated Android | fast | code that needs `Context`, Room, resources |
+| Instrumented (`src/androidTest`) | device / emulator | slow | real UI, real framework behaviour, migrations |
+
+**Fakes vs mocks.** Prefer **fakes** (a `FakeNotesRepository` with in-memory data). They test behaviour, survive refactoring, and are reusable. Mocks (MockK) verify "this function was called with X": use them for outgoing side effects (analytics), rarely for data.
+
+**Coroutines and flows.** `runTest` runs a suspend test with **virtual time** (`delay` costs nothing). Replace `Dispatchers.Main` with a test dispatcher so `viewModelScope` is controlled. **Turbine** collects a flow and lets you assert each emission.
+
+**Compose UI tests.** `createComposeRule()` hosts a composable. Find nodes by text, tag or semantics; act (`performClick`); assert. Test the stateless composable with a given state, not the whole app.
+
+**Repository tests.** Use `MockWebServer` (a fake HTTP server) and an in-memory Room database to test the real mapping, error handling and caching without the internet.
+
+🟡 **Robolectric vs instrumented.** Robolectric is faster and runs in CI without an emulator, but is not the real OS. Use instrumented tests for what only the real device proves (permissions, WebView, camera, real migrations).
+
+🟡 **Screenshot tests.** Paparazzi / Roborazzi render composables to images and compare them with a reference. They catch accidental visual changes on the JVM.
+
+🟡 **Migration and offline tests.** `MigrationTestHelper` for Room; fake network that fails to prove the app works offline and syncs later.
+
+🟡 **CI.** Run unit tests on every change; instrumented tests on a schedule or on merge; fail the build on failures; keep it under about 10 minutes.
+
+🟡 **Flaky tests.** Causes: real time and `Thread.sleep`, real network, shared state, animations, order dependence, async work not awaited. Fixes: virtual time, idling/`waitUntil`, isolated state, disable animations on test devices, retry only as a last resort and track it.
+
+🟡 **iOS.** XCTest and Swift Testing (topic 16).
 
 ---
 
-#### 2. Local Unit Tests — 🟢 Must Know
+#### 3. Naive vs Better Design
 
-`ViewModel`s, use cases, and mappers are plain Kotlin (or close to it) and testable with fast, JVM-only unit tests — no emulator or device needed.
+| Naive | Better |
+|---|---|
+| UI tests for everything | many unit tests, a few UI tests |
+| mock every dependency | fakes for data, mocks for side effects |
+| `Thread.sleep(2000)` in tests | `runTest` / `advanceUntilIdle` / `waitUntil` |
+| test the implementation (private calls) | test behaviour and outputs |
+| tests that share state or depend on order | each test builds its own objects |
+| real network in tests | `MockWebServer` or a fake API |
+| `System.currentTimeMillis()` inside the class | inject a clock |
+| skip failure paths | test errors, empty, offline, permissions |
+| ignore a flaky test | find the cause |
 
 ```kotlin
-@Test
-fun `loading notes updates state to Content`() = runTest {
-    val fakeRepo = FakeNotesRepository(notes = listOf(sampleNote))
-    val viewModel = NotesViewModel(fakeRepo)
-
-    viewModel.loadNotes()
-
-    assertEquals(UiState.Content(listOf(sampleNote)), viewModel.uiState.value)
+// Naive: not testable: builds its own dependencies and reads real time
+class NotesViewModel : ViewModel() {
+    private val repo = NotesRepository(RetrofitProvider.api)
+    fun isExpired(t: Long) = System.currentTimeMillis() - t > 60_000
 }
 ```
 
 ---
 
-#### 3. Fakes vs Mocks — 🟢 Must Know
+#### 4. Code
 
-1. A **fake** is a real, simplified working implementation (an in-memory repository instead of a network one).
-2. A **mock** records calls and lets you assert on them (`verify(api).getNotes()`).
-3. **Prefer fakes** — they test real behaviour, not just "was this method called", and tend to be more robust to refactoring.
-
----
-
-#### 4. Testing Coroutines and Flows — 🟢 Must Know
-
-1. **`runTest`** — a coroutine test builder that runs suspend code on a controlled, virtual-time test dispatcher, so tests involving `delay()` don't actually wait.
-2. **Test dispatchers** — inject a test dispatcher in place of `Dispatchers.Main`/`IO` in tests, so coroutine code is deterministic.
-3. **Turbine** — a small library for asserting on a sequence of `Flow` emissions cleanly.
+The `MainDispatcherRule` and a `ViewModel` test with fakes:
 
 ```kotlin
-@Test
-fun `search emits results after debounce`() = runTest {
-    viewModel.searchQuery.value = "note"
-    viewModel.results.test {                  // Turbine
-        assertEquals(emptyList<Note>(), awaitItem())   // initial
-        assertEquals(listOf(sampleNote), awaitItem())  // after debounce
+class MainDispatcherRule(private val dispatcher: TestDispatcher = StandardTestDispatcher()) : TestWatcher() {
+    override fun starting(description: Description) = Dispatchers.setMain(dispatcher)
+    override fun finished(description: Description) = Dispatchers.resetMain()
+}
+
+class FakeNotesRepository : NotesRepository {
+    val notes = MutableStateFlow(listOf<Note>())
+    var failRefresh = false
+    override fun observe() = notes
+    override suspend fun refresh() { if (failRefresh) throw IOException() }
+}
+
+class NotesViewModelTest {
+    @get:Rule val main = MainDispatcherRule()
+
+    @Test fun `shows notes from the repository`() = runTest {
+        val repo = FakeNotesRepository().apply { notes.value = listOf(Note(1, "a", 0)) }
+        val vm = NotesViewModel(repo)
+        advanceUntilIdle()
+        assertEquals(1, vm.ui.value.notes.size)
+    }
+
+    @Test fun `refresh failure keeps old notes and shows error`() = runTest {
+        val repo = FakeNotesRepository().apply { notes.value = listOf(Note(1, "a", 0)); failRefresh = true }
+        val vm = NotesViewModel(repo)
+        advanceUntilIdle()
+        assertEquals(1, vm.ui.value.notes.size)
+        assertEquals("You are offline", vm.ui.value.error)
     }
 }
 ```
 
----
-
-#### 5. Write Testable Code — 🟢 Must Know
-
-Injected dependencies (topic `7`) and no hidden globals (singletons accessed directly, static mutable state) are what actually make the tests above possible — testability is a design property, not something added after the fact.
-
----
-
-#### 6. Compose UI Tests and Espresso — 🟢 Must Know
-
-1. **Compose UI testing** — uses semantic nodes (`onNodeWithText`, `onNodeWithTag`) to find and interact with composables, and assert on what's displayed.
-2. **Espresso** — the equivalent for the View-based system, for code not yet migrated to Compose.
+Testing a flow with Turbine:
 
 ```kotlin
-@Test
-fun clickingNoteOpensDetail() {
-    composeTestRule.onNodeWithText("My Note").performClick()
-    composeTestRule.onNodeWithTag("detail_screen").assertIsDisplayed()
+@Test fun `search emits results after debounce`() = runTest {
+    val vm = SearchViewModel(FakeSearchRepository(mapOf("kotlin" to listOf("Kotlin notes"))))
+    vm.results.test {
+        assertEquals(emptyList<String>(), awaitItem())             // initial value
+        vm.onQuery("kotlin")
+        advanceTimeBy(300); runCurrent()                           // the 300 ms debounce, in virtual time
+        assertEquals(listOf("Kotlin notes"), awaitItem())
+        cancelAndIgnoreRemainingEvents()
+    }
 }
+```
+
+Inject time so expiry is testable:
+
+```kotlin
+class SessionPolicy(private val now: () -> Long) {
+    fun isExpired(issuedAt: Long, ttlMs: Long = 60_000) = now() - issuedAt > ttlMs
+}
+
+@Test fun expiry() {
+    var t = 1_000L
+    val policy = SessionPolicy { t }
+    assertFalse(policy.isExpired(issuedAt = 1_000))                // 0 ms old
+    t = 61_001
+    assertTrue(policy.isExpired(issuedAt = 1_000))                 // 60,001 ms old
+}
+```
+
+Repository test with a fake HTTP server and in-memory Room:
+
+```kotlin
+@RunWith(AndroidJUnit4::class)       // Robolectric provides the Context
+class RepositoryTest {
+    private val server = MockWebServer()
+    private lateinit var db: AppDatabase
+    private lateinit var repo: OfflineFirstNotesRepository
+
+    @Before fun setUp() {
+        db = Room.inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext(), AppDatabase::class.java)
+            .allowMainThreadQueries().build()
+        val api = Retrofit.Builder().baseUrl(server.url("/")).client(OkHttpClient())
+            .addConverterFactory(Json { ignoreUnknownKeys = true }.asConverterFactory("application/json".toMediaType()))
+            .build().create(NotesApi::class.java)
+        repo = OfflineFirstNotesRepository(api, db.noteDao())
+    }
+    @After fun tearDown() { db.close(); server.shutdown() }
+
+    @Test fun `refresh saves notes and ignores unknown fields`() = runTest {
+        server.enqueue(MockResponse().setBody("""{"items":[{"id":1,"title":"A","updatedAt":5,"newField":true}]}"""))
+        repo.refresh()
+        assertEquals(1, db.noteDao().observeAll().first().size)
+    }
+
+    @Test fun `server error is mapped`() = runTest {
+        server.enqueue(MockResponse().setResponseCode(503))
+        val e = runCatching { repo.refresh() }.exceptionOrNull()
+        assertEquals(AppError.Server(503), e?.toAppError())
+    }
+}
+```
+
+Compose UI test:
+
+```kotlin
+@get:Rule val rule = createComposeRule()
+
+@Test fun `retry button calls onRetry`() {
+    var retried = false
+    rule.setContent { NotesContent(UiState.Error("offline"), onOpen = {}, onRetry = { retried = true }) }
+    rule.onNodeWithText("Retry").performClick()
+    assertTrue(retried)
+}
+```
+
+Pure function tests (the cheapest and the most valuable):
+
+```kotlin
+@Test fun `backoff is capped`() {
+    assertEquals(500L, backoffMs(0))
+    assertEquals(4_000L, backoffMs(3))
+    assertEquals(30_000L, backoffMs(10))             // 500 shl 10 = 512,000 → capped
+}
+```
+
+Checks: the session-policy test passes with `false` then `true`; the backoff test passes with `500`, `4000`, `30000` (500 shl 3 = 4,000; 500 shl 10 is capped).
+
+CI step (GitHub Actions):
+
+```yaml
+- run: ./gradlew testDebugUnitTest lint        # fast: every pull request
+# nightly: ./gradlew connectedDebugAndroidTest (emulator)
 ```
 
 ---
 
-#### 7. Testing Repositories — 🟢 Must Know
+#### 5. Performance & Limits
 
-A repository test typically combines a **fake network** (returns canned responses) with an **in-memory Room database** (real SQL behaviour, no disk I/O) — fast, but still exercises real query and mapping logic.
-
----
-
-#### 8. Robolectric and Instrumented Tests — 🟡 Good to Know
-
-1. **Robolectric** runs Android-framework-dependent tests on the JVM (fast, no emulator) by simulating the framework.
-2. **Instrumented tests** run on a real device or emulator — slower, but the only way to test some real platform behaviour.
-
----
-
-#### 9. Screenshot Tests — 🟡 Good to Know
-
-Render a composable and compare the output pixel-for-pixel against a saved reference image — catches unintended visual regressions that functional tests miss.
+| Item | Remember |
+|---|---|
+| Unit test | milliseconds; hundreds run in seconds |
+| Instrumented test | seconds to minutes each; boot the emulator once |
+| Pyramid ratio (rule of thumb) | about 70% unit, 20% integration, 10% UI |
+| CI time | keep pull-request checks under about 10 minutes |
+| `runTest` | `delay(60_000)` takes no real time (virtual) |
+| Coverage | a guide, not a goal; cover the logic that must not break |
+| Flaky rate | track it; one flaky test slows everyone |
 
 ---
 
-#### 10. Testing Migrations and Offline Behaviour — 🟡 Good to Know
+#### 6. Common Mistakes & Edge Cases
 
-A dedicated test that runs each Room migration against real, populated sample data (topic `9`) — catching data-loss bugs before they hit real users.
+1. Writing code that cannot be tested (hidden dependencies, logic in the UI).
+2. Mocking everything; tests that break at every refactor.
+3. `Thread.sleep` or real delays.
+4. Not resetting `Dispatchers.Main`.
+5. Testing only the happy path: no errors, offline, empty list, denied permission.
+6. Tests that depend on each other or on the network.
+7. Ignoring flaky tests.
+8. Chasing 100% coverage with meaningless tests.
 
----
-
-#### 11. CI — 🟡 Good to Know
-
-Running the test suite on every change (topic `15`) — keep it **fast** (favour unit tests) and **reliable** (no flaky tests slowing everyone down or eroding trust in CI).
-
----
-
-#### 12. Flaky Tests — 🟡 Good to Know
-
-Common causes: real time/`delay()` instead of a test dispatcher, un-awaited coroutines, animation timing, or tests that depend on execution order. Fix the root cause — don't just retry a flaky test until it passes.
+Edge cases: a `StateFlow` conflates values (assert the final state, or use Turbine for transitions); `viewModelScope` with an unconfined dispatcher hides ordering bugs; time zones and locales in date tests (set them explicitly); animations on emulators (disable them); process death (test with `SavedStateHandle` restore); database migrations from every old version.
 
 ---
 
-#### 13. iOS Equivalent — 🟡 Good to Know
+#### 7. Say This in the Interview
 
-**XCTest** (and the newer Swift Testing) plays the same role for iOS — see topic `16`.
-
----
-
-#### 14. Common Interview Questions
-
-1. **How do you test a `ViewModel` that uses coroutines?**
-   `runTest` with a test dispatcher, injecting fake dependencies, and asserting on the resulting `StateFlow` value (or `Flow` emissions with Turbine).
-2. **Fakes vs mocks — which do you prefer, and why?**
-   Fakes, generally — a real, simplified working implementation tests actual behaviour and survives refactors better than asserting on exact method calls.
-3. **What makes code hard to test on Android, and how do you avoid it?**
-   Hidden dependencies (singletons, static state) and framework coupling (holding a `Context` directly in business logic). Constructor injection (topic `7`) and clean architecture layering (topic `6`) fix both.
-4. **How would you test a Room migration?**
-   Write a dedicated migration test that creates a database at the old schema version, populates it with sample data, runs the migration, and asserts the data and new schema are both correct.
-5. **How do you keep a CI test suite fast and reliable?**
-   Lean heavily on the test pyramid's base (fast unit tests), use test dispatchers instead of real delays, and fix flaky tests at the root cause instead of retrying them.
+1. "I follow the test pyramid: many JVM unit tests for `ViewModel`s, reducers, mappers and use cases; some integration tests for repositories with MockWebServer and in-memory Room; a few Compose UI tests for critical flows."
+2. "I prefer fakes to mocks, because they test behaviour and don't break when the implementation changes."
+3. "I test coroutines with `runTest` and virtual time, replace the Main dispatcher with a rule, and use Turbine to assert flow emissions."
+4. "Code is testable because dependencies are injected: repositories, clock, dispatchers."
+5. "I test failures first: error, empty, offline, timeouts, denied permission."
+6. "I keep CI fast and treat flaky tests as bugs: no real time, no real network, no shared state."
 
 ---
 
-#### 15. Common Mistakes
+#### 8. Quick Check
 
-1. Writing mostly slow UI tests instead of leaning on fast unit tests.
-2. Using real `delay()`/time in tests instead of a test dispatcher.
-3. Business logic tightly coupled to Android framework classes, making it hard to unit test.
-4. No migration tests, discovering a broken migration only after users hit it.
-5. Tolerating flaky tests instead of fixing their root cause.
+1. Why prefer a fake over a mock?
+2. What does `runTest` do with `delay(5000)`?
+3. How do you test code that uses the current time?
+4. Which tests should be the most numerous?
+
+<details>
+<summary>Answers</summary>
+
+1. A fake behaves like the real thing and tests outcomes, so it survives refactoring; a mock couples tests to how the code calls its dependencies.
+2. It skips it with virtual time, so the test runs instantly.
+3. Inject a clock (`() -> Long`) and control it in the test.
+4. Local unit tests.
+
+</details>
 
 ---
 
-#### 16. Related Topics
+#### 9. Practice
 
-1. `3` Coroutines & Flow — what `runTest` and Turbine are testing
-2. `7` Dependency Injection & Modularization — why constructor injection enables testability
-3. `9` Local Storage & Offline-First — migration testing
-4. `BE 7` Testing & Debugging — the shared testing principles from the backend side
+**Interview questions**
 
----
+1. Explain the test pyramid.
+2. Fake vs mock vs stub?
+3. How do you test a `ViewModel` that launches coroutines?
+4. How do you test a Room-backed repository?
+5. How do you test Compose UI?
+6. What causes flaky tests, and how do you fix them?
+7. What do you test first in a new feature?
 
-#### 17. Interview Must Remember
+**Hands-on**
 
-1. **Test pyramid**: many unit tests, some integration, few UI tests.
-2. **`runTest` + a test dispatcher** for deterministic coroutine tests; **Turbine** for `Flow` assertions.
-3. **Prefer fakes over mocks** where practical.
-4. Testability comes from **injected dependencies and no hidden globals** — a design choice, not an afterthought.
-5. **Test Room migrations explicitly**, against real data.
+1. Write a `FakeNotesRepository` and three `ViewModel` tests (success, failure, empty).
+2. Add a `MockWebServer` test for a `401` response and an unknown JSON field.
+3. Write a Room migration test for version 1 → 2.
+
+**Coding warm-ups (LeetCode)**
+
+| # | Question | Link to this topic |
+|---|---|---|
+| 232 | [Implement Queue using Stacks](https://leetcode.com/problems/implement-queue-using-stacks/) (Easy) | write tests for each operation |
+| 155 | [Min Stack](https://leetcode.com/problems/min-stack/) (Medium) | property-style tests |
+| 146 | [LRU Cache](https://leetcode.com/problems/lru-cache/) (Medium) | test eviction order |
+| 1188 | [Design Bounded Blocking Queue](https://leetcode.com/problems/design-bounded-blocking-queue/) (Medium, premium) | testing concurrency |
+
+**Remember:** many unit tests, fewer integration, few UI · fakes over mocks · inject clock, dispatcher and repositories · `runTest` and Turbine · test failure paths · no real time or network · treat flaky tests as bugs.

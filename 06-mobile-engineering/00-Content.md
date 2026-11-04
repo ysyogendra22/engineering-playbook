@@ -2,7 +2,8 @@
 
 **Android with Kotlin is the main path**; each topic notes the iOS equivalent, and topic 16 is a short iOS guide. `SD 30`, `ARCH 19`, `DB 21`, and `AI 19–20` give short mobile overviews elsewhere — this folder is the full, deeper path; where a topic exists there, it links instead of repeating.
 
-- **Numbering:** own, 1–22.
+- **Numbering:** own, 1–22, plus 99 (cheat sheet).
+- **Every note has the same layout:** what it is and how to spot it in an interview, how it works (with a diagram), naive vs better design, Kotlin / XML / Gradle code with checked outputs, performance and limits, common mistakes and edge cases, what to say in the interview, a quick check, and practice (interview questions, hands-on tasks, LeetCode warm-ups where they fit).
 - **References:** `7` = this folder · `BE 3`/`SD 30`/`ARCH 19`/`DB 21`/`AI 19` = topic N in that roadmap
 - **Marks:** 🟢 must have · 🟡 good to have · (New) beyond the basics, or still changing
 
@@ -10,32 +11,33 @@
 
 ## Index
 
-| #   | Topic                                       | Stage                    |
-| --- | ------------------------------------------- | ------------------------ |
-| 1   | Mobile Platform Basics                      | 1. Foundations           |
-| 2   | Kotlin Essentials                           | 1. Foundations           |
-| 3   | Coroutines & Flow                           | 1. Foundations           |
-| 4   | App Components & Lifecycle                  | 2. Building the App      |
-| 5   | UI with Jetpack Compose                     | 2. Building the App      |
-| 6   | App Architecture                            | 2. Building the App      |
-| 7   | Dependency Injection & Modularization       | 2. Building the App      |
-| 8   | Networking                                  | 3. Data & Background     |
-| 9   | Local Storage & Offline-First               | 3. Data & Background     |
-| 10  | Background Work & Notifications             | 3. Data & Background     |
-| 11  | Performance & Memory                        | 4. Quality               |
-| 12  | Testing                                     | 4. Quality               |
-| 13  | Security                                    | 4. Quality               |
-| 14  | Accessibility, Localization & Adaptive UI   | 4. Quality               |
-| 15  | Build, Release & Monitoring                 | 5. Shipping              |
-| 16  | iOS & Swift Essentials (New)                | 6. Beyond Android        |
-| 17  | Cross-Platform & Kotlin Multiplatform (New) | 6. Beyond Android        |
-| 18  | Mobile System Design                        | 7. Mobile in the System  |
-| 19  | Device Capabilities & Permissions           | 7. Mobile in the System  |
-| 20  | AI in Mobile Apps (New)                     | 7. Mobile in the System  |
-| 21  | Mobile Interview Answer Points (New)        | 8. Interview & Practice  |
-| 22  | Practice: Projects & Exercises              | 8. Interview & Practice  |
+| #   | Topic                                       | Stage                    | Mark |
+| --- | ------------------------------------------- | ------------------------ | ---- |
+| 1   | Mobile Platform Basics                      | 1. Foundations           | 🟢   |
+| 2   | Kotlin Essentials                           | 1. Foundations           | 🟢   |
+| 3   | Coroutines & Flow                           | 1. Foundations           | 🟢   |
+| 4   | App Components & Lifecycle                  | 2. Building the App      | 🟢   |
+| 5   | UI with Jetpack Compose                     | 2. Building the App      | 🟢   |
+| 6   | App Architecture                            | 2. Building the App      | 🟢   |
+| 7   | Dependency Injection & Modularization       | 2. Building the App      | 🟢   |
+| 8   | Networking                                  | 3. Data & Background     | 🟢   |
+| 9   | Local Storage & Offline-First               | 3. Data & Background     | 🟢   |
+| 10  | Background Work & Notifications             | 3. Data & Background     | 🟢   |
+| 11  | Performance & Memory                        | 4. Quality               | 🟢   |
+| 12  | Testing                                     | 4. Quality               | 🟢   |
+| 13  | Security                                    | 4. Quality               | 🟢   |
+| 14  | Accessibility, Localization & Adaptive UI   | 4. Quality               | 🟢   |
+| 15  | Build, Release & Monitoring                 | 5. Shipping              | 🟢   |
+| 16  | iOS & Swift Essentials (New)                | 6. Beyond Android        | 🟡   |
+| 17  | Cross-Platform & Kotlin Multiplatform (New) | 6. Beyond Android        | 🟡   |
+| 18  | Mobile System Design                        | 7. Mobile in the System  | 🟢   |
+| 19  | Device Capabilities & Permissions           | 7. Mobile in the System  | 🟢   |
+| 20  | AI in Mobile Apps (New)                     | 7. Mobile in the System  | 🟡   |
+| 21  | Mobile Interview Answer Points (New)        | 8. Interview & Practice  | 🟢   |
+| 22  | Practice: Projects & Exercises              | 8. Interview & Practice  | 🟢   |
+| 99  | Mobile Engineering Cheat Sheet              | Revision                 | 🟢   |
 
-**Short on time:** 1, 2, 3, 4, 5, 6, 8, 9, 11, 13, 18, 21. 🟢 items only.
+**Short on time:** 1, 2, 3, 4, 5, 6, 8, 9, 11, 13, 18, 21, then the cheat sheet (99). 🟢 items only.
 
 **Glossary:** the terms to learn first are listed at the end, each with a priority mark and the topic that explains it.
 
@@ -603,3 +605,4 @@ Plain meanings, with a priority. The last column is the topic that explains the 
 6. Read topics 16 and 17 to map what you know to iOS and cross-platform. Deepen them only if your target roles need it.
 7. Do topics 18 to 22 last. Practise mobile system designs out loud, and use `SD 30` and `SD 31` alongside.
 8. For each topic: what it is, what problem it solves, how it works, one downside.
+9. The night before an interview, read `99-Mobile-Cheat-Sheet`, then the `Say This in the Interview` part of the topics you are least sure of.

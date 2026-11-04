@@ -1,113 +1,279 @@
 # Practice: Projects & Exercises
 
+> Reading is not enough. Build one app in stages, each stage adding the topic you just learned, then run exercises that train the skills interviewers test: explaining, debugging, and profiling.
+
 Roadmap topic 22 · Stage 8: Interview & Practice
 
-**Marks:** 🟢 Must Know · 🟡 Good to Know · (New) beyond the basics, or still changing
+**Go deeper:** `04-backend-engineering/12-Checkpoint-Project-Notes-API` (the backend for the app) · `05-system-design/32-Practice-Projects-and-Designs` · `21` Mobile Interview Answer Points · every topic `1`–`20`.
 
-**In simple words:** reading is not enough. One running project — the notes app — carries you through almost this entire folder, growing one capability at a time. Build it in order, and each topic becomes something you did, not just something you read.
+**Marks:** 🟢 must know · 🟡 good to know
 
 ---
 
-#### 1. The Notes App — 🟢 Must Know
+#### 1. What Is It?
 
-*The running project. Build it on the Notes API from `BE 12`, in this order.*
+*One growing app, a handful of passes, and a few exercises.*
 
-1. **Base app** (topics `5`, `6`, `7`, `8`): Compose UI, MVVM, Retrofit calling the Notes API, Hilt for DI.
-2. **Offline-first** (topic `9`): local Room database as the source of truth, WorkManager (topic `10`) syncing with the backend, a conflict rule chosen and justified.
-3. **Tests** (topic `12`): a `ViewModel` unit test, a repository test with a fake network and in-memory Room, one Compose UI test.
-4. **Feed with paging and images** (topics `5`, `8`): cursor pagination via the Paging library, image loading with a caching library.
+| 🟢 Must know | 🟡 Good to know |
+|---|---|
+| Notes app: Compose, MVVM, Room, Retrofit, Hilt | chat screen with WebSocket |
+| make it offline-first with sync | photo upload in the background |
+| add tests | split into feature modules |
+| feed with paging and image loading | performance, security and release passes |
+| exercises: lifecycle, leak, slow list | a small AI feature |
+| | rebuild one screen in SwiftUI or share with KMP |
+| | callbackFlow, Room migration, architecture drawing |
+
+1. Build the app **in stages** and keep every stage working.
+2. After each stage, write a short note: what you built, one trade-off, one bug.
+3. Treat each "pass" as an audit of your own app (performance, security, release).
+
+**Signals in an interview:** "tell me about an app you built", "what was the hardest part?", "how did you make it offline?", "how did you measure performance?".
+
+---
+
+#### 2. How It Works
+
+**The build path.**
+
+```mermaid
+flowchart LR
+    P1["1 Notes app<br/>Compose, MVVM, Room, Retrofit, Hilt"] --> P2["2 Offline-first<br/>outbox, WorkManager, conflicts"] --> P3["3 Tests<br/>ViewModel, repository, UI"] --> P4["4 Feed<br/>paging, images"]
+    P4 --> P5["5 Chat<br/>WebSocket, recovery"] --> P6["6 Photo upload<br/>background, retry"] --> P7["7 Modules<br/>build time"]
+    P7 --> P8["8 Performance pass"] --> P9["9 Security pass"] --> P10["10 Release pass"] --> P11["11 AI feature"] --> P12["12 SwiftUI / KMP"]
+```
+
+**Build (in order).**
+
+| # | Project | Done when | Topics |
+|---|---|---|---|
+| 1 | 🟢 **Notes app**: Compose, MVVM, Room, Retrofit, Hilt, against the Notes API (`BE 12`) | list, create, edit, delete; loading / empty / error states; survives rotation and process death | 4–8 |
+| 2 | 🟢 **Offline-first**: local DB as the source of truth, WorkManager sync, a conflict rule | works in airplane mode; edits sync later without duplicates; two-device edit follows the rule | 9, 10 |
+| 3 | 🟢 **Tests**: `ViewModel`, repository, one UI test | fakes, `runTest`, MockWebServer, in-memory Room; CI runs them | 12 |
+| 4 | 🟢 **Feed** with paging and image loading | cursor paging, prefetch, thumbnails, smooth scroll on a mid-range phone | 8, 11, 18 |
+| 5 | 🟡 **Chat screen**: WebSocket, reconnect, missed-message recovery | no duplicates; pending messages; works after reconnect | 8, 18 |
+| 6 | 🟡 **Photo upload**: background work, retry, progress | chunked, resumable, survives app kill | 10, 18, 19 |
+| 7 | 🟡 **Feature modules** and a build-time measurement | features independent; incremental build time compared before/after | 7 |
+| 8 | 🟡 **Performance pass**: startup, jank, Baseline Profile, one leak | numbers before/after in release mode | 11 |
+| 9 | 🟡 **Security pass**: storage, permissions, network config, checklist | tokens in the Keystore, cleartext blocked, deep links validated | 13, 19 |
+| 10 | 🟡 **Release pass**: flavors, signing, internal track, staged rollout, crash reporting | a build on an internal track, a flag with a kill switch | 15 |
+| 11 | 🟡 **AI feature**: streaming chat through your backend | stop/retry/limit states; no key in the app | 20, `AI 22` |
+| 12 | 🟡 **SwiftUI screen** or a shared **KMP** module | one screen or one module running on both platforms | 16, 17 |
+
+**Exercises.**
+
+| # | Exercise | Skill |
+|---|---|---|
+| 🟢 | Explain the lifecycle order for start, rotate, background and kill, out loud | lifecycle |
+| 🟢 | Debug a memory leak with the Profiler or LeakCanary | leaks |
+| 🟢 | Find and fix a slow list in Compose or `RecyclerView` | jank |
+| 🟡 | Turn callback code into a `Flow` with `callbackFlow` | coroutines |
+| 🟡 | Write a Room migration and test it | storage |
+| 🟡 | Draw the architecture of your app: layers, dependencies, problems (`ARCH 14`) | architecture |
+
+**A weekly rhythm.**
+
+| Week | Do |
+|---|---|
+| 1 | Project 1 (UI, state, navigation) + lifecycle exercise |
+| 2 | Project 1 data layer (Room, Retrofit, Hilt) |
+| 3 | Project 2 (offline-first) |
+| 4 | Project 3 (tests) + migration exercise |
+| 5 | Project 4 (feed) + slow-list exercise |
+| 6 | Performance pass (project 8) + leak exercise |
+| 7 | Security pass (project 9) + release pass (project 10) |
+| 8 | Chat or upload (project 5 or 6) + mock interviews with `21` |
+| 9+ | Modules, AI feature, SwiftUI / KMP, mobile system designs from `18` |
+
+**How to review each stage.**
+
+1. Does it work offline, rotated, and after process death?
+2. Are all states handled (loading, empty, error, partial)?
+3. Is there a test for the riskiest logic?
+4. Can you explain one trade-off you made?
+
+---
+
+#### 3. Naive vs Better Design
+
+| Naive | Better |
+|---|---|
+| follow a tutorial and stop | add features the tutorial didn't (offline, tests, release) |
+| one giant project at once | stages, each shippable |
+| "it works on my phone" | test on a low-end device, in release mode, offline |
+| no tests until the end | write tests with each stage |
+| no measurements | record numbers before and after each optimisation |
+| copy code you can't explain | write the note: why this design |
+| only build | build, then explain out loud and review |
+
+---
+
+#### 4. Code
+
+A starter package layout for the notes app (so stages 1 to 4 fit together):
+
+```text
+app/src/main/java/com/example/notes/
+  data/
+    local/      NoteEntity, NoteDao, AppDatabase
+    remote/     NotesApi, NoteDto, AuthInterceptor
+    NotesRepository.kt       (offline-first)
+    SyncWorker.kt
+  domain/       Note, AppError, (use cases only when they help)
+  ui/
+    notes/      NotesScreen, NotesViewModel, NotesUiState
+    editor/     EditorScreen, EditorViewModel
+    theme/
+  di/           NetworkModule, DatabaseModule, RepositoryModule
+  NotesApp.kt   MainActivity.kt
+```
+
+The acceptance tests for project 2 as a checklist you can turn into automated tests:
+
+| Scenario | Expected |
+|---|---|
+| Create a note in airplane mode | appears at once; marked pending |
+| Turn the network on | the note syncs once; no duplicate on the server |
+| Kill the app during sync, reopen | the sync resumes; still no duplicate (idempotency key) |
+| Edit the same note on two devices | the conflict rule is applied; nothing is silently lost if the rule says merge |
+| Delete on device A | device B removes it after sync (tombstone) |
+| Server returns 401 | one token refresh, requests retried |
+| Server returns 503 | exponential backoff, the user sees stale data plus a small error |
+
+A simple way to record the performance pass:
+
+```bash
+# cold start time (release build, device connected)
+adb shell am force-stop com.example.notes
+adb shell am start -W -n com.example.notes/.MainActivity     # look at TotalTime in ms
+
+# frame stats after scrolling the list
+adb shell dumpsys gfxinfo com.example.notes reset
+# ... scroll the list for 10 seconds ...
+adb shell dumpsys gfxinfo com.example.notes | grep -E "Janky frames|50th|90th|95th|99th"
+```
+
+Keep a table in your repo:
+
+| Metric | Before | After | Change made |
+|---|---|---|---|
+| Cold start (TotalTime) | 1,850 ms | 1,210 ms | Baseline Profile + deferred SDK init |
+| Janky frames (feed) | 12% | 3% | stable keys + thumbnails |
+| Leaks found | 1 | 0 | unregister listener in `onStop` |
+
+(The numbers are examples: write your own.)
+
+A README template for each project (interviewers read these):
+
+```text
+# Notes app
+What: offline-first notes (Compose, MVVM, Room, Retrofit, Hilt)
+Architecture: diagram + one paragraph
+Key decisions: Room is the source of truth; WorkManager sync; last-write-wins + field merge for body
+Trade-offs: no real-time sync; conflicts on body fields are merged, titles use LWW
+Tests: 42 unit, 6 integration, 3 UI (run: ./gradlew testDebugUnitTest)
+Performance: cold start 1.2 s on a Pixel 6a (release), jank 3%
+What I'd do next: push-triggered sync, encryption at rest
+```
+
+A callback-to-Flow exercise solution (check yourself against `3`):
 
 ```kotlin
-// A good milestone check after step 2: does the app still show notes
-// with the network fully disabled? If yes, offline-first is really working.
+fun SensorManager.accelerometer(): Flow<FloatArray> = callbackFlow {
+    val sensor = getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+    val listener = object : SensorEventListener {
+        override fun onSensorChanged(e: SensorEvent) { trySend(e.values.clone()) }
+        override fun onAccuracyChanged(s: Sensor?, a: Int) {}
+    }
+    registerListener(listener, sensor, SensorManager.SENSOR_DELAY_NORMAL)
+    awaitClose { unregisterListener(listener) }
+}
 ```
 
 ---
 
-#### 2. Extend It — 🟡 Good to Know
+#### 5. Numbers & Capacity
 
-5. **Chat screen** (topic `8`, `SD 24`): WebSocket connection, reconnect with backoff, missed-message recovery.
-6. **Photo upload** (topic `8`, `10`): background work, retry, progress reporting.
-7. **Modularize** (topic `7`): split into feature modules, and actually measure the build-time difference before and after.
-8. **Performance pass** (topic `11`): measure cold start and scrolling with the Profiler/Macrobenchmark, add a Baseline Profile, find and fix one real memory leak with LeakCanary.
-9. **Security pass** (topic `13`): audit token storage, permissions, network config, and exported components against a checklist.
-10. **Release pass** (topic `15`): build flavors, signing, an internal release track, a staged rollout, crash reporting wired up.
-11. **A small AI feature** (topic `20`, `AI 22`): streaming chat through your own backend, with cancel/retry and proper states.
-12. **Cross-platform stretch** (topic `16`, `17`): rebuild one screen in SwiftUI, or extract one module to share with Kotlin Multiplatform.
+How to size the practice:
 
----
-
-#### 3. Exercises — 🟢 Must Know
-
-1. **Explain the lifecycle out loud** — start, rotate, background, kill, in order, without notes (topic `4`, `21`).
-2. **Debug a memory leak** — deliberately introduce one (a static Activity reference), then find it with the Profiler or LeakCanary (topic `11`).
-3. **Find and fix a slow list** — load a few thousand items into a `LazyColumn`/`RecyclerView` without a `key` or with a heavy per-item composable, then measure and fix it (topics `5`, `11`).
-
----
-
-#### 4. More Exercises — 🟡 Good to Know
-
-4. **Callback to `Flow`** — take an old callback-based API (a location listener, a Bluetooth scan callback) and wrap it with `callbackFlow` (topic `3`).
-5. **Write and test a Room migration** — add a column to an existing entity, write the migration, and write a test that runs it against real sample data (topics `9`, `12`).
-6. **Draw your current app's architecture** — layers, module dependencies, and honestly mark where the debt and anti-patterns are (topic `6`, `ARCH 14`).
-
----
-
-#### 5. How to Use This Project List — 🟢 Must Know
-
-1. Don't skip ahead to the AI feature or cross-platform stretch before the base app and offline-first are solid — later steps assume the earlier architecture is already in place.
-2. After each milestone, go back to that topic's **Common Interview Questions** section and answer them using what you just built, not from memory.
-3. Keep a short note per milestone: what surprised you, what you'd do differently — this becomes real material for topic `21`'s decision stories and `07-behavioral-leadership`.
-
----
-
-#### 6. A Suggested Order — 🟢 Must Know
-
-| Stage | Do |
+| Item | Guide |
 |---|---|
-| Week 1–2 | Topics 1–7, build the base notes app |
-| Week 3 | Topics 8–10, make it offline-first with sync |
-| Week 4 | Topics 11–14, profile, test, and audit the security of what you built |
-| Week 5 | Topic 15, ship it to an internal release track |
-| Week 6 | Topics 16–20 as reading, plus one stretch build (AI feature, or a KMP/SwiftUI extension) |
-| Ongoing | Topics 21–22, mock interviews and mobile system design practice, alongside `SD 30`/`SD 31` |
+| Time per project | notes app 1 to 2 weeks part-time; each later stage a weekend or two |
+| Mock interview | 45 minutes + 15 minutes of review |
+| Test count | a few tests per stage; critical logic first |
+| Devices to try | a recent phone, a low-end phone, an old OS version, a tablet emulator |
+| Commits | small, one idea each; makes a good story |
+| Portfolio | 2 or 3 polished projects with README, tests and numbers beat 10 unfinished ones |
 
 ---
 
-#### 7. Common Interview Questions
+#### 6. Common Mistakes & Edge Cases
 
-1. **Tell me about a project where you implemented offline-first sync.**
-   Walk through the notes app milestone: Room as source of truth, WorkManager sync, the conflict rule chosen and why, and one real problem hit along the way.
-2. **How did you find and fix a memory leak?**
-   Describe the deliberate-leak exercise (or a real one found later): the symptom, using LeakCanary/Profiler to trace the retained reference, and the fix.
-3. **What would you do differently if you rebuilt this project?**
-   A genuine, specific answer drawn from the milestone notes — shows reflection, not just execution.
-4. **How do you approach learning a new mobile topic?**
-   Read the concept, then build the smallest real thing that exercises it (this project list's actual method) rather than only reading or only doing isolated tutorials.
+1. Tutorial-only learning; never shipping or measuring.
+2. Skipping offline, tests and release because "they're boring" (they are what interviews ask about).
+3. A project with no README, no architecture note, no numbers.
+4. Optimising without recording before/after.
+5. Never testing process death, rotation or a bad network.
+6. Copying code you can't explain.
+7. Doing everything alone, never explaining out loud.
 
----
-
-#### 8. Common Mistakes
-
-1. Reading every topic in this folder before writing any code.
-2. Jumping to advanced milestones (AI, cross-platform) before the fundamentals are solid.
-3. Never revisiting a topic's interview questions after actually building the related feature.
-4. Building without keeping any notes, so decision stories (topic `21`) end up vague later.
+Edge cases: a stage that is too big (split it); a library change breaks the old stage (upgrade deliberately, write the note); no real backend (use the Notes API or a mock server); no spare device (use emulators with slow network and low memory profiles).
 
 ---
 
-#### 9. Related Topics
+#### 7. Say This in the Interview
 
-1. `1`–`22` — every topic in this folder feeds into this one running project
-2. `BE 12` Checkpoint Project: Notes API — the backend this project is built against
-3. `21` Mobile Interview Answer Points — where these projects become interview stories
-4. `SD 32` Practice: Projects & Designs — the equivalent backend/system-design practice list
+1. "I built a notes app in stages. First Compose, MVVM, Room and Retrofit; then I made it offline-first with a WorkManager sync and a conflict rule."
+2. "The hardest part was … I solved it by … and I measured …"
+3. "I tested the `ViewModel` with fakes, the repository with MockWebServer and in-memory Room, and the critical flow with a Compose test."
+4. "In the performance pass I cut cold start from … to … with a Baseline Profile and deferred initialisation."
+5. "If I continued, I'd add push-triggered sync and encryption at rest."
 
 ---
 
-#### 10. Interview Must Remember
+#### 8. Quick Check
 
-1. **One running project (the notes app), grown milestone by milestone** — this is the fastest way through the whole folder.
-2. **Don't skip the fundamentals** for the stretch goals.
-3. **Keep notes per milestone** — they become your decision stories.
-4. **Revisit each topic's interview questions** after building the related feature, not from memory alone.
+1. What makes project 2 different from project 1?
+2. Why record before/after numbers?
+3. Which devices should you test on?
+4. Why write a README per project?
+
+<details>
+<summary>Answers</summary>
+
+1. The local database becomes the source of truth, and sync handles pending changes, conflicts and failures.
+2. To prove an optimisation worked and to tell the story with evidence.
+3. A recent phone, a low-end phone, an old OS version, and a tablet or foldable emulator.
+4. It forces you to explain decisions and trade-offs, which is what interviewers ask.
+
+</details>
+
+---
+
+#### 9. Practice
+
+**Interview questions**
+
+1. Walk me through an app you built end to end.
+2. What was the hardest bug, and how did you find it?
+3. How did you make it work offline?
+4. How did you test it?
+5. How did you measure and improve performance?
+6. What would you change if you rebuilt it?
+
+**Hands-on**
+
+1. Complete projects 1 to 4 with notes and numbers.
+2. Do all six exercises, with a short written answer for each.
+3. Run two mock interviews using `21` and record yourself.
+
+**Coding warm-ups (LeetCode)**
+
+| # | Question | Link to this topic |
+|---|---|---|
+| 146 | [LRU Cache](https://leetcode.com/problems/lru-cache/) (Medium) | cache for the feed |
+| 355 | [Design Twitter](https://leetcode.com/problems/design-twitter/) (Medium) | feed design |
+| 1472 | [Design Browser History](https://leetcode.com/problems/design-browser-history/) (Medium) | navigation stack |
+| 207 | [Course Schedule](https://leetcode.com/problems/course-schedule/) (Medium) | module dependency cycles |
+
+**Remember:** build in stages and keep each stage working · offline, tests and release are the interview topics · record before/after numbers · write a README with decisions and trade-offs · test rotation, process death and a bad network · explain out loud.

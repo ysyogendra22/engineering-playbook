@@ -1,152 +1,330 @@
 # Build, Release & Monitoring
 
+> Shipping is part of engineering. A good release process builds the same way every time, rolls out slowly, can be switched off without a new release, and tells you quickly when real users are hurting.
+
 Roadmap topic 15 · Stage 5: Shipping
 
-**Marks:** 🟢 Must Know · 🟡 Good to Know · (New) beyond the basics, or still changing
+**Go deeper:** `05-system-design/28-Deployment-and-Release` (canary, feature flags, safe migrations) · `05-system-design/27-Observability` · `05-system-design/30-Mobile-Specific-Topics` (old versions) · `7` DI & Modularization (build speed) · `11` Performance (Play Vitals) · `13` Security (signing) · `16` iOS (TestFlight).
 
-**In simple words:** shipping mobile software is different from shipping a backend — you can't force an instant rollback to every user. Staged rollouts, feature flags, and crash monitoring exist because a bad release lives on people's phones until they update, so the release process itself has to absorb the risk.
-
----
-
-#### 1. Gradle Basics — 🟢 Must Know
-
-1. **Modules** — separate build units (topic `7`).
-2. **Build types** — `debug` vs `release`, with different settings (minification, signing, logging).
-3. **Product flavors** — variants of the app (free vs paid, different backends per environment) that can combine with build types.
+**Marks:** 🟢 must know · 🟡 good to know
 
 ---
 
-#### 2. Signing — 🟢 Must Know
+#### 1. What Is It?
 
-Every release APK/AAB is cryptographically **signed**, proving updates genuinely come from you. **Losing the signing key is serious** — without it, you can't publish updates to an existing app listing at all; store it securely, with backups.
+*From source code to a safe release on real phones, and watching it afterwards.*
 
----
+| 🟢 Must know | 🟡 Good to know |
+|---|---|
+| Gradle: modules, build types, flavors | CI/CD: GitHub Actions, Fastlane |
+| signing and key safety | force update, in-app updates |
+| version code and version name | analytics: events, privacy, consent |
+| release tracks, staged rollout | A/B testing |
+| feature flags and remote config | logging and correlation IDs |
+| backward compatibility with old versions | store policies, target API level |
+| crash reporting, non-fatal errors | reproducible and fast builds |
+| app health metrics | |
 
-#### 3. Versioning — 🟢 Must Know
+1. **Build:** Gradle compiles the app into an AAB per **build type** (debug, release) and **flavor** (free, paid, staging).
+2. **Sign:** the key proves updates come from you. Losing it is serious.
+3. **Release:** internal → closed → open → production, with a **staged rollout** (1%, 5%, 20%, 50%, 100%).
+4. **Control:** **feature flags** turn things on and off without a release.
+5. **Watch:** crash-free rate, ANR rate, cold start, errors.
 
-1. **Version code** — an internal integer, must increase with every release, used by the store to determine "is this newer?".
-2. **Version name** — the human-readable string shown to users (`2.3.1`).
-
----
-
-#### 4. Staged Rollout — 🟢 Must Know
-
-1. Release to a **small percentage of users first** (Google Play release tracks; iOS TestFlight and phased release), watch crash rate and key metrics, then increase the percentage.
-2. This is the mobile equivalent of a canary deployment (`SD 28`) — except a bad release can't be instantly pulled from devices that already downloaded it, so staging the rollout is the main safety net.
-
----
-
-#### 5. Feature Flags and Remote Config — 🟢 Must Know
-
-Server-controlled switches let you **turn a feature off without shipping a new release** — essential on mobile, where a code fix can't reach users instantly (`SD 28`). Ship risky features behind a flag, so a problem can be mitigated remotely.
-
----
-
-#### 6. Backward Compatibility — 🟢 Must Know
-
-Old app versions keep calling the backend for years (topic `1`, `SD 30`) — every backend change must keep working with app versions already in the wild, not just the one being released today.
+**Signals in an interview:** "how do you release safely?", "a bad release is out, what now?", "how do you keep old app versions working?", "how do you know the release is healthy?".
 
 ---
 
-#### 7. Crash Reporting — 🟢 Must Know
+#### 2. How It Works
 
-Tools like Crashlytics capture crashes (and **non-fatal errors** — caught exceptions worth knowing about, even if they didn't crash the app) from real users in production, with stack traces, device info, and breadcrumbs leading up to the failure.
+**The release pipeline.**
 
----
+```mermaid
+flowchart LR
+    C["Commit / PR"] --> CI["CI: build, lint, unit tests"] --> A["Signed AAB"] --> I["Internal track"] --> S["Staged rollout 1% → 100%"]
+    S --> M["Monitor: crash-free, ANR, errors"]
+    M -->|"healthy"| S
+    M -->|"unhealthy"| H["Halt rollout, flag off, fix, hotfix"]
+```
 
-#### 8. App Health Metrics — 🟢 Must Know
+**Gradle basics.**
+
+| Concept | Meaning |
+|---|---|
+| Module | a Gradle project (`:app`, `:feature:notes`) |
+| Build type | debug / release settings (minify, signing, debuggable) |
+| Product flavor | variants (free/paid, staging/production) with their own config and resources |
+| Build variant | flavor × build type (`stagingDebug`, `productionRelease`) |
+| `implementation` vs `api` | whether a dependency is visible to consumers (topic 7) |
+
+**Signing.** Use **Play App Signing**: Google holds the app signing key; you upload with a separate **upload key** that can be reset if lost. Keep keystores and passwords out of Git (CI secrets). Never share the upload key by chat.
+
+**Versioning.** `versionCode` is an integer that must grow with every upload. `versionName` is the human text (`1.4.0`). Many teams derive `versionCode` from CI build numbers or from `major*10000 + minor*100 + patch`.
+
+**Tracks and staged rollout (Play).** Internal testing → closed → open → production. In production use a **staged rollout**: start at 1 to 5%, watch for a day, then increase. You can halt a rollout, but you cannot take a version back from users who have it, so the fix is a new version (and server-side flags). iOS: TestFlight, then **phased release** over 7 days.
+
+**Feature flags and remote config.**
+
+1. A server-controlled switch: show a feature to 10% of users, or turn it off for everyone.
+2. A **kill switch** for risky features (payments, a new sync engine).
+3. Bucket users with a stable hash so a user stays in the same group (`SD 28`).
+4. Flags are code paths: remove them when the experiment ends.
+
+**Backward compatibility.** Old versions stay in use for years. The API only adds fields; the app ignores unknown fields; a removed endpoint stays until usage drops; breaking changes need a new version path. A **force-update** screen blocks only versions you cannot support (`SD 30`).
+
+**Crash reporting and non-fatal errors.** Crashlytics (or similar) groups crashes by stack trace and shows device, OS and version. Log **non-fatal** errors (handled failures) and add context (screen, user id hash, feature flag state), never personal data.
+
+**Health metrics.**
 
 | Metric | What it tells you |
 |---|---|
-| Crash-free users/sessions | Overall stability |
-| ANR rate | Main-thread blocking issues (topic `11`) in the wild |
-| Cold start time | First-impression performance (topic `11`) |
+| Crash-free users / sessions | stability |
+| ANR rate | main-thread blocking |
+| Cold start time | startup |
+| Frame jank | smoothness |
+| API error rate and latency (client side) | backend and network health |
+| Adoption of the new version | how fast users move |
 
-Watch these **after every release**, not just during development.
+Play Console **Android vitals** flags apps with bad behaviour thresholds (crash and ANR rates), which can reduce visibility.
 
----
+🟡 **CI/CD.** On every PR: build, lint, unit tests. On merge: instrumented tests and a signed internal build. Tools: GitHub Actions, Gradle Managed Devices, Fastlane or the Play Publisher plugin. Cache Gradle to keep it fast.
 
-#### 9. CI/CD — 🟡 Good to Know
+🟡 **Force and in-app updates.** The Play **In-App Updates** API offers *flexible* (background) or *immediate* (blocking) updates. A backend `minSupportedVersion` in remote config drives a force-update screen.
 
-Automating build, test, sign, and upload (GitHub Actions, Fastlane, or similar) — the same principles as `SD 28`, applied to mobile's extra steps (signing, store upload).
+🟡 **Analytics.** Design events (`note_created`, with a few properties) before coding; get consent where required; avoid personal data; check event volume and cost.
 
----
+🟡 **A/B testing.** Randomise stable buckets, define the metric first, run long enough, and keep the code paths clean.
 
-#### 10. Force Update and In-App Updates — 🟡 Good to Know
+🟡 **Logging and correlation IDs.** Send a request ID (`X-Request-Id`) from the app; the backend logs it, so one failed user action can be traced across systems (`SD 27`).
 
-1. **Force update** — block old, unsupported app versions from continuing to work, when a backend change truly can't stay compatible with them.
-2. **In-app update prompts** — nudge users toward updating without fully blocking them, a gentler middle ground.
+🟡 **Store policies.** Play requires a recent **target API level**, data-safety declarations, and policy compliance for permissions and background use. Plan the yearly target bump.
 
----
-
-#### 11. Analytics — 🟡 Good to Know
-
-Event design, privacy, and consent (respecting what the user has agreed to share) all matter — analytics is genuinely useful, but it's also personal data collection, and should be treated with the same care as any other (`08-artificial-intelligence`'s privacy topics apply the same logic).
+🟡 **Build performance.** Modules, build cache, configuration cache, KSP over kapt, a version catalog, and no cycles keep builds fast and reproducible.
 
 ---
 
-#### 12. A/B Testing — 🟡 Good to Know
+#### 3. Naive vs Better Design
 
-Comparing two versions of a feature with real users, gated by remote config, to make a data-informed decision rather than a guess.
+| Naive | Better |
+|---|---|
+| release to 100% on Friday | staged rollout, watch metrics, release early in the week |
+| keystore in the repo | Play App Signing, upload key in CI secrets |
+| ship a risky feature with no off switch | feature flag / kill switch |
+| rename an API field | add a field; keep the old one |
+| find out about crashes from reviews | crash reporting + alerts |
+| build on one laptop | CI builds the same way every time |
+| `versionCode` edited by hand | generated from the CI build number |
+| remove a flag never | delete flags after rollout |
+| force-update everyone for any change | force-update only unsupported versions |
 
----
-
-#### 13. Logging and Correlation IDs — 🟡 Good to Know
-
-Attaching a request/correlation ID from the app through to backend logs (`SD 27`) makes it possible to trace one user's specific failing request across both sides of the system.
-
----
-
-#### 14. Store Policies — 🟡 Good to Know
-
-Both stores have review policies and minimum target API level requirements that change over time — an app that ignores them for too long can be removed from the store, not just flagged.
-
----
-
-#### 15. Build Performance — 🟡 Good to Know
-
-Reproducible, fast builds matter for both developer productivity and CI cost — module structure (topic `7`) is the biggest lever here.
+```kotlin
+// Naive: shipped with no way to turn it off
+fun onSyncClicked() = newSyncEngine.run()          // if it crashes, only a new release can fix it
+```
 
 ---
 
-#### 16. Common Interview Questions
+#### 4. Code
 
-1. **Why is a staged rollout especially important on mobile, compared to a backend deploy?**
-   A backend rollback is near-instant; a bad mobile release stays on every device that already downloaded it until they update. Staging catches problems while exposure is still small.
-2. **How do feature flags help with mobile release risk?**
-   They let you disable a problematic feature remotely, without shipping a new release — critical since app updates can't reach users instantly.
-3. **What would you monitor right after a release?**
-   Crash-free rate, ANR rate, and cold start time, watched specifically for the new release compared to the previous one.
-4. **Why must backend changes stay compatible with old app versions?**
-   Users update slowly and unevenly; some app versions stay in active use for years, and the backend can't assume everyone is on the latest one.
-5. **What's the risk of losing a signing key?**
-   You can no longer publish updates to that existing app listing — it's effectively permanent, so secure storage and backup of the signing key matters enormously.
+Build types, flavors and signing from environment variables:
+
+```kotlin
+android {
+    defaultConfig { versionCode = (System.getenv("BUILD_NUMBER") ?: "1").toInt(); versionName = "1.4.0" }
+
+    signingConfigs {
+        create("release") {
+            storeFile = System.getenv("KEYSTORE_PATH")?.let(::file)
+            storePassword = System.getenv("KEYSTORE_PASSWORD")
+            keyAlias = System.getenv("KEY_ALIAS")
+            keyPassword = System.getenv("KEY_PASSWORD")
+        }
+    }
+    buildTypes {
+        debug { applicationIdSuffix = ".debug"; isDebuggable = true }
+        release { isMinifyEnabled = true; isShrinkResources = true; signingConfig = signingConfigs.getByName("release")
+                  proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro") }
+    }
+    flavorDimensions += "env"
+    productFlavors {
+        create("staging") { dimension = "env"; applicationIdSuffix = ".staging"; buildConfigField("String", "API_URL", "\"https://staging.api.example.com/\"") }
+        create("production") { dimension = "env"; buildConfigField("String", "API_URL", "\"https://api.example.com/\"") }
+    }
+}
+```
+
+A feature flag with a stable percentage bucket:
+
+```kotlin
+fun bucket(userId: String, flag: String): Int = Math.floorMod((userId + ":" + flag).hashCode(), 100)
+
+fun isEnabled(userId: String, flag: String, percent: Int, killSwitchOn: Boolean = false): Boolean =
+    !killSwitchOn && bucket(userId, flag) < percent
+```
+
+Checks: the same `userId` and `flag` always give the same bucket, so a user never flips between groups. With `percent = 0` nobody is enabled; with `100` everyone is enabled; with `killSwitchOn = true` nobody is, even at 100. For many random user ids and `percent = 10`, about 10% are enabled.
+
+Force update from remote config:
+
+```kotlin
+fun needsForceUpdate(installedCode: Int, minSupportedCode: Int) = installedCode < minSupportedCode
+fun parseVersion(name: String): List<Int> = name.split('.').map { it.toIntOrNull() ?: 0 }
+fun isOlder(a: String, b: String): Boolean {
+    val x = parseVersion(a); val y = parseVersion(b)
+    for (i in 0 until maxOf(x.size, y.size)) {
+        val d = x.getOrElse(i) { 0 } - y.getOrElse(i) { 0 }
+        if (d != 0) return d < 0
+    }
+    return false
+}
+```
+
+Checks: `needsForceUpdate(120, 130)` → `true`; `(130, 130)` → `false`. `isOlder("1.4.0", "1.10.0")` → `true` (compared as numbers, not text: `"1.4" > "1.10"` as strings would be wrong); `isOlder("1.4", "1.4.0")` → `false`.
+
+Staged rollout decision as code (the rule you tell the team):
+
+```kotlin
+fun canIncreaseRollout(crashFreeNow: Double, crashFreeBaseline: Double, anrRate: Double, anrLimit: Double = 0.0047, maxDrop: Double = 0.002) =
+    crashFreeNow >= crashFreeBaseline - maxDrop && anrRate <= anrLimit
+```
+
+Checks: `canIncreaseRollout(0.998, 0.999, 0.003)` → `true` (drop 0.001 ≤ 0.002, ANR under 0.47%); `canIncreaseRollout(0.995, 0.999, 0.003)` → `false` (drop 0.004); `canIncreaseRollout(0.999, 0.999, 0.01)` → `false` (ANR too high).
+
+Crash reporting with context:
+
+```kotlin
+FirebaseCrashlytics.getInstance().apply {
+    setCustomKey("screen", "notes_list")
+    setCustomKey("flag_new_sync", isEnabled(userId, "new_sync", 10))
+    log("refresh started")
+}
+// handled failure:  FirebaseCrashlytics.getInstance().recordException(e)
+```
+
+Correlation ID interceptor:
+
+```kotlin
+class RequestIdInterceptor : Interceptor {
+    override fun intercept(chain: Interceptor.Chain): Response =
+        chain.proceed(chain.request().newBuilder().header("X-Request-Id", UUID.randomUUID().toString()).build())
+}
+```
+
+CI (GitHub Actions):
+
+```yaml
+name: android
+on: [pull_request]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 17 }
+      - uses: gradle/actions/setup-gradle@v4        # caches Gradle
+      - run: ./gradlew lint testDebugUnitTest assembleStagingDebug
+```
+
+In-app update:
+
+```kotlin
+val manager = AppUpdateManagerFactory.create(context)
+manager.appUpdateInfo.addOnSuccessListener { info ->
+    if (info.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE && info.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE)) {
+        manager.startUpdateFlowForResult(info, activityResultLauncher, AppUpdateOptions.newBuilder(AppUpdateType.FLEXIBLE).build())
+    }
+}
+```
 
 ---
 
-#### 17. Common Mistakes
+#### 5. Performance & Limits
 
-1. Releasing to 100% of users immediately instead of staging the rollout.
-2. Shipping a risky feature with no flag to disable it remotely if something goes wrong.
-3. Breaking backward compatibility for app versions still in active use.
-4. Not watching crash-free rate and ANR rate closely right after a release.
-5. Treating the signing key casually, with no secure backup.
-
----
-
-#### 18. Related Topics
-
-1. `1` Mobile Platform Basics — why old app versions persist for years
-2. `11` Performance & Memory — the metrics watched post-release
-3. `SD 28` Deployment & Release — the shared release-safety principles from the backend side
-4. `SD 30` Mobile-Specific Topics — backward compatibility from the system design angle
+| Item | Remember |
+|---|---|
+| Staged rollout steps | 1% → 5% → 20% → 50% → 100%, watch each for hours to a day |
+| Play bad-behaviour thresholds (check current) | user-perceived crash about 1.1%, ANR about 0.47% of daily users |
+| `versionCode` | integer, must increase; maximum 2,100,000,000 |
+| iOS phased release | 7 days, 1% → 100% |
+| Review time | Play: hours to days; App Store: usually 1 to 2 days |
+| Hotfix | needs a new build and review; a flag or server fix is faster |
+| CI | keep pull-request checks under about 10 minutes |
+| Old versions | support the last N versions that still have real traffic (look at adoption) |
 
 ---
 
-#### 19. Interview Must Remember
+#### 6. Common Mistakes & Edge Cases
 
-1. **Staged rollout** is mobile's substitute for an instant rollback.
-2. **Feature flags/remote config** let you mitigate a bad feature without a new release.
-3. **Backward compatibility** with old app versions is a permanent backend constraint.
-4. **Watch crash-free rate, ANR rate, and cold start** after every release.
-5. **Guard the signing key** — losing it is close to irreversible.
+1. Releasing to everyone at once.
+2. No kill switch for risky features.
+3. Keys and passwords in the repo.
+4. Breaking the API for old app versions.
+5. No crash reporting, or crash reports without context.
+6. Collecting personal data in analytics with no consent.
+7. Never removing old flags.
+8. Forgetting the yearly target API bump until the deadline.
+9. Ignoring a small crash rate increase until it is large.
+
+Edge cases: a bad release already at 100% (fix forward: flag off, hotfix, halt, and raise the force-update minimum if needed); a flag service outage (use safe defaults and cached values); a staged rollout that stalls on adoption; different crash rates per device/OS (look at the breakdown); a database migration that fails only for users upgrading from very old versions.
+
+---
+
+#### 7. Say This in the Interview
+
+1. "I use CI to build signed bundles, Play App Signing, and a version code from the CI build number."
+2. "Releases go internal → staged rollout. I watch crash-free users, ANR rate and startup before each increase, and I halt if they drop."
+3. "Risky features sit behind a remote flag with a kill switch, so I can turn them off without a release."
+4. "Old versions keep working: the API only adds fields, the app ignores unknown ones, and a force-update screen covers only the unsupported versions."
+5. "Crashlytics gives crashes with context, I log non-fatal errors, and a request ID from the app lets us trace one action through the backend."
+
+---
+
+#### 8. Quick Check
+
+1. Can you take a bad version back from users?
+2. Why derive `versionCode` from CI?
+3. What does a kill switch do?
+4. Why compare versions as numbers?
+
+<details>
+<summary>Answers</summary>
+
+1. No. You halt the rollout and ship a fix, and use flags or server changes to limit the damage.
+2. It always increases, is unique, and needs no manual edits.
+3. It turns a feature off for all users remotely, with no new release.
+4. As text, `"1.4"` sorts after `"1.10"`; as numbers `4 < 10`.
+
+</details>
+
+---
+
+#### 9. Practice
+
+**Interview questions**
+
+1. How do you release an app safely?
+2. What do you do when a bad release reaches users?
+3. How do you keep old versions working?
+4. How do you use feature flags and remote config?
+5. Which metrics do you watch after a release?
+6. How do you manage signing keys?
+7. How do you set up CI for an Android app?
+
+**Hands-on**
+
+1. Add staging and production flavors with different API URLs.
+2. Set up a GitHub Actions workflow that builds and runs unit tests with caching.
+3. Add a remote flag with a kill switch around one risky feature, and test both states.
+4. Release to an internal track and practise halting a staged rollout.
+
+**Coding warm-ups (LeetCode)**
+
+| # | Question | Link to this topic |
+|---|---|---|
+| 165 | [Compare Version Numbers](https://leetcode.com/problems/compare-version-numbers/) (Medium) | force update by version |
+| 278 | [First Bad Version](https://leetcode.com/problems/first-bad-version/) (Easy) | find the release that broke it |
+| 362 | [Design Hit Counter](https://leetcode.com/problems/design-hit-counter/) (Medium, premium) | counting events for rates |
+| 1396 | [Design Underground System](https://leetcode.com/problems/design-underground-system/) (Medium) | metrics from start/end events |
+
+**Remember:** staged rollout and watch · feature flags with a kill switch · Play App Signing, keys out of Git · the API only grows · crash reporting with context · versions as numbers · fix forward, you can't recall a release.

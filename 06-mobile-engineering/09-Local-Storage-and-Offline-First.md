@@ -1,178 +1,362 @@
 # Local Storage & Offline-First
 
+> Phones lose the network all the time. An offline-first app reads and writes a local database, and a sync engine reconciles it with the server. This is the topic that separates strong mobile engineers.
+
 Roadmap topic 9 · Stage 3: Data & Background
 
-**Marks:** 🟢 Must Know · 🟡 Good to Know · (New) beyond the basics, or still changing
+**Go deeper:** `05-system-design/30-Mobile-Specific-Topics` (the server side of sync: delta sync, tombstones, conflicts) · `05-system-design/23-Consistency-and-CAP` · `10-database` · `6` Architecture (single source of truth) · `8` Networking · `10` Background Work (WorkManager) · `13` Security (encrypted storage) · `16` iOS (Core Data, SwiftData).
 
-**In simple words:** offline-first means the local database isn't a cache of the truth — it **is** the truth, as far as the UI is concerned. The network's job is to keep that local truth in sync, not to hand data straight to the screen. This is the single idea that separates apps that feel solid on bad networks from ones that don't.
+**Marks:** 🟢 must know · 🟡 good to know
 
 ---
 
-#### 1. Choosing the Storage — 🟢 Must Know
+#### 1. What Is It?
 
-| Storage | Use for |
+*Store data on the device and keep it in step with the server.*
+
+| 🟢 Must know | 🟡 Good to know |
 |---|---|
-| Preferences / DataStore | Small key-value settings (a theme choice, a feature flag cache) |
-| Room (SQLite) | Structured, queryable data — notes, messages, any real entity |
-| Files | Large blobs — images, downloaded documents |
-| In-memory cache | Short-lived, screen-scoped data that doesn't need to survive the process |
+| choosing storage: DataStore, Room, files, cache | DataStore vs `SharedPreferences` |
+| Room: entities, DAOs, `Flow` | indexes and query speed on device |
+| Room migrations | encrypted storage |
+| offline-first: the database is the source of truth | large data: files vs blobs, clearing caches |
+| cache strategies | deletes and tombstones |
+| sync: push local changes, pull remote changes | testing Room and migrations |
+| conflict resolution | iOS: Core Data, SwiftData |
+| never touch the database on the main thread | |
 
-Deeper database internals live in `DB 21` (mobile databases).
+1. **Offline-first:** the UI reads from the local database. Writes go to the database first, then to the server.
+2. **Sync engine:** pushes local changes (the **outbox**), pulls remote changes (a **cursor**), and resolves conflicts.
+3. **Migration:** every old database version must upgrade to the new schema without losing data.
+
+**Signals in an interview:** "design an offline notes app", "what if the user edits on two devices?", "how do you migrate the schema?", "Room vs `DataStore`?", "cache-first or network-first?".
 
 ---
 
-#### 2. Room: Entities, DAOs, Observing as `Flow` — 🟢 Must Know
+#### 2. How It Works
+
+**Choosing storage.**
+
+| Need | Use |
+|---|---|
+| a few settings or flags | **DataStore** (Preferences or Proto) |
+| structured, queryable data, relations | **Room** (SQLite) |
+| big files (photos, downloads) | files in `filesDir` / `cacheDir`, with the path or URI in Room |
+| temporary, rebuildable data | cache directory or memory cache |
+| secrets (tokens) | Android Keystore-backed storage (topic 13) |
+| shared user files | the Photo Picker / Storage Access Framework |
+
+**Room in layers.** `@Entity` = table, `@Dao` = queries, `@Database` = holder. A DAO function that returns `Flow<List<T>>` re-emits when the table changes, so the UI updates itself. `suspend` DAO functions run off the main thread.
+
+**Offline-first flow.**
+
+```mermaid
+flowchart LR
+    UI["UI"] -->|"observe"| DB[("Room")]
+    UI -->|"edit"| DB
+    DB -->|"dirty rows = outbox"| SYNC["Sync worker (WorkManager)"]
+    SYNC -->|"push changes"| API["Server"]
+    API -->|"changes since cursor"| SYNC
+    SYNC -->|"apply + resolve conflicts"| DB
+```
+
+**Cache strategies.**
+
+| Strategy | How | Good for |
+|---|---|---|
+| Cache-first | show the cache; fetch only when missing or expired | rarely changing data (settings, catalog) |
+| Network-first | try the network; fall back to the cache on failure | data that must be fresh |
+| Stale-while-revalidate | show the cache now, refresh in the background, update when it arrives | feeds, notes (most screens) |
+
+**Sync steps.**
+
+1. **Write locally:** save the change with `dirty = true` and a client-generated ID.
+2. **Push:** a worker sends dirty rows (with an `Idempotency-Key`), then marks them clean when the server confirms.
+3. **Pull:** ask for `changes?since=<cursor>`; apply them; store the new cursor only after the page is applied.
+4. **Conflicts:** same record changed locally and on the server.
+5. **Deletes:** keep a **tombstone** (`deleted = true`) until the server confirms, otherwise the next pull brings the row back.
+6. Trigger: app start, connectivity returning, a push "sync now", and a periodic fallback (topic 10).
+
+**Conflict resolution.**
+
+| Rule | How | Cost |
+|---|---|---|
+| Last-write-wins | the newer `updatedAt` (server-assigned if you can) wins | simple; can silently lose an edit |
+| Field merge (three-way) | compare each field with the common base; keep the changed one | no lost edits unless both change the same field |
+| Ask the user | show both versions | best for important data, more UI |
+
+**Migrations.** Bump `version`, provide a `Migration(from, to)` with SQL (or an auto-migration for simple changes). Users can jump from any old version to the newest, so every path must exist. Test them (`MigrationTestHelper`). `fallbackToDestructiveMigration()` deletes user data: only for pure caches.
+
+🟡 **DataStore vs `SharedPreferences`.** DataStore is asynchronous (coroutines/`Flow`), transactional and safe on the main thread's lifecycle. `SharedPreferences` reads on first access can block, and `apply()` can cause ANRs on lifecycle events. Use DataStore for new code.
+
+🟡 **Indexes.** An index on `updatedAt` or a foreign key speeds queries and slows writes slightly. Check queries with `EXPLAIN QUERY PLAN` for big tables; keep list queries paged.
+
+🟡 **Encryption.** Tokens and secrets: Keystore-backed. A whole encrypted database (SQLCipher) is for high-sensitivity data. Check the current recommended APIs (topic 13).
+
+🟡 **Large data.** Store files on disk and keep the path in the database. Clear caches on logout and when storage is low. Never put a big blob in a row you list.
+
+🟡 **iOS.** Core Data and SwiftData; same ideas (topic 16).
+
+---
+
+#### 3. Naive vs Better Design
+
+| Naive | Better |
+|---|---|
+| UI shows the network response, saved nowhere | UI observes Room; network updates Room |
+| write to the server, wait, then update the UI | write local first (optimistic), sync later |
+| two copies of data (memory and DB) | one source of truth |
+| delete the row locally | tombstone until the server confirms |
+| `fallbackToDestructiveMigration` on real data | a tested `Migration` |
+| auto-increment IDs created on the device | client-generated UUIDs |
+| overwrite local edits with every pull | resolve conflicts; keep dirty rows |
+| store the page cursor before applying the page | store it after |
+| `SharedPreferences` for everything | DataStore for settings, Room for data |
 
 ```kotlin
-@Entity(tableName = "notes")
-data class NoteEntity(@PrimaryKey val id: String, val title: String, val body: String)
+// Naive: the UI depends on the network; offline = empty screen
+fun load() = viewModelScope.launch { _notes.value = api.notes() }
+```
+
+---
+
+#### 4. Code
+
+Entity, DAO and database:
+
+```kotlin
+@Entity(tableName = "notes", indices = [Index("updatedAt")])
+data class NoteEntity(
+    @PrimaryKey val id: String,                 // UUID made on the device
+    val title: String,
+    val body: String,
+    val updatedAt: Long,
+    val deleted: Boolean = false,               // tombstone
+    val dirty: Boolean = false                  // waiting to be pushed (the outbox)
+)
 
 @Dao
 interface NoteDao {
-    @Query("SELECT * FROM notes ORDER BY updatedAt DESC")
-    fun getAllNotes(): Flow<List<NoteEntity>>   // observed — UI updates automatically on any change
+    @Query("SELECT * FROM notes WHERE deleted = 0 ORDER BY updatedAt DESC")
+    fun observeAll(): Flow<List<NoteEntity>>
 
-    @Upsert
-    suspend fun upsertAll(notes: List<NoteEntity>)
+    @Query("SELECT * FROM notes WHERE dirty = 1")
+    suspend fun pending(): List<NoteEntity>
+
+    @Query("SELECT * FROM notes WHERE id = :id")
+    suspend fun find(id: String): NoteEntity?
+
+    @Upsert suspend fun upsert(note: NoteEntity)
+
+    @Query("UPDATE notes SET dirty = 0 WHERE id = :id AND updatedAt = :updatedAt")
+    suspend fun markSynced(id: String, updatedAt: Long)          // only if not edited again meanwhile
+
+    @Query("DELETE FROM notes WHERE deleted = 1 AND dirty = 0")
+    suspend fun purgeSyncedDeletes()
+}
+
+@Database(entities = [NoteEntity::class], version = 2)
+abstract class AppDatabase : RoomDatabase() { abstract fun noteDao(): NoteDao }
+```
+
+A migration, and its test:
+
+```kotlin
+val MIGRATION_1_2 = object : Migration(1, 2) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE notes ADD COLUMN deleted INTEGER NOT NULL DEFAULT 0")
+    }
+}
+// Room.databaseBuilder(context, AppDatabase::class.java, "app.db").addMigrations(MIGRATION_1_2).build()
+
+@Test fun migrate1To2() {
+    helper.createDatabase("test.db", 1).apply { execSQL("INSERT INTO notes VALUES ('a','x',1)"); close() }
+    val db = helper.runMigrationsAndValidate("test.db", 2, true, MIGRATION_1_2)
+    db.query("SELECT deleted FROM notes WHERE id = 'a'").use { assertTrue(it.moveToFirst()); assertEquals(0, it.getInt(0)) }
 }
 ```
 
-Returning a `Flow` from a DAO query means the UI automatically re-renders whenever the underlying table changes — no manual "refresh" call needed.
+Checks (the same SQL on SQLite): the existing row `('a','x',1)` gets `deleted = 0`, so no data is lost.
 
----
+Write locally first (optimistic), delete with a tombstone:
 
-#### 3. Room Migrations — 🟢 Must Know
-
-1. Every schema change needs a **migration**, and **every version in the wild must be able to upgrade** — a user on version 12 opening an app now at version 20 needs all the migrations in between to run in sequence.
-2. Test migrations explicitly (topic `12`) — a broken migration corrupts or loses local data for real users.
-
----
-
-#### 4. Offline-First — 🟢 Must Know
-
-*The local database is the source of truth (topic `6`); the network keeps it in sync.*
-
-```text
-UI observes  ←  Room (source of truth)  ←  sync worker  ←  network
+```kotlin
+class NotesRepository(private val dao: NoteDao, private val clock: () -> Long = System::currentTimeMillis) {
+    fun observe() = dao.observeAll()
+    suspend fun create(title: String, body: String): String {
+        val id = UUID.randomUUID().toString()
+        dao.upsert(NoteEntity(id, title, body, clock(), dirty = true))
+        return id
+    }
+    suspend fun delete(id: String) {
+        val n = dao.find(id) ?: return
+        dao.upsert(n.copy(deleted = true, dirty = true, updatedAt = clock()))      // hidden from the UI, kept for sync
+    }
+}
 ```
 
-1. The UI never talks to the network directly — it observes the database.
-2. A sync process (often WorkManager, topic `10`) fetches remote changes and writes them into the database; writing to the database is what makes them appear on screen.
-3. This means the app works — reading, and often writing — even with no network at all.
+Cache-first / stale-while-revalidate as a Flow:
+
+```kotlin
+fun <T> staleWhileRevalidate(cache: Flow<T>, refresh: suspend () -> Unit): Flow<T> = channelFlow {
+    launch { runCatching { refresh() } }          // refresh in the background; failures are ignored here
+    cache.collect { send(it) }                    // cached value now, then updates when Room changes
+}
+```
+
+Applying a remote change safely (pure function, easy to test):
+
+```kotlin
+fun applyRemote(local: NoteEntity?, remote: NoteEntity): NoteEntity = when {
+    local == null -> remote                                  // new on this device
+    !local.dirty -> remote                                   // nothing local to lose
+    remote.updatedAt > local.updatedAt -> remote             // the server is newer: LWW
+    else -> local                                            // my edit is newer: keep it, it will be pushed
+}
+```
+
+Checks: no local row → remote. Local clean → remote. Local dirty `updatedAt = 5`, remote `7` → remote (my edit is dropped; use field merge if that is not acceptable). Local dirty `9`, remote `7` → local stays dirty and will be pushed.
+
+Field merge (three-way):
+
+```kotlin
+data class Doc(val title: String, val body: String)
+
+private fun pick(base: String, mine: String, theirs: String) = if (mine != base) mine else theirs
+
+fun merge(base: Doc, mine: Doc, theirs: Doc) =
+    Doc(pick(base.title, mine.title, theirs.title), pick(base.body, mine.body, theirs.body))
+```
+
+Checks: `base = Doc("t","b")`, `mine = Doc("t2","b")`, `theirs = Doc("t","b2")` → `Doc("t2","b2")` (both edits kept). If both change the title (`mine "m"`, `theirs "x"`) → `"m"` (mine wins, a rule you must state).
+
+The sync worker (push, then pull):
+
+```kotlin
+@HiltWorker
+class SyncWorker @AssistedInject constructor(
+    @Assisted context: Context, @Assisted params: WorkerParameters,
+    private val dao: NoteDao, private val api: NotesApi, private val cursors: CursorStore
+) : CoroutineWorker(context, params) {
+
+    override suspend fun doWork(): Result = try {
+        for (n in dao.pending()) {                                            // 1. push
+            api.upsert(n.id, n.toDto(), idempotencyKey = "${n.id}-${n.updatedAt}")
+            dao.markSynced(n.id, n.updatedAt)
+        }
+        var cursor = cursors.get()                                            // 2. pull
+        do {
+            val page = api.changes(since = cursor)
+            page.items.forEach { dao.upsert(applyRemote(dao.find(it.id), it.toEntity())) }
+            cursor = page.nextCursor ?: cursor
+            cursors.save(cursor)                                              // after applying the page
+        } while (page.hasMore)
+        dao.purgeSyncedDeletes()
+        Result.success()
+    } catch (e: IOException) { Result.retry() }                               // WorkManager backs off and retries
+}
+```
+
+DataStore for settings:
+
+```kotlin
+val Context.settings by preferencesDataStore("settings")
+private val DARK = booleanPreferencesKey("dark_mode")
+
+fun Context.darkMode(): Flow<Boolean> = settings.data.map { it[DARK] ?: false }
+suspend fun Context.setDarkMode(on: Boolean) { settings.edit { it[DARK] = on } }
+```
 
 ---
 
-#### 5. Cache Strategies — 🟢 Must Know
+#### 5. Performance & Limits
 
-1. **Cache-first** — show local data immediately, refresh in the background.
-2. **Network-first** — try the network first, fall back to cache on failure.
-3. **Stale-while-revalidate** — show stale local data immediately, and refresh silently, updating the UI when fresh data arrives (a good default for most feeds).
-
----
-
-#### 6. Sync — 🟢 Must Know
-
-1. **Send local changes**: queue writes made offline, and push them when connectivity returns.
-2. **Fetch remote changes**: usually "give me everything changed since timestamp/cursor X".
-3. **Handle failures**: a failed sync should retry (`SD 22`), not silently drop the local change.
-
----
-
-#### 7. Conflict Resolution — 🟢 Must Know
-
-1. **Last-write-wins** — the most recent change (by timestamp) wins; simple, but can silently discard a user's edit.
-2. **Merge rules** — combine both changes where possible (appending to a list, merging non-overlapping fields) — more correct, more work to design.
-3. Decide this **per feature** — a note's title might be fine with last-write-wins; a shared shopping list's items probably need a merge rule.
+| Item | Remember |
+|---|---|
+| Room on the main thread | disabled by default (throws); use `suspend` / `Flow` |
+| `Flow` from Room | re-emits on any change to the queried tables: keep queries specific, use `distinctUntilChanged` |
+| Large lists | page with Paging 3 instead of loading 10,000 rows |
+| Transactions | `@Transaction` / `withTransaction` for several writes (faster and atomic) |
+| Migration | runs once at startup: keep it fast; large data copies can delay launch |
+| Cache size | cap disk caches (10 to 100 MB) and clear on low storage / logout |
+| Sync cadence | on change, on connectivity, push-triggered; periodic work has a 15-minute minimum |
+| Cursor | save it only after the page is applied, so a crash repeats the page instead of skipping it |
 
 ---
 
-#### 8. Never Block the Main Thread — 🟢 Must Know
+#### 6. Common Mistakes & Edge Cases
 
-Room enforces this by default — a query on the main thread throws unless you explicitly allow it (don't). All database and file work runs via coroutines on `Dispatchers.IO` (topic `3`).
+1. Two sources of truth (screen memory, network, database).
+2. Deleting rows locally, so the next pull resurrects them.
+3. No conflict rule for offline edits.
+4. Destructive migrations on user data; missing migration paths for old versions.
+5. Database or file work on the main thread.
+6. Using auto-increment IDs created on the device, which clash across devices.
+7. Saving the cursor before applying the page.
+8. Syncing everything every time instead of a delta.
+9. Trusting the device clock for ordering.
+10. Forgetting to clear user data on logout.
 
----
-
-#### 9. DataStore vs `SharedPreferences` — 🟡 Good to Know
-
-DataStore is the modern replacement: asynchronous (no main-thread reads), transactional, and (in its typed form) schema-safe — prefer it over `SharedPreferences` for new code.
-
----
-
-#### 10. Indexes and Query Performance — 🟡 Good to Know
-
-The same indexing principles as any SQL database (`DB 5`) apply locally too — an unindexed query over thousands of local rows can visibly lag a screen.
-
----
-
-#### 11. Encrypted Storage — 🟡 Good to Know
-
-Sensitive local data (tokens, personal info) should be encrypted at rest — see topic `13` and `ARCH 11` for the security-architecture view.
+Edge cases: the user edits a record while the push is in flight (`markSynced` checks `updatedAt`); the app is killed mid-sync (the push is idempotent, the pull repeats); a record deleted on one device and edited on another; the app is offline for months (the server compacted tombstones: do a full resync); low disk space; the schema changes while a sync is running.
 
 ---
 
-#### 12. Large Data: Files vs Blobs — 🟡 Good to Know
+#### 7. Say This in the Interview
 
-Store large binary data (images, documents) as **files**, with only a path or reference stored in the database — storing large blobs directly in SQLite rows bloats the database and slows queries.
-
----
-
-#### 13. Deletes and Tombstones — 🟡 Good to Know
-
-A hard local delete doesn't tell the server anything. Sync needs to know what was deleted too — either an explicit "delete" sync event, or a **tombstone** (a marked-deleted row kept around briefly so the delete can propagate before being fully removed).
-
----
-
-#### 14. Testing Room and Migrations — 🟡 Good to Know
-
-Covered in topic `12` — an in-memory Room database for fast repository tests, and dedicated migration tests that actually run each migration against real sample data.
+1. "I make the local database the single source of truth. The UI observes Room with a `Flow`, and the network only updates the database."
+2. "Writes are optimistic: save locally with `dirty = true` and a client-generated ID, then a WorkManager job pushes them with an idempotency key."
+3. "For pull I use a cursor and save it after applying the page. Deletes are tombstones until the server confirms."
+4. "Conflicts: last-write-wins by server version for most fields; three-way merge or asking the user for important text."
+5. "Every old schema version needs a migration path, and I test migrations with `MigrationTestHelper`."
+6. "For stale-while-revalidate I show the cache immediately, refresh in the background and let Room's `Flow` update the screen."
 
 ---
 
-#### 15. iOS Equivalents — 🟡 Good to Know
+#### 8. Quick Check
 
-Core Data and SwiftData play the same "local source of truth" role on iOS — see topic `16`.
+1. Why a tombstone instead of deleting the row?
+2. Where do you save the sync cursor, and when?
+3. Room vs `DataStore`?
+4. What is wrong with `fallbackToDestructiveMigration` for notes?
 
----
+<details>
+<summary>Answers</summary>
 
-#### 16. Common Interview Questions
+1. The next pull would otherwise bring the deleted row back, and the server would never learn about the delete.
+2. In persistent storage, after the page has been applied.
+3. Room for structured, queryable data; `DataStore` for small settings.
+4. It wipes the user's data when the schema changes.
 
-1. **What does "offline-first" actually mean?**
-   The local database is the source of truth the UI observes; the network's job is to keep that database in sync, not to feed the UI directly. The app works, at least for reads, without connectivity.
-2. **How do you observe local data changes automatically?**
-   A Room DAO query returning `Flow<List<T>>` — Room re-emits automatically whenever the underlying table changes, no manual refresh needed.
-3. **How would you handle a sync conflict on a shared note?**
-   Depends on the feature: last-write-wins is simple but can discard changes; a merge strategy (per-field, or operational) preserves more, at the cost of design complexity.
-4. **Why do deletes need special handling in a sync system?**
-   A plain local delete leaves no record for sync to notice — you need an explicit delete event or a tombstone so the deletion propagates to the server (and to other devices) too.
-5. **Why must every Room migration path still work for old app versions?**
-   Users update infrequently — the app must be able to migrate a database from any historical version straight to the current one.
+</details>
 
 ---
 
-#### 17. Common Mistakes
+#### 9. Practice
 
-1. Feeding network results straight to the UI, treating the local database as a mere cache rather than the source of truth.
-2. Forgetting to test a Room migration against real, populated data.
-3. Handling deletes only locally, with no way for the server (or sync) to learn about them.
-4. Doing file or database I/O on the main thread.
-5. Storing large binary blobs directly in database rows instead of files.
+**Interview questions**
 
----
+1. Design an offline-first notes app.
+2. Which storage for what: Room, DataStore, files?
+3. How do you migrate a Room schema?
+4. How do you handle conflicts from two devices?
+5. Cache-first vs network-first vs stale-while-revalidate?
+6. How do you sync deletes?
+7. Why client-generated IDs?
 
-#### 18. Related Topics
+**Hands-on**
 
-1. `3` Coroutines & Flow — `Flow`-based DAO queries
-2. `6` App Architecture — the repository/source-of-truth pattern this builds on
-3. `10` Background Work & Notifications — WorkManager as the usual sync mechanism
-4. `DB 21` Mobile Databases — deeper database internals and mobile-specific detail
-5. `SD 30` Mobile-Specific Topics — offline-first from the system design side
+1. Convert a network-only screen to Room as the single source of truth.
+2. Add a `SyncWorker` and test it with a fake API that fails once.
+3. Write and test a migration that adds a column and one that adds a table.
 
----
+**Coding warm-ups (LeetCode)**
 
-#### 19. Interview Must Remember
+| # | Question | Link to this topic |
+|---|---|---|
+| 146 | [LRU Cache](https://leetcode.com/problems/lru-cache/) (Medium) | disk / memory cache eviction |
+| 460 | [LFU Cache](https://leetcode.com/problems/lfu-cache/) (Hard) | eviction by frequency |
+| 981 | [Time Based Key-Value Store](https://leetcode.com/problems/time-based-key-value-store/) (Medium) | versions by timestamp |
+| 1146 | [Snapshot Array](https://leetcode.com/problems/snapshot-array/) (Medium) | versions and snapshots |
+| 380 | [Insert Delete GetRandom O(1)](https://leetcode.com/problems/insert-delete-getrandom-o1/) (Medium) | O(1) store with removal |
 
-1. **Local database = source of truth.** UI observes it; the network syncs it.
-2. **Room DAO `Flow` queries** auto-update the UI on any data change.
-3. **Every historical schema version must still migrate correctly** — test migrations.
-4. **Deletes need explicit sync handling** — a plain local delete alone doesn't propagate.
-5. **Never touch the database or files on the main thread.**
+**Remember:** the database is the single source of truth · write local first, sync from an outbox · cursor saved after the page · tombstones for deletes · client-generated IDs · a conflict rule · tested migrations · no main-thread database work.

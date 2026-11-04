@@ -1,121 +1,328 @@
 # AI in Mobile Apps
 
-Roadmap topic 20 · Stage 7: Mobile in the System · (New)
+> A mobile AI feature is a normal feature with unusual failure modes: slow, streaming, rate-limited, sometimes wrong, and sometimes sensitive. Call the model through your backend, stream the answer, design every state, and choose on-device or cloud on purpose.
 
-**Marks:** 🟢 Must Know · 🟡 Good to Know · (New) beyond the basics, or still changing
+Roadmap topic 20 · Stage 7: Mobile in the System (New)
 
-**In simple words:** an AI feature in a mobile app is still a mobile feature first — it needs the same streaming UI, error states, and backend-mediated networking as anything else in this folder. `AI 19–20` cover this in more depth; this topic is the mobile-side summary and pointer.
+**Go deeper:** `08-artificial-intelligence` (LLM apps, RAG, safety, cost) · `8` Networking · `3` Coroutines (Flow) · `5` Compose · `13` Security · `19` Permissions (camera, microphone) · `05-system-design/24-Real-Time-Communication-and-Push`.
+
+**Marks:** 🟢 must know · 🟡 good to know · (New) still changing
 
 ---
 
-#### 1. The App Calls Your Backend — 🟢 Must Know
+#### 1. What Is It?
 
-*Never a provider key in the app — the same rule as topic `13`, applied specifically here (`AI 5`, `AI 20`).*
+*Putting a language model, or a small on-device model, behind a button.*
 
-```text
-Mobile app  →  Your backend  →  LLM provider
-            (auth, limits,      (holds the API key)
-             logging, filters)
+| 🟢 Must know | 🟡 Good to know |
+|---|---|
+| the app calls your backend; the backend calls the model; no provider key in the app | on-device options by name: ML Kit, Gemini Nano, LiteRT, Core ML |
+| streaming into the UI, with cancel and retry | model download, updates, storage |
+| states: loading, streaming, error, offline, limit reached | voice and camera input |
+| on-device vs cloud | privacy and third-party models |
+
+1. **Cloud AI:** large, capable models behind your backend. Needs network, costs money per use, sends data off the device.
+2. **On-device AI:** small models running on the phone. Works offline, private, fast to start, but less capable and device-dependent.
+3. **Streaming:** the answer arrives token by token, so the user sees progress.
+
+**Signals in an interview:** "add a chat assistant to the app", "where does the API key live?", "how do you show a streaming answer?", "what if it's offline or rate limited?", "on-device or cloud?".
+
+---
+
+#### 2. How It Works
+
+**Architecture.**
+
+```mermaid
+sequenceDiagram
+    participant App
+    participant BE as Your backend
+    participant M as Model provider
+    App->>BE: POST /chat (user token, message)
+    BE->>BE: auth, rate limit, cost cap, safety checks, build prompt
+    BE->>M: request with the provider key
+    M-->>BE: streamed tokens
+    BE-->>App: streamed events (SSE)
+    App->>App: append tokens to the UI
+    App->>BE: cancel (close the stream)
 ```
 
-The app authenticates as the user (topic `13`), the same as any other backend call (topic `8`) — the AI provider's key never leaves your server.
+Why a backend: the provider key must stay secret (the app is public); the backend enforces **per-user limits and budgets**, adds the system prompt and context, filters unsafe input and output, logs for quality, and lets you change models without a new app release.
+
+**Streaming.** Use Server-Sent Events (or a WebSocket). The app appends tokens to the current message, shows a stop button, handles a dropped connection (keep the partial text, offer retry/continue), and stops the stream when the user leaves or cancels.
+
+**States of an AI feature.**
+
+```mermaid
+stateDiagram-v2
+    [*] --> Idle
+    Idle --> Streaming: user sends
+    Streaming --> Done: finished
+    Streaming --> Failed: network / server error (keep the partial text)
+    Streaming --> Idle: user cancels
+    Idle --> LimitReached: server says 429 / quota
+    Failed --> Streaming: retry
+    Done --> Idle
+```
+
+Also design: **offline** (disable the input, explain), **slow** first token (typing indicator, timeout), **empty** and **long** answers, **harmful/blocked** answers (a clear message), **uncertainty** (the answer can be wrong: label it, allow feedback, let the user copy or regenerate).
+
+**On-device vs cloud.**
+
+| | On-device | Cloud |
+|---|---|---|
+| Quality | smaller models, narrower tasks | strongest models |
+| Latency | no network, fast start | network + generation time |
+| Privacy | data stays on the phone | data sent to your server and the provider |
+| Cost | free per call; model download and battery | per-token cost |
+| Offline | works | does not |
+| Device support | varies by hardware and OS | all devices |
+| Updates | ship a new model file | change the backend |
+
+```mermaid
+flowchart TD
+    Q["AI feature"] --> A{"Needs the strongest reasoning or fresh knowledge?"}
+    A -->|"yes"| CLOUD["Cloud via your backend"]
+    A -->|"no"| B{"Sensitive data or must work offline?"}
+    B -->|"yes"| DEV["On-device model (ML Kit, Gemini Nano, LiteRT, Core ML)"]
+    B -->|"no"| C{"High volume, cost-sensitive, small task?"}
+    C -->|"yes"| DEV
+    C -->|"no"| CLOUD
+```
+
+A hybrid is common: on-device for quick, private tasks (OCR, smart replies, classification), cloud for hard questions, with a fallback when the device is unsupported.
+
+🟡 **On-device options (by name, check current status).** **ML Kit**: ready-made APIs (text recognition, barcode scanning, translation, face detection). **Gemini Nano** via Android's AICore on supported devices (on-device generative text). **LiteRT** (formerly TensorFlow Lite): run your own model files. **Core ML** on iOS (and Apple's on-device foundation models on recent devices).
+
+🟡 **Model download, updates, storage.** Do not bundle large models in the APK. Download on demand (Wi-Fi only if large), verify a checksum, store in app files, version the model, keep the old one until the new one is verified, allow deletion, and fall back to cloud if the download fails.
+
+🟡 **Voice and camera input.** Speech-to-text (system `SpeechRecognizer` or a backend); camera for image questions or OCR. Both need permissions in context (topic 19); downsample images before upload; show a recording indicator.
+
+🟡 **Privacy and third-party models.** Tell users what is sent to which provider; get consent; don't send unnecessary personal data; redact before sending; check provider retention and training policies; offer an opt-out; follow store rules on AI content and user data.
 
 ---
 
-#### 2. Streaming Responses into the UI — 🟢 Must Know
+#### 3. Naive vs Better Design
 
-Consume the response as a `Flow` (topic `3`), appending text to the UI as tokens arrive, with **cancel** (stop generating) and **retry** (`AI 5`) — the same streaming-consumption pattern used for any other real-time data (topic `8`, `18`).
+| Naive | Better |
+|---|---|
+| provider API key inside the app | app → your backend → provider |
+| wait for the full answer, show a spinner | stream tokens, show progress |
+| no stop button; the stream keeps running when the user leaves | cancel on stop, on leaving the screen |
+| a single error message | distinct states: offline, rate limit, server error, blocked |
+| lose the partial answer on failure | keep it, offer retry |
+| send the whole chat history every time | send a summary or the last N messages (cost, latency) |
+| unlimited use | per-user limits and a cost cap on the backend |
+| trust the answer | label AI content, allow feedback |
+| always cloud | on-device for private/offline/simple tasks |
 
 ```kotlin
-viewModelScope.launch {
-    repository.streamChatResponse(prompt)
-        .collect { token -> _uiState.update { it.appendToken(token) } }
+// Naive: a secret in the app, one blocking call, no cancel, no limits
+const val OPENAI_KEY = "sk-live-..."
+suspend fun ask(q: String): String = http.post("https://api.provider.com/v1/chat", key = OPENAI_KEY, body = q)
+```
+
+---
+
+#### 4. Code
+
+The UI state as a pure reducer:
+
+```kotlin
+sealed interface ChatUi {
+    data object Idle : ChatUi
+    data class Streaming(val text: String) : ChatUi
+    data class Done(val text: String) : ChatUi
+    data class Failed(val partial: String, val reason: String) : ChatUi
+    data object LimitReached : ChatUi
+}
+
+sealed interface StreamEvent {
+    data class Token(val value: String) : StreamEvent
+    data object Finished : StreamEvent
+    data class Error(val reason: String) : StreamEvent
+    data object RateLimited : StreamEvent
+    data object Cancelled : StreamEvent
+}
+
+fun reduce(s: ChatUi, e: StreamEvent): ChatUi = when (e) {
+    is StreamEvent.Token -> ChatUi.Streaming(((s as? ChatUi.Streaming)?.text ?: "") + e.value)
+    StreamEvent.Finished -> if (s is ChatUi.Streaming) ChatUi.Done(s.text) else s
+    is StreamEvent.Error -> ChatUi.Failed((s as? ChatUi.Streaming)?.text ?: "", e.reason)
+    StreamEvent.RateLimited -> ChatUi.LimitReached
+    StreamEvent.Cancelled -> ChatUi.Idle
+}
+```
+
+Checks: starting from `Idle`: `Token("Hel")` → `Streaming("Hel")`; `Token("lo")` → `Streaming("Hello")`; `Finished` → `Done("Hello")`. From `Streaming("Hel")`, `Error("timeout")` → `Failed("Hel", "timeout")` (the partial text is kept); `Cancelled` → `Idle`; `RateLimited` → `LimitReached`.
+
+Stream SSE from your backend into a `Flow`:
+
+```kotlin
+fun OkHttpClient.chatStream(url: String, body: RequestBody, token: String): Flow<StreamEvent> = callbackFlow {
+    val request = Request.Builder().url(url).header("Authorization", "Bearer $token").post(body).build()
+    val source = EventSources.createFactory(this@chatStream).newEventSource(request, object : EventSourceListener() {
+        override fun onEvent(eventSource: EventSource, id: String?, type: String?, data: String) {
+            if (data == "[DONE]") trySend(StreamEvent.Finished) else trySend(StreamEvent.Token(parseToken(data)))
+        }
+        override fun onClosed(eventSource: EventSource) { channel.close() }
+        override fun onFailure(eventSource: EventSource, t: Throwable?, response: Response?) {
+            trySend(if (response?.code == 429) StreamEvent.RateLimited else StreamEvent.Error(t?.message ?: "error"))
+            channel.close()
+        }
+    })
+    awaitClose { source.cancel() }                  // user cancelled or left: close the stream, stop the cost
+}
+```
+
+`ViewModel` that folds events into state and supports cancel:
+
+```kotlin
+class ChatViewModel(private val repo: ChatRepository) : ViewModel() {
+    private val _ui = MutableStateFlow<ChatUi>(ChatUi.Idle)
+    val ui: StateFlow<ChatUi> = _ui.asStateFlow()
+    private var job: Job? = null
+
+    fun send(message: String) {
+        job?.cancel()
+        _ui.value = ChatUi.Idle
+        job = viewModelScope.launch {
+            repo.stream(message).collect { e -> _ui.update { reduce(it, e) } }
+        }
+    }
+    fun stop() { job?.cancel(); _ui.value = ChatUi.Idle }
+}
+```
+
+Throttle UI updates (tokens can arrive faster than you need to redraw):
+
+```kotlin
+val smooth: Flow<ChatUi> = vm.ui.sample(50)          // at most about 20 redraws per second
+```
+
+Send only a bounded history (cost and latency):
+
+```kotlin
+fun trimHistory(messages: List<Msg>, maxChars: Int = 4_000): List<Msg> {
+    var total = 0
+    return messages.asReversed().takeWhile { total += it.text.length; total <= maxChars }.asReversed()
+}
+```
+
+Checks: with messages of lengths `3000, 2000, 1500` and `maxChars = 4000` → the last two (`2000 + 1500 = 3500`) are kept, the first is dropped; with an empty list → empty.
+
+On-device OCR with ML Kit:
+
+```kotlin
+val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+fun readText(bitmap: Bitmap, onResult: (String) -> Unit) {
+    recognizer.process(InputImage.fromBitmap(bitmap, 0))
+        .addOnSuccessListener { onResult(it.text) }
+        .addOnFailureListener { onResult("") }                 // fall back or ask the user to retry
+}
+```
+
+Download a model file safely:
+
+```kotlin
+suspend fun ensureModel(info: ModelInfo, dir: File, download: suspend (String, File) -> Unit): File {
+    val target = File(dir, "${info.name}-${info.version}.tflite")
+    if (target.exists() && sha256(target) == info.sha256) return target          // already valid
+    val tmp = File(dir, target.name + ".part")
+    download(info.url, tmp)
+    check(sha256(tmp) == info.sha256) { "checksum mismatch" }                    // never trust the download
+    tmp.renameTo(target)
+    return target
 }
 ```
 
 ---
 
-#### 3. States for AI Features — 🟢 Must Know
+#### 5. Performance & Limits
 
-The same sealed-state discipline as any other screen (topic `6`), with a couple of AI-specific additions:
-
-| State | Show |
+| Item | Remember |
 |---|---|
-| Loading | Typing indicator |
-| Streaming | Partial answer, a stop button |
-| Error | Plain message, retry |
-| Offline | Say so; on-device fallback if available |
-| Limit reached | Explain, and say when it resets |
+| First token latency | often 0.5 to 3 s for cloud models; show an indicator right away |
+| Streaming | UI redraws at most about 20 per second; batch tokens |
+| Context window | the model reads a limited number of tokens; trim history |
+| Cost | per input and output token; cap per user and per day on the backend |
+| Rate limits | handle `429` with a clear message and `Retry-After` |
+| On-device model size | tens of MB (small tasks) to GBs (language models); download over Wi-Fi |
+| Battery | on-device inference uses the CPU/NPU; keep it short and cancel when the app leaves |
+| Device support | on-device generative features need specific hardware; always have a fallback |
 
 ---
 
-#### 4. On-Device vs Cloud AI — 🟢 Must Know
+#### 6. Common Mistakes & Edge Cases
 
-The full trade-off (privacy, offline capability, model strength, latency, cost) is covered in `AI 19`. On mobile specifically: on-device models must also account for app size, battery, and device variety (topic `1`, `11`) — a technique that works well on a flagship phone may be unusable on a low-end one.
+1. Shipping a provider key in the app.
+2. No cancel or lifecycle handling: the stream and the bill continue after the user leaves.
+3. Losing partial text on failure.
+4. Treating all errors the same (offline, limit, blocked, server).
+5. Sending the entire history and sensitive data every time.
+6. No per-user limits on the backend.
+7. Presenting AI output as fact; no feedback path.
+8. Recomposing the whole screen for every token.
+9. Bundling large models in the APK; unverified downloads.
 
----
-
-#### 5. On-Device Options — 🟡 Good to Know
-
-Names to know: **ML Kit** and **Gemini Nano** (Android), **LiteRT**, formerly TensorFlow Lite (cross-platform), **Core ML** (iOS, topic `16`). Check current platform/device support before committing — this area changes quickly.
-
----
-
-#### 6. Model Download, Updates, and Storage — 🟡 Good to Know
-
-An on-device model can be large — download it after install (not bundled in the initial APK/IPA), on an unmetered connection where possible, with progress shown and a fallback if the download fails or the device is unsupported (`AI 19`).
+Edge cases: the connection drops mid-answer; the user rotates the screen during streaming (the `ViewModel` keeps the job); two quick sends (cancel the first); the app is backgrounded (stop or pause the stream); a harmful or blocked answer; an unsupported device for on-device AI; the user denies the microphone; non-English input; very long answers.
 
 ---
 
-#### 7. Voice and Camera Input — 🟡 Good to Know
+#### 7. Say This in the Interview
 
-Feeding microphone or camera input into an AI feature reuses the device-capability handling from topic `19` — request the permission in context, and treat the captured data (voice, image) as sensitive, sent only as needed (item 8).
-
----
-
-#### 8. Privacy and Third-Party Models — 🟡 Good to Know
-
-Data sent to an AI model is data sent to a third party (`AI 16`) — apply the same minimal-collection principle as topic `13`, and make sure the app's data-safety declaration (topic `19`) reflects it accurately.
+1. "The app never holds a provider key. It calls my backend, which authenticates the user, rate limits, applies a budget, builds the prompt and calls the model."
+2. "I stream the answer over SSE and append tokens to a single message. The user can stop, and leaving the screen cancels the stream."
+3. "The UI has explicit states: idle, streaming, done, failed with the partial text kept, limit reached and offline."
+4. "I use on-device models for private, offline or simple tasks like OCR, and the cloud for hard questions, with a fallback when the device doesn't support the model."
+5. "Models are downloaded on demand, over Wi-Fi, with a checksum, and versioned. I tell users what is sent to which provider and ask for consent."
 
 ---
 
-#### 9. Common Interview Questions
+#### 8. Quick Check
 
-1. **How would you add a streaming AI chat feature to a mobile app?**
-   The app calls the backend, which holds the provider key and calls the model; the response streams back as a `Flow`, rendered incrementally with cancel/retry, using the same sealed-state pattern as any other screen.
-2. **Why not call the AI provider directly from the app?**
-   Same reason as any other secret — an embedded key can be extracted from the app; the backend must mediate access, add limits, and log usage.
-3. **What extra mobile constraints apply to an on-device AI model, beyond what `AI 19` already covers?**
-   App size (bundling vs downloading), battery cost of local inference, and device variety — a model that runs fine on a flagship phone may need a cloud fallback on older or lower-end hardware.
-4. **How do you handle an AI feature when the device is offline?**
-   Show a clear offline state, and use an on-device model as a fallback if one is available and suitable — otherwise disable the feature with a clear message rather than hanging indefinitely.
-5. **What privacy considerations apply specifically to AI features?**
-   Data sent to the model is sent to a third party — send the minimum needed, and make sure it's reflected in the app's data-safety declaration.
+1. Why must the provider key live on the backend?
+2. What should the app do with a half-finished answer after an error?
+3. Name two reasons to prefer on-device AI.
+4. Why sample or batch token updates?
 
----
+<details>
+<summary>Answers</summary>
 
-#### 10. Common Mistakes
+1. An app package is public; a key inside it can be extracted and abused. The backend also enforces limits.
+2. Keep it visible and offer retry or continue.
+3. Privacy (data stays on the phone) and offline use (also low latency and no per-call cost).
+4. Tokens arrive faster than the screen needs redraws; batching avoids needless recomposition and keeps scrolling smooth.
 
-1. Embedding an AI provider key directly in the app.
-2. No cancel button on a streaming response, wasting tokens (and money) on abandoned generations.
-3. Assuming an on-device model that works on a test device works everywhere.
-4. Treating an AI feature's error/offline states as an afterthought instead of designing them like any other screen state.
-5. Sending more data to a third-party model than the feature actually needs.
+</details>
 
 ---
 
-#### 11. Related Topics
+#### 9. Practice
 
-1. `3` Coroutines & Flow — the streaming consumption pattern
-2. `6` App Architecture — sealed UI states applied to AI features
-3. `8` Networking — the backend-mediated call pattern
-4. `AI 5`, `AI 19`, `AI 20` (in `08-artificial-intelligence`) — the full depth on backend-mediated calls, on-device vs cloud, and mobile AI UX
+**Interview questions**
 
----
+1. How would you add a chat assistant to a mobile app?
+2. Where does the model API key live, and why?
+3. How do you stream an answer and handle cancel and retry?
+4. Which states does the UI need?
+5. On-device vs cloud AI?
+6. How do you deliver and update an on-device model?
+7. What privacy concerns come with sending data to a model?
 
-#### 12. Interview Must Remember
+**Hands-on**
 
-1. **App → your backend → model.** Never a provider key in the app.
-2. **Stream with cancel/retry**, using the same `Flow` and sealed-state patterns as everything else in this folder.
-3. **On-device AI adds mobile-specific constraints**: app size, battery, device variety.
-4. **Privacy applies to AI features too** — send the minimum, declare it accurately.
+1. Build a streaming chat screen against a fake SSE server; test the reducer with the five events.
+2. Add a stop button and prove the server sees the closed connection.
+3. Add ML Kit text recognition to the camera flow and a cloud fallback.
+
+**Coding warm-ups (LeetCode)**
+
+| # | Question | Link to this topic |
+|---|---|---|
+| 359 | [Logger Rate Limiter](https://leetcode.com/problems/logger-rate-limiter/) (Easy, premium) | per-user limits |
+| 362 | [Design Hit Counter](https://leetcode.com/problems/design-hit-counter/) (Medium, premium) | usage counting |
+| 295 | [Find Median from Data Stream](https://leetcode.com/problems/find-median-from-data-stream/) (Hard) | streaming statistics (latency percentiles) |
+| 146 | [LRU Cache](https://leetcode.com/problems/lru-cache/) (Medium) | cache of recent answers |
+
+**Remember:** app → your backend → model, never a key in the app · stream and allow cancel · keep partial text · design every state (offline, limit, blocked) · on-device for private/offline tasks, cloud for hard ones · verify model downloads · tell users what is sent where.

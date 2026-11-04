@@ -1,172 +1,351 @@
 # iOS & Swift Essentials
 
-Roadmap topic 16 · Stage 6: Beyond Android · (New)
+> You do not need to be an iOS expert, but you should map every Android concept to its iOS equivalent and know the big differences. That is enough for most Android interviews and a good start for cross-platform work.
 
-**Marks:** 🟢 Must Know · 🟡 Good to Know · (New) beyond the basics, or still changing
+Roadmap topic 16 · Stage 6: Beyond Android (New)
 
-**In simple words:** if Android is your main platform, this topic is a translation guide — most of what you already know has a direct iOS equivalent. Learning the mapping is far faster than learning iOS from zero.
+**Go deeper:** `1` Platform Basics · `3` Coroutines (compare with Swift concurrency) · `4` Lifecycle · `5` Compose (compare with SwiftUI) · `9` Local Storage · `13` Security · `17` Cross-Platform & KMP.
+
+**Marks:** 🟢 must know · 🟡 good to know · (New) beyond the basics
 
 ---
 
-#### 1. Concept Map — 🟢 Must Know
+#### 1. What Is It?
+
+*The same ideas, with Apple's names.*
+
+| 🟢 Must know | 🟡 Good to know |
+|---|---|
+| map the concepts Android ↔ iOS | SwiftUI state: `@State`, `@Binding`, `@Observable` |
+| Swift basics: optionals, structs, enums, protocols | Combine and `AsyncSequence` |
+| ARC and retain cycles | `URLSession` networking |
+| Swift concurrency: `async/await`, actors, `MainActor` | Core Data and SwiftData |
+| UIKit vs SwiftUI | app and scene lifecycle, background tasks, APNs |
+| Keychain | testing: XCTest, Swift Testing |
+| | distribution: signing, TestFlight, review |
+| | Swift Package Manager |
+
+1. **Swift** is a compiled, type-safe language like Kotlin: optionals, value types, enums with data, protocols.
+2. **SwiftUI** is the declarative UI framework (like Compose); **UIKit** is the older imperative one (like Views).
+3. **Swift concurrency** (`async/await`, actors) is like coroutines.
+4. **ARC** frees objects by reference count, so cycles leak (use `weak`).
+
+**Signals in an interview:** "what is the iOS equivalent of X?", "how does memory management differ?", "SwiftUI vs UIKit?", "how do background tasks differ?".
+
+---
+
+#### 2. How It Works
+
+**Concept map.**
 
 | Android (Kotlin) | iOS (Swift) |
 |---|---|
-| Activity / Fragment | View controller / scene |
+| Activity / Fragment | `UIViewController` / SwiftUI `View` (a scene in the app) |
 | Jetpack Compose | SwiftUI |
-| Room | Core Data or SwiftData |
-| Coroutines, `Flow` | Swift concurrency (`async`/`await`), `AsyncSequence` |
-| `ViewModel` | Same term, same role, in an MVVM-style SwiftUI app |
-| Hilt/Koin | Manual DI, or a lightweight framework — no single dominant standard |
+| View system (XML) + `RecyclerView` | UIKit + `UITableView` / `UICollectionView` |
+| `ViewModel` + `StateFlow` | `ObservableObject` / `@Observable` + `@Published` |
+| Kotlin coroutines, `Flow` | Swift concurrency (`async/await`), `AsyncSequence`, Combine |
+| `Dispatchers.Main` | `@MainActor` |
+| Room | Core Data, SwiftData |
+| `DataStore` / `SharedPreferences` | `UserDefaults` (settings), Keychain (secrets) |
+| Retrofit / OkHttp | `URLSession` |
+| Hilt / Koin | initialiser injection, environment, third-party containers |
 | WorkManager | `BGTaskScheduler` |
-| FCM | APNs (Apple Push Notification service) |
-| Android Keystore | Keychain |
-| Gradle | Xcode build system / Swift Package Manager |
+| FCM | APNs (FCM can wrap APNs) |
+| Gradle, Maven Central | Swift Package Manager, Xcode |
+| AAB / Google Play | IPA / App Store, TestFlight |
+| Keystore | Keychain / Secure Enclave |
+| Play Integrity | App Attest / DeviceCheck |
+| JUnit, Espresso | XCTest, XCUITest, Swift Testing |
+| Material | Human Interface Guidelines (HIG) |
 
-Keep this table as the anchor — nearly everything else in this topic is filling in the right-hand column.
+**Swift basics vs Kotlin.**
+
+| Idea | Kotlin | Swift |
+|---|---|---|
+| Nullable | `String?`, `?.`, `?:`, `!!` | `String?` (Optional), `?.`, `??`, `!`, `if let`, `guard let` |
+| Value vs reference | data class (reference) | `struct` (value, copied), `class` (reference) |
+| Sealed states | `sealed interface` | `enum` with associated values |
+| Interfaces | `interface` | `protocol` (with extensions) |
+| Immutable | `val` | `let` |
+| Extension | `fun String.x()` | `extension String { func x() }` |
+
+Structs are copied on assignment, so most model types are structs. Enums with associated values model state, exactly like sealed classes.
+
+**ARC (Automatic Reference Counting).** Each object has a count of strong references; at zero, it is freed. Two objects that hold each other strongly never reach zero: a **retain cycle** (a leak). Break it with `weak` (becomes `nil` when the object is freed) or `unowned` (assumed alive). Closures that capture `self` are the usual cause: `[weak self]`.
+
+```mermaid
+flowchart LR
+    A["ViewController"] -->|"strong"| B["closure / delegate"]
+    B -->|"strong self = cycle (leak)"| A
+    B -.->|"weak self = no cycle"| A
+```
+
+**Swift concurrency.**
+
+| Swift | Kotlin counterpart |
+|---|---|
+| `async` function, `await` | `suspend` function |
+| `Task { }` | `launch { }` |
+| `async let` / `TaskGroup` | `async { }` / `coroutineScope` |
+| `actor` | confined state with a `Mutex` |
+| `@MainActor` | `Dispatchers.Main` |
+| `AsyncSequence` / `AsyncStream` | `Flow` |
+| `Task.cancel()`, `Task.checkCancellation()` | `cancel()`, `ensureActive()` |
+
+An **actor** protects its mutable state: only one task at a time runs inside it.
+
+**UIKit vs SwiftUI.** SwiftUI is declarative and state-driven (like Compose); the default for new apps. UIKit is still used for complex or older screens and many libraries. They interoperate (`UIHostingController`, `UIViewRepresentable`).
+
+**SwiftUI state.**
+
+| Wrapper | Meaning | Compose counterpart |
+|---|---|---|
+| `@State` | local state owned by the view | `remember { mutableStateOf }` |
+| `@Binding` | a two-way reference to state owned elsewhere | passing `value` + `onValueChange` |
+| `@Observable` (iOS 17+) / `ObservableObject` | a model the view watches | `ViewModel` with `StateFlow` |
+| `@Environment` | shared values from the tree | `CompositionLocal` |
+
+🟡 **Combine and `AsyncSequence`.** Combine is the older reactive framework; new code prefers `async/await` and `AsyncSequence`.
+
+🟡 **Networking.** `URLSession` with `async/await`; `Codable` for JSON; ATS (App Transport Security) requires HTTPS by default.
+
+🟡 **Persistence.** **Core Data** (mature object graph on SQLite) and **SwiftData** (modern, macro-based, for newer OS versions). The same offline-first design applies (topic 9).
+
+🟡 **Lifecycle and background.** The app has a scene lifecycle (`active`, `inactive`, `background`). Background work is strictly limited: `BGTaskScheduler` (refresh and processing), silent push, and a few special modes (audio, location). The system decides when.
+
+🟡 **Testing.** XCTest and the newer Swift Testing; XCUITest for UI; Xcode previews for quick checks.
+
+🟡 **Distribution.** Xcode, certificates and provisioning profiles (automatic signing helps), TestFlight for beta, App Store review (stricter than Play), phased release.
+
+🟡 **Swift Package Manager.** The built-in dependency manager (CocoaPods and Carthage are older).
 
 ---
 
-#### 2. Swift Basics — 🟢 Must Know
+#### 3. Naive vs Better Design
 
-1. **Optionals** (`String?`) — Swift's null safety, directly analogous to Kotlin's nullable types (`06-mobile-engineering/2`).
-2. **Structs vs classes** — structs are value types (copied on assignment), classes are reference types (shared on assignment) — a bigger everyday distinction in Swift than in Kotlin, where most things are reference types.
-3. **Enums with associated values** — Swift's enums can carry different data per case, playing the same role Kotlin's sealed classes play for modelling state (topic `2`).
-4. **Protocols** — Swift's equivalent of Kotlin interfaces.
+| Naive | Better |
+|---|---|
+| translate Android code line by line | use iOS idioms (SwiftUI, value types, actors) |
+| classes for every model | `struct` for data, `class` only for identity/shared state |
+| force unwrap `!` everywhere | `guard let`, `if let`, `??` |
+| `self` captured strongly in a stored closure | `[weak self]` |
+| update the UI from any thread | `@MainActor` |
+| shared mutable state with locks | an `actor` |
+| secrets in `UserDefaults` | Keychain |
+| assume background work runs on a schedule | `BGTaskScheduler` is best effort; design for it |
+| ignore HIG | follow platform conventions (navigation, gestures) |
 
 ```swift
-enum UiState {
-    case loading
-    case content([Note])       // associated value — like a sealed class subtype
-    case error(String)
+// Naive: force unwrap and a retain cycle
+class Screen { var onDone: (() -> Void)?
+    func setup() { onDone = { self.finish() } }       // strong cycle: Screen → closure → Screen
+    func finish() {} }
+let name = user.name!                                  // crash if nil
+```
+
+---
+
+#### 4. Code
+
+Optionals, a struct and an enum with associated values:
+
+```swift
+struct User { let id: Int; let name: String; let email: String? }
+
+func domain(of user: User?) -> String {
+    guard let email = user?.email, let at = email.firstIndex(of: "@") else { return "unknown" }
+    return String(email[email.index(after: at)...])
+}
+
+enum LoadState<T> { case loading; case content(T); case failed(String) }
+```
+
+Checks: `domain(of: User(id: 1, name: "Ann", email: "ann@x.com"))` → `"x.com"`; email `nil` → `"unknown"`; user `nil` → `"unknown"` (the same results as the Kotlin version in topic 2).
+
+SwiftUI screen with an observable model and `async/await`:
+
+```swift
+@Observable @MainActor
+final class NotesModel {
+    var state: LoadState<[Note]> = .loading
+    private let api: NotesAPI
+    init(api: NotesAPI) { self.api = api }
+
+    func load() async {
+        do { state = .content(try await api.notes()) }
+        catch is CancellationError { }                     // a cancelled task is not an error to show
+        catch { state = .failed("Offline") }
+    }
+}
+
+struct NotesView: View {
+    @State private var model = NotesModel(api: LiveNotesAPI())
+    var body: some View {
+        Group {
+            switch model.state {
+            case .loading: ProgressView()
+            case .failed(let message): Text(message)
+            case .content(let notes): List(notes) { Text($0.title) }
+            }
+        }
+        .task { await model.load() }                       // started with the view, cancelled when it disappears
+    }
+}
+```
+
+Networking with `URLSession` and `Codable`:
+
+```swift
+struct Note: Codable, Identifiable { let id: Int; let title: String }
+
+func fetchNotes() async throws -> [Note] {
+    var request = URLRequest(url: URL(string: "https://api.example.com/notes")!)
+    request.timeoutInterval = 20
+    let (data, response) = try await URLSession.shared.data(for: request)
+    guard (response as? HTTPURLResponse)?.statusCode == 200 else { throw URLError(.badServerResponse) }
+    return try JSONDecoder().decode([Note].self, from: data)       // unknown fields are ignored by default
+}
+```
+
+An actor protecting shared state:
+
+```swift
+actor HitCounter {
+    private var count = 0
+    func hit() { count += 1 }
+    func value() -> Int { count }
+}
+// await counter.hit()  from many tasks: always correct, no manual lock
+```
+
+Checks: 1,000 tasks each calling `await counter.hit()` end with `await counter.value() == 1000`.
+
+Break a retain cycle:
+
+```swift
+final class Screen {
+    var onDone: (() -> Void)?
+    func setup() { onDone = { [weak self] in self?.finish() } }    // no strong cycle
+    func finish() {}
+}
+```
+
+Keychain (store a token; simplified):
+
+```swift
+func saveToken(_ token: String) {
+    let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword,
+                                kSecAttrAccount as String: "accessToken",
+                                kSecValueData as String: Data(token.utf8),
+                                kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly]
+    SecItemDelete(query as CFDictionary)
+    SecItemAdd(query as CFDictionary, nil)
+}
+```
+
+A background refresh task:
+
+```swift
+BGTaskScheduler.shared.register(forTaskWithIdentifier: "com.example.notes.refresh", using: nil) { task in
+    Task { await SyncEngine.shared.sync(); task.setTaskCompleted(success: true) }
+}
+// schedule: BGAppRefreshTaskRequest(identifier: "com.example.notes.refresh") — the system picks the time
+```
+
+A test (XCTest):
+
+```swift
+func testDomain() {
+    XCTAssertEqual(domain(of: User(id: 1, name: "Ann", email: "ann@x.com")), "x.com")
+    XCTAssertEqual(domain(of: nil), "unknown")
 }
 ```
 
 ---
 
-#### 3. ARC and Retain Cycles — 🟢 Must Know
+#### 5. Performance & Limits
 
-1. **ARC (Automatic Reference Counting)** — Swift's memory management: an object is deallocated once nothing references it, tracked by counting references.
-2. A **retain cycle** happens when two objects hold strong references to each other, so neither's count ever reaches zero — a memory leak, conceptually similar to Android's "held `Context`" leaks (topic `11`).
-3. **`weak`** and **`unowned`** references break the cycle — `weak` for a reference that can become `nil`, `unowned` when you're certain the referenced object always outlives the reference.
-
-```swift
-class ViewModel {
-    var onUpdate: (() -> Void)?
-}
-// A closure capturing `self` strongly, stored on self, is a retain cycle:
-viewModel.onUpdate = { self.refresh() }              // leak
-viewModel.onUpdate = { [weak self] in self?.refresh() }   // fixed
-```
+| Item | Remember |
+|---|---|
+| Frame budget | 16.7 ms at 60 Hz, 8.3 ms at 120 Hz (ProMotion) |
+| Value types | copy-on-write for arrays and strings: cheap until mutated |
+| ARC | no pauses like a garbage collector, but retain cycles leak |
+| Main actor | UI work and state updates only; heavy work on background tasks |
+| Background | the system decides when `BGTaskScheduler` runs; there is no exact schedule |
+| App Store review | stricter than Play; privacy manifests and usage descriptions are required |
+| Minimum OS | `@Observable` and SwiftData need recent iOS (17+); check your deployment target |
 
 ---
 
-#### 4. Swift Concurrency — 🟢 Must Know
+#### 6. Common Mistakes & Edge Cases
 
-1. **`async`/`await`** — directly analogous to Kotlin's `suspend` functions (topic `3`).
-2. **Actors** — a Swift concurrency primitive that protects mutable state from concurrent access automatically, similar in purpose to Kotlin's `Mutex`.
-3. **`@MainActor`** — marks code that must run on the main thread, the Swift equivalent of `Dispatchers.Main`.
+1. Porting Android architecture 1:1 instead of using SwiftUI patterns.
+2. Force unwrapping (`!`).
+3. Retain cycles from closures and delegates.
+4. UI updates off the main thread.
+5. Keeping secrets in `UserDefaults`.
+6. Expecting background work to run on time.
+7. Missing usage-description strings for permissions (the app crashes or is rejected).
+8. Ignoring the HIG, and iOS version differences.
 
----
-
-#### 5. UIKit vs SwiftUI — 🟢 Must Know
-
-1. **UIKit** — the older, imperative UI framework (roughly the View system's role, topic `5`).
-2. **SwiftUI** — the modern, declarative framework: UI as a function of state, recomposition-like updates — directly analogous to Compose.
-
----
-
-#### 6. Keychain — 🟢 Must Know
-
-iOS's secure storage for secrets (tokens, credentials), backed by the device's secure hardware where available — the direct equivalent of Android Keystore-backed encrypted storage (topic `13`).
+Edge cases: SwiftUI views are structs, recreated often (the model must be stored with `@State` / `@StateObject`); a `Task` is cancelled when its view disappears; Keychain items survive app deletion unless handled; APNs tokens change; low-power mode and background refresh turned off by the user.
 
 ---
 
-#### 7. SwiftUI State — 🟡 Good to Know
+#### 7. Say This in the Interview
 
-`@State` (local, owned state), `@Binding` (a hoisted, two-way connection to a parent's state — like Compose's state hoisting, topic `5`), `@Observable`/`@StateObject` (external, observable state sources, like a `ViewModel`).
-
----
-
-#### 8. Combine and `AsyncSequence` — 🟡 Good to Know
-
-**Combine** was Apple's reactive streams framework (playing a role similar to `Flow`); **`AsyncSequence`** is the newer, `async`/`await`-native way to represent a stream of values over time — increasingly the preferred choice in new code.
+1. "I know the mapping: Activity ↔ view controller, Compose ↔ SwiftUI, Room ↔ Core Data or SwiftData, coroutines ↔ `async/await`, `Dispatchers.Main` ↔ `@MainActor`, Keystore ↔ Keychain, WorkManager ↔ `BGTaskScheduler`, FCM ↔ APNs."
+2. "Swift value types (structs) and enums with associated values play the role of data classes and sealed classes."
+3. "ARC frees objects at zero references, so a closure capturing `self` strongly can leak; I use `[weak self]`."
+4. "Swift concurrency uses `async/await`, structured tasks and actors, which protect mutable state without manual locks."
+5. "Architecture ideas carry over: single source of truth, unidirectional data flow, offline-first. Only the framework names change."
 
 ---
 
-#### 9. `URLSession` — 🟡 Good to Know
+#### 8. Quick Check
 
-iOS's foundational networking API, the rough equivalent of OkHttp (topic `8`).
+1. What is the Swift equivalent of a Kotlin sealed class?
+2. How does a retain cycle form and how do you break it?
+3. What does `@MainActor` do?
+4. Where do you store a token on iOS?
 
----
+<details>
+<summary>Answers</summary>
 
-#### 10. Core Data and SwiftData — 🟡 Good to Know
+1. An `enum` with associated values.
+2. Two objects hold strong references to each other (often a closure capturing `self`). Break it with `weak` or `unowned`.
+3. It makes the code run on the main thread, like `Dispatchers.Main`.
+4. In the Keychain.
 
-Core Data is the long-established local persistence framework; SwiftData is Apple's newer, more Swift-native alternative — both play Room's role (topic `9`) as the local source of truth.
-
----
-
-#### 11. App Lifecycle and APNs — 🟡 Good to Know
-
-Scene-based app lifecycle callbacks map to Activity/Fragment lifecycle (topic `4`); `BGTaskScheduler` maps to WorkManager, and **APNs** maps to FCM for push notifications (topic `10`).
-
----
-
-#### 12. Testing — 🟡 Good to Know
-
-**XCTest** (established) and **Swift Testing** (newer) play the role of JUnit/Compose testing tools (topic `12`).
+</details>
 
 ---
 
-#### 13. Distribution — 🟡 Good to Know
+#### 9. Practice
 
-Xcode handles building and signing; **TestFlight** is the staged-rollout/beta-testing equivalent of a Google Play release track; App Store review tends to be stricter and slower than Google Play's (topic `15`, `1`).
+**Interview questions**
 
----
+1. What is the iOS equivalent of an Activity, a `ViewModel`, Room, WorkManager?
+2. How does ARC differ from garbage collection?
+3. SwiftUI vs UIKit?
+4. How do Swift actors work?
+5. How is background work different on iOS?
+6. Where do you store secrets?
 
-#### 14. Swift Package Manager — 🟡 Good to Know
+**Hands-on**
 
-Apple's dependency and modularization tool — the rough equivalent of Gradle modules and dependency management (topic `7`).
+1. Rebuild one screen of your Android app in SwiftUI with `async/await`.
+2. Write the same `domain(of:)` function in Swift and Kotlin and compare.
+3. Create a retain cycle, find it in Xcode's memory graph, and fix it.
 
----
+**Coding warm-ups (LeetCode, language-agnostic)**
 
-#### 15. Common Interview Questions
+| # | Question | Link to this topic |
+|---|---|---|
+| 1 | [Two Sum](https://leetcode.com/problems/two-sum/) (Easy) | solve it in Swift too (dictionary) |
+| 20 | [Valid Parentheses](https://leetcode.com/problems/valid-parentheses/) (Easy) | arrays as stacks in Swift |
+| 49 | [Group Anagrams](https://leetcode.com/problems/group-anagrams/) (Medium) | `Dictionary(grouping:)` |
+| 1114 | [Print in Order](https://leetcode.com/problems/print-in-order/) (Easy) | ordering tasks |
 
-1. **How would you explain Kotlin coroutines to someone who only knows Swift?**
-   Directly analogous to `async`/`await`: a `suspend` function pauses without blocking a thread, the same way an `async` Swift function does.
-2. **What's the iOS equivalent of a memory leak from a held `Context`?**
-   A retain cycle — two objects (often a closure capturing `self` strongly) holding strong references to each other, fixed with `weak`/`unowned`, the same way Android fixes it by not holding a long-lived `Context` reference.
-3. **SwiftUI vs Jetpack Compose — how similar are they really?**
-   Both are declarative, state-driven UI frameworks with a similar recomposition/re-render model; the concepts map closely even though the exact APIs (`@State` vs `remember`, for example) differ.
-4. **What's the iOS equivalent of WorkManager?**
-   `BGTaskScheduler`, for deferrable background work — though iOS's background execution model is generally more restrictive than Android's.
-5. **If you know Room well, how fast could you pick up Core Data or SwiftData?**
-   The core ideas transfer directly — entities, migrations, observing changes to update the UI — the main work is learning the new API surface, not the underlying concepts.
-
----
-
-#### 16. Common Mistakes
-
-1. Assuming iOS has no equivalent restrictions (background work, main-thread rules) just because they're less familiar — most Android constraints have a real iOS counterpart.
-2. Forgetting `weak self` in a closure stored on the object it captures, creating a retain cycle.
-3. Treating SwiftUI and Compose as unrelated, instead of leaning on the strong conceptual overlap to learn faster.
-4. Assuming Combine is still the default choice for new code — `async`/`await` and `AsyncSequence` are increasingly preferred.
-
----
-
-#### 17. Related Topics
-
-1. `2` Kotlin Essentials — the Swift optionals/sealed-class comparisons in this topic
-2. `3` Coroutines & Flow — the async/await and Mutex/actor comparisons
-3. `5` UI with Jetpack Compose — the SwiftUI comparison
-4. `11` Performance & Memory — retain cycles vs Android memory leaks
-5. `17` Cross-Platform & Kotlin Multiplatform — sharing code between both platforms instead of maintaining two apps
-
----
-
-#### 18. Interview Must Remember
-
-1. **Use the concept map** — most Android knowledge has a direct iOS analogue.
-2. **ARC + retain cycles** is iOS's version of memory leaks; `weak`/`unowned` is the fix.
-3. **`async`/`await`** ≈ Kotlin coroutines. **SwiftUI** ≈ Compose. **Keychain** ≈ Android Keystore.
-4. Learning iOS on top of solid Android knowledge is mostly **learning new APIs for concepts you already understand**.
+**Remember:** same ideas, different names · structs and enums with data ≈ data and sealed classes · `[weak self]` for cycles · `async/await`, actors, `@MainActor` ≈ coroutines · Keychain for secrets · background work is the system's decision.

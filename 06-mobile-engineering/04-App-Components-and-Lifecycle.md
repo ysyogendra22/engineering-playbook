@@ -1,172 +1,333 @@
 # App Components & Lifecycle
 
+> Android creates, pauses, recreates and kills your screens. If you do not know when, you lose the user's data. This is the most asked mobile interview topic.
+
 Roadmap topic 4 · Stage 2: Building the App
 
-**Marks:** 🟢 Must Know · 🟡 Good to Know · (New) beyond the basics, or still changing
+**Go deeper:** `1` Platform Basics (process death) · `3` Coroutines (`viewModelScope`) · `5` Compose (`rememberSaveable`) · `6` Architecture · `10` Background Work · `16` iOS (view controller and scene lifecycle) · `13` Security (exported components).
 
-**In simple words:** an Android screen doesn't just run once and stop — the OS creates it, pauses it, destroys and recreates it, sometimes several times per minute. Knowing exactly when each of those happens, and what to do at each point, is what stops your app from losing data or crashing on rotation.
-
----
-
-#### 1. Activity and the Single-Activity Approach — 🟢 Must Know
-
-1. An **Activity** is a screen or entry point in the traditional Android model.
-2. Most modern apps use a **single Activity**, with **Compose** (topic `5`) or **Fragments/Navigation** handling the actual screens inside it — simpler lifecycle management, one place to own navigation.
+**Marks:** 🟢 must know · 🟡 good to know
 
 ---
 
-#### 2. The Lifecycle Callbacks — 🟢 Must Know
+#### 1. What Is It?
 
-```text
-onCreate → onStart → onResume → [ running, visible, interactive ]
-   → onPause → onStop → onDestroy
+*The parts an Android app is made of, and the callbacks that tell you what is happening.*
+
+| 🟢 Must know | 🟡 Good to know |
+|---|---|
+| Activity, single-activity approach | services, foreground services |
+| activity and fragment lifecycle callbacks | broadcast receivers, content providers |
+| configuration changes | launch modes and task behaviour |
+| process death and state restoration | Application class, startup libraries |
+| `ViewModel`: what it keeps, what it does not | the manifest: components, permissions, `exported` |
+| intents: explicit vs implicit | iOS equivalents |
+| navigation and the back stack | |
+| deep links and app links | |
+
+1. An **Activity** is a screen or entry point. Modern apps use **one Activity** and many Compose destinations.
+2. The system calls **lifecycle callbacks** as the screen is created, shown, hidden and destroyed.
+3. A **configuration change** (rotation, language, dark mode) recreates the Activity. **Process death** ends the whole process.
+4. A **`ViewModel`** survives a configuration change but not process death.
+5. **Intents** start components and carry data. **Deep links** open a specific screen from a URL.
+
+**Signals in an interview:** "what happens on rotation?", "the screen lost my input", "ViewModel vs `savedInstanceState`", "implicit vs explicit intent", "how do you handle a link that opens the app?".
+
+---
+
+#### 2. How It Works
+
+**Activity lifecycle.**
+
+```mermaid
+stateDiagram-v2
+    [*] --> Created: onCreate
+    Created --> Started: onStart
+    Started --> Resumed: onResume
+    Resumed --> Paused: onPause
+    Paused --> Resumed: onResume
+    Paused --> Stopped: onStop
+    Stopped --> Started: onRestart + onStart
+    Stopped --> Destroyed: onDestroy
+    Destroyed --> [*]
 ```
 
-1. **`onCreate`** — one-time setup (view binding, reading initial arguments).
-2. **`onStart`/`onStop`** — visible but maybe not interactive / no longer visible.
-3. **`onResume`/`onPause`** — fully interactive / losing focus (a dialog appears, another app comes forward).
-4. **`onDestroy`** — final cleanup, may not always be called (the process can just be killed — see topic 4).
+| Callback | State | Do |
+|---|---|---|
+| `onCreate` | created | set up UI, restore saved state, inject dependencies |
+| `onStart` | visible | start things that need to be visible (collect flows) |
+| `onResume` | in the foreground, has focus | start camera preview, sensors |
+| `onPause` | partly covered or leaving | stop exclusive resources fast |
+| `onStop` | not visible | save data, stop updates; (since Android 9 `onSaveInstanceState` runs after `onStop`) |
+| `onDestroy` | finishing or being recreated | release; do not rely on it for saving |
+
+Typical sequences:
+
+| Event | Callbacks |
+|---|---|
+| Open the app | `onCreate → onStart → onResume` |
+| Press Home | `onPause → onStop` |
+| Return from Home | `onRestart → onStart → onResume` |
+| Rotate | `onPause → onStop → onDestroy → onCreate → onStart → onResume` |
+| Press Back on the last screen | `onPause → onStop → onDestroy` |
+| Killed in background | nothing (no callback) |
+
+**Fragment** lifecycle is similar, plus a separate **view lifecycle** (`viewLifecycleOwner`): observe on that, not on the fragment, or you leak. In Compose, destinations replace fragments.
+
+**What survives what.**
+
+| Place | Rotation | Process death | App reinstall / clear data |
+|---|---|---|---|
+| Local variable / field in the Activity | lost | lost | lost |
+| `remember` in Compose | lost | lost | lost |
+| `rememberSaveable` | kept | kept | lost |
+| `ViewModel` field | kept | **lost** | lost |
+| `SavedStateHandle` (in `ViewModel`) | kept | kept (small data) | lost |
+| Room / `DataStore` / files | kept | kept | lost |
+
+```mermaid
+flowchart LR
+    U["User input / screen state"] --> Q{"How long must it live?"}
+    Q -->|"only while on screen"| R["remember"]
+    Q -->|"through rotation"| VM["ViewModel"]
+    Q -->|"through process death (small, UI state)"| S["SavedStateHandle / rememberSaveable"]
+    Q -->|"forever / large / shared"| D[("Room / DataStore")]
+```
+
+Saved state goes through a `Bundle` with a size limit (about 1 MB shared by the whole transaction), so keep it small: ids, text, scroll position, not lists of objects.
+
+**Intents.**
+
+1. **Explicit:** names the exact component (`Intent(this, DetailActivity::class.java)`). Used inside your app.
+2. **Implicit:** describes an action (`ACTION_VIEW` a URL, `ACTION_SEND` text) and the system picks an app. Check that an app can handle it.
+3. Pass **small data** as extras (ids, not objects). Get a result with the Activity Result APIs (`registerForActivityResult`), not `startActivityForResult`.
+4. Treat every incoming intent as untrusted input (topic 13).
+
+**Navigation and the back stack.** Each navigation adds an entry to a stack; Back pops it. Compose Navigation keeps a `NavBackStackEntry` per destination and gives each its own `ViewModel` and saved state. Pass **ids** to destinations, load data from the repository.
+
+**Deep links and app links.**
+
+1. A **deep link** is a URI pattern that opens a destination.
+2. An **app link** is a verified `https` deep link (`autoVerify`, with a `assetlinks.json` file on your domain), so it opens your app without a chooser.
+3. Always validate the arguments (a bad id must show a safe error, not crash).
+
+🟡 **Services.** A `Service` runs without UI. A **foreground service** shows a notification and has a declared type (location, media playback, data sync, …). For deferrable work prefer WorkManager (topic 10).
+
+🟡 **Broadcast receivers and content providers.** A receiver reacts to system or app events (many are restricted in the manifest on newer Android; register at runtime). A content provider shares structured data between apps (rare today; `FileProvider` is the common case).
+
+🟡 **Launch modes and tasks.** `standard`, `singleTop`, `singleTask`, `singleInstance` control whether a new instance is created. A notification that opens a screen usually needs the right back stack (`TaskStackBuilder`).
+
+🟡 **Application class and startup.** `Application.onCreate` runs before any screen; keep it light (topic 11). The `androidx.startup` library orders initializers.
+
+🟡 **Manifest.** Declares components, permissions, intent filters, and `android:exported` (required on components with intent filters when targeting Android 12+). A component that is exported can be started by other apps.
+
+🟡 **iOS.** `UIViewController` (`viewDidLoad`, `viewWillAppear`, `viewDidDisappear`) and the scene lifecycle (`active`, `inactive`, `background`) (topic 16).
 
 ---
 
-#### 3. Configuration Changes — 🟢 Must Know
+#### 3. Naive vs Better Design
 
-*Rotation, language change, dark mode toggle — the Activity is destroyed and recreated.*
-
-1. By default, a **configuration change** (screen rotation is the classic one) destroys and recreates the Activity, re-running `onCreate`.
-2. This is **not** the same as process death (item 4) — the process stays alive, only the Activity instance is recreated. `ViewModel`s survive this automatically.
-
----
-
-#### 4. Process Death and State Restoration — 🟢 Must Know
-
-*The harder case: the whole process is gone, and `ViewModel`s don't survive it either.*
-
-1. `ViewModel` survives configuration changes, but **not** process death (topic `1`).
-2. **`SavedStateHandle`** — a small key-value store tied to the Activity/Fragment, saved and restored across process death, accessible from inside a `ViewModel`.
-3. **`rememberSaveable`** — the Compose equivalent, for UI-local state that should survive both configuration changes and process death.
+| Naive | Better |
+|---|---|
+| keep UI state in fields of the Activity | `ViewModel` + `SavedStateHandle` or `rememberSaveable` |
+| `android:configChanges` to "stop" recreation | handle recreation; it also happens on process death |
+| save big objects in a `Bundle` | save ids, reload from the database |
+| `startActivityForResult` | Activity Result APIs |
+| collect flows in `onCreate` forever | `repeatOnLifecycle(STARTED)` |
+| pass whole objects between screens | pass ids; the next screen loads the data |
+| trust the incoming deep link | parse and validate; show a safe error |
+| `exported="true"` by default | export only what must be public |
+| 20 Activities | one Activity, many destinations |
 
 ```kotlin
-class NotesViewModel(private val savedStateHandle: SavedStateHandle) : ViewModel() {
-    var searchQuery: String
-        get() = savedStateHandle["query"] ?: ""
-        set(value) { savedStateHandle["query"] = value }   // survives process death
+// Naive: the counter and the draft vanish on rotation or process death
+class EditorActivity : AppCompatActivity() {
+    var draft = ""
 }
 ```
 
-```text
-Configuration change:  process alive → Activity destroyed → recreated → ViewModel survives
-Process death:         process killed → everything gone → SavedStateHandle/rememberSaveable
-                        is what's left to restore from
+---
+
+#### 4. Code
+
+A `ViewModel` that survives rotation and process death:
+
+```kotlin
+class EditorViewModel(private val saved: SavedStateHandle, private val repo: NotesRepository) : ViewModel() {
+    val noteId: Long = checkNotNull(saved["noteId"])
+    val draft = saved.getStateFlow("draft", "")              // StateFlow backed by saved state
+    fun onDraftChange(text: String) { saved["draft"] = text }
+    fun save() = viewModelScope.launch { repo.save(noteId, draft.value) }
+}
 ```
 
----
+In Compose, UI-only state:
 
-#### 5. `ViewModel`: What It Holds, What It Doesn't Survive — 🟢 Must Know
+```kotlin
+var expanded by rememberSaveable { mutableStateOf(false) }   // survives rotation and process death
+var scratch by remember { mutableStateOf("") }               // lost on rotation
+```
 
-1. Holds UI state and business logic, outliving Activity recreation from configuration changes.
-2. Does **not** survive process death, and does **not** hold a reference to a `View`, `Context`, or `Activity` — that would leak them.
-3. Full architecture role covered in topic `6`.
+Observing the lifecycle:
 
----
+```kotlin
+class LoggingObserver : DefaultLifecycleObserver {
+    override fun onStart(owner: LifecycleOwner) { Log.d("Life", "visible") }
+    override fun onStop(owner: LifecycleOwner) { Log.d("Life", "hidden") }
+}
+// in the Activity: lifecycle.addObserver(LoggingObserver())
+```
 
-#### 6. Intents — 🟢 Must Know
+Intents:
 
-1. An **Intent** is a message that starts a component (an Activity, a Service) or requests an action.
-2. **Explicit** — names the exact component to start (within your own app). **Implicit** — describes an action, and the OS finds an app that can handle it (share, open a URL).
-3. Passing data and getting results back uses `Intent` extras and the `ActivityResult` APIs.
+```kotlin
+// Explicit: start a screen of this app with an id
+startActivity(Intent(this, DetailActivity::class.java).putExtra("noteId", 42L))
 
----
+// Implicit: ask the system to share text, and check that something can handle it
+val send = Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, "Hello") }
+startActivity(Intent.createChooser(send, "Share note"))
 
-#### 7. Navigation and the Back Stack — 🟢 Must Know
+// Result API
+val pick = registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri -> uri?.let(::attach) }
+pick.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+```
 
-1. The **back stack** tracks the screens the user has visited, so the system back button/gesture returns to the previous one.
-2. The Navigation library (or Compose Navigation, topic `5`) manages this declaratively, instead of manual fragment transactions.
+Compose Navigation with type-safe routes and a deep link:
 
----
+```kotlin
+@Serializable object NotesList
+@Serializable data class NoteDetail(val id: Long)
 
-#### 8. Deep Links and App Links — 🟢 Must Know
+NavHost(navController, startDestination = NotesList) {
+    composable<NotesList> { NotesScreen(onOpen = { id -> navController.navigate(NoteDetail(id)) }) }
+    composable<NoteDetail>(
+        deepLinks = listOf(navDeepLink<NoteDetail>(basePath = "https://notes.example.com/note"))
+    ) { entry ->
+        val route = entry.toRoute<NoteDetail>()
+        DetailScreen(id = route.id)        // the screen's ViewModel loads the note by id
+    }
+}
+```
 
-1. A **deep link** is a URL that opens a specific screen inside the app.
-2. **App links** are deep links verified to belong to your domain, so Android opens your app directly instead of a chooser dialog.
-3. Deep links are untrusted input — validate them before acting on their data (`SD` security notes apply here too).
+Manifest for the deep link (verified app link):
 
----
+```xml
+<activity android:name=".MainActivity" android:exported="true">
+    <intent-filter android:autoVerify="true">
+        <action android:name="android.intent.action.VIEW" />
+        <category android:name="android.intent.category.DEFAULT" />
+        <category android:name="android.intent.category.BROWSABLE" />
+        <data android:scheme="https" android:host="notes.example.com" android:pathPrefix="/note" />
+    </intent-filter>
+</activity>
+```
 
-#### 9. Services — 🟡 Good to Know
+Test a deep link and process death from the terminal:
 
-1. A **Service** runs in the background without a UI. A **foreground service** shows a persistent notification and gets more leeway from the OS to keep running (covered further in topic `10`).
+```bash
+adb shell am start -a android.intent.action.VIEW -d "https://notes.example.com/note/42" com.example.notes
+adb shell am kill com.example.notes          # with the app in the background
+```
 
----
+A tiny model of the back stack (what navigation does):
 
-#### 10. Broadcast Receivers and Content Providers — 🟡 Good to Know
+```kotlin
+class BackStack<T> {
+    private val stack = ArrayDeque<T>()
+    fun navigate(dest: T) = stack.addLast(dest)
+    fun back(): T? = if (stack.size > 1) { stack.removeLast(); stack.last() } else null   // keep the root
+    val current get() = stack.lastOrNull()
+}
+```
 
-1. **Broadcast receiver** — responds to system-wide or app-wide events (network changed, boot completed).
-2. **Content provider** — a structured way to share data between apps.
-
----
-
-#### 11. Launch Modes and Task Behaviour — 🟡 Good to Know
-
-Launch modes (`standard`, `singleTop`, `singleTask`, `singleInstance`) control whether a new Activity instance is created or an existing one is reused when navigating — relevant mainly for deep links and notification taps.
-
----
-
-#### 12. Application Class and Startup — 🟡 Good to Know
-
-The `Application` class runs once per process, before any screen — the place for one-time global setup (DI graph initialization, crash reporting). Keep it fast; it directly delays cold start (topic `11`).
-
----
-
-#### 13. The Manifest — 🟡 Good to Know
-
-The `AndroidManifest.xml` declares every component, requested permissions, and which components are `exported` (reachable from outside the app) — an important, often-overlooked security surface (topic `13`).
-
----
-
-#### 14. iOS Equivalents — 🟡 Good to Know
-
-`UIViewController`'s lifecycle (`viewDidLoad`, `viewWillAppear`, etc.) and the scene lifecycle map to Android's Activity/Fragment lifecycle — see topic `16`.
-
----
-
-#### 15. Common Interview Questions
-
-1. **What's the difference between a configuration change and process death?**
-   A configuration change destroys and recreates the Activity, but the process stays alive — `ViewModel` survives it. Process death kills the whole process — only `SavedStateHandle`/`rememberSaveable` or persisted data survives.
-2. **Where should you NOT store a reference to a `View` or `Activity`?**
-   In a `ViewModel` — it outlives the Activity across configuration changes, so holding a reference to the old one leaks it.
-3. **How would you restore a search query after the app is killed and reopened?**
-   Store it in `SavedStateHandle` (or `rememberSaveable` in Compose) so it survives process death, not just a plain in-memory field.
-4. **What's the danger of an "exported" component?**
-   It can be triggered by other apps or the system — always validate any data it receives, the same way you'd validate untrusted network input.
-5. **Explicit vs implicit intent?**
-   Explicit names the exact component. Implicit describes an action and lets the OS pick a handler.
-
----
-
-#### 16. Common Mistakes
-
-1. Only testing rotation, and never testing actual process death (which can be forced from developer options) — many "it works on rotation" bugs fail under real process death.
-2. Holding an Activity/View reference inside a `ViewModel`.
-3. Treating deep link data as trusted without validation.
-4. Doing heavy work in the `Application` class, slowing cold start.
-5. Assuming `onDestroy` will always be called before the process ends.
+Checks: `navigate("List")`, `navigate("Detail")` → `current == "Detail"`; `back()` → `"List"`; `back()` again → `null` (the root stays; the system finishes the Activity).
 
 ---
 
-#### 17. Related Topics
+#### 5. Performance & Limits
 
-1. `1` Mobile Platform Basics — the process death this topic covers in depth
-2. `5` UI with Jetpack Compose — `rememberSaveable` and Compose Navigation
-3. `6` App Architecture — where `ViewModel` fits into the layers
-4. `16` iOS & Swift Essentials — the `UIViewController` lifecycle equivalent
+| Item | Remember |
+|---|---|
+| Saved state / `Bundle` | keep well under 1 MB in total (the transaction limit is shared); `TransactionTooLargeException` otherwise |
+| `ViewModel` | lives from first use until the screen is permanently gone (not on rotation) |
+| `viewModelScope` | cancelled when the `ViewModel` is cleared |
+| Cold start | `Application.onCreate` + first Activity `onCreate` + first frame; keep them light (topic 11) |
+| Foreground service | needs a type and a visible notification; the OS can stop it on newer Android versions after a time limit for some types |
+| Deep link | untrusted input: validate id and format |
 
 ---
 
-#### 18. Interview Must Remember
+#### 6. Common Mistakes & Edge Cases
 
-1. **Configuration change: process alive, Activity recreated, `ViewModel` survives.**
-2. **Process death: everything gone — only `SavedStateHandle`/persisted data survives.**
-3. Never hold a `View`/`Activity`/`Context` reference in a `ViewModel`.
-4. Deep links and exported components are **untrusted input** — validate them.
+1. Storing state in the Activity or in a static field.
+2. Ignoring process death: it works in testing, then users lose data.
+3. Large objects in a `Bundle`.
+4. Collecting flows outside the lifecycle.
+5. Leaking the Activity via a static or a long-lived listener.
+6. Using `configChanges` to hide recreation.
+7. Exported components with no permission check.
+8. Doing work in `onDestroy` and expecting it to run.
+
+Edge cases: rotation while a network call is running (the `ViewModel` keeps the call); two quick rotations; the user opens a deep link while the app is already open (new intent: `onNewIntent`); the deep link points to a deleted note; "Don't keep activities" in developer options (use it to test); the system dark-mode switch recreates the Activity; multi-window and split screen (resize is a configuration change).
+
+---
+
+#### 7. Say This in the Interview
+
+1. "On rotation the Activity is destroyed and recreated, but the `ViewModel` survives. On process death everything is gone except saved state and persistent storage."
+2. "I keep UI state in a `ViewModel`, small restorable bits in `SavedStateHandle` or `rememberSaveable`, and real data in Room."
+3. "I test process death with 'Don't keep activities' and `adb shell am kill`."
+4. "I pass ids between screens and load data in the destination."
+5. "I validate every deep link and intent extra because they are untrusted input."
+6. "I collect with `repeatOnLifecycle(STARTED)` so nothing runs when the screen is hidden."
+
+---
+
+#### 8. Quick Check
+
+1. Which callback order runs on rotation?
+2. Does the `ViewModel` survive process death?
+3. Explicit or implicit intent: opening your own `DetailActivity`?
+4. Why is `exported` important?
+
+<details>
+<summary>Answers</summary>
+
+1. `onPause → onStop → onDestroy → onCreate → onStart → onResume`.
+2. No. Use `SavedStateHandle` or a database.
+3. Explicit.
+4. An exported component can be started by any app, so it must validate input and not expose private actions.
+
+</details>
+
+---
+
+#### 9. Practice
+
+**Interview questions**
+
+1. Explain the Activity lifecycle in order for start, rotate, background and kill.
+2. What survives a configuration change? What survives process death?
+3. `ViewModel` vs `onSaveInstanceState` vs `rememberSaveable`?
+4. Explicit vs implicit intents?
+5. How do deep links and app links work, and how do you secure them?
+6. Why single-activity?
+7. What is a foreground service, and when do you need it?
+
+**Hands-on**
+
+1. Add a text field and prove it survives rotation and `adb shell am kill`.
+2. Add a verified deep link to a detail screen, and handle an invalid id.
+3. Write down the callback order you see in Logcat for the five events in the table.
+
+**Coding warm-ups (LeetCode, the back stack is a stack)**
+
+| # | Question | Link to this topic |
+|---|---|---|
+| 1472 | [Design Browser History](https://leetcode.com/problems/design-browser-history/) (Medium) | back / forward navigation |
+| 155 | [Min Stack](https://leetcode.com/problems/min-stack/) (Medium) | a stack with extra information |
+| 20 | [Valid Parentheses](https://leetcode.com/problems/valid-parentheses/) (Easy) | stack matching |
+| 946 | [Validate Stack Sequences](https://leetcode.com/problems/validate-stack-sequences/) (Medium) | push / pop order |
+
+**Remember:** rotation recreates the Activity, process death ends the process · `ViewModel` survives rotation only · save small state, store real data · pass ids, not objects · validate deep links · collect with the lifecycle.

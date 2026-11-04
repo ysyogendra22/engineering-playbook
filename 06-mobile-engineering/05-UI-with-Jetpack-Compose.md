@@ -1,195 +1,312 @@
 # UI with Jetpack Compose
 
+> In Compose the UI is a function of state. Change the state and Compose redraws only what depends on it. Interviewers check that you understand recomposition, state hoisting and side effects.
+
 Roadmap topic 5 · Stage 2: Building the App
 
-**Marks:** 🟢 Must Know · 🟡 Good to Know · (New) beyond the basics, or still changing
+**Go deeper:** `3` Coroutines (`collectAsStateWithLifecycle`, `LaunchedEffect`) · `4` Lifecycle · `6` Architecture (UI state) · `11` Performance (Compose) · `12` Testing (Compose tests) · `14` Accessibility and adaptive UI · `16` iOS (SwiftUI).
 
-**In simple words:** Compose describes the UI as a function of state — you don't mutate views, you describe what the screen should look like for the current state, and Compose figures out what to redraw. Understanding recomposition is what separates "Compose that works" from "Compose that's smooth".
+**Marks:** 🟢 must know · 🟡 good to know
 
 ---
 
-#### 1. Composables: UI as a Function of State — 🟢 Must Know
+#### 1. What Is It?
 
-1. A **composable** is a function, annotated `@Composable`, that describes part of the UI based on its inputs.
-2. Instead of `view.setText(...)` mutating an existing object, you write `Text(state.title)` — when `state.title` changes, Compose re-runs that function to redraw.
+*Describe the UI for the current state; the framework does the updating.*
+
+| 🟢 Must know | 🟡 Good to know |
+|---|---|
+| composables: UI as a function of state | Material theming and design tokens |
+| state and recomposition | stability, `derivedStateOf` |
+| `remember`, `rememberSaveable`, state hoisting | animations, gestures, custom drawing |
+| `Row`, `Column`, `Box`, modifier order | previews, testable UI |
+| `LazyColumn`, keys | View system basics and interop |
+| side effects: `LaunchedEffect`, `DisposableEffect` | iOS: SwiftUI |
+| `ViewModel` + single UI state | |
+| navigation in Compose | |
+
+1. A **composable** is a function that emits UI. It should have no hidden side effects.
+2. **State** is a value Compose observes (`mutableStateOf`, `StateFlow` collected as state).
+3. When state changes, Compose **recomposes** only the composables that read it.
+4. **State hoisting:** a composable receives `value` and `onValueChange`, so the caller owns the state.
+
+**Signals in an interview:** "what is recomposition?", "`remember` vs `rememberSaveable`", "why does my list jump?", "where do you launch a coroutine in a composable?", "how do you avoid needless recomposition?".
+
+---
+
+#### 2. How It Works
+
+**The loop.**
+
+```mermaid
+flowchart LR
+    S["State"] --> C["Composition<br/>(run composables)"] --> L["Layout"] --> D["Drawing"]
+    D --> UI["Screen"]
+    UI -->|"user event"| E["onClick / onValueChange"]
+    E -->|"update"| S
+```
+
+**Recomposition.** When a state object that a composable read changes, Compose re-runs that composable (and children whose inputs changed) and skips the rest. Composables can run often, in any order, and be skipped, so they must be **fast and free of side effects**.
+
+**`remember` and `rememberSaveable`.**
+
+| | Rotation | Process death |
+|---|---|---|
+| `remember { }` | lost (the Activity is recreated) | lost |
+| `rememberSaveable { }` | kept | kept (small, `Bundle`-able values) |
+| state in the `ViewModel` | kept | lost, unless `SavedStateHandle` |
+
+**State hoisting.**
+
+```mermaid
+flowchart TD
+    Screen["Screen (stateful): reads ViewModel state"] -->|"value, onValueChange"| Field["NoteField (stateless)"]
+    Field -->|"event up"| Screen
+```
+
+Stateless composables are easy to test, preview and reuse.
+
+**Layout and modifiers.** `Column` stacks vertically, `Row` horizontally, `Box` overlaps. Modifiers apply in the order written:
 
 ```kotlin
-@Composable
-fun NoteItem(note: Note, onClick: () -> Unit) {
-    Text(text = note.title, modifier = Modifier.clickable { onClick() })
+Modifier.padding(16.dp).background(Color.Red)   // padding first: red fills only the area inside the 16 dp margin
+Modifier.background(Color.Red).padding(16.dp)   // red fills the whole box, the content is inset by 16 dp
+```
+
+Read left to right: each modifier wraps what comes after it.
+
+**Lazy lists.** `LazyColumn` composes only the visible items. Give each item a stable **`key`** (the id) so state and animations follow the item when the list changes.
+
+**Side effects.**
+
+| API | Use for |
+|---|---|
+| `LaunchedEffect(key)` | run a suspend block when entering the composition and when `key` changes |
+| `rememberCoroutineScope()` | launch from an event handler (a click) |
+| `DisposableEffect(key)` | register and clean up a listener (`onDispose`) |
+| `SideEffect` | publish Compose state to non-Compose code |
+| `rememberUpdatedState` | use the latest lambda inside a long-running effect |
+| `produceState`, `snapshotFlow` | turn non-Compose sources into state / state into a Flow |
+
+Never start a coroutine directly in the body of a composable: it would restart on every recomposition.
+
+**`ViewModel` + one UI state.** The screen collects one state object and sends events up.
+
+```mermaid
+flowchart LR
+    VM["ViewModel<br/>StateFlow of UiState"] -->|"collectAsStateWithLifecycle"| Screen
+    Screen -->|"onEvent(...)"| VM
+```
+
+🟡 **Theming.** `MaterialTheme` provides colour, typography and shapes; use theme tokens (`MaterialTheme.colorScheme.primary`), not hard-coded colours, so dark mode and brands work (topic 14).
+
+🟡 **Stability and skipping.** Compose skips a composable when its inputs are unchanged. Types it cannot prove stable (a `List`, a class with a `var`) may force recomposition; recent compilers enable "strong skipping" by default, which helps. Use immutable data, `ImmutableList` or `@Immutable`/`@Stable` when the compiler report shows a problem. **`derivedStateOf`** turns a fast-changing value into a slower one (for example "show the button when the scroll offset > 0").
+
+🟡 **Animations, gestures, drawing.** `animate*AsState`, `AnimatedVisibility`, `Modifier.pointerInput`, `Canvas`. Read animated values as late as possible (in the draw or layout phase) to avoid recomposing every frame.
+
+🟡 **Previews and testing.** `@Preview` for stateless composables; `createComposeRule()` for UI tests (topic 12).
+
+🟡 **View system.** XML layouts, `RecyclerView`, `ViewBinding` still exist in older apps. Interop: `AndroidView` (View inside Compose) and `ComposeView` (Compose inside Views). Migrate screen by screen.
+
+🟡 **iOS.** SwiftUI is also state-driven: `@State`, `@Binding`, `@Observable` (topic 16).
+
+---
+
+#### 3. Naive vs Better Design
+
+| Naive | Better |
+|---|---|
+| a composable that calls the repository | the `ViewModel` loads data; the composable shows state |
+| `var text by remember` inside a reusable field | hoist state: `value` + `onValueChange` |
+| `LazyColumn { items(list) { … } }` with no key | `items(list, key = { it.id })` |
+| launch a coroutine in the composable body | `LaunchedEffect(key)` or an event handler scope |
+| pass the whole `ViewModel` to child composables | pass state and lambdas |
+| hard-coded colours and sizes | theme tokens and `dp`/`sp` |
+| `remember` for state that must survive rotation | `rememberSaveable` or the `ViewModel` |
+| one giant composable | small composables, each with clear inputs |
+
+```kotlin
+// Naive: network call in the body of the composable runs again on every recomposition
+@Composable fun Profile() {
+    val user = runBlocking { api.user() }
+    Text(user.name)
 }
 ```
 
 ---
 
-#### 2. State and Recomposition — 🟢 Must Know
+#### 4. Code
 
-*Recomposition is Compose re-running the composables whose state changed — and only those.*
-
-1. When state read inside a composable changes, Compose schedules that composable (and only the ones that actually read that state) to run again.
-2. Keeping recomposition **cheap** — small, focused composables, stable data types — is the core Compose performance skill (also covered in topic `11`).
-
----
-
-#### 3. `remember`, `rememberSaveable`, State Hoisting — 🟢 Must Know
-
-1. **`remember`** — keeps a value across recompositions (but not configuration changes or process death).
-2. **`rememberSaveable`** — same, but also survives configuration changes and process death (built on `SavedStateHandle`, topic `4`).
-3. **State hoisting** — move state up to the caller, so the composable itself becomes stateless and reusable, taking the value and an `onValueChange` callback instead of owning the state.
+Stateless component and its stateful screen:
 
 ```kotlin
 @Composable
-fun SearchField(query: String, onQueryChange: (String) -> Unit) {   // hoisted — stateless, reusable
-    TextField(value = query, onValueChange = onQueryChange)
+fun NoteField(value: String, onValueChange: (String) -> Unit, modifier: Modifier = Modifier) {
+    OutlinedTextField(value = value, onValueChange = onValueChange, label = { Text("Note") }, modifier = modifier)
+}
+
+@Composable
+fun EditorScreen(vm: EditorViewModel = hiltViewModel()) {
+    val draft by vm.draft.collectAsStateWithLifecycle()
+    NoteField(value = draft, onValueChange = vm::onDraftChange)      // state lives in the ViewModel
 }
 ```
 
----
-
-#### 4. Layouts and Modifiers — 🟢 Must Know
-
-1. **`Row`**, **`Column`**, **`Box`** — the three basic layout containers (horizontal, vertical, stacked).
-2. **Modifiers** chain together, and **order matters** — `padding` before `clickable` gives a different tap target than the reverse.
-
-```kotlin
-Column(modifier = Modifier.padding(16.dp).fillMaxWidth()) { ... }
-```
-
----
-
-#### 5. Lists: `LazyColumn`, Keys, Item State — 🟢 Must Know
-
-1. **`LazyColumn`** — only composes and lays out the items currently visible (like `RecyclerView`), not the whole list at once.
-2. **`key`** on each item tells Compose how to track items across list changes — without it, item-level state (like scroll position or an expanded flag) can get scrambled when the list reorders.
-
-```kotlin
-LazyColumn {
-    items(notes, key = { it.id }) { note ->    // key prevents state mix-ups on reorder
-        NoteItem(note)
-    }
-}
-```
-
----
-
-#### 6. Side Effects — 🟢 Must Know
-
-*Anything that isn't drawing UI — a network call, a log, a coroutine — needs to run inside a defined "effect", not directly in the composable body.*
-
-1. **`LaunchedEffect(key)`** — runs a coroutine when the composable enters composition, and re-runs it if `key` changes.
-2. **`DisposableEffect`** — like `LaunchedEffect`, but with explicit cleanup when the composable leaves composition (unregister a listener).
-3. **`rememberCoroutineScope`** — a scope tied to the composable's lifecycle, for launching a coroutine from an event handler (like a button click), not automatically.
+One screen state and an exhaustive `when`:
 
 ```kotlin
 @Composable
-fun NotesScreen(viewModel: NotesViewModel) {
-    LaunchedEffect(Unit) {
-        viewModel.loadNotes()          // runs once when this composable enters composition
-    }
-}
-```
-
----
-
-#### 7. Connecting a `ViewModel` with a Single UI State — 🟢 Must Know
-
-The standard pattern: one `StateFlow<UiState>` exposed from the `ViewModel`, collected lifecycle-aware in Compose (topic `3`), driving the whole screen.
-
-```kotlin
-@Composable
-fun NotesScreen(viewModel: NotesViewModel = hiltViewModel()) {
-    val state by viewModel.uiState.collectAsStateWithLifecycle()
+fun NotesContent(state: UiState<List<Note>>, onOpen: (Long) -> Unit, onRetry: () -> Unit) {
     when (state) {
-        is UiState.Loading -> LoadingSpinner()
-        is UiState.Content -> NotesList(state.items)
-        is UiState.Error -> ErrorMessage(state.message)
+        UiState.Loading -> CircularProgressIndicator()
+        is UiState.Error -> ErrorView(state.message, onRetry)
+        is UiState.Content -> if (state.items.isEmpty()) EmptyView() else NotesList(state.items, onOpen)
+    }
+}
+
+@Composable
+fun NotesList(notes: List<Note>, onOpen: (Long) -> Unit) {
+    LazyColumn {
+        items(notes, key = { it.id }) { note ->                 // stable key: state follows the item
+            ListItem(headlineContent = { Text(note.title) }, modifier = Modifier.clickable { onOpen(note.id) })
+        }
     }
 }
 ```
 
----
+Side effects:
 
-#### 8. Navigation in Compose — 🟢 Must Know
+```kotlin
+@Composable
+fun EventsHandler(events: Flow<UiEvent>, onNavigateBack: () -> Unit, snackbar: SnackbarHostState) {
+    val latestBack by rememberUpdatedState(onNavigateBack)
+    LaunchedEffect(Unit) {                                     // starts once, cancelled on leaving the composition
+        events.collect { e ->
+            when (e) {
+                is UiEvent.Message -> snackbar.showSnackbar(e.text)
+                UiEvent.NavigateBack -> latestBack()
+            }
+        }
+    }
+}
 
-Compose Navigation defines a `NavHost` with composable destinations, and a `NavController` to move between them — the declarative version of the back stack described in topic `4`.
+@Composable
+fun BackHandlerExample(enabled: Boolean, onBack: () -> Unit) {
+    val dispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
+    DisposableEffect(dispatcher, enabled) {
+        val cb = object : OnBackPressedCallback(enabled) { override fun handleOnBackPressed() = onBack() }
+        dispatcher?.addCallback(cb)
+        onDispose { cb.remove() }                              // always clean up
+    }
+}
+```
 
----
+`derivedStateOf`:
 
-#### 9. Material Theming — 🟡 Good to Know
+```kotlin
+val listState = rememberLazyListState()
+val showScrollToTop by remember { derivedStateOf { listState.firstVisibleItemIndex > 0 } }   // recomposes when it flips, not on every pixel
+```
 
-`MaterialTheme` centralises colours, typography, and shapes as design tokens, so screens stay visually consistent and support light/dark theme switching (topic `14`) from one place.
+A Compose UI test:
 
----
+```kotlin
+@get:Rule val rule = createComposeRule()
 
-#### 10. Stability and `derivedStateOf` — 🟡 Good to Know
+@Test fun `shows empty message`() {
+    rule.setContent { NotesContent(UiState.Content(emptyList()), onOpen = {}, onRetry = {}) }
+    rule.onNodeWithText("No notes yet").assertIsDisplayed()
+}
+```
 
-1. Compose skips recomposing a composable whose inputs are "stable" and unchanged — an unstable type (like a plain, mutable `List`) can defeat this optimisation.
-2. **`derivedStateOf`** — computes a value from other state, and only triggers recomposition when the *derived* result actually changes, not every time an input changes.
-
----
-
-#### 11. Animations, Gestures, Custom Drawing — 🟡 Good to Know
-
-Compose has a dedicated animation API (`animate*AsState`, `AnimatedVisibility`), gesture modifiers (`draggable`, `pointerInput`), and a `Canvas` for custom drawing.
-
----
-
-#### 12. Previews and Testable UI — 🟡 Good to Know
-
-`@Preview` renders a composable in Android Studio without running the app — fastest way to iterate on UI. Keeping composables stateless (via hoisting) also makes them easy to preview and test in isolation.
-
----
-
-#### 13. The View System and Interop — 🟡 Good to Know
-
-The older XML/View system (`RecyclerView`, `View` classes) still exists in many codebases. `AndroidView`/`ComposeView` let Compose and the View system interoperate during a gradual migration.
-
----
-
-#### 14. iOS Equivalent — 🟡 Good to Know
-
-SwiftUI is Apple's equivalent declarative UI framework, with very similar core ideas (state-driven views, a comparable side-effect model) — see topic `16`.
-
----
-
-#### 15. Common Interview Questions
-
-1. **What triggers recomposition?**
-   A change to state that was read inside a composable during its last composition — Compose tracks these reads and only recomposes what actually depends on the changed state.
-2. **What is state hoisting and why does it matter?**
-   Moving state ownership up to the caller so a composable becomes stateless — more reusable, easier to test, and lets the caller (often a `ViewModel`) be the single source of truth.
-3. **Why does `LazyColumn` need a `key`?**
-   Without it, Compose tracks items by position, so reordering can scramble per-item state (scroll position, animations) that should have followed the item.
-4. **`LaunchedEffect` vs `rememberCoroutineScope`?**
-   `LaunchedEffect` runs automatically tied to composition and a key. `rememberCoroutineScope` gives you a scope to launch coroutines from event callbacks (like a click), which aren't automatically tied to composition.
-5. **How do you keep recomposition cheap?**
-   Small, focused composables; stable/immutable data classes; hoisting expensive computation into `derivedStateOf` or the `ViewModel`; avoiding unnecessary state reads high up the tree.
+Modifier order check: `Box(Modifier.size(100.dp).padding(10.dp).background(Color.Red))` → red square is `80 × 80 dp` (padding removes space before the background). `Box(Modifier.size(100.dp).background(Color.Red).padding(10.dp))` → red is `100 × 100 dp` and the content is inset by 10.
 
 ---
 
-#### 16. Common Mistakes
+#### 5. Performance & Limits
 
-1. Putting business logic directly inside a composable instead of the `ViewModel`.
-2. Forgetting `key` on `LazyColumn` items.
-3. Launching a coroutine directly in the composable body instead of inside `LaunchedEffect`.
-4. Ignoring recomposition counts until performance actually suffers (topic `11`).
-5. Not hoisting state, leading to composables that are hard to reuse or test.
-
----
-
-#### 17. Related Topics
-
-1. `3` Coroutines & Flow — `LaunchedEffect`, `collectAsStateWithLifecycle`
-2. `4` App Components & Lifecycle — `rememberSaveable` and process death
-3. `6` App Architecture — the single-UI-state pattern this connects to
-4. `11` Performance & Memory — Compose-specific performance tuning
-5. `16` iOS & Swift Essentials — SwiftUI as the equivalent
+| Item | Remember |
+|---|---|
+| Frame budget | 16 ms at 60 Hz: composition + layout + draw must fit |
+| Lazy list | composes only visible items (plus a small buffer); a non-lazy `Column` composes all |
+| Keys | without keys, items are matched by position: state jumps when the list changes |
+| Recomposition | cheap if the work is cheap; expensive work belongs in `remember`, `derivedStateOf` or the `ViewModel` |
+| Animated values | read in the draw / layout phase (`graphicsLayer { }`, lambda modifiers) to skip recomposition |
+| Release builds | Compose is much faster with R8 and baseline profiles; judge performance in release mode |
+| Layout Inspector / compiler reports | find recomposition counts and unstable parameters |
 
 ---
 
-#### 18. Interview Must Remember
+#### 6. Common Mistakes & Edge Cases
 
-1. **UI is a function of state** — composables re-run (recompose) when the state they read changes.
-2. **State hoisting** makes composables stateless and reusable.
-3. **`LazyColumn` + `key`** for correct, efficient lists.
-4. Side effects (coroutines, cleanup) belong in **`LaunchedEffect`/`DisposableEffect`**, not the composable body directly.
+1. Doing side effects (network, writing state) in the composable body.
+2. Missing `key` in `LazyColumn`.
+3. `remember` for state that should survive rotation.
+4. Passing the `ViewModel` down the tree.
+5. Reading fast-changing state (scroll offset, animation) high in the tree.
+6. A `remember` without keys when the calculation depends on a parameter: use `remember(param)`.
+7. Heavy work in the body (sorting a big list on every recomposition).
+8. A nested scrolling container with infinite height (`LazyColumn` inside `Column(Modifier.verticalScroll)`).
+9. Hard-coded text and colours (breaks dark mode and translation).
+
+Edge cases: very large font scale; empty, loading and error states; rotation in the middle of typing; keyboard (IME) covering the field; list item removed while animating; state hoisted too high (everything recomposes) or too low (cannot share).
+
+---
+
+#### 7. Say This in the Interview
+
+1. "Compose describes the UI as a function of state. When state changes, only the composables that read it recompose."
+2. "I hoist state: a composable takes a value and a lambda, and the screen or `ViewModel` owns the state. That makes it testable and reusable."
+3. "`remember` keeps a value across recompositions; `rememberSaveable` also keeps it across rotation and process death."
+4. "Side effects go in `LaunchedEffect`, `DisposableEffect` or event handlers, never in the body, because the body can run many times."
+5. "Lists use `LazyColumn` with stable keys. I read fast-changing state as late as possible, or wrap it in `derivedStateOf`."
+6. "The screen collects one `UiState` with `collectAsStateWithLifecycle` and sends events to the `ViewModel`."
+
+---
+
+#### 8. Quick Check
+
+1. What triggers recomposition?
+2. Where do you start a coroutine from a click?
+3. Why add `key` to `LazyColumn` items?
+4. `remember` vs `rememberSaveable` on rotation?
+
+<details>
+<summary>Answers</summary>
+
+1. A change in a state object that a composable read (or a change in its input parameters).
+2. In the click handler, with the `ViewModel` (`viewModelScope`) or `rememberCoroutineScope()`.
+3. So item identity and state stay with the item when the list changes order or content.
+4. `remember` is lost; `rememberSaveable` is kept.
+
+</details>
+
+---
+
+#### 9. Practice
+
+**Interview questions**
+
+1. What is recomposition, and how do you keep it cheap?
+2. What is state hoisting?
+3. `remember` vs `rememberSaveable` vs `ViewModel` state?
+4. Which side-effect API for which job?
+5. Why does a `LazyColumn` need keys?
+6. How do you test a composable?
+7. How do you interoperate with the View system?
+
+**Hands-on**
+
+1. Build a notes list with loading, empty, error and content states and a preview for each.
+2. Turn on the recomposition-count display in Layout Inspector and reduce the counts on one screen.
+3. Write one Compose UI test for the empty state and one for a click.
+
+**Coding warm-ups (LeetCode, lists and diffs)**
+
+| # | Question | Link to this topic |
+|---|---|---|
+| 21 | [Merge Two Sorted Lists](https://leetcode.com/problems/merge-two-sorted-lists/) (Easy) | merging two ordered lists (diffing) |
+| 146 | [LRU Cache](https://leetcode.com/problems/lru-cache/) (Medium) | cache for list item images |
+| 1472 | [Design Browser History](https://leetcode.com/problems/design-browser-history/) (Medium) | navigation state |
+
+**Remember:** UI = f(state) · hoist state · `remember` vs `rememberSaveable` · effects not in the body · keys in lazy lists · one UI state from the `ViewModel` · read fast-changing state late.

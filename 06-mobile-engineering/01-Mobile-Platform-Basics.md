@@ -1,154 +1,290 @@
 # Mobile Platform Basics
 
+> A phone is not a small server. The OS owns the process, can kill it at any time, and expects you to ask before touching anything sensitive. Almost every mobile-specific bug traces back to forgetting one fact from this topic.
+
 Roadmap topic 1 · Stage 1: Foundations
 
-**Marks:** 🟢 Must Know · 🟡 Good to Know · (New) beyond the basics, or still changing
+**Go deeper:** `4` App Components & Lifecycle (process death) · `3` Coroutines & Flow (keeping the main thread free) · `19` Permissions · `15` Build & Release · `16` iOS & Swift · `05-system-design/30-Mobile-Specific-Topics` (old app versions).
 
-**In simple words:** a phone is not a small server. The OS owns the process, can kill it at any time, and expects you to ask before touching anything sensitive. Almost every mobile-specific bug traces back to forgetting one of the facts in this topic.
-
----
-
-#### 1. The App Sandbox — 🟢 Must Know
-
-*Each app is boxed in, for everyone's safety, including yours.*
-
-1. Each app runs in its **own process**, with its **own private storage** — one app cannot read another app's files or memory directly.
-2. This is why apps talk to each other through defined channels: intents, content providers, deep links — never by reaching into another app's storage.
-3. **Mobile view:** the same idea as a server's process isolation, but enforced per-app, per-device, by the OS itself.
+**Marks:** 🟢 must know · 🟡 good to know · (New) beyond the basics
 
 ---
 
-#### 2. Runtime Permissions — 🟢 Must Know
+#### 1. What Is It?
 
-*Ask when you need it, not at install time, and always handle "no".*
+*The rules of the environment your code runs in.*
 
-1. Modern Android (and iOS) ask for sensitive permissions **at the moment they're needed** (camera, location, notifications), not all upfront at install.
-2. The user can say **no**, and the app must still work in some reasonable way — don't crash, and don't block the whole app on one declined permission.
-3. Full permission flow (asking with context, handling "don't ask again") is covered in topic `19`.
+| 🟢 Must know | 🟡 Good to know |
+|---|---|
+| app sandbox | Android vs iOS: main differences |
+| runtime permissions | how an app starts |
+| the main (UI) thread rule | app stores: review and policies |
+| the OS can kill your app | tools: Android Studio, Gradle, ADB |
+| APK, AAB, IPA, Google Play | |
+| OS versions, min / target SDK, device variety | |
+| old app versions live for years | |
+
+1. **Sandbox:** each app runs in its own process with private storage.
+2. **Permissions:** sensitive things (camera, location, notifications) are asked for when needed, and the user can say no.
+3. **Main thread:** one thread draws the UI. Never block it.
+4. **Process death:** in the background the OS may kill your process to free memory.
+5. **Old versions:** users do not all update, so the backend must support many app versions at once.
+
+**Signals in an interview:** "what happens when the user leaves the app?", "why did the screen reset?", "why is the app frozen?", "how do you support old versions?", "min SDK vs target SDK".
 
 ---
 
-#### 3. The Main (UI) Thread Rule — 🟢 Must Know
+#### 2. How It Works
 
-*Never block it. Everything the user sees depends on it staying free.*
+**The sandbox.** Apps cannot reach into each other. They use channels the OS controls.
 
-1. All UI drawing happens on **one thread** — the main thread.
-2. Any slow work done there (network calls, database queries, heavy computation) freezes the UI and can trigger an **ANR** ("Application Not Responding", topic `11`).
-3. This single rule is why coroutines and background work (topics `3`, `10`) exist at all — they exist to keep the main thread free.
+```mermaid
+flowchart LR
+    subgraph A["App A: own process, own storage"]
+        A1["code"] --> A2[("private files + DB")]
+    end
+    subgraph B["App B: own process, own storage"]
+        B1["code"] --> B2[("private files + DB")]
+    end
+    A1 -. "intent / deep link / content provider<br/>(OS-controlled channel)" .-> B1
+    A1 -. "blocked" .-x B2
+```
+
+**The main thread.** All drawing and touch handling run on one thread. If it is busy, the screen freezes.
+
+1. A frame must be ready in about **16 ms** (60 Hz) or **8 ms** (120 Hz). Slow work makes frames drop (jank).
+2. If the main thread is blocked for about **5 seconds** while the user is touching the screen, Android shows **ANR** (Application Not Responding) (topic 11).
+3. Network, database, file and heavy CPU work always go to another thread (topic 3).
+
+**Process death.** The OS, not you, decides when the process ends.
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant OS as Android
+    participant App as Your app
+    U->>App: use the notes app
+    U->>OS: press Home (app goes to background)
+    OS->>App: onStop() ... memory is low
+    OS--xApp: kills the process (no callback)
+    U->>OS: open the app again
+    OS->>App: new process, new Activity, restore saved state
+    Note over App: anything not saved is gone
+```
+
+State that must survive is saved in `SavedStateHandle`, a database, or `DataStore` (topics 4, 9).
+
+**Permissions.**
+
+1. Ask **in context** (when the user taps "Take photo"), not at app start.
+2. The user may deny. The app must still work in a sensible way.
+3. Full flow in topic 19.
+
+**Package and distribution.**
+
+| | Android | iOS |
+|---|---|---|
+| Installable package | **APK** | **IPA** |
+| What you upload | **AAB** (App Bundle); Google Play builds a device-specific APK from it | archive through Xcode |
+| Testing track | internal / closed / open testing | TestFlight |
+| Store | Google Play | App Store |
+
+**OS versions and devices.**
+
+1. **minSdk:** the oldest Android version the app installs on.
+2. **targetSdk:** the version the app is built and tested for; it opts into that version's new behaviour. Stores require a recent target.
+3. **compileSdk:** the API you can call at compile time.
+4. Screens vary (phones, tablets, foldables) and so do densities (topic 14). Check that a feature exists before using it.
+
+🟡 **Android vs iOS.**
+
+| | Android | iOS |
+|---|---|---|
+| App model | components: activities, services, receivers, providers | scenes and view controllers |
+| Background work | WorkManager, foreground services; Doze limits | background tasks, silent push; strict limits |
+| Language / UI | Kotlin, Compose | Swift, SwiftUI |
+| Store review | usually faster | usually stricter and slower |
+
+🟡 **How an app starts.** The OS creates the **process**, runs the **Application class** (global setup), then starts the first **Activity**. Heavy work in `Application.onCreate` slows the cold start (topic 11).
+
+🟡 **App stores.** Both review apps: permissions, privacy declarations, content, stability. The listing (screenshots, description, privacy labels) is part of the product.
+
+🟡 **Tools.** **Android Studio** (IDE), **Gradle** (build), **ADB** (command line to a device), emulator (convenient) vs **real device** (use it for performance, battery, camera and sensors).
 
 ---
 
-#### 4. The OS Can Kill Your App Anytime — 🟢 Must Know
+#### 3. Naive vs Better Design
 
-*Unlike a server, your process is not guaranteed to keep running.*
+| Situation | Naive | Better |
+|---|---|---|
+| State in the background | keep it in a field or a global | `ViewModel` + `SavedStateHandle` / database |
+| Slow work | call it on the main thread "just once" | `withContext(Dispatchers.IO)` or a worker |
+| Permission denied | crash or block the whole app | explain, offer a fallback, keep the rest working |
+| New API | call it on every device | check `Build.VERSION.SDK_INT` |
+| Old app versions | assume everyone updates | add-only API, ignore unknown fields, force-update as the last resort |
+| Testing | only the emulator on a new phone | a real mid-range device, and an old OS version |
 
-1. When the app goes to the background, the OS may kill its process at any time to free memory for whatever's in the foreground.
-2. When the user returns, Android **recreates** the app from scratch — any state not explicitly saved is gone.
-3. This is **process death**, and it's different from a configuration change (topic `4`) — design for both.
-
-```text
-App backgrounded → OS needs memory → process killed → user returns →
-new process created → without saved state, the app looks "reset"
+```kotlin
+// Naive: a global survives rotation but not process death, and leaks the Activity
+object Cache { var lastNote: String = ""; var activity: Activity? = null }
 ```
 
 ---
 
-#### 5. App Package and Distribution — 🟢 Must Know
+#### 4. Code
 
-*How the app actually gets onto a phone.*
+Gradle settings in `build.gradle.kts`:
 
-1. **APK** — the installable Android package. **AAB (App Bundle)** — the format you upload to Google Play, which then builds device-specific APKs for each user (smaller downloads).
-2. **iOS**: **IPA** is the installable package, distributed through the App Store (or TestFlight for testing).
-3. Distribution isn't just packaging — it also means going through store review, policies, and listing requirements (section `8`).
+```kotlin
+android {
+    namespace = "com.example.notes"
+    compileSdk = 35
+    defaultConfig {
+        applicationId = "com.example.notes"
+        minSdk = 26          // installs on Android 8.0 and newer
+        targetSdk = 35       // built and tested for the newest behaviour
+        versionCode = 12     // integer, must grow with every upload
+        versionName = "1.4.0"
+    }
+}
+```
+
+Using a new API safely:
+
+```kotlin
+fun openAppLanguageSettings(context: Context) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {        // Android 13+
+        context.startActivity(Intent(Settings.ACTION_APP_LOCALE_SETTINGS, Uri.fromParts("package", context.packageName, null)))
+    } else {
+        // older phones: show our own language picker
+    }
+}
+```
+
+Keep the main thread free:
+
+```kotlin
+class NotesViewModel(private val repo: NotesRepository) : ViewModel() {
+    fun load() = viewModelScope.launch {                 // starts on Main
+        val notes = withContext(Dispatchers.IO) { repo.readAll() }   // slow work off the main thread
+        _state.value = notes                             // back on Main
+    }
+}
+```
+
+Survive process death:
+
+```kotlin
+class EditorViewModel(private val saved: SavedStateHandle) : ViewModel() {
+    var draft: String
+        get() = saved["draft"] ?: ""
+        set(value) { saved["draft"] = value }            // restored after the OS kills the process
+}
+```
+
+Reproduce process death on your machine:
+
+```bash
+adb shell input keyevent HOME                    # put the app in the background
+adb shell am kill com.example.notes              # kills the process, only works for a background app
+adb shell monkey -p com.example.notes 1          # reopen it and check the screen state
+```
+
+Tolerate unknown fields (new server, old app):
+
+```kotlin
+val json = Json { ignoreUnknownKeys = true }
+```
+
+Catch main-thread mistakes in debug builds:
+
+```kotlin
+if (BuildConfig.DEBUG) {
+    StrictMode.setThreadPolicy(StrictMode.ThreadPolicy.Builder().detectAll().penaltyLog().build())
+}
+```
 
 ---
 
-#### 6. OS Versions and Device Variety — 🟢 Must Know
+#### 5. Performance & Limits
 
-*Your app runs on years-old phones and this year's phone, at the same time.*
-
-1. **Min SDK** — the oldest Android version the app supports. **Target SDK** — the version the app is built and tested against, and whose new behaviours it opts into.
-2. Screen sizes and densities vary enormously — layouts must adapt (topic `14`).
-3. A feature available on the newest OS version may not exist on a phone running an older one — check availability, don't assume.
-
----
-
-#### 7. Old App Versions Stay in Use for Years — 🟢 Must Know
-
-*Some users never update. Design like it's permanent, because it is.*
-
-1. Unlike a web app, you cannot force every user onto the latest version overnight.
-2. The backend must stay **backward compatible** with old app versions for a long time (`SD 30`).
-3. This single fact shapes API versioning, feature flags, and release strategy (topic `15`) across the whole mobile stack.
+| Item | Number |
+|---|---|
+| Frame budget | 16.6 ms at 60 Hz, 8.3 ms at 120 Hz |
+| ANR | input not handled for about 5 s; broadcast receiver about 10 s (foreground) |
+| Play Vitals "slow" start (check current values) | cold ≥ 5 s, warm ≥ 2 s, hot ≥ 1.5 s |
+| Play Vitals bad-behaviour thresholds (check current) | crash about 1.1% and ANR about 0.47% of daily users |
+| Release lifetime | old app versions stay in use for years; the long tail is real |
+| Process death | no callback; `onStop` is your last chance to save |
 
 ---
 
-#### 8. Android vs iOS: Main Differences — 🟡 Good to Know
+#### 6. Common Mistakes & Edge Cases
 
-1. **App model:** Android has multiple entry-point components (activities, services, broadcast receivers); iOS centres around a scene/view-controller model.
-2. **Background rules:** both restrict background work heavily, but the exact mechanisms differ (topic `10` for Android; topic `16` covers the iOS side).
-3. **Distribution:** Google Play review is generally faster and looser than Apple's App Store review.
-
----
-
-#### 9. How an App Starts — 🟡 Good to Know
-
-1. The OS creates the **process**, runs the **Application class** (any global setup happens here), then launches the **first screen**.
-2. Heavy work in the Application class or in a startup library directly slows down cold start (topic `11`) — keep it minimal.
-
----
-
-#### 10. App Stores — 🟡 Good to Know
-
-1. Both stores review apps before publishing — expect checks on permissions, privacy declarations, content, and stability.
-2. A store listing (screenshots, description, privacy labels) is part of the product, not just marketing — plan for it.
-
----
-
-#### 11. Tools — 🟡 Good to Know
-
-1. **Android Studio** — the main IDE. **Gradle** — the build system. **ADB** — the command-line bridge to a device or emulator, used for installing, logging, and debugging.
-2. **Emulator vs real device** — the emulator is convenient, but always test performance, battery, and camera/sensor features on a real device before shipping.
-
----
-
-#### 12. Common Interview Questions
-
-1. **What happens when the OS kills your app in the background?**
-   The process is destroyed. On return, Android creates a new process and recreates the UI — any state not explicitly saved (`SavedStateHandle`, a database) is lost. This is process death, distinct from a configuration change.
-2. **Why can't an app read another app's files directly?**
-   Each app runs in its own sandboxed process with private storage. Apps interact only through defined channels — intents, content providers, deep links.
-3. **What is min SDK vs target SDK?**
-   Min SDK is the oldest OS version supported. Target SDK is the version the app is built and tested against, opting into that version's behaviour changes.
-4. **Why do old app versions matter so much on mobile?**
-   Users don't all update. Some stay on old versions for years, so the backend and the release process must support them (`SD 30`).
-5. **What's the difference between an APK and an AAB?**
-   APK is the installable package. AAB is the format uploaded to Google Play, which then generates optimised, device-specific APKs.
-
----
-
-#### 13. Common Mistakes
-
-1. Assuming the app's process stays alive indefinitely in the background.
+1. Assuming the process stays alive in the background.
 2. Doing slow work on the main thread "just this once".
-3. Designing only for the newest OS version and newest devices.
-4. Treating permission denial as an edge case instead of a normal, expected path.
+3. Designing only for the newest OS and newest devices.
+4. Treating permission denial as a rare case instead of a normal path.
 5. Assuming all users are on the latest app version.
+6. Testing only on the emulator.
+7. Heavy work in `Application.onCreate`.
+
+Edge cases: low-memory device (process dies sooner); the user denies a permission twice (the system stops showing the dialog); a feature missing on an old OS; a device with a very small or very large screen; the app is killed while a network call is in flight.
 
 ---
 
-#### 14. Related Topics
+#### 7. Say This in the Interview
 
-1. `3` Coroutines & Flow — how work is kept off the main thread
-2. `4` App Components & Lifecycle — process death and configuration changes in detail
-3. `19` Device Capabilities & Permissions — the full runtime permission flow
-4. `SD 30` Mobile-Specific Topics — backward compatibility from the backend's side
+1. "Each app runs in a sandbox. Apps talk through intents, deep links and content providers, never by reading each other's storage."
+2. "The main thread draws the UI, so I move network, database and heavy work to coroutines on another dispatcher."
+3. "In the background the OS can kill the process, so I keep important state in `SavedStateHandle` or a database and test it with `adb shell am kill`."
+4. "minSdk is the oldest OS I support; targetSdk is what I tested against and opts into new behaviour."
+5. "Old app versions live for years, so the backend only adds fields and I keep a force-update path."
+6. "I ask for permissions in context and design the denied path first."
 
 ---
 
-#### 15. Interview Must Remember
+#### 8. Quick Check
 
-1. **Each app is sandboxed** — its own process, its own storage.
-2. **Never block the main thread.**
-3. **The OS can kill your process at any time** in the background — design for process death, not just configuration changes.
-4. **Old app versions live for years** — this shapes backend and release decisions across the whole stack.
+1. What is the difference between a configuration change and process death?
+2. Why is an AAB uploaded instead of an APK?
+3. Why can't App A read App B's database?
+4. Which thread must not do network calls?
+
+<details>
+<summary>Answers</summary>
+
+1. A configuration change (rotation) recreates the Activity but keeps the process and the `ViewModel`. Process death ends the whole process and also clears the `ViewModel`.
+2. Google Play builds a smaller APK for each device from the bundle.
+3. Each app runs in its own process with private storage, enforced by the OS.
+4. The main thread.
+
+</details>
+
+---
+
+#### 9. Practice
+
+**Interview questions**
+
+1. What happens when the OS kills your app in the background?
+2. Why can't an app read another app's files directly?
+3. What is minSdk vs targetSdk?
+4. Why do old app versions matter so much on mobile?
+5. What is the difference between an APK and an AAB?
+6. How would you test that your app survives process death?
+
+**Hands-on**
+
+1. Type text in a note screen, press Home, run `adb shell am kill`, reopen. Does the text survive? Fix it with `SavedStateHandle`.
+2. Turn on StrictMode in debug and find one main-thread violation in your app.
+3. Run the app on a device with the lowest minSdk you support.
+
+**Coding warm-ups (LeetCode)**
+
+| # | Question | Link to this topic |
+|---|---|---|
+| 1114 | [Print in Order](https://leetcode.com/problems/print-in-order/) (Easy) | work on different threads in a fixed order |
+| 146 | [LRU Cache](https://leetcode.com/problems/lru-cache/) (Medium) | memory is limited; the OS and caches evict |
+
+**Remember:** each app is sandboxed · never block the main thread · the OS can kill your process, so save state · design the denied-permission path · old app versions live for years.
