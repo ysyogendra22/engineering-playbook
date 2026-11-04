@@ -1,85 +1,160 @@
 # The Call Stack & Space Complexity
 
-#### 1. Definition — Must Know
+> Every function call gets a **stack frame** with its own variables. Recursion keeps one frame per pending call, so recursion depth = extra space. Too deep = `StackOverflowError`.
 
-1. The **call stack** is where the program keeps track of function calls that are in progress.
-2. Each time a function calls another function (or itself), a new **stack frame** is pushed. When that call returns, its frame is popped.
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+The **call stack** is the memory area that tracks the functions currently running. A new frame is **pushed** when a call starts and **popped** when it returns (last in, first out).
 
-1. It is how recursion actually runs under the hood — you don't manage it yourself, the language runtime does.
-2. Understanding it explains two real things: why recursion has a space cost, and why very deep recursion can crash.
+Each frame holds: the parameters, local variables, and the place to continue after the call returns.
 
-#### 3. How It Works — Must Know
+**Why you care in interviews**
 
-```text
-factorial(3)
- → calls factorial(2)
-    → calls factorial(1)
-       → base case, returns 1
-    ← returns 2 * 1 = 2
- ← returns 3 * 2 = 6
-```
+| Question | Answer |
+|---|---|
+| What is the space complexity of a recursive function? | the **maximum depth** × frame size, even if you allocate nothing else |
+| Why can recursion crash? | depth too large → `StackOverflowError` (JVM default allows roughly 10,000–20,000 simple frames) |
+| Can I avoid the stack cost? | tail recursion (note 06), or an explicit stack/loop (note 07) |
 
-```text
-Stack while factorial(1) is running:
+**Signals:** "what is the space complexity", "will this overflow for `n = 10⁶`", DFS on a big grid or a skewed tree, "do it iteratively".
 
-| factorial(1) |  ← top of stack (most recent call)
-| factorial(2) |
-| factorial(3) |  ← bottom (first call)
-```
+#### 2. How It Works
 
-1. Frames stack up as calls go deeper (the arrows going in).
-2. Frames pop off as calls return (the arrows coming out), in reverse order — last in, first out.
-3. Each frame holds that call's local variables and where to resume after the call returns.
-
-#### 4. Algorithm — Must Know
-
-There is nothing to implement — the call stack is managed automatically. What you control is the **depth**:
+`factorial(3)` pushes three frames and pops them in reverse:
 
 ```text
-depth = how many nested calls happen before reaching the base case
+push factorial(3)
+  push factorial(2)
+    push factorial(1)       ← base case, returns 1
+    pop  → factorial(2) gets 1, returns 2
+  pop    → factorial(3) gets 2, returns 6
+pop
 ```
 
-1. `factorial(n)` has depth `n`.
-2. A recursive tree search has depth equal to the height of the tree.
+```mermaid
+flowchart LR
+    S0["stack: empty"] --> S1["factorial(3)"]
+    S1 --> S2["factorial(3)<br/>factorial(2)"]
+    S2 --> S3["factorial(3)<br/>factorial(2)<br/>factorial(1)  ← top"]
+    S3 -->|"return 1"| S4["factorial(3)<br/>factorial(2)"]
+    S4 -->|"return 2"| S5["factorial(3)"]
+    S5 -->|"return 6"| S6["stack: empty"]
+```
 
-#### 5. Kotlin Implementation — Must Know
+**Depth, not total calls, sets the space.**
+
+| Recursion | Total calls | Max depth (space) |
+|---|---|---|
+| `factorial(n)` | `n` | `n` |
+| `fib(n)` (naive) | about `2ⁿ` | `n` |
+| Merge sort on `n` items | about `2n` | `log n` |
+| Binary search (recursive) | `log n` | `log n` |
+| DFS on a binary tree | `n` | height `h` (from `log n` to `n`) |
+| DFS on an `m × n` grid | `m · n` | up to `m · n` |
+
+So naive Fibonacci takes exponential **time** but only `O(n)` **space**: the left branch goes down `n` frames, returns, and the next branch reuses that stack space.
+
+**Stack size.** The JVM's default thread stack is about 512 KB–1 MB. Each frame uses tens of bytes, so depth of tens of thousands is the limit. On LeetCode, a skewed tree or a 1,000 × 1,000 grid DFS can overflow.
+
+#### 3. Brute Force vs Optimized
+
+| Approach | Time | Space |
+|---|---|---|
+| Recursion `sumTo(n)` | `O(n)` | `O(n)` stack |
+| Loop | `O(n)` | `O(1)` |
+| Formula `n(n + 1)/2` | `O(1)` | `O(1)` |
+| Recursive DFS on a grid | `O(mn)` | `O(mn)` worst |
+| DFS with an explicit stack / BFS | `O(mn)` | `O(mn)` heap (no overflow) |
 
 ```kotlin
-fun sumTo(n: Int): Int {
-    if (n == 0) return 0
-    return n + sumTo(n - 1)   // n stack frames deep at most
+// Recursive sum: O(n) stack
+fun sumTo(n: Int): Long = if (n == 0) 0L else n + sumTo(n - 1)
+
+// Loop: O(1) space
+fun sumLoop(n: Int): Long {
+    var total = 0L
+    for (i in 1..n) total += i
+    return total
 }
 ```
 
-Each call to `sumTo` stays on the stack, waiting for `sumTo(n - 1)` to return, before it can compute `n + ...` and return itself.
+#### 4. Kotlin Code
 
-#### 6. Complexity — Must Know
+```kotlin
+// Detect a stack overflow safely (for learning, not production)
+fun safeSumTo(n: Int): Long? =
+    try { sumTo(n) } catch (e: StackOverflowError) { null }
 
-| What | Cost |
-|---|---|
-| Space per recursive call | O(1) extra (a small stack frame) |
-| Total space | O(depth) — one frame per level of recursion |
+// Measure the depth you can reach
+fun maxDepthReached(): Int {
+    var depth = 0
+    fun dive() { depth++; dive() }
+    try { dive() } catch (e: StackOverflowError) { }
+    return depth
+}
 
-1. **Space complexity of recursion is about depth, not about how many total calls happen.** `factorial(n)` makes `n` calls and also has depth `n`, so its space is O(n). A divide-and-conquer function can make many more total calls but stay shallow (topic 3).
-2. A very deep, non-tail recursive call (for example `factorial(1_000_000)`) can throw a `StackOverflowError`, because the call stack has a fixed, limited size.
+// Run with a bigger stack when you must stay recursive (512 MB here)
+fun runWithBigStack(block: () -> Unit) {
+    val t = Thread(null, { block() }, "big-stack", 512L * 1024 * 1024)
+    t.start()
+    t.join()
+}
 
-#### 7. Common Mistakes — Must Know
+// Space example: recursive tree height uses O(h) stack
+class TreeNode(var `val`: Int) { var left: TreeNode? = null; var right: TreeNode? = null }
 
-1. Assuming recursion is "free" — it always costs stack space proportional to its depth.
-2. Recursing on large input without checking whether the depth could exceed the stack limit.
-3. Confusing the number of calls with the depth of the stack — they are not the same thing.
-4. Not realising that an iterative loop uses O(1) space where the equivalent recursion uses O(n).
+fun height(root: TreeNode?): Int =
+    if (root == null) 0 else 1 + maxOf(height(root.left), height(root.right))
+```
 
-#### 8. Related Topics
+Checks: `sumTo(1000)` → `500500`. `sumLoop(1000)` → `500500`. `safeSumTo(1000)` → `500500`; `safeSumTo(10_000_000)` → `null` on a default stack. `maxDepthReached()` → a number in the thousands to tens of thousands (varies by machine). `height` of a tree with root `1`, left child `2`, and `2`'s left child `3` → `3`. `height(null)` → `0`.
 
-1. `1` Base Case & Recursive Case — what stops the stack from growing forever
-2. `6` Tail Recursion — a case Kotlin can optimise to avoid growing the stack
-3. `7` Recursion to Iteration — replacing the call stack with your own explicit stack
+#### 5. Complexity
 
-#### 9. Interview Must Remember
+| | Time | Space |
+|---|---|---|
+| Linear recursion | `O(n)` | `O(n)` |
+| Binary recursion (balanced) | depends | `O(log n)` |
+| Tree recursion (skewed) | `O(n)` | `O(n)` |
+| Same logic as a loop | same | `O(1)` or heap-allocated stack |
 
-1. Every recursive call pushes a **stack frame**; every return pops one.
-2. **Space complexity of recursion = its depth**, not its total number of calls.
-3. Deep recursion can overflow the stack — mention this as a downside when you propose a recursive solution.
+#### 6. Common Mistakes
+
+1. **Saying recursion space is `O(1)`** because "no extra arrays". The stack counts.
+2. **Using total calls as space** (use max depth).
+3. **Ignoring a skewed tree** where height is `n`.
+4. **Deep DFS on a large grid** without thinking about overflow.
+5. **Assuming the compiler removes the stack** (Kotlin does that only for `tailrec` self-calls).
+6. **Forgetting the output** is not counted but recursion frames are.
+
+#### 7. Say This in the Interview
+
+1. "Each recursive call adds a stack frame, so the space is the maximum recursion depth: `O(n)` here."
+2. "On a balanced tree the depth is `O(log n)`, but on a skewed tree it is `O(n)`."
+3. "For very deep inputs I'd convert this to an iterative version with an explicit stack to avoid a stack overflow."
+
+#### 8. Quick Check
+
+1. Space of recursive binary search?
+2. Why is naive `fib(n)` `O(n)` space but `O(2ⁿ)` time?
+3. What throws when recursion is too deep?
+
+<details>
+<summary>Answers</summary>
+
+1. `O(log n)`.
+2. Only one path of up to `n` frames is on the stack at a time, but the number of calls overall is exponential.
+3. `StackOverflowError`.
+
+</details>
+
+#### 9. Related LeetCode Questions
+
+| # | Question | Idea |
+|---|---|---|
+| 104 | [Maximum Depth of Binary Tree](https://leetcode.com/problems/maximum-depth-of-binary-tree/) (Easy) | depth = stack depth |
+| 206 | [Reverse Linked List](https://leetcode.com/problems/reverse-linked-list/) (Easy) | `O(n)` stack vs `O(1)` loop |
+| 509 | [Fibonacci Number](https://leetcode.com/problems/fibonacci-number/) (Easy) | time vs space |
+| 70 | [Climbing Stairs](https://leetcode.com/problems/climbing-stairs/) (Easy) | recursion vs loop |
+| 94 | [Binary Tree Inorder Traversal](https://leetcode.com/problems/binary-tree-inorder-traversal/) (Easy) | recursive vs iterative |
+| 200 | [Number of Islands](https://leetcode.com/problems/number-of-islands/) (Medium) | DFS depth on a grid |

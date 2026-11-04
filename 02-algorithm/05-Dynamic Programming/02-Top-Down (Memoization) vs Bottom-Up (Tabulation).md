@@ -1,100 +1,148 @@
 # Top-Down (Memoization) vs Bottom-Up (Tabulation)
 
-#### 1. Definition — Must Know
+> Two ways to implement the same DP. Top-down is easier to write. Bottom-up is faster in practice and easier to optimise for space.
 
-1. **Top-down**: write the normal recursive solution, add a cache. You start from the big problem and work down to base cases, caching along the way.
-2. **Bottom-up (tabulation)**: start from the base cases and build a table up to the final answer, using a loop instead of recursion.
-3. Both compute the exact same answers — they just build them in opposite directions.
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+| | **Top-down (memoization)** | **Bottom-up (tabulation)** |
+|---|---|---|
+| Idea | write the recursion, **cache** each result | fill a table from the **smallest** state upward |
+| Direction | from the big problem down to the base cases | from the base cases up to the big problem |
+| Computes | only the states that are **reached** | **all** states |
+| Uses | recursion + a `memo` array or map | loops + a `dp` array |
+| Risk | deep recursion can overflow the stack | you must get the **fill order** right |
 
-1. Top-down is usually the easier one to *write first* — it's your recursive solution plus a cache, so it reads naturally.
-2. Bottom-up is usually faster in practice (no function call overhead, no recursion depth limit) and makes space optimisation (topic 7) much easier to see.
+Both have the **same recurrence** and usually the **same time complexity**.
 
-#### 3. How It Works — Must Know
+#### 2. How It Works
 
-Fibonacci, both ways:
+Climbing Stairs: `ways(n) = ways(n − 1) + ways(n − 2)`, `ways(0) = ways(1) = 1`.
 
-```text
-Top-down: start at fib(5), and go DOWN as needed
-fib(5) needs fib(4) and fib(3)
-   fib(4) needs fib(3) [cached!] and fib(2)
-     ...
-   until base cases are hit, then answers bubble back UP
-
-Bottom-up: start at fib(0) and fib(1), and go UP
-fib(0) = 0
-fib(1) = 1
-fib(2) = fib(1) + fib(0) = 1
-fib(3) = fib(2) + fib(1) = 2
-fib(4) = fib(3) + fib(2) = 3
-fib(5) = fib(4) + fib(3) = 5
-```
-
-#### 4. Algorithm — Must Know
+**Top-down**
 
 ```text
-Top-down:
-  cache = {}
-  function f(n):
-      if n in cache: return cache[n]
-      if base case: return base answer
-      result = combine(f(smaller n))
-      cache[n] = result
-      return result
-
-Bottom-up:
-  table[base cases] = base answers
-  for each state, smallest to largest:
-      table[state] = combine(table[smaller states])
-  return table[final state]
+ways(5): not in memo → ways(4) + ways(3)
+         ways(4) → ways(3) + ways(2) ...    each ways(k) is computed once and stored
 ```
 
-#### 5. Kotlin Implementation — Must Know
+**Bottom-up**
+
+```text
+dp[0] = 1, dp[1] = 1
+dp[2] = dp[1] + dp[0] = 2
+dp[3] = dp[2] + dp[1] = 3
+dp[4] = 5,  dp[5] = 8
+```
+
+```mermaid
+flowchart LR
+    subgraph TD["Top-down"]
+        a["call f(5)"] --> b["need f(4), f(3)"] --> c["check memo<br/>compute if missing"] --> d["store result"]
+    end
+    subgraph BU["Bottom-up"]
+        e["base cases"] --> f["loop in increasing order"] --> g["dp[i] uses dp[i-1], dp[i-2]"] --> h["answer dp[n]"]
+    end
+```
+
+**Which to choose**
+
+| Situation | Prefer |
+|---|---|
+| Unsure of the fill order, or many states are unreachable | top-down |
+| Large `n` (recursion depth 10⁵ and more) | bottom-up |
+| Need to save space (keep only the last row) | bottom-up |
+| First draft in an interview | top-down (closest to the recursive idea) |
+
+**Converting top-down to bottom-up:** the memo index becomes the loop variable, the recursive calls become table reads, and the base cases fill the first cells.
+
+#### 3. Brute Force vs Optimized
+
+| Version | Time | Space |
+|---|---|---|
+| Plain recursion | `O(2ⁿ)` | `O(n)` |
+| Top-down with memo | `O(n)` | `O(n)` memo + `O(n)` stack |
+| Bottom-up table | `O(n)` | `O(n)` |
+| Bottom-up, two variables | `O(n)` | `O(1)` |
 
 ```kotlin
-// Top-down
-fun fibTopDown(n: Int, cache: MutableMap<Int, Long> = mutableMapOf()): Long {
-    if (n <= 1) return n.toLong()
-    cache[n]?.let { return it }
-    val result = fibTopDown(n - 1, cache) + fibTopDown(n - 2, cache)
-    cache[n] = result
-    return result
+fun climbPlain(n: Int): Int = if (n <= 1) 1 else climbPlain(n - 1) + climbPlain(n - 2)
+```
+
+#### 4. Kotlin Code
+
+```kotlin
+// Top-down (memoization)
+fun climbMemo(n: Int, memo: IntArray = IntArray(n + 1)): Int {
+    if (n <= 1) return 1
+    if (memo[n] != 0) return memo[n]
+    memo[n] = climbMemo(n - 1, memo) + climbMemo(n - 2, memo)
+    return memo[n]
 }
 
-// Bottom-up
-fun fibBottomUp(n: Int): Long {
-    if (n <= 1) return n.toLong()
-    val table = LongArray(n + 1)
-    table[1] = 1
-    for (i in 2..n) table[i] = table[i - 1] + table[i - 2]
-    return table[n]
+// Bottom-up (tabulation)
+fun climbTable(n: Int): Int {
+    val dp = IntArray(n + 1)
+    dp[0] = 1
+    dp[1] = 1
+    for (i in 2..n) dp[i] = dp[i - 1] + dp[i - 2]
+    return dp[n]
+}
+
+// Bottom-up, O(1) space
+fun climbOpt(n: Int): Int {
+    var prev = 1
+    var cur = 1
+    for (i in 2..n) { val next = prev + cur; prev = cur; cur = next }
+    return cur
 }
 ```
 
-#### 6. Complexity — Must Know
+Checks: `climbMemo(5)`, `climbTable(5)` and `climbOpt(5)` → `8`. `climbTable(10)` → `89`. `climbOpt(45)` → `1836311903`. `climbPlain(5)` → `8`. `climbTable(1)` → `1`.
 
-| | Time | Space | Notes |
-|---|---|---|---|
-| Top-down | O(n) | O(n) cache + O(n) stack depth | Easier to write from the recursive version |
-| Bottom-up | O(n) | O(n) table (can often shrink, topic 7) | No recursion, no stack-depth risk |
+#### 5. Complexity
 
-Same time complexity either way — the real trade-off is **how you get there**, and how easy the space is to optimise afterward.
+| | Time | Space |
+|---|---|---|
+| Top-down | `O(states × work)` | `O(states)` + recursion `O(depth)` |
+| Bottom-up | `O(states × work)` | `O(states)`, often reducible |
 
-#### 7. Common Mistakes — Must Know
+#### 6. Common Mistakes
 
-1. In top-down: forgetting to check the cache before doing the recursive work (see Memoization, topic 8 in the Recursion folder).
-2. In bottom-up: filling the table in the wrong order, so a cell is used before it's actually computed.
-3. Assuming one approach is always "better" — top-down is often clearer to reason about first; bottom-up is often easier to optimise for space afterward. Use whichever helps you finish correctly first.
+1. **Top-down without storing** the result (it is just recursion).
+2. **Using `0` as "not computed"** when `0` is a valid answer. Use `-1` or a separate boolean.
+3. **Bottom-up in the wrong order** (reading a cell that is not filled yet).
+4. **Recursion depth** too large (use bottom-up).
+5. **A memo key that misses a parameter** (two different states share one cell).
+6. **Forgetting base cases** (`n = 0`, `n = 1`).
 
-#### 8. Related Topics
+#### 7. Say This in the Interview
 
-1. `3` The Four Steps — State, Recurrence, Base Case, Fill Order — how you decide the bottom-up fill order
-2. `7` Space Optimisation — Keeping Only the Last Row or Two — much easier to see in bottom-up form
-3. `8` Memoization — the Bridge to Dynamic Programming (in the Recursion folder)
+1. "I'll write the recursive solution first and add a memo. Each state is solved once."
+2. "If the depth is large, I'll switch to a bottom-up table, filling in increasing order so each cell's dependencies are ready."
+3. "Both are `O(states × work per state)`. Bottom-up lets me reduce the space."
 
-#### 9. Interview Must Remember
+#### 8. Quick Check
 
-1. **Start top-down** if you're unsure — write the recursion first, then add a cache.
-2. **Convert to bottom-up** once the recurrence is clear — it's usually a small rewrite, and helps with space optimisation.
-3. Both give the same answer and the same Big-O time — the difference is style, stack usage, and how easy further optimisation is.
+1. Which approach can overflow the stack?
+2. Which approach computes only reachable states?
+3. Why is `0` a bad "not computed" marker for some problems?
+
+<details>
+<summary>Answers</summary>
+
+1. Top-down (recursion).
+2. Top-down.
+3. If `0` is a legitimate answer, you cannot tell "stored 0" from "empty".
+
+</details>
+
+#### 9. Related LeetCode Questions
+
+| # | Question | Idea |
+|---|---|---|
+| 70 | [Climbing Stairs](https://leetcode.com/problems/climbing-stairs/) (Easy) | both versions |
+| 509 | [Fibonacci Number](https://leetcode.com/problems/fibonacci-number/) (Easy) | both versions |
+| 198 | [House Robber](https://leetcode.com/problems/house-robber/) (Medium) | both versions |
+| 322 | [Coin Change](https://leetcode.com/problems/coin-change/) (Medium) | memo, then table |
+| 62 | [Unique Paths](https://leetcode.com/problems/unique-paths/) (Medium) | 2D memo, then table |
+| 139 | [Word Break](https://leetcode.com/problems/word-break/) (Medium) | memo on the start index |

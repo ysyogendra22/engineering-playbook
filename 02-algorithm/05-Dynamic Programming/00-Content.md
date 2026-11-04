@@ -18,5 +18,9 @@ Algorithm topic `5` in `02-algorithm`. Solve a problem by solving and rememberin
 | 10 | String DP — Palindromes, Word Break, Decode Ways | 🟡 |
 | 11 | State Machine DP — Buy/Sell Stock with Cooldown | 🟡 |
 | 12 | Interval DP & Bitmask DP — Names Only | 🟡 |
+| 13 | Subsequence DP — Longest Increasing Subsequence | 🟢 |
+| 14 | Unbounded Knapsack & Coin Change II — Combinations vs Permutations | 🟢 |
+| 15 | DP vs Greedy vs Backtracking — How to Tell | 🟢 |
+| 99 | DP Cheat Sheet | 🟢 |
 
 **Related:** `3` Recursion & Divide and Conquer (where memoization starts) · `4` Greedy (try this first) · `6` Backtracking (a repeated-subproblem sign that DP should replace it) · `9` Bit Manipulation (bitmask DP) · `LC 18` DP patterns and classic problems

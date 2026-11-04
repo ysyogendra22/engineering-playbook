@@ -1,214 +1,158 @@
 # Search in 2D Matrix
 
-#### 1. Definition — Must Know
+> Two matrix shapes, two methods. **Fully sorted** (each row continues the last): treat it as one sorted array. **Row and column sorted**: start in a corner and walk.
 
-Search for a target value inside a **sorted 2D matrix**.
+#### 1. What Is It?
 
-Example:
+| Problem | Matrix property | Method | Time |
+|---|---|---|---|
+| **Search a 2D Matrix** (74) | each row is sorted, and the first item of a row is **greater** than the last item of the previous row | binary search on the flattened index | `O(log(m · n))` |
+| **Search a 2D Matrix II** (240) | each row sorted left to right, each column sorted top to bottom | **staircase search** from the top-right corner | `O(m + n)` |
 
-```text
-1   3   5   7
-10  11  16  20
-23  30  34  60
+**Signals:** "sorted matrix", "search in a matrix", "rows and columns are sorted".
 
-Target = 16
-```
+#### 2. How It Works
 
-Result:
-
-```text
-Found
-```
-
-#### 2. Important Property — Must Know
-
-For the standard Binary Search matrix problem:
-
-1. Each row is sorted.
-2. First element of each row is greater than the last element of the previous row.
+**Method A: flatten (LeetCode 74).** The matrix is one sorted list of `m × n` values read row by row. Binary search `0..m·n − 1` and convert an index `k` to a cell with `row = k / n`, `col = k % n`.
 
 ```text
-1  3  5  7 | 10  11  16  20 | 23  30  34  60
+matrix = [[1, 3, 5, 7], [10, 11, 16, 20], [23, 30, 34, 60]],  n (columns) = 4, target 3
+lo=0 hi=11  mid=5  → row 1, col 1 → 11 > 3 → hi = 4
+lo=0 hi=4   mid=2  → row 0, col 2 → 5  > 3 → hi = 1
+lo=0 hi=1   mid=0  → row 0, col 0 → 1  < 3 → lo = 1
+lo=1 hi=1   mid=1  → row 0, col 1 → 3 = 3 → found
 ```
 
-So the matrix can be treated as **one sorted array**.
+**Method B: staircase (LeetCode 240).** Start at the **top-right** cell.
 
-#### 3. Core Idea — Must Know
+- If it equals the target: found.
+- If it is **bigger** than the target: the whole **column** below is bigger too, so move **left**.
+- If it is **smaller**: the whole **row** to its left is smaller, so move **down**.
 
-Instead of creating a new array, treat the matrix virtually as:
+Each step removes a row or a column, so at most `m + n` steps.
 
 ```text
-[1, 3, 5, 7, 10, 11, 16, 20, 23, 30, 34, 60]
+matrix = [[1, 4, 7, 11, 15],
+          [2, 5, 8, 12, 19],
+          [3, 6, 9, 16, 22],
+          [10, 13, 14, 17, 24],
+          [18, 21, 23, 26, 30]],   target 5
+start (0,4) = 15 > 5 → left (0,3) = 11 > 5 → left (0,2) = 7 > 5 → left (0,1) = 4 < 5 → down (1,1) = 5 → found
 ```
 
-If:
-
-```text
-rows = m
-columns = n
+```mermaid
+flowchart TD
+    S["start at the top-right cell"] --> C{"cell vs target"}
+    C -->|"equal"| F["found"]
+    C -->|"cell > target"| L["move left<br/>(this column is all too big)"]
+    C -->|"cell < target"| D["move down<br/>(this row is all too small)"]
+    L --> C
+    D --> C
 ```
 
-Total elements:
+**Why not the top-left?** From the top-left both directions (right and down) increase the value, so you cannot decide. The top-right (or bottom-left) corner has one direction that decreases and one that increases.
 
-```text
-m × n
-```
+#### 3. Brute Force vs Optimized
 
-Binary Search range:
-
-```text
-left  = 0
-right = (m × n) - 1
-```
-
-#### 4. Convert 1D Index to 2D — Must Know
-
-For a virtual index `mid`:
-
-```text
-row = mid / columns
-col = mid % columns
-```
-
-Then:
-
-```text
-matrix[row][col]
-```
-
-Example with `4` columns:
-
-```text
-mid = 6
-
-row = 6 / 4 = 1
-col = 6 % 4 = 2
-
-matrix[1][2] = 16
-```
-
-#### 5. Algorithm — Must Know
-
-```text
-1. Treat matrix as a virtual sorted array.
-
-2. left = 0
-   right = rows * cols - 1
-
-3. Find mid.
-
-4. Convert mid:
-   row = mid / cols
-   col = mid % cols
-
-5. Compare matrix[row][col] with target.
-
-6. Move left or right like normal Binary Search.
-```
-
-#### 6. Kotlin Implementation — Must Know
+| Approach | Time |
+|---|---|
+| Scan every cell | `O(m · n)` |
+| Binary search each row | `O(m log n)` |
+| **Flatten + binary search** (74) | **`O(log(m · n))`** |
+| **Staircase** (240) | **`O(m + n)`** |
 
 ```kotlin
-fun searchMatrix(matrix: Array<IntArray>, target: Int): Boolean {
-
-    if (matrix.isEmpty() || matrix[0].isEmpty()) {
-        return false
-    }
-
-    val rows = matrix.size
-    val cols = matrix[0].size
-
-    var left = 0
-    var right = rows * cols - 1
-
-    while (left <= right) {
-
-        val mid = left + (right - left) / 2
-
-        val row = mid / cols
-        val col = mid % cols
-
-        val value = matrix[row][col]
-
-        when {
-            value == target -> return true
-            value < target -> left = mid + 1
-            else -> right = mid - 1
-        }
-    }
-
+// Brute force
+fun searchMatrixBrute(matrix: Array<IntArray>, target: Int): Boolean {
+    for (row in matrix) for (v in row) if (v == target) return true
     return false
 }
 ```
 
-#### 7. Time & Space Complexity — Must Know
+#### 4. Kotlin Code
 
-There are:
+```kotlin
+// Search a 2D Matrix (LeetCode 74): flatten
+fun searchMatrix(matrix: Array<IntArray>, target: Int): Boolean {
+    val rows = matrix.size
+    val cols = matrix[0].size
+    var lo = 0
+    var hi = rows * cols - 1
+    while (lo <= hi) {
+        val mid = lo + (hi - lo) / 2
+        val value = matrix[mid / cols][mid % cols]
+        when {
+            value == target -> return true
+            value < target -> lo = mid + 1
+            else -> hi = mid - 1
+        }
+    }
+    return false
+}
 
-```text
-M × N
+// Search a 2D Matrix II (LeetCode 240): staircase from the top-right
+fun searchMatrixII(matrix: Array<IntArray>, target: Int): Boolean {
+    var r = 0
+    var c = matrix[0].size - 1
+    while (r < matrix.size && c >= 0) {
+        val v = matrix[r][c]
+        when {
+            v == target -> return true
+            v > target -> c--                    // the column below is bigger: go left
+            else -> r++                          // the row to the left is smaller: go down
+        }
+    }
+    return false
+}
 ```
 
-elements.
+Checks: `searchMatrix(arrayOf(intArrayOf(1, 3, 5, 7), intArrayOf(10, 11, 16, 20), intArrayOf(23, 30, 34, 60)), 3)` → `true`; `(…, 13)` → `false`. `searchMatrix(arrayOf(intArrayOf(1)), 1)` → `true`. `searchMatrixBrute(…, 13)` → `false`. `searchMatrixII(m, 5)` → `true` and `searchMatrixII(m, 20)` → `false` for the 5 × 5 matrix above.
 
-Binary Search:
+#### 5. Complexity
 
-```text
-Time  → O(log(M × N))
-Space → O(1)
-```
+| | Time | Space |
+|---|---|---|
+| Flatten (74) | `O(log(m · n))` | `O(1)` |
+| Staircase (240) | `O(m + n)` | `O(1)` |
+| Row-by-row binary search | `O(m log n)` | `O(1)` |
 
-#### 8. Another 2D Matrix Pattern — Good to Know
+#### 6. Common Mistakes
 
-Sometimes the matrix has a different property:
+1. **Using the staircase from the top-left.**
+2. **Wrong index conversion** (`mid / rows` instead of `mid / cols`).
+3. **Using the flatten method on matrix II** (its rows do not continue each other).
+4. **Using staircase moves in the wrong direction.**
+5. **Not handling an empty matrix** (`matrix.isEmpty()`).
+6. **Overflow** of `rows * cols` for huge matrices (use `Long` if needed).
 
-```text
-Each row    → sorted
-Each column → sorted
-```
+#### 7. Say This in the Interview
 
-Example:
+1. "If each row continues the previous one, the matrix is one sorted array. I binary search the index range and convert `mid` to `(mid / cols, mid % cols)`: `O(log(m · n))`."
+2. "If only rows and columns are sorted, I start at the top-right: bigger means move left, smaller means move down. That removes a row or column each step: `O(m + n)`."
+3. "I start at a corner where one direction increases and the other decreases."
 
-```text
-1   4   7
-2   5   8
-3   6   9
-```
+#### 8. Quick Check
 
-But the entire matrix cannot be treated as one sorted array.
+1. Which cell does flattened index `7` map to in a 3 × 4 matrix?
+2. Why start at the top-right in problem 240?
+3. Time of the staircase search?
 
-Use **Staircase Search**:
+<details>
+<summary>Answers</summary>
 
-```text
-Start → Top Right
+1. Row `7 / 4 = 1`, column `7 % 4 = 3`.
+2. From there, moving left decreases the value and moving down increases it, so each comparison tells you where to go.
+3. `O(m + n)`.
 
-Target < current → Move Left
-Target > current → Move Down
-```
+</details>
 
-Complexity:
+#### 9. Related LeetCode Questions
 
-```text
-O(M + N)
-```
-
-This is a different matrix-search pattern.
-
-#### 9. Edge Cases / Common Mistakes
-
-1. Empty matrix.
-2. Single row.
-3. Single column.
-4. Target not present.
-5. Target at first or last position.
-6. Incorrect `row / col` conversion.
-7. Assuming every row-and-column sorted matrix can be flattened for Binary Search.
-
-#### 10. Interview Must Remember
-
-1. First understand **how the matrix is sorted**.
-2. Fully ordered matrix → treat as a virtual 1D sorted array.
-3. `row = mid / cols`.
-4. `col = mid % cols`.
-5. Binary Search → **`O(log(M × N))`**.
-6. Row + column sorted only → consider **Staircase Search `O(M + N)`**.
+| # | Question | Idea |
+|---|---|---|
+| 74 | [Search a 2D Matrix](https://leetcode.com/problems/search-a-2d-matrix/) (Medium) | flatten |
+| 240 | [Search a 2D Matrix II](https://leetcode.com/problems/search-a-2d-matrix-ii/) (Medium) | staircase |
+| 378 | [Kth Smallest Element in a Sorted Matrix](https://leetcode.com/problems/kth-smallest-element-in-a-sorted-matrix/) (Medium) | binary search on value |
+| 1351 | [Count Negative Numbers in a Sorted Matrix](https://leetcode.com/problems/count-negative-numbers-in-a-sorted-matrix/) (Easy) | staircase |
+| 1337 | [The K Weakest Rows in a Matrix](https://leetcode.com/problems/the-k-weakest-rows-in-a-matrix/) (Easy) | binary search per row |
+| 1428 | [Leftmost Column with at Least a One](https://leetcode.com/problems/leftmost-column-with-at-least-a-one/) (Medium, premium) | staircase |

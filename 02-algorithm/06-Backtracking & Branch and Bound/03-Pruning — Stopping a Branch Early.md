@@ -1,103 +1,179 @@
-# Pruning — Stopping a Branch Early
+# Pruning: Stopping a Branch Early
 
-#### 1. Definition — Must Know
+> If a partial path **cannot** lead to a valid answer, stop right there. Pruning does not change the worst case, but it often cuts the search by orders of magnitude.
 
-**Pruning** means stopping the exploration of a branch in the decision tree (topic 2) as soon as you know it cannot lead to a valid or useful answer — instead of exploring it fully and discarding the result afterward.
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+**Pruning** means abandoning a branch of the decision tree as soon as you know it is useless. You check a condition **before** (or right after) the choose step, and `continue` or `return` if the branch is dead.
 
-1. Without pruning, backtracking explores the entire decision tree — often far too slow to finish.
-2. With good pruning, the same backtracking template becomes fast enough to solve real problems like N-Queens or Sudoku in practice, even though the worst-case complexity is still exponential.
+**Why it matters:** the worst case stays exponential, but the practical speed difference is huge, and interviewers expect you to prune.
 
-#### 3. How It Works — Must Know
+**Common pruning conditions**
 
-N-Queens (placing queens so none attack each other) without vs. with pruning:
+| Problem | Prune when |
+|---|---|
+| Combination Sum | the running sum **exceeds** the target |
+| Generate Parentheses | `close > open`, or `open > n` |
+| N-Queens | the column or a diagonal is **already attacked** |
+| Sudoku | the digit is already in the row, column or box |
+| Word Search | the cell is out of bounds, used, or the letter **does not match** |
+| Subset sum with positives | the remaining numbers cannot reach the target |
 
-```text
-Without pruning: place all n queens on the board in every possible arrangement
-                  (n² choose n ways), THEN check if any arrangement is valid.
+#### 2. How It Works
 
-With pruning:    place queens one row at a time. Before placing a queen in a
-                  column, check if it's attacked by any already-placed queen.
-                  If it is, skip that column immediately — don't even recurse
-                  into that branch.
-```
-
-```text
-Row 0: place queen at column 1
-Row 1: try column 0 → attacked diagonally? YES → prune, don't recurse
-       try column 1 → attacked directly (same column)? YES → prune
-       try column 2 → attacked diagonally? YES → prune
-       try column 3 → safe → recurse into row 2 with this placement
-```
-
-Pruning here cuts off huge parts of the tree the moment a conflict is detected — no need to place all remaining queens first.
-
-#### 4. Algorithm — Must Know
+**Prune early: check before you recurse.**
 
 ```text
-function backtrack(path, choices):
-    if path is complete:
-        record path
-        return
-    for each option in choices:
-        if NOT isValid(path, option):   # the pruning check
-            continue                     # skip this branch immediately
-        path.add(option)
-        backtrack(path, updated choices)
-        path.removeLast()
+Combination Sum, candidates [2, 3, 6, 7], target 7  (sorted)
+choose 2 → remaining 5 → choose 2 → remaining 3 → choose 2 → remaining 1
+      choose 2 would give -1 → the candidates are sorted, so every later one is also too big → STOP the loop (break)
 ```
 
-The only change from the plain template (topic 1) is the `isValid` check **before** recursing, instead of after.
+**Sort first, then `break` (not `continue`).** With sorted candidates, if `candidates[i] > remaining`, all later ones are too big too, so `break` ends the whole loop.
 
-#### 5. Kotlin Implementation — Must Know
+**Pruning in Generate Parentheses (counting the tree).**
+
+| | Calls for `n = 3` |
+|---|---|
+| Try both characters at all 6 positions, validate at the end | `2⁷ − 1 = 127` calls |
+| **Prune:** `)` only if `close < open`, `(` only if `open < n` | **22** calls |
+
+```mermaid
+flowchart LR
+    A["choose an option"] --> B{"can this path still<br/>reach a valid answer?"}
+    B -->|"no"| C["prune: skip / return"]
+    B -->|"yes"| D["recurse"]
+```
+
+**Other pruning ideas**
+
+- **Bound:** the best possible result from here cannot beat the best so far (branch and bound, note 6).
+- **Symmetry:** place the first queen only in the left half and mirror the answers.
+- **Duplicates:** skip equal siblings (note 10).
+- **Memoization:** if the same state was already solved, reuse it (turns it into DP, note 5).
+
+**Order matters.** Try the most constrained choice first (Sudoku: the cell with the fewest candidates). Failing early saves more.
+
+#### 3. Brute Force vs Optimized
+
+| Approach | Work |
+|---|---|
+| Generate everything, then test | always the full tree |
+| **Test as you build, prune dead prefixes** | only the live part of the tree |
 
 ```kotlin
-fun solveNQueens(n: Int): Int {
-    var count = 0
-    val cols = BooleanArray(n)
-    val diag1 = BooleanArray(2 * n)   // row - col + n
-    val diag2 = BooleanArray(2 * n)   // row + col
+var unprunedCalls = 0
+var prunedCalls = 0
 
-    fun backtrack(row: Int) {
-        if (row == n) { count++; return }
-        for (col in 0 until n) {
-            val d1 = row - col + n
-            val d2 = row + col
-            if (cols[col] || diag1[d1] || diag2[d2]) continue   // pruned — skip immediately
-            cols[col] = true; diag1[d1] = true; diag2[d2] = true
-            backtrack(row + 1)
-            cols[col] = false; diag1[d1] = false; diag2[d2] = false
-        }
+// Brute force: try both characters at every position, validate at the end
+fun parenthesesUnpruned(n: Int) {
+    fun gen(len: Int) {
+        unprunedCalls++
+        if (len == 2 * n) return
+        gen(len + 1)        // '('
+        gen(len + 1)        // ')'
     }
+    gen(0)
+}
 
-    backtrack(0)
-    return count
+// Pruned: only legal moves
+fun parenthesesPruned(n: Int) {
+    fun gen(open: Int, close: Int) {
+        prunedCalls++
+        if (open + close == 2 * n) return
+        if (open < n) gen(open + 1, close)
+        if (close < open) gen(open, close + 1)
+    }
+    gen(0, 0)
 }
 ```
 
-#### 6. Complexity — Must Know
+#### 4. Kotlin Code
 
-| | Without pruning | With pruning |
+```kotlin
+// Combination Sum (LeetCode 39) with pruning: sort, then break when a candidate is too big
+fun combinationSum(candidates: IntArray, target: Int): List<List<Int>> {
+    val sorted = candidates.sortedArray()
+    val result = mutableListOf<List<Int>>()
+    val path = mutableListOf<Int>()
+    fun backtrack(start: Int, remaining: Int) {
+        if (remaining == 0) { result.add(path.toList()); return }
+        for (i in start until sorted.size) {
+            if (sorted[i] > remaining) break                  // prune: everything after is bigger
+            path.add(sorted[i])
+            backtrack(i, remaining - sorted[i])               // i, not i + 1: the same number may repeat
+            path.removeAt(path.size - 1)
+        }
+    }
+    backtrack(0, target)
+    return result
+}
+
+// Subset sum exists? Prune when the remaining numbers cannot reach the target.
+fun subsetSumExists(nums: IntArray, target: Int): Boolean {
+    val suffix = IntArray(nums.size + 1)                      // suffix[i] = sum of nums[i..]
+    for (i in nums.size - 1 downTo 0) suffix[i] = suffix[i + 1] + nums[i]
+    fun go(i: Int, remaining: Int): Boolean {
+        if (remaining == 0) return true
+        if (i == nums.size || remaining < 0) return false
+        if (suffix[i] < remaining) return false               // prune: even taking all the rest is not enough
+        return go(i + 1, remaining - nums[i]) || go(i + 1, remaining)
+    }
+    return go(0, target)
+}
+```
+
+Checks: `unprunedCalls = 0; parenthesesUnpruned(3)` → `unprunedCalls` is `127`. `prunedCalls = 0; parenthesesPruned(3)` → `prunedCalls` is `22`. `combinationSum(intArrayOf(2, 3, 6, 7), 7)` → `[[2, 2, 3], [7]]`. `combinationSum(intArrayOf(2, 3, 5), 8)` → `[[2, 2, 2, 2], [2, 3, 3], [3, 5]]`. `combinationSum(intArrayOf(2), 1)` → `[]`. `subsetSumExists(intArrayOf(3, 34, 4, 12, 5, 2), 9)` → `true`. `subsetSumExists(intArrayOf(3, 34, 4, 12, 5, 2), 30)` → `false`.
+
+(The subset-sum pruning assumes the numbers are non-negative.)
+
+#### 5. Complexity
+
+| | Worst case | In practice |
 |---|---|---|
-| Worst case | Still explores everything | Same worst-case bound, but far fewer branches visited in practice |
+| Subsets / Combination Sum | `O(2ⁿ)` | far fewer nodes with pruning |
+| N-Queens | `O(n!)` | roughly the number of safe partial placements |
+| Sudoku | `O(9^(empty cells))` | solves in milliseconds with good pruning |
 
-Pruning does not change the theoretical worst-case complexity for most problems — it dramatically reduces the *actual* number of nodes visited, which is what makes previously "too slow" problems solvable in practice.
+Pruning does **not** change the big-O of the worst case. It changes how often you reach it.
 
-#### 7. Common Mistakes — Must Know
+#### 6. Common Mistakes
 
-1. Checking validity **after** fully building a path, instead of before recursing into each new choice — this wastes the exact time pruning is meant to save.
-2. A pruning check that's more expensive than the work it saves — keep the check itself fast (constant time, ideally).
-3. Pruning too aggressively and accidentally cutting off valid answers — the check must only reject branches that are *truly* impossible.
+1. **Pruning too late** (after recursing, instead of before).
+2. **`continue` instead of `break`** on a sorted list (works, but wastes time).
+3. **Pruning with a wrong condition** that also removes valid answers (negative numbers break "remaining < 0").
+4. **Forgetting to sort** before relying on the `break`.
+5. **Pruning but not undoing**: a `return` inside the choose step that skips the un-choose.
+6. **Weak pruning:** not using obvious constraints (a queen in an attacked column).
 
-#### 8. Related Topics
+#### 7. Say This in the Interview
 
-1. `1` The Template — Choose, Explore, Un-choose — where the pruning check gets added
-2. `2` Modelling Choices as a Decision Tree — helps you see which branches to prune
-3. `6` Branch and Bound — Tracking a Best-So-Far Bound — pruning taken further, for optimisation problems
+1. "I'll check the constraint before recursing, so I never explore a branch that can't work. For Combination Sum I sort the candidates and `break` when one exceeds the remaining target."
+2. "Pruning doesn't change the worst case, but it removes most of the tree in practice."
+3. "For this problem the worst case is still `O(2ⁿ)`, but the number of nodes visited is far smaller."
 
-#### 9. Interview Must Remember
+#### 8. Quick Check
 
-1. Prune **before** recursing, not after — check validity as early as possible.
-2. Pruning rarely changes the worst-case Big-O, but it's the difference between a solution that finishes and one that doesn't, in practice.
-3. Good pruning checks are cheap (O(1) or close to it) — an expensive check can undo the benefit.
+1. Why sort before pruning in Combination Sum?
+2. Which condition prunes in Generate Parentheses?
+3. Does pruning change the worst-case big-O?
+
+<details>
+<summary>Answers</summary>
+
+1. With sorted candidates, once one is too big, all later ones are too, so you can `break`.
+2. Adding `)` when `close >= open`, or `(` when `open == n`.
+3. No, only the number of nodes actually visited.
+
+</details>
+
+#### 9. Related LeetCode Questions
+
+| # | Question | Idea |
+|---|---|---|
+| 39 | [Combination Sum](https://leetcode.com/problems/combination-sum/) (Medium) | sort + `break` |
+| 22 | [Generate Parentheses](https://leetcode.com/problems/generate-parentheses/) (Medium) | legal moves only |
+| 216 | [Combination Sum III](https://leetcode.com/problems/combination-sum-iii/) (Medium) | prune on size and sum |
+| 51 | [N-Queens](https://leetcode.com/problems/n-queens/) (Hard) | attacked sets |
+| 37 | [Sudoku Solver](https://leetcode.com/problems/sudoku-solver/) (Hard) | digit constraints |
+| 79 | [Word Search](https://leetcode.com/problems/word-search/) (Medium) | stop on a mismatch |

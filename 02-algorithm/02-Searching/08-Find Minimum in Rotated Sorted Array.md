@@ -1,256 +1,147 @@
 # Find Minimum in Rotated Sorted Array
 
-#### 1. Definition — Must Know
+> The minimum is the **pivot**, where the array drops. Compare `mid` with `hi` to decide which side the pivot is on.
 
-Find the **smallest element** in a rotated sorted array.
+#### 1. What Is It?
 
-Example:
+In a rotated sorted array `[3, 4, 5, 1, 2]` the minimum (`1`) is the point where the order breaks. Find it in `O(log n)`.
 
-```text id="fmr01"
-Original:
-[1, 2, 3, 4, 5]
+**Why it matters:** the pivot gives the rotation count, and it is a building block for searching a rotated array (note 7).
 
-Rotated:
-[4, 5, 1, 2, 3]
+**Signals:** "minimum in a rotated sorted array", "how many times was it rotated", "find the pivot".
 
-Minimum = 1
+#### 2. How It Works
+
+Compare `nums[mid]` with the **right end** `nums[hi]`:
+
+| Case | Meaning | Move |
+|---|---|---|
+| `nums[mid] > nums[hi]` | the drop is to the **right** of `mid` | `lo = mid + 1` |
+| `nums[mid] < nums[hi]` | `mid` to `hi` is sorted, so the minimum is at `mid` or to its **left** | `hi = mid` |
+| `nums[mid] == nums[hi]` (duplicates) | cannot tell | `hi--` |
+
+```text
+nums = [4, 5, 6, 7, 0, 1, 2]
+lo=0 hi=6  mid=3 (7)  7 > 2  → min is right of mid: lo = 4
+lo=4 hi=6  mid=5 (1)  1 < 2  → min is at mid or left: hi = 5
+lo=4 hi=5  mid=4 (0)  0 < 1  → hi = 4
+lo=4 hi=4 → answer nums[4] = 0
 ```
 
-Goal:
-
-```text id="fmr02"
-O(log N)
+```mermaid
+flowchart TD
+    A["mid vs the right end"] --> B{"nums[mid] > nums[hi] ?"}
+    B -->|"yes"| C["minimum is to the right<br/>lo = mid + 1"]
+    B -->|"no"| D["minimum is at mid or to the left<br/>hi = mid"]
 ```
 
-#### 2. Core Idea — Must Know
+**Why compare with `hi` and not `lo`?** Comparing with `lo` is ambiguous when the array is not rotated at all (`[1, 2, 3]`). The right end always tells you whether `mid` is in the "big" left run.
 
-The minimum is the point where the rotated array changes from:
+**Loop:** `while (lo < hi)`, with `hi = mid` (not `mid − 1`), because `mid` could be the minimum.
 
-```text id="fmr03"
-Large values → Small values
+**Rotation count** = the index of the minimum.
+
+**Duplicates (LeetCode 154):** when `nums[mid] == nums[hi]`, the minimum could be on either side, so drop `hi` by one. Worst case `O(n)` (for example `[1, 1, 1, 1]`).
+
+#### 3. Brute Force vs Optimized
+
+| Approach | Time |
+|---|---|
+| Scan for the smallest | `O(n)` |
+| **Binary search with `nums[hi]`** | **`O(log n)`** |
+| With duplicates | `O(log n)` average, `O(n)` worst |
+
+```kotlin
+fun findMinBrute(nums: IntArray): Int = nums.minOrNull()!!
 ```
 
-Example:
+#### 4. Kotlin Code
 
-```text id="fmr04"
-[4, 5, 6, 7, 1, 2, 3]
-             ↑
-          Minimum
-```
-
-Use Binary Search to find this point.
-
-#### 3. Key Comparison — Must Know
-
-Compare:
-
-```text id="fmr05"
-nums[mid]
-```
-
-with:
-
-```text id="fmr06"
-nums[right]
-```
-
-If:
-
-```text id="fmr07"
-nums[mid] > nums[right]
-```
-
-the minimum must be on the **right side**:
-
-```text id="fmr08"
-left = mid + 1
-```
-
-Otherwise:
-
-```text id="fmr09"
-nums[mid] <= nums[right]
-```
-
-the minimum is at `mid` or on the **left side**:
-
-```text id="fmr10"
-right = mid
-```
-
-#### 4. Why `right = mid`?
-
-Because `mid` itself could be the minimum.
-
-Example:
-
-```text id="fmr11"
-[5, 1, 2, 3, 4]
-    ↑
-   mid
-```
-
-Removing `mid` could remove the correct answer.
-
-So use:
-
-```text id="fmr12"
-right = mid
-```
-
-not:
-
-```text id="fmr13"
-right = mid - 1
-```
-
-#### 5. Algorithm — Must Know
-
-```text id="fmr14"
-left = 0
-right = n - 1
-
-while left < right:
-
-    mid = left + (right - left) / 2
-
-    if nums[mid] > nums[right]:
-        left = mid + 1
-
-    else:
-        right = mid
-
-return nums[left]
-```
-
-#### 6. Kotlin Implementation — Must Know
-
-Assume the array contains **unique elements**.
-
-```kotlin id="fmr15"
+```kotlin
+// Find Minimum in Rotated Sorted Array (LeetCode 153): distinct values
 fun findMin(nums: IntArray): Int {
+    var lo = 0
+    var hi = nums.size - 1
+    while (lo < hi) {
+        val mid = lo + (hi - lo) / 2
+        if (nums[mid] > nums[hi]) lo = mid + 1 else hi = mid
+    }
+    return nums[lo]
+}
 
-    var left = 0
-    var right = nums.lastIndex
-
-    while (left < right) {
-
-        val mid = left + (right - left) / 2
-
-        if (nums[mid] > nums[right]) {
-            left = mid + 1
-        } else {
-            right = mid
+// Find Minimum in Rotated Sorted Array II (LeetCode 154): duplicates allowed
+fun findMinWithDuplicates(nums: IntArray): Int {
+    var lo = 0
+    var hi = nums.size - 1
+    while (lo < hi) {
+        val mid = lo + (hi - lo) / 2
+        when {
+            nums[mid] > nums[hi] -> lo = mid + 1
+            nums[mid] < nums[hi] -> hi = mid
+            else -> hi--                                       // equal: cannot decide, shrink
         }
     }
+    return nums[lo]
+}
 
-    return nums[left]
+// How many times was the sorted array rotated? (the index of the minimum)
+fun rotationCount(nums: IntArray): Int {
+    var lo = 0
+    var hi = nums.size - 1
+    while (lo < hi) {
+        val mid = lo + (hi - lo) / 2
+        if (nums[mid] > nums[hi]) lo = mid + 1 else hi = mid
+    }
+    return lo
 }
 ```
 
-#### 7. Example
+Checks: `findMin(intArrayOf(3, 4, 5, 1, 2))` → `1`. `findMin(intArrayOf(4, 5, 6, 7, 0, 1, 2))` → `0`. `findMin(intArrayOf(11, 13, 15, 17))` → `11`. `findMin(intArrayOf(2, 1))` → `1`. `findMin(intArrayOf(5))` → `5`. `findMinBrute(intArrayOf(3, 4, 5, 1, 2))` → `1`. `findMinWithDuplicates(intArrayOf(2, 2, 2, 0, 1))` → `0`. `findMinWithDuplicates(intArrayOf(1, 3, 5))` → `1`. `rotationCount(intArrayOf(4, 5, 6, 7, 0, 1, 2))` → `4`. `rotationCount(intArrayOf(1, 2, 3))` → `0`.
 
-```text id="fmr16"
-nums = [4, 5, 6, 7, 0, 1, 2]
-```
+#### 5. Complexity
 
-First:
+| | Time | Space |
+|---|---|---|
+| Distinct | `O(log n)` | `O(1)` |
+| Duplicates | `O(log n)` average, `O(n)` worst | `O(1)` |
 
-```text id="fmr17"
-mid = 3
-nums[mid] = 7
-nums[right] = 2
+#### 6. Common Mistakes
 
-7 > 2
+1. **Comparing `mid` with `lo`** (wrong for an unrotated array).
+2. **`hi = mid − 1`** (skips a possible minimum).
+3. **`lo <= hi`** with `hi = mid` (infinite loop).
+4. **Duplicates:** `hi = mid` when equal can skip the minimum. Use `hi--`.
+5. **Returning the index when the value is wanted** (or the reverse).
+6. **Empty or one-element array** (handle it).
 
-Minimum is on RIGHT.
-```
+#### 7. Say This in the Interview
 
-Search:
+1. "I compare `nums[mid]` with `nums[hi]`. If `mid` is bigger, the drop is to the right, so `lo = mid + 1`. Otherwise the minimum is at `mid` or to its left, so `hi = mid`. `O(log n)`."
+2. "I compare with `hi`, not `lo`, so an array that wasn't rotated also works."
+3. "With duplicates, equal values force `hi--`, so the worst case is `O(n)`."
 
-```text id="fmr18"
-[0, 1, 2]
-```
+#### 8. Quick Check
 
-Eventually:
+1. `findMin([2, 1])`?
+2. Why `hi = mid` and not `mid − 1`?
+3. What is the rotation count of an unrotated array?
 
-```text id="fmr19"
-left == right
+<details>
+<summary>Answers</summary>
 
-nums[left] = 0
-```
+1. `1`.
+2. `mid` itself may be the minimum, so it must stay in the range.
+3. `0`.
 
-#### 8. Not Rotated Case
+</details>
 
-Example:
+#### 9. Related LeetCode Questions
 
-```text id="fmr20"
-[1, 2, 3, 4, 5]
-```
-
-The same algorithm works.
-
-Result:
-
-```text id="fmr21"
-1
-```
-
-No separate logic is required.
-
-#### 9. Time & Space Complexity — Must Know
-
-```text id="fmr22"
-Time  → O(log N)
-Space → O(1)
-```
-
-Each step removes roughly half of the remaining search space.
-
-#### 10. Duplicates — Good to Know
-
-With duplicates:
-
-```text id="fmr23"
-[2, 2, 2, 0, 1, 2]
-```
-
-If:
-
-```text id="fmr24"
-nums[mid] == nums[right]
-```
-
-we may not know which side contains the minimum.
-
-A common approach is:
-
-```text id="fmr25"
-right--
-```
-
-Worst-case complexity can become:
-
-```text id="fmr26"
-O(N)
-```
-
-#### 11. Edge Cases / Common Mistakes
-
-1. Single element.
-2. Array not rotated.
-3. Minimum at index `0`.
-4. Minimum near the end.
-5. Using `left <= right` unnecessarily for this pattern.
-6. Using `right = mid - 1` and accidentally removing the minimum.
-7. Not handling duplicates when the problem allows them.
-
-#### 12. Interview Must Remember
-
-1. Compare **`nums[mid]` with `nums[right]`**.
-2. `nums[mid] > nums[right]` → minimum is **right of mid**.
-3. Otherwise → minimum is **at mid or left of mid**.
-4. Use `left = mid + 1` or `right = mid`.
-5. Stop when `left == right`.
-6. `nums[left]` is the minimum.
-7. Time → **`O(log N)`** for unique elements.
+| # | Question | Idea |
+|---|---|---|
+| 153 | [Find Minimum in Rotated Sorted Array](https://leetcode.com/problems/find-minimum-in-rotated-sorted-array/) (Medium) | compare with `hi` |
+| 154 | [Find Minimum in Rotated Sorted Array II](https://leetcode.com/problems/find-minimum-in-rotated-sorted-array-ii/) (Hard) | duplicates |
+| 33 | [Search in Rotated Sorted Array](https://leetcode.com/problems/search-in-rotated-sorted-array/) (Medium) | note 7 |
+| 1752 | [Check if Array Is Sorted and Rotated](https://leetcode.com/problems/check-if-array-is-sorted-and-rotated/) (Easy) | one drop at most |
+| 896 | [Monotonic Array](https://leetcode.com/problems/monotonic-array/) (Easy) | order check |
+| 162 | [Find Peak Element](https://leetcode.com/problems/find-peak-element/) (Medium) | a similar shape |

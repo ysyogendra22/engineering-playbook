@@ -1,89 +1,177 @@
-# Knapsack-Style DP — Subset Sum, Partition, Coin Change
+# Knapsack-Style DP: Subset Sum, Partition, Coin Change
 
-#### 1. Definition — Must Know
+> "Choose items under a limit." The state is (items considered, capacity used). The loop direction decides whether each item can be used **once** or **many times**.
 
-**Knapsack-style DP** covers problems where you choose a subset of items, under a capacity or target limit, to hit or optimise some goal. The state is usually `dp[index][remaining capacity]`, and the recurrence is always some version of "take this item, or don't".
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+**Knapsack-style DP** picks items to reach a goal under a budget.
 
-1. This is the DP shape behind 0/1 Knapsack (see `04-Greedy Algorithms/09`, where greedy fails and this is the fix), Subset Sum, Partition Equal Subset Sum, and general Coin Change.
-2. Recognising "this is a knapsack shape" lets you reuse the same recurrence pattern across several differently-worded problems.
+| Problem | Items | Goal |
+|---|---|---|
+| **0/1 Knapsack** | each item at most **once**, weight and value | max value within capacity `W` |
+| **Subset Sum** | numbers, each once | can some subset make `target`? |
+| **Partition Equal Subset Sum** (416) | numbers, each once | can you split into two equal-sum parts? (subset sum to `total / 2`) |
+| **Target Sum** (494) | numbers, each gets `+` or `−` | number of ways to reach `target` |
+| **Coin Change** (322) | coins, **unlimited** | fewest coins for `amount` |
 
-#### 3. How It Works — Must Know
+**Signals:** "choose a subset", "can we make exactly K", "limited capacity", "number of ways to reach a sum", "each element used once / any number of times".
 
-**Subset Sum**: given numbers, can some subset add up exactly to a target?
+#### 2. How It Works
 
-```text
-Numbers: [3, 34, 4, 12, 5, 2]   Target: 9
-
-dp[i][t] = true if some subset of the first i numbers sums to exactly t
-
-dp[i][t] = dp[i-1][t]                          # don't use number i
-           OR dp[i-1][t - number[i]]           # use number i (if it fits)
-
-{4, 5} sums to 9 → dp[...][9] = true
-```
-
-**Coin Change (general, minimum coins)** — same shape as canonical coin change (`04-Greedy Algorithms/06`), but works for **any** coin set, not just canonical ones:
+**0/1 knapsack.** `dp[w]` = best value with capacity `w`. For each item, update `w` **from high to low**, so the item is not used twice.
 
 ```text
-dp[amount] = minimum coins to make exactly `amount`
-dp[amount] = min over every coin c of ( dp[amount - c] + 1 ), if amount - c >= 0
-dp[0] = 0   (zero coins needed for amount 0)
+weights [1, 3, 4, 5], values [1, 4, 5, 7], capacity 7
+after item (w=1, v=1):  dp[1..7] = 1 1 1 1 1 1 1
+after item (w=3, v=4):  dp = 0 1 1 4 5 5 5 5   (index 0..7)
+after item (w=4, v=5):  ... dp[7] = max(dp[7], dp[3] + 5 = 9) = 9
+answer 9  (items w=3 and w=4)
 ```
 
-#### 4. Algorithm — Must Know
+**The loop direction rule**
+
+| Items can be used | Inner loop over capacity |
+|---|---|
+| **once** (0/1) | **downwards** (`w` from `W` to `weight`) |
+| **many times** (unbounded) | **upwards** (`w` from `weight` to `W`) |
+
+```mermaid
+flowchart LR
+    A["item i, capacity w"] --> B{"take it?"}
+    B -->|"skip"| C["dp[i-1][w]"]
+    B -->|"take"| D["dp[i-1][w - weight] + value"]
+    C --> E["max"]
+    D --> E
+```
+
+**Subset sum / Partition.** `dp[s]` = "can we make sum `s`?" (boolean). Start with `dp[0] = true`. For each number `x`, for `s` from `target` down to `x`: `dp[s] = dp[s] || dp[s − x]`. Partition: if the total is odd it is impossible, otherwise the target is `total / 2`.
+
+**Target Sum.** Let `P` be the numbers with `+` and `N` those with `−`. Then `sum(P) − sum(N) = target` and `sum(P) + sum(N) = total`, so `sum(P) = (total + target) / 2`. It becomes "count subsets with this sum".
 
 ```text
-0/1 Knapsack shape (take it once, or skip it):
-  dp[i][w] = max(
-      dp[i-1][w],                           # skip item i
-      dp[i-1][w - weight[i]] + value[i]     # take item i (if it fits)
-  )
-
-Unbounded shape (take an item as many times as you want, like coin change):
-  dp[amount] = min/max over each coin c of ( dp[amount - c] + 1 )
+[1,1,1,1,1], target 3:  total 5, (5 + 3) / 2 = 4  → subsets of sum 4 from five 1s: C(5,4) = 5 ways
 ```
 
-#### 5. Kotlin Implementation — Must Know
+**Coin change (min coins).** `dp[a] = 1 + min(dp[a − coin])`. Coins are unlimited, so the amount loop runs upward.
+
+#### 3. Brute Force vs Optimized
+
+| Problem | Brute force | DP |
+|---|---|---|
+| 0/1 Knapsack | try every subset `O(2ⁿ)` | `O(n · W)` |
+| Subset Sum / Partition | all subsets `O(2ⁿ)` | `O(n · target)` |
+| Target Sum | all `2ⁿ` sign choices | `O(n · sum)` |
+| Coin Change | all coin sequences | `O(amount · coins)` |
 
 ```kotlin
-fun coinChangeMinCoins(coins: IntArray, amount: Int): Int {
-    val dp = IntArray(amount + 1) { Int.MAX_VALUE / 2 }  // "infinity" placeholder
-    dp[0] = 0
-    for (a in 1..amount) {
-        for (coin in coins) {
-            if (coin <= a) {
-                dp[a] = minOf(dp[a], dp[a - coin] + 1)
-            }
-        }
-    }
-    return if (dp[amount] >= Int.MAX_VALUE / 2) -1 else dp[amount]
+// Brute force 0/1 knapsack: take or skip each item. O(2^n).
+fun knapsackBrute(w: IntArray, v: IntArray, cap: Int, i: Int = 0): Int {
+    if (i == w.size) return 0
+    val skip = knapsackBrute(w, v, cap, i + 1)
+    val take = if (w[i] <= cap) v[i] + knapsackBrute(w, v, cap - w[i], i + 1) else 0
+    return maxOf(skip, take)
 }
 ```
 
-#### 6. Complexity — Must Know
+#### 4. Kotlin Code
 
-| Problem | Time | Space |
+```kotlin
+// 0/1 Knapsack: capacity loop goes DOWN
+fun knapsack01(weights: IntArray, values: IntArray, capacity: Int): Int {
+    val dp = IntArray(capacity + 1)
+    for (i in weights.indices) {
+        for (w in capacity downTo weights[i]) {
+            dp[w] = maxOf(dp[w], dp[w - weights[i]] + values[i])
+        }
+    }
+    return dp[capacity]
+}
+
+// Subset Sum
+fun subsetSum(nums: IntArray, target: Int): Boolean {
+    val dp = BooleanArray(target + 1)
+    dp[0] = true
+    for (x in nums) for (s in target downTo x) if (dp[s - x]) dp[s] = true
+    return dp[target]
+}
+
+// Partition Equal Subset Sum (LeetCode 416)
+fun canPartition(nums: IntArray): Boolean {
+    val total = nums.sum()
+    return total % 2 == 0 && subsetSum(nums, total / 2)
+}
+
+// Target Sum (LeetCode 494): count subsets with sum (total + target) / 2
+fun findTargetSumWays(nums: IntArray, target: Int): Int {
+    val total = nums.sum()
+    if ((total + target) % 2 != 0 || total + target < 0) return 0
+    val s = (total + target) / 2
+    val dp = IntArray(s + 1)
+    dp[0] = 1
+    for (x in nums) for (j in s downTo x) dp[j] += dp[j - x]
+    return dp[s]
+}
+
+// Coin Change (LeetCode 322): coins unlimited, amount loop goes UP
+fun coinChange(coins: IntArray, amount: Int): Int {
+    val dp = IntArray(amount + 1) { amount + 1 }
+    dp[0] = 0
+    for (a in 1..amount) for (c in coins) if (c <= a) dp[a] = minOf(dp[a], dp[a - c] + 1)
+    return if (dp[amount] > amount) -1 else dp[amount]
+}
+```
+
+Checks: `knapsack01(intArrayOf(1, 3, 4, 5), intArrayOf(1, 4, 5, 7), 7)` → `9`. `knapsackBrute(intArrayOf(1, 3, 4, 5), intArrayOf(1, 4, 5, 7), 7)` → `9`. `subsetSum(intArrayOf(3, 34, 4, 12, 5, 2), 9)` → `true` (`4 + 5`). `subsetSum(intArrayOf(3, 34, 4, 12, 5, 2), 30)` → `false`. `canPartition(intArrayOf(1, 5, 11, 5))` → `true`. `canPartition(intArrayOf(1, 2, 3, 5))` → `false`. `findTargetSumWays(intArrayOf(1, 1, 1, 1, 1), 3)` → `5`. `findTargetSumWays(intArrayOf(1), 1)` → `1`. `findTargetSumWays(intArrayOf(1), 2)` → `0`. `coinChange(intArrayOf(1, 2, 5), 11)` → `3`. `coinChange(intArrayOf(2), 3)` → `-1`.
+
+#### 5. Complexity
+
+| | Time | Space |
 |---|---|---|
-| 0/1 Knapsack | O(n × capacity) | O(n × capacity), or O(capacity) optimised |
-| Subset Sum | O(n × target) | O(n × target), or O(target) optimised |
-| General Coin Change | O(amount × number of coin types) | O(amount) |
+| 0/1 Knapsack | `O(n · W)` | `O(W)` |
+| Subset Sum / Partition | `O(n · target)` | `O(target)` |
+| Target Sum | `O(n · sum)` | `O(sum)` |
+| Coin Change | `O(amount · coins)` | `O(amount)` |
 
-#### 7. Common Mistakes — Must Know
+`O(n · W)` is **pseudo-polynomial**: it depends on the **value** of `W`, not only on the number of bits of `W`.
 
-1. Confusing the **0/1** shape (each item used at most once, so loop items on the outside) with the **unbounded** shape (an item can be reused, like coins) — the loop order matters and swapping it gives a wrong answer.
-2. Initialising the "impossible" placeholder incorrectly (using `0` instead of a large "infinity" value for minimisation problems).
-3. Not handling the "not possible" case (target unreachable) explicitly.
+#### 6. Common Mistakes
 
-#### 8. Related Topics
+1. **Wrong loop direction.** Upward in 0/1 knapsack uses an item many times. Downward in unbounded knapsack uses it at most once.
+2. **Forgetting the odd total** check in Partition.
+3. **`dp[0]`:** for counting it is `1` (one way to make 0), for "can we" it is `true`, for min coins it is `0`.
+4. **Target Sum:** not handling `(total + target)` odd or negative.
+5. **Using `Int.MAX_VALUE`** for "impossible" and overflowing on `+ 1`.
+6. **Treating Coin Change as greedy.** It fails on coins like `{1, 3, 4}`.
 
-1. `1` The Greedy Choice Property, `09` Why Greedy Fails (in `04-Greedy Algorithms`) — why these problems need DP, not greedy
-2. `3` The Four Steps — State, Recurrence, Base Case, Fill Order
-3. `7` Space Optimisation — Keeping Only the Last Row or Two — the 2D knapsack table often reduces to 1D
+#### 7. Say This in the Interview
 
-#### 9. Interview Must Remember
+1. "This is a knapsack: for each item I either take it or skip it. `dp[w]` is the best value with capacity `w`. For 0/1 I loop capacity downwards so each item is used once."
+2. "Partition Equal Subset Sum reduces to subset sum with target `total / 2`."
+3. "Time is `O(n · W)` with `O(W)` space. That's pseudo-polynomial, because it depends on the size of `W`."
 
-1. Knapsack-shape recurrence: **"take it, or don't"** — `dp[i][w] = max/combine(skip, take)`.
-2. **0/1 vs unbounded** changes your loop order — know which one the problem is asking for.
-3. This is the DP fix whenever a greedy approach on a knapsack-like problem is shown to be wrong (`04-Greedy Algorithms/09`).
+#### 8. Quick Check
+
+1. Which direction for the capacity loop in unbounded knapsack?
+2. Can `[1, 2, 5]` be partitioned into two equal-sum subsets?
+3. What does `dp[0]` equal in Target Sum counting?
+
+<details>
+<summary>Answers</summary>
+
+1. Upwards.
+2. No. The total is `8`, so the target is `4`, and no subset sums to 4.
+3. `1`.
+
+</details>
+
+#### 9. Related LeetCode Questions
+
+| # | Question | Idea |
+|---|---|---|
+| 416 | [Partition Equal Subset Sum](https://leetcode.com/problems/partition-equal-subset-sum/) (Medium) | subset sum to half |
+| 494 | [Target Sum](https://leetcode.com/problems/target-sum/) (Medium) | count subsets |
+| 322 | [Coin Change](https://leetcode.com/problems/coin-change/) (Medium) | unlimited items, min |
+| 518 | [Coin Change II](https://leetcode.com/problems/coin-change-ii/) (Medium) | unlimited, count (note 14) |
+| 1049 | [Last Stone Weight II](https://leetcode.com/problems/last-stone-weight-ii/) (Medium) | minimise the difference of two subsets |
+| 474 | [Ones and Zeroes](https://leetcode.com/problems/ones-and-zeroes/) (Medium) | knapsack with two capacities |
+| 2915 | [Length of the Longest Subsequence That Sums to Target](https://leetcode.com/problems/length-of-the-longest-subsequence-that-sums-to-target/) (Medium) | subset sum with a length |

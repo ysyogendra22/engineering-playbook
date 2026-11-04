@@ -1,241 +1,142 @@
 # Binary Search on Rotated Sorted Array
 
-#### 1. Definition — Must Know
+> A sorted array rotated at an unknown pivot. At any `mid`, **one half is always sorted**. Decide which half, then decide if the target lies in it.
 
-A rotated sorted array is a sorted array rotated around some pivot.
+#### 1. What Is It?
 
-```text id="rsa01"
-Sorted:
-[1, 2, 3, 4, 5, 6, 7]
+A sorted array `[0, 1, 2, 4, 5, 6, 7]` rotated by 4 becomes `[4, 5, 6, 7, 0, 1, 2]`. It is two sorted runs joined: `[4..7]` then `[0..2]`.
 
-Rotated:
-[4, 5, 6, 7, 1, 2, 3]
+Normal binary search fails, because "`nums[mid] < target`" no longer tells you which side the target is on. But you can still halve the space.
+
+**Signals:** "sorted array rotated", "pivot", "search in `O(log n)`" on a rotated array.
+
+#### 2. How It Works
+
+**The key fact:** in `[lo, hi]`, at least one of `[lo, mid]` and `[mid, hi]` is a **sorted** run.
+
+```text
+nums = [4, 5, 6, 7, 0, 1, 2], target 0
+lo=0 hi=6  mid=3 (7)
+   left half [4..7] is sorted (nums[lo]=4 <= nums[mid]=7)
+   is the target in [4, 7)? 0 is not → go right: lo = 4
+lo=4 hi=6  mid=5 (1)
+   left half [0..1] is sorted (0 <= 1).  is 0 in [0, 1)? yes → go left: hi = 4
+lo=4 hi=4  mid=4 (0) = target → found at index 4
 ```
 
-Goal: find a target in **`O(log N)`**.
-
-#### 2. Core Idea — Must Know
-
-After rotation, the entire array is not sorted.
-
-But at every Binary Search step:
-
-```text id="rsa02"
-At least one half is sorted.
+```mermaid
+flowchart TD
+    A["mid"] --> B{"nums[lo] <= nums[mid] ?<br/>(left half sorted)"}
+    B -->|"yes"| C{"nums[lo] <= target < nums[mid] ?"}
+    C -->|"yes"| D["hi = mid - 1  (go left)"]
+    C -->|"no"| E["lo = mid + 1  (go right)"]
+    B -->|"no: right half is sorted"| F{"nums[mid] < target <= nums[hi] ?"}
+    F -->|"yes"| G["lo = mid + 1  (go right)"]
+    F -->|"no"| H["hi = mid - 1  (go left)"]
 ```
 
-So:
+**With duplicates (LeetCode 81).** If `nums[lo] == nums[mid] == nums[hi]`, you cannot tell which half is sorted. Shrink both ends (`lo++`, `hi--`). That can degrade to `O(n)` (for example `[1, 1, 1, 1, 1, 2, 1]`).
 
-```text id="rsa03"
-1. Find mid.
-2. Identify the sorted half.
-3. Check if target lies inside that half.
-4. Keep that half or discard it.
-```
+#### 3. Brute Force vs Optimized
 
-#### 3. How to Identify the Sorted Half
+| Approach | Time |
+|---|---|
+| Linear scan | `O(n)` |
+| Find the pivot, then binary search in the right half | `O(log n)` (two passes) |
+| **One modified binary search** | **`O(log n)`** |
+| With duplicates | `O(log n)` average, `O(n)` worst case |
 
-If:
-
-```text id="rsa04"
-nums[left] <= nums[mid]
-```
-
-then:
-
-```text id="rsa05"
-LEFT half is sorted.
-```
-
-Otherwise:
-
-```text id="rsa06"
-RIGHT half is sorted.
-```
-
-#### 4. Case 1 — Left Half Is Sorted
-
-Example:
-
-```text id="rsa07"
-[4, 5, 6, 7, 1, 2, 3]
- L        M
-```
-
-Left side:
-
-```text id="rsa08"
-[4, 5, 6, 7]
-```
-
-is sorted.
-
-Check whether:
-
-```text id="rsa09"
-nums[left] <= target < nums[mid]
-```
-
-If yes:
-
-```text id="rsa10"
-Search LEFT
-```
-
-Otherwise:
-
-```text id="rsa11"
-Search RIGHT
-```
-
-#### 5. Case 2 — Right Half Is Sorted
-
-If the left half is not sorted, the right half must be sorted.
-
-Check:
-
-```text id="rsa12"
-nums[mid] < target <= nums[right]
-```
-
-If yes:
-
-```text id="rsa13"
-Search RIGHT
-```
-
-Otherwise:
-
-```text id="rsa14"
-Search LEFT
-```
-
-#### 6. Kotlin Implementation — Must Know
-
-Assume all values are **unique**.
-
-```kotlin id="rsa15"
-fun search(nums: IntArray, target: Int): Int {
-
-    var left = 0
-    var right = nums.lastIndex
-
-    while (left <= right) {
-
-        val mid = left + (right - left) / 2
-
-        if (nums[mid] == target) {
-            return mid
-        }
-
-        // Left half is sorted
-        if (nums[left] <= nums[mid]) {
-
-            if (nums[left] <= target && target < nums[mid]) {
-                right = mid - 1
-            } else {
-                left = mid + 1
-            }
-
-        } else {
-
-            // Right half is sorted
-            if (nums[mid] < target && target <= nums[right]) {
-                left = mid + 1
-            } else {
-                right = mid - 1
-            }
-        }
-    }
-
+```kotlin
+// Brute force: scan
+fun searchRotatedBrute(nums: IntArray, target: Int): Int {
+    for (i in nums.indices) if (nums[i] == target) return i
     return -1
 }
 ```
 
-#### 7. Example
+#### 4. Kotlin Code
 
-```text id="rsa16"
-nums   = [4, 5, 6, 7, 0, 1, 2]
-target = 0
+```kotlin
+// Search in Rotated Sorted Array (LeetCode 33): distinct values
+fun searchRotated(nums: IntArray, target: Int): Int {
+    var lo = 0
+    var hi = nums.size - 1
+    while (lo <= hi) {
+        val mid = lo + (hi - lo) / 2
+        if (nums[mid] == target) return mid
+        if (nums[lo] <= nums[mid]) {                                  // left half is sorted
+            if (target >= nums[lo] && target < nums[mid]) hi = mid - 1 else lo = mid + 1
+        } else {                                                      // right half is sorted
+            if (target > nums[mid] && target <= nums[hi]) lo = mid + 1 else hi = mid - 1
+        }
+    }
+    return -1
+}
+
+// Search in Rotated Sorted Array II (LeetCode 81): duplicates allowed, returns true / false
+fun searchRotatedWithDuplicates(nums: IntArray, target: Int): Boolean {
+    var lo = 0
+    var hi = nums.size - 1
+    while (lo <= hi) {
+        val mid = lo + (hi - lo) / 2
+        if (nums[mid] == target) return true
+        if (nums[lo] == nums[mid] && nums[mid] == nums[hi]) { lo++; hi-- }       // cannot decide: shrink
+        else if (nums[lo] <= nums[mid]) {
+            if (target >= nums[lo] && target < nums[mid]) hi = mid - 1 else lo = mid + 1
+        } else {
+            if (target > nums[mid] && target <= nums[hi]) lo = mid + 1 else hi = mid - 1
+        }
+    }
+    return false
+}
 ```
 
-First:
+Checks: `searchRotated(intArrayOf(4, 5, 6, 7, 0, 1, 2), 0)` → `4`; `(…, 3)` → `-1`. `searchRotated(intArrayOf(1), 0)` → `-1`. `searchRotated(intArrayOf(1), 1)` → `0`. `searchRotated(intArrayOf(3, 1), 1)` → `1`. `searchRotatedBrute(intArrayOf(4, 5, 6, 7, 0, 1, 2), 0)` → `4`. `searchRotatedWithDuplicates(intArrayOf(2, 5, 6, 0, 0, 1, 2), 0)` → `true`; `(…, 3)` → `false`. `searchRotatedWithDuplicates(intArrayOf(1, 0, 1, 1, 1), 0)` → `true`.
 
-```text id="rsa17"
-mid = 3
-nums[mid] = 7
+#### 5. Complexity
 
-Left half [4,5,6,7] is sorted.
+| | Time | Space |
+|---|---|---|
+| Distinct values | `O(log n)` | `O(1)` |
+| With duplicates | `O(log n)` average, `O(n)` worst | `O(1)` |
 
-0 is not inside [4,7).
+#### 6. Common Mistakes
 
-Discard LEFT.
-```
+1. **`nums[lo] < nums[mid]`** instead of `<=` (breaks when `lo == mid`, e.g. two elements).
+2. **Wrong range checks** (`target <= nums[mid]` instead of `< nums[mid]`; `mid` is already tested).
+3. **Treating the array as unrotated** (a rotation of 0 is allowed).
+4. **Duplicates with the distinct-values code** (loops or wrong answers).
+5. **Searching for the pivot first and mixing indexes** (extra complexity, more bugs).
+6. **Forgetting `hi = mid − 1` / `lo = mid + 1`** (infinite loop).
 
-Now:
+#### 7. Say This in the Interview
 
-```text id="rsa18"
-[0, 1, 2]
-```
+1. "At any `mid`, one half is sorted. I check which half, then whether the target is inside that half's range, and move to the right side accordingly. `O(log n)`."
+2. "With duplicates I can't always tell which half is sorted: when `nums[lo] == nums[mid] == nums[hi]` I shrink both ends, so the worst case is `O(n)`."
+3. "I'll test a two-element array and an array that isn't rotated."
 
-Continue Binary Search until:
+#### 8. Quick Check
 
-```text id="rsa19"
-0 → Found at index 4
-```
+1. Which half is sorted if `nums[lo] <= nums[mid]`?
+2. Why `<=` and not `<`?
+3. Worst-case time with duplicates?
 
-#### 8. Time & Space Complexity — Must Know
+<details>
+<summary>Answers</summary>
 
-```text id="rsa20"
-Time  → O(log N)
-Space → O(1)
-```
+1. The left half `[lo, mid]`.
+2. When `lo == mid` the left "half" is one element, which is sorted.
+3. `O(n)`.
 
-We still discard approximately half of the search space each iteration.
+</details>
 
-#### 9. Duplicates — Good to Know
+#### 9. Related LeetCode Questions
 
-The standard solution usually assumes:
-
-```text id="rsa21"
-All elements are unique.
-```
-
-With duplicates:
-
-```text id="rsa22"
-[1, 0, 1, 1, 1]
-```
-
-it may become impossible to determine which half is sorted immediately.
-
-A common approach is to shrink equal boundaries.
-
-Worst case can degrade to:
-
-```text id="rsa23"
-O(N)
-```
-
-Study the duplicate variant separately if needed.
-
-#### 10. Edge Cases / Common Mistakes
-
-1. Empty array.
-2. Single element.
-3. Array not rotated.
-4. Target does not exist.
-5. Target at pivot.
-6. Mixing `<` and `<=` in range checks.
-7. Incorrectly identifying the sorted half.
-8. Forgetting that the unique-elements solution needs adjustment for duplicates.
-
-#### 11. Interview Must Remember
-
-1. Rotated array is still **partially sorted**.
-2. At least one half is sorted at every step.
-3. `nums[left] <= nums[mid]` → left half sorted.
-4. Otherwise → right half sorted.
-5. Check whether target belongs to the sorted half.
-6. Discard the other half.
-7. Time → **`O(log N)`** for unique elements.
+| # | Question | Idea |
+|---|---|---|
+| 33 | [Search in Rotated Sorted Array](https://leetcode.com/problems/search-in-rotated-sorted-array/) (Medium) | find the sorted half |
+| 81 | [Search in Rotated Sorted Array II](https://leetcode.com/problems/search-in-rotated-sorted-array-ii/) (Medium) | duplicates |
+| 153 | [Find Minimum in Rotated Sorted Array](https://leetcode.com/problems/find-minimum-in-rotated-sorted-array/) (Medium) | note 8 |
+| 154 | [Find Minimum in Rotated Sorted Array II](https://leetcode.com/problems/find-minimum-in-rotated-sorted-array-ii/) (Hard) | note 8 |
+| 1752 | [Check if Array Is Sorted and Rotated](https://leetcode.com/problems/check-if-array-is-sorted-and-rotated/) (Easy) | count the drops |
+| 189 | [Rotate Array](https://leetcode.com/problems/rotate-array/) (Medium) | the rotation itself |

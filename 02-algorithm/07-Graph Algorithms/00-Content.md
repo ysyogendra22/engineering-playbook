@@ -6,13 +6,17 @@ Algorithm topic `7` in `02-algorithm`. Traversal, representation, cycle detectio
 
 | # | Sub-topic | Mark |
 |---|---|---|
-| 1 | Dijkstra's Algorithm — Shortest Path, Non-Negative Weights | 🟢 |
-| 2 | Kruskal's & Prim's Algorithms — Minimum Spanning Tree | 🟢 |
+| 1 | Dijkstra's Algorithm: Shortest Path, Non-Negative Weights | 🟢 |
+| 2 | Kruskal's & Prim's Algorithms: Minimum Spanning Tree | 🟢 |
 | 3 | Choosing the Right Algorithm for the Weights You Have | 🟢 |
-| 4 | Bellman-Ford — Handles Negative Weights, Detects Negative Cycles | 🟡 |
-| 5 | Floyd-Warshall — All-Pairs Shortest Path | 🟡 |
-| 6 | A* Search — Dijkstra Plus a Heuristic | 🟡 |
-| 7 | Network Flow (Max Flow / Min Cut) — Name & Problem Shape Only | ⚪ |
+| 4 | Bellman-Ford: Handles Negative Weights, Detects Negative Cycles | 🟡 |
+| 5 | Floyd-Warshall: All-Pairs Shortest Path | 🟡 |
+| 6 | A* Search: Dijkstra Plus a Heuristic | 🟡 |
+| 7 | Network Flow (Max Flow / Min Cut): Name & Problem Shape Only | ⚪ |
+| 8 | Shortest-Path Variants in Interviews: Minimax, Probability, Counting | 🟢 |
+| 99 | Graph Algorithms Cheat Sheet | 🟢 |
+
+**Short on time:** 1, 2, 3, 8, then the cheat sheet (99). Read 4 for "at most K stops" and negative weights.
 
 **Complexity quick reference**
 
@@ -25,4 +29,4 @@ Algorithm topic `7` in `02-algorithm`. Traversal, representation, cycle detectio
 | Kruskal | O(E log E) | n/a | Minimum spanning tree, sparse graph |
 | Prim | O(E log V) | n/a | Minimum spanning tree, dense graph |
 
-**Related:** `DS Graph` (traversal, representation, cycle detection, Union-Find) · `4` Greedy Algorithms (Dijkstra, Kruskal, and Prim are all greedy) · `LC 12`, `LC 13`, `LC 15`, `LC 16`, `LC 17` Graph traversal patterns and problems
+**Related:** `DS Graph` (traversal, representation, cycle detection, topological sort, Union-Find) · `4` Greedy Algorithms (Dijkstra, Kruskal, and Prim are all greedy) · `2` Searching (binary search on the answer for minimax paths) · `LC 12`, `LC 13`, `LC 15`, `LC 16`, `LC 17` Graph traversal patterns and problems

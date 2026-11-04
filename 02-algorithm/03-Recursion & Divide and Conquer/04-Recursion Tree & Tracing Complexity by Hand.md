@@ -1,81 +1,168 @@
-# Recursion Tree & Tracing Complexity by Hand
+# Recursion Tree and Tracing Complexity by Hand
 
-#### 1. Definition — Must Know
+> Draw every call as a node. **Total work = sum over all nodes.** This is the quickest way to see why Fibonacci is exponential and merge sort is `n log n`.
 
-1. A **recursion tree** is a diagram of every recursive call a function makes, drawn as a tree: the first call at the top (the root), and each call it makes as a child below it.
-2. It is a way to **see** an algorithm's complexity instead of just trusting a formula.
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+A **recursion tree** shows each call as a node and each recursive call as a child. For each node, write the work done *outside* the recursive calls.
 
-1. It turns "what's the complexity of this recursive function?" into a countable diagram: how many nodes, and how much work per node.
-2. It shows you exactly *why* naive recursive Fibonacci is slow — the tree is full of the same calls, repeated.
+Then ask two questions:
 
-#### 3. How It Works — Must Know
+| Question | Gives you |
+|---|---|
+| How many **levels** does the tree have? | the depth (stack space) |
+| How much work happens **at each level**? | multiply by the levels for total time |
 
-Naive recursive Fibonacci, `fib(4)`:
+**Signals:** "what is the time complexity of this recursive function", "why is this slow", "trace the calls".
 
-```text
-                    fib(4)
-                  /        \
-             fib(3)          fib(2)
-            /      \        /      \
-       fib(2)    fib(1)  fib(1)   fib(0)
-      /      \
-  fib(1)   fib(0)
+#### 2. How It Works
+
+**Naive Fibonacci, `fib(5)`.** The same values are computed again and again:
+
+```mermaid
+flowchart TD
+    A["fib(5)"] --> B["fib(4)"]
+    A --> C["fib(3)"]
+    B --> D["fib(3)"]
+    B --> E["fib(2)"]
+    C --> F["fib(2)"]
+    C --> G["fib(1)"]
+    D --> H["fib(2)"]
+    D --> I["fib(1)"]
+    E --> J["fib(1)"]
+    E --> K["fib(0)"]
+    H --> L["fib(1)"]
+    H --> M["fib(0)"]
+    F --> N["fib(1)"]
+    F --> O["fib(0)"]
 ```
 
-1. Count the nodes: this small tree already has 9 calls for `fib(4)`.
-2. Notice `fib(2)` is computed twice, and `fib(1)` three times — the same work is repeated. This is why naive Fibonacci is O(2ⁿ): the tree roughly doubles in size for every step up.
-3. Compare with Merge Sort's tree (topic 3): each level does O(n) total work across all its nodes, and there are O(log n) levels, giving O(n log n) — no repeated work, just a clean, balanced tree.
+Number of calls: `calls(n) = 1 + calls(n − 1) + calls(n − 2)` → `calls(5) = 15` (count the nodes above). Each level has about double the previous one, so the total is about **`2ⁿ`** (more exactly `≈ 1.618ⁿ`).
 
-#### 4. Algorithm — Must Know
-
-*(A method, not code)*
+**Merge sort, `n = 8`.** Work outside the calls = the merge, `n` items at each level:
 
 ```text
-1. Draw the first call as the root.
-2. Draw each recursive call it makes as a child node.
-3. Repeat for every child, until you reach base cases (the leaves).
-4. Count: how many nodes are there, and how much non-recursive work does each node do?
-5. Total work ≈ number of nodes × work per node (adjust if work per node varies by level).
+level 0:  1 node  × merge 8       = 8
+level 1:  2 nodes × merge 4       = 8
+level 2:  4 nodes × merge 2       = 8
+level 3:  8 nodes × (base) 1      = 8
+levels = log₂ 8 + 1 = 4      total ≈ n × log n = 8 × 3 (+ n for the leaves)
 ```
 
-#### 5. Kotlin Implementation — Must Know
+```mermaid
+flowchart TD
+    A["n = 8<br/>work 8"] --> B["n = 4<br/>work 4"]
+    A --> C["n = 4<br/>work 4"]
+    B --> D["n = 2<br/>work 2"]
+    B --> E["n = 2<br/>work 2"]
+    C --> F["n = 2<br/>work 2"]
+    C --> G["n = 2<br/>work 2"]
+```
+
+Each level sums to 8 → `n` work × `log n` levels.
+
+**Tower of Hanoi, a recursion tree you can count.** Move `n` disks from A to C using B: move `n − 1` to B, move one disk, move `n − 1` to C. Moves: `M(n) = 2M(n − 1) + 1` → **`2ⁿ − 1`**. For `n = 3`: 7 moves.
+
+**Rules of thumb**
+
+| Shape | Cost |
+|---|---|
+| One call, size `n − 1`, `O(1)` work | `O(n)` |
+| One call, size `n/2`, `O(1)` work | `O(log n)` |
+| Two calls, size `n − 1` | `O(2ⁿ)` |
+| Two calls, size `n/2`, `O(n)` work | `O(n log n)` |
+| Two calls, size `n/2`, `O(1)` work | `O(n)` |
+| One call `n − 1`, `O(n)` work | `O(n²)` |
+
+#### 3. Brute Force vs Optimized
+
+| Function | Recursion tree | Fix |
+|---|---|---|
+| `fib(n)` | exponential, repeated nodes | memo: each node once → `O(n)` |
+| `power(x, n)` linear | one chain, `n` deep | halve → `log n` deep |
+| `subsets(n)` | `2ⁿ` leaves | inherent (output size) |
+| `merge sort` | `log n` levels × `n` | already optimal for comparison sorts |
 
 ```kotlin
-// The function you'd trace with a recursion tree — no extra code needed to draw one,
-// it's a technique done on paper, not something you implement.
-fun fib(n: Int): Int {
-    if (n <= 1) return n
-    return fib(n - 1) + fib(n - 2)   // two recursive calls → tree branches in two
+// Count calls to see the shape of the tree
+var calls = 0
+fun fibCount(n: Int): Int { calls++; return if (n < 2) n else fibCount(n - 1) + fibCount(n - 2) }
+```
+
+#### 4. Kotlin Code
+
+```kotlin
+// Count the calls of naive fib
+fun countFibCalls(n: Int): Int {
+    var calls = 0
+    fun fib(k: Int): Int { calls++; return if (k < 2) k else fib(k - 1) + fib(k - 2) }
+    fib(n)
+    return calls
+}
+
+// Work of T(n) = 2T(n/2) + n (merge sort shape), with T(1) = 1
+fun mergeWork(n: Int): Int = if (n <= 1) 1 else n + 2 * mergeWork(n / 2)
+
+// Tower of Hanoi: returns the list of moves "from->to"
+fun hanoi(n: Int, from: Char, to: Char, via: Char, moves: MutableList<String> = mutableListOf()): List<String> {
+    if (n == 0) return moves
+    hanoi(n - 1, from, via, to, moves)               // move n-1 disks out of the way
+    moves.add("$from->$to")                          // move the biggest disk
+    hanoi(n - 1, via, to, from, moves)               // move n-1 disks on top of it
+    return moves
 }
 ```
 
-#### 6. Complexity — Must Know
+Checks: `countFibCalls(5)` → `15`; `countFibCalls(10)` → `177`; `countFibCalls(30)` → `2692537`. `mergeWork(8)` → `32`; `mergeWork(16)` → `80`. `hanoi(3, 'A', 'C', 'B')` → 7 moves: `A->C, A->B, C->B, A->C, B->A, B->C, A->C`. `hanoi(0, 'A', 'C', 'B')` → `[]`.
 
-| Function | Tree shape | Complexity |
+Check of `countFibCalls(10)`: `calls = 2·fib(11) − 1 = 2·89 − 1 = 177`. Check of `mergeWork(16)`: `16 + 2·32 = 80`.
+
+#### 5. Complexity
+
+| Function | Time | Space (depth) |
 |---|---|---|
-| `factorial(n)` | A single line down (one child per node) | O(n) |
-| `fib(n)` (naive) | A full binary tree, roughly doubling each level | O(2ⁿ) |
-| `mergeSort(n)` | A balanced tree, log n levels, O(n) work per level | O(n log n) |
+| naive `fib(n)` | `O(2ⁿ)` | `O(n)` |
+| `mergeWork(n)` | `O(n log n)` | `O(log n)` |
+| `hanoi(n)` | `O(2ⁿ)` | `O(n)` |
+| Linear recursion | `O(n)` | `O(n)` |
 
-The general rule: **total work = number of nodes visited × work done per node** (or, level by level, sum the work across each level of the tree).
+#### 6. Common Mistakes
 
-#### 7. Common Mistakes — Must Know
+1. **Counting only the first branch** of the tree.
+2. **Forgetting the work done outside the recursive calls** (merge, copy).
+3. **Mixing up total calls and depth** (time vs space).
+4. **Not noticing repeated nodes** (the sign that memoization helps).
+5. **Treating `2T(n/2) + 1` as `n log n`.** With `O(1)` combine it is `O(n)`.
+6. **Copying subarrays** in each call, which adds hidden `O(n)` work per node.
 
-1. Only counting the depth of the tree and forgetting how many nodes are at each level.
-2. Assuming a recursive function is efficient without checking whether it repeats the same subproblem (a sign that memoization is needed, topic 8).
-3. Not accounting for the cost of the **combine step** at each node (relevant for divide and conquer, topic 3).
+#### 7. Say This in the Interview
 
-#### 8. Related Topics
+1. "I'll draw the recursion tree. Each call makes two more, so the tree doubles each level: exponential."
+2. "The same `fib(k)` shows up many times in the tree, so memoizing each value once makes it `O(n)`."
+3. "Each level of the merge sort tree does `O(n)` work and there are `log n` levels."
 
-1. `1` Base Case & Recursive Case — where the tree's leaves come from
-2. `3` Divide and Conquer — the balanced-tree case
-3. `5` Recurrence Relations & the Master Theorem — the formula version of this same idea
-4. `8` Memoization — the fix once a tree shows repeated subproblems
+#### 8. Quick Check
 
-#### 9. Interview Must Remember
+1. Moves needed for Hanoi with 4 disks?
+2. How many calls does naive `fib(5)` make?
+3. Levels in the merge sort tree for `n = 1024`?
 
-1. When asked for a recursive function's complexity, **draw the tree** — it rarely lies.
-2. Repeated subproblems in the tree are the signal to add memoization.
-3. Total work = nodes × work per node, or sum the work level by level.
+<details>
+<summary>Answers</summary>
+
+1. `2⁴ − 1 = 15`.
+2. 15.
+3. 11 (10 splits + the leaves).
+
+</details>
+
+#### 9. Related LeetCode Questions
+
+| # | Question | Idea |
+|---|---|---|
+| 509 | [Fibonacci Number](https://leetcode.com/problems/fibonacci-number/) (Easy) | exponential tree → memo |
+| 70 | [Climbing Stairs](https://leetcode.com/problems/climbing-stairs/) (Easy) | same tree shape |
+| 50 | [Pow(x, n)](https://leetcode.com/problems/powx-n/) (Medium) | halving tree |
+| 78 | [Subsets](https://leetcode.com/problems/subsets/) (Medium) | `2ⁿ` leaves |
+| 22 | [Generate Parentheses](https://leetcode.com/problems/generate-parentheses/) (Medium) | decision tree |
+| 241 | [Different Ways to Add Parentheses](https://leetcode.com/problems/different-ways-to-add-parentheses/) (Medium) | split on operators |

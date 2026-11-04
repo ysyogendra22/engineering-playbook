@@ -14,5 +14,9 @@ Algorithm topic `6` in `02-algorithm`. Try a choice, explore, and undo it if it 
 | 6 | Branch and Bound — Tracking a Best-So-Far Bound | 🟡 |
 | 7 | Classic Problems — N-Queens, Sudoku, Subset Sum | 🟡 |
 | 8 | Travelling Salesman Problem — Name & Idea Only | ⚪ |
+| 9 | Subsets, Combinations, Permutations — The Three Core Families | 🟢 |
+| 10 | Handling Duplicates — Sort and Skip Equal Siblings | 🟢 |
+| 11 | Grid & String Backtracking — Word Search, Parentheses, Partitions | 🟢 |
+| 99 | Backtracking Cheat Sheet | 🟢 |
 
 **Related:** `5` Dynamic Programming (when repeated subproblems appear, switch to it) · `7` Graph Algorithms (TSP as a graph problem) · `11` Complexity Classes (why some backtracking problems have no fast exact solution) · `LC 14` Backtracking patterns and classic problems

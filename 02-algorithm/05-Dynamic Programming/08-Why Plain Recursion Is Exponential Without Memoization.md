@@ -1,82 +1,166 @@
 # Why Plain Recursion Is Exponential Without Memoization
 
-#### 1. Definition — Must Know
+> A recursion that branches twice and repeats subproblems does exponential work. Counting the calls shows exactly how bad it is.
 
-When a recursive function has overlapping subproblems (topic 1) but **no cache**, the same subproblems get recomputed again and again — and the total number of calls grows exponentially with the input size.
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+A recursive function like `fib(n) = fib(n − 1) + fib(n − 2)` calls itself **twice**. The second call recomputes what the first call already knew. The number of calls grows like the **Fibonacci numbers themselves**, which is about `1.618ⁿ`.
 
-1. This is the concrete "before" picture that motivates every DP solution — it's worth being able to explain *why* naive recursion is slow, not just that it is.
-2. Being able to say the actual number (O(2ⁿ)) and *why* it's that shape is a strong, precise interview answer.
+**Why it matters in interviews:** "Why is this slow?" and "What is the time complexity of the brute force?" are common questions. You should be able to draw the recursion tree and say "`O(2ⁿ)`".
 
-#### 3. How It Works — Must Know
+#### 2. How It Works
 
-Naive Fibonacci calls itself twice per call, and the recursion tree roughly doubles in size at every level (see the recursion tree in `03-Recursion & Divide and Conquer/04`):
+**Recursion tree for `fib(5)`: 15 calls, only 6 different arguments.**
 
-```text
-fib(n) makes 2 calls: fib(n-1) and fib(n-2)
-Each of those makes 2 more calls, and so on...
-
-Level 0:  1 call    (fib(n))
-Level 1:  2 calls    (fib(n-1), fib(n-2))
-Level 2:  4 calls
-Level 3:  8 calls
-...
-Level k: ~2^k calls
-
-Total calls ≈ 2^0 + 2^1 + ... + 2^n ≈ 2^(n+1) - 1  →  O(2ⁿ)
+```mermaid
+flowchart TD
+    a["fib(5)"] --> b["fib(4)"]
+    a --> c["fib(3)"]
+    b --> d["fib(3)"]
+    b --> e["fib(2)"]
+    c --> f["fib(2)"]
+    c --> g["fib(1)"]
+    d --> h["fib(2)"]
+    d --> i["fib(1)"]
+    e --> j["fib(1)"]
+    e --> k["fib(0)"]
+    f --> l["fib(1)"]
+    f --> m["fib(0)"]
+    h --> n["fib(1)"]
+    h --> o["fib(0)"]
 ```
 
-`fib(30)` alone makes over 2.7 million calls, almost all of them repeats of a call already made.
+**Counting the calls.** Let `T(n)` be the number of calls: `T(n) = T(n − 1) + T(n − 2) + 1`, with `T(0) = T(1) = 1`.
 
-#### 4. Algorithm — Must Know
+| `n` | 5 | 10 | 20 | 30 | 40 | 50 |
+|---|---|---|---|---|---|---|
+| calls | 15 | 177 | 21,891 | 2,692,537 | 331,160,281 | about 40 billion |
 
-```text
-To see this for any recursive function, ask:
-1. How many recursive calls does one call make?           (the "branching factor")
-2. How much does the input shrink per call?                (usually by 1)
-3. If branching factor > 1 and shrink is small (by 1),
-   the tree grows exponentially — O(branching_factor ^ depth)
-```
+Each time `n` grows by about 1.4, the calls double. For a rough bound: the tree has depth `n` and each level at most doubles, so `O(2ⁿ)`. (A tighter bound is `O(φⁿ)`, `φ ≈ 1.618`.)
 
-#### 5. Kotlin Implementation — Must Know
+**With memoization** each `fib(k)` is computed **once**, so the tree collapses into a single chain and the total is `2n − 1` calls (`n` computations plus lookups).
+
+**Other exponential recursions**
+
+| Problem | Brute force | Why exponential | DP time |
+|---|---|---|---|
+| Subsets / House Robber | `O(2ⁿ)` | take or skip each item | `O(n)` |
+| Coin Change (recursion) | `O(coinsᵃᵐᵒᵘⁿᵗ)` | try every coin at every amount | `O(amount · coins)` |
+| LCS (recursion) | `O(2^(m+n))` | two branches per mismatch | `O(m · n)` |
+| Edit Distance (recursion) | `O(3^(m+n))` | three branches | `O(m · n)` |
+
+**The rule to remember:** if the number of **distinct** arguments is polynomial (like `n` or `m × n`) but the number of **calls** is exponential, memoization turns it into polynomial time.
+
+#### 3. Brute Force vs Optimized
+
+| | Calls for `n = 40` | Time |
+|---|---|---|
+| Plain recursion | 331,160,281 | seconds |
+| Memoized recursion | 79 | microseconds |
+| Bottom-up | 40 loop steps | microseconds |
 
 ```kotlin
-// Naive — exponential
-fun fibSlow(n: Int): Long {
-    if (n <= 1) return n.toLong()
-    return fibSlow(n - 1) + fibSlow(n - 2)   // 2 calls per call → exponential
+var calls = 0L
+
+fun fibPlain(n: Int): Long {
+    calls++
+    return if (n <= 1) n.toLong() else fibPlain(n - 1) + fibPlain(n - 2)
 }
 
-// Memoized — linear (see `02-Top-Down (Memoization) vs Bottom-Up (Tabulation)`)
-fun fibFast(n: Int, cache: MutableMap<Int, Long> = mutableMapOf()): Long {
+fun fibMemoized(n: Int, memo: HashMap<Int, Long> = HashMap()): Long {
+    calls++
     if (n <= 1) return n.toLong()
-    cache[n]?.let { return it }
-    return (fibFast(n - 1, cache) + fibFast(n - 2, cache)).also { cache[n] = it }
+    memo[n]?.let { return it }
+    val result = fibMemoized(n - 1, memo) + fibMemoized(n - 2, memo)
+    memo[n] = result
+    return result
 }
 ```
 
-#### 6. Complexity — Must Know
+#### 4. Kotlin Code
 
-| Version | Time | Why |
+```kotlin
+// Count calls for any n and either version
+fun countCalls(n: Int): Pair<Long, Long> {
+    calls = 0; fibPlain(n); val plain = calls
+    calls = 0; fibMemoized(n); val memo = calls
+    return plain to memo
+}
+
+// Coin change by plain recursion (exponential): fewest coins, -1 if impossible
+fun coinChangeRec(coins: IntArray, amount: Int): Int {
+    if (amount == 0) return 0
+    if (amount < 0) return -1
+    var best = -1
+    for (c in coins) {
+        val sub = coinChangeRec(coins, amount - c)
+        if (sub >= 0 && (best == -1 || sub + 1 < best)) best = sub + 1
+    }
+    return best
+}
+
+// The same with a memo: each amount solved once
+fun coinChangeMemo(coins: IntArray, amount: Int, memo: IntArray = IntArray(amount + 1) { -2 }): Int {
+    if (amount == 0) return 0
+    if (amount < 0) return -1
+    if (memo[amount] != -2) return memo[amount]
+    var best = -1
+    for (c in coins) {
+        val sub = coinChangeMemo(coins, amount - c, memo)
+        if (sub >= 0 && (best == -1 || sub + 1 < best)) best = sub + 1
+    }
+    memo[amount] = best
+    return best
+}
+```
+
+Checks: `countCalls(5)` → `(15, 9)`. `countCalls(20)` → `(21891, 39)`. `countCalls(10)` → `(177, 19)`. `coinChangeRec(intArrayOf(1, 2, 5), 11)` → `3` (slow only for large amounts). `coinChangeMemo(intArrayOf(1, 2, 5), 11)` → `3`. `coinChangeMemo(intArrayOf(2), 3)` → `-1`. `coinChangeMemo(intArrayOf(186, 419, 83, 408), 6249)` finishes instantly with the memo (the plain recursion would never finish).
+
+#### 5. Complexity
+
+| | Time | Space |
 |---|---|---|
-| `fibSlow` | O(2ⁿ) | Every call branches into 2 more, with almost no shrinkage in depth |
-| `fibFast` (memoized) | O(n) | Each of the n distinct subproblems is computed exactly once |
+| Plain Fibonacci | `O(2ⁿ)` (tight `O(φⁿ)`) | `O(n)` stack |
+| Memoized | `O(n)` | `O(n)` |
+| Plain coin change | `O(coinsᵃᵐᵒᵘⁿᵗ)` | `O(amount)` stack |
+| Memoized coin change | `O(amount · coins)` | `O(amount)` |
 
-#### 7. Common Mistakes — Must Know
+#### 6. Common Mistakes
 
-1. Writing a correct recursive solution, running it on a small test case where it's fast, and not noticing it will time out on a larger input.
-2. Assuming any recursive function is "automatically" exponential — this only happens when subproblems overlap **and** aren't cached (Merge Sort, for instance, is recursive but not exponential, since its subproblems don't overlap).
-3. Adding memoization without first checking that the subproblems actually repeat — caching a function whose calls never repeat adds overhead for no benefit.
+1. **Saying plain recursion is `O(n)`** because the depth is `n`. The depth is `n`, the number of calls is exponential.
+2. **Forgetting to count the memo lookups** (they are `O(1)` but still calls).
+3. **Memoizing with a key that misses a parameter**, so different states share a result.
+4. **Mutating shared state** inside a memoized function.
+5. **Not noticing the repeated arguments.** Print the arguments for a small input to see them.
 
-#### 8. Related Topics
+#### 7. Say This in the Interview
 
-1. `1` Optimal Substructure & Overlapping Subproblems — the property that causes this
-2. `2` Top-Down (Memoization) vs Bottom-Up (Tabulation) — the fix
-3. `4` Recursion Tree & Tracing Complexity by Hand (in the Recursion folder) — the way to see this happening
+1. "Each call branches into two, so the call tree doubles in size as `n` grows: about `O(2ⁿ)`. The same arguments are computed many times."
+2. "There are only `n + 1` distinct arguments, so if I store each result the first time, the work drops to `O(n)`."
+3. "General rule: distinct states times work per state."
 
-#### 9. Interview Must Remember
+#### 8. Quick Check
 
-1. **Exponential blow-up = overlapping subproblems + no cache.** State both halves of that sentence.
-2. Naive Fibonacci is the standard example: O(2ⁿ) without memoization, O(n) with it.
-3. This is your justification for adding a cache — not just "it feels faster", but a specific, provable reason.
+1. How many calls does plain `fib(6)` make?
+2. How many distinct arguments does `fib(n)` use?
+3. What does memoization change about the recursion depth?
+
+<details>
+<summary>Answers</summary>
+
+1. `25` (`T(6) = T(5) + T(4) + 1 = 15 + 9 + 1`).
+2. `n + 1`.
+3. Nothing. The depth is still `n`. Only the number of calls shrinks.
+
+</details>
+
+#### 9. Related LeetCode Questions
+
+| # | Question | Idea |
+|---|---|---|
+| 509 | [Fibonacci Number](https://leetcode.com/problems/fibonacci-number/) (Easy) | the standard blow-up |
+| 70 | [Climbing Stairs](https://leetcode.com/problems/climbing-stairs/) (Easy) | same tree |
+| 322 | [Coin Change](https://leetcode.com/problems/coin-change/) (Medium) | recursion TLE, then memo |
+| 139 | [Word Break](https://leetcode.com/problems/word-break/) (Medium) | repeated suffixes |
+| 96 | [Unique Binary Search Trees](https://leetcode.com/problems/unique-binary-search-trees/) (Medium) | Catalan recursion with memo |
+| 279 | [Perfect Squares](https://leetcode.com/problems/perfect-squares/) (Medium) | recursion over remaining |

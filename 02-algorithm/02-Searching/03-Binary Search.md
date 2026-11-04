@@ -1,165 +1,151 @@
 # Binary Search
 
-#### 1. Definition — Must Know
+> Halve the search space every step by comparing with the middle. `O(log n)`. Easy to describe, easy to get wrong: learn one template and use it every time.
 
-Binary Search finds a target by repeatedly **dividing the search space in half**.
+#### 1. What Is It?
 
-For standard Binary Search, the array must be **sorted**.
+**Binary search** finds a target in a **sorted** array by repeatedly looking at the **middle** element:
 
-#### 2. Why It Is Used
+- middle `==` target → found,
+- middle `<` target → the target can only be to the **right**,
+- middle `>` target → the target can only be to the **left**.
 
-1. Searches sorted data efficiently.
-2. Eliminates half of the remaining elements at every step.
-3. Reduces search time from `O(N)` to `O(log N)`.
+Each step throws away half of the remaining items, so 1,000,000 items need about 20 steps.
 
-#### 3. How It Works
+**Signals:** "sorted array", "find in `O(log n)`", "the array is huge".
 
-Example:
+#### 2. How It Works
 
-```text id="bs01"
-Array  = [10, 20, 30, 40, 50, 60, 70]
-Target = 60
+```text
+nums = [-1, 0, 3, 5, 9, 12], target 9
+lo=0 hi=5  mid=2 (3)   3 < 9 → lo = mid + 1 = 3
+lo=3 hi=5  mid=4 (9)   9 = 9 → found at index 4
 ```
 
-First:
-
-```text id="bs02"
-[10, 20, 30, 40, 50, 60, 70]
-             ↑
-            mid = 40
+```mermaid
+flowchart TD
+    A["lo = 0, hi = n - 1"] --> B{"lo <= hi ?"}
+    B -->|"no"| N["return -1"]
+    B -->|"yes"| C["mid = lo + (hi - lo) / 2"]
+    C --> D{"nums[mid] vs target"}
+    D -->|"equal"| F["return mid"]
+    D -->|"nums[mid] < target"| R["lo = mid + 1"]
+    D -->|"nums[mid] > target"| L["hi = mid - 1"]
+    R --> B
+    L --> B
 ```
 
-`60 > 40`, so discard the left half.
+**The template (closed interval `[lo, hi]`)**
 
-```text id="bs03"
-[50, 60, 70]
-     ↑
-   Found
-```
-
-#### 4. Core Concepts — Must Know
-
-1. **Left** — beginning of current search space.
-2. **Right** — end of current search space.
-3. **Mid** — middle position.
-4. If `target < nums[mid]` → search left half.
-5. If `target > nums[mid]` → search right half.
-6. If equal → target found.
-
-#### 5. Algorithm — Must Know
-
-```text id="bs04"
-left = 0
-right = n - 1
-
-while left <= right:
-
-    mid = left + (right - left) / 2
-
-    if nums[mid] == target:
-        return mid
-
-    if target < nums[mid]:
-        right = mid - 1
-
-    else:
-        left = mid + 1
-
+```text
+lo = 0, hi = n - 1
+while lo <= hi:
+    mid = lo + (hi - lo) / 2
+    if nums[mid] == target: return mid
+    if nums[mid] < target:  lo = mid + 1
+    else:                   hi = mid - 1
 return -1
 ```
 
-#### 6. Kotlin Implementation — Must Know
+**Why it is correct (loop invariant):** if the target is in the array, it is always inside `[lo, hi]`. Each step keeps that true and makes the interval smaller, so the loop ends.
 
-```kotlin id="bs05"
-fun binarySearch(nums: IntArray, target: Int): Int {
+**Why `lo + (hi − lo) / 2`:** `(lo + hi) / 2` can overflow `Int` when both are large. The subtraction form cannot.
 
-    var left = 0
-    var right = nums.lastIndex
+**Iterations:** `⌊log₂ n⌋ + 1`. For `n = 10⁹` that is 30.
 
-    while (left <= right) {
+#### 3. Brute Force vs Optimized
 
-        val mid = left + (right - left) / 2
+| Approach | Time |
+|---|---|
+| Linear scan | `O(n)` |
+| **Binary search** | **`O(log n)`** |
+| Hash set | `O(1)` but needs `O(n)` memory and no order |
 
-        when {
-            nums[mid] == target -> return mid
-            target < nums[mid] -> right = mid - 1
-            else -> left = mid + 1
-        }
-    }
-
+```kotlin
+// Brute force: scan
+fun searchLinear(nums: IntArray, target: Int): Int {
+    for (i in nums.indices) if (nums[i] == target) return i
     return -1
 }
 ```
 
-#### 7. Time & Space Complexity — Must Know
+#### 4. Kotlin Code
 
-| Case | Time |
-|---|---:|
-| Best | `O(1)` |
-| Average | `O(log N)` |
-| Worst | `O(log N)` |
-| Space | `O(1)` |
+```kotlin
+// Binary Search (LeetCode 704): iterative
+fun search(nums: IntArray, target: Int): Int {
+    var lo = 0
+    var hi = nums.size - 1
+    while (lo <= hi) {
+        val mid = lo + (hi - lo) / 2
+        when {
+            nums[mid] == target -> return mid
+            nums[mid] < target -> lo = mid + 1
+            else -> hi = mid - 1
+        }
+    }
+    return -1
+}
 
-Why `O(log N)`?
-
-```text id="bs06"
-N → N/2 → N/4 → N/8 → ...
+// Recursive version
+fun searchRec(nums: IntArray, target: Int, lo: Int = 0, hi: Int = nums.size - 1): Int {
+    if (lo > hi) return -1
+    val mid = lo + (hi - lo) / 2
+    return when {
+        nums[mid] == target -> mid
+        nums[mid] < target -> searchRec(nums, target, mid + 1, hi)
+        else -> searchRec(nums, target, lo, mid - 1)
+    }
+}
 ```
 
-The search space is halved each time.
+Checks: `search(intArrayOf(-1, 0, 3, 5, 9, 12), 9)` → `4`. `search(intArrayOf(-1, 0, 3, 5, 9, 12), 2)` → `-1`. `search(intArrayOf(5), 5)` → `0`. `search(intArrayOf(), 5)` → `-1`. `searchRec(intArrayOf(-1, 0, 3, 5, 9, 12), 9)` → `4`. `searchLinear(...)` agrees on all.
 
-#### 8. Common Binary Search Patterns — Must Know
+#### 5. Complexity
 
-1. Exact target search.
-2. First / last occurrence.
-3. Lower Bound / Upper Bound.
-4. Search in rotated sorted array.
-5. Search in 2D matrix.
-6. Binary Search on Answer.
+| | Time | Space |
+|---|---|---|
+| Iterative | `O(log n)` | `O(1)` |
+| Recursive | `O(log n)` | `O(log n)` stack |
 
-Study these patterns separately.
+#### 6. Common Mistakes
 
-#### 9. Edge Cases / Common Mistakes
+1. **Unsorted input.**
+2. **`(lo + hi) / 2` overflow.**
+3. **`lo < hi` with `hi = mid − 1`** (misses the last element). Match the loop condition to the interval style.
+4. **Not moving past `mid`** (`lo = mid` instead of `mid + 1`): infinite loop.
+5. **Mixing the two styles** (closed `[lo, hi]` vs half-open `[lo, hi)`).
+6. **Empty array:** `hi = −1`, the loop never runs, return `-1`.
+7. **Duplicates:** this template returns **some** index, not the first (note 4).
 
-1. Empty array.
-2. Single element.
-3. Target not present.
-4. Target at first or last position.
-5. Duplicate values.
-6. Using Binary Search on unsorted data.
-7. Wrong `left` / `right` updates causing infinite loops.
-8. Using the wrong loop condition.
+#### 7. Say This in the Interview
 
-#### 10. When to Use / When Not to Use
+1. "The array is sorted, so each comparison with the middle removes half of the candidates: `O(log n)` time, `O(1)` space."
+2. "I'll use `mid = lo + (hi - lo) / 2` to avoid overflow, and keep the invariant that the target, if present, is always in `[lo, hi]`."
+3. "I'll test: one element, two elements, target at each end, and a missing target."
 
-**Use when:**
+#### 8. Quick Check
 
-1. Data is sorted.
-2. Search space has a clear **monotonic property**.
-3. You can eliminate half of the search space after each decision.
+1. How many steps for 1,024 items at most?
+2. What happens if you write `lo = mid` instead of `lo = mid + 1`?
+3. What does the loop condition `lo <= hi` mean?
 
-**Avoid when:**
+<details>
+<summary>Answers</summary>
 
-1. Data is unsorted and cannot be searched using a monotonic condition.
-2. Only sequential access is available.
+1. About 11 (`log₂ 1024 + 1`).
+2. It can loop forever when `lo + 1 == hi`.
+3. The interval `[lo, hi]` still contains at least one candidate.
 
-#### 11. Related Topics
+</details>
 
-1. First / Last Occurrence
-2. Lower Bound / Upper Bound
-3. Rotated Sorted Array
-4. Binary Search on Answer
+#### 9. Related LeetCode Questions
 
-#### 12. Interview Must Remember
-
-1. Standard Binary Search requires **sorted data**.
-2. Core idea → **eliminate half of the search space**.
-3. Time → `O(log N)`.
-4. Iterative space → `O(1)`.
-5. Use:
-
-```kotlin id="bs07"
-val mid = left + (right - left) / 2
-```
-
-6. Most Binary Search bugs come from **boundary conditions**.
+| # | Question | Idea |
+|---|---|---|
+| 704 | [Binary Search](https://leetcode.com/problems/binary-search/) (Easy) | the template |
+| 35 | [Search Insert Position](https://leetcode.com/problems/search-insert-position/) (Easy) | where it belongs |
+| 278 | [First Bad Version](https://leetcode.com/problems/first-bad-version/) (Easy) | yes/no flips once |
+| 69 | [Sqrt(x)](https://leetcode.com/problems/sqrtx/) (Easy) | search on the answer |
+| 367 | [Valid Perfect Square](https://leetcode.com/problems/valid-perfect-square/) (Easy) | search a number range |
+| 34 | [Find First and Last Position of Element in Sorted Array](https://leetcode.com/problems/find-first-and-last-position-of-element-in-sorted-array/) (Medium) | duplicates (note 4) |

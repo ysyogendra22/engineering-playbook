@@ -1,345 +1,213 @@
 # Advanced Binary Search on Answer
 
-#### 1. Definition — Advanced
+> The hard versions: **minimise the maximum**, **maximise the minimum**, count pairs by distance, and split arrays. The `ok` check is harder, the template is the same.
 
-Advanced Binary Search on Answer applies Binary Search to a **large answer space** where:
+#### 1. What Is It?
 
-1. The answer is not directly stored in the input.
-2. A candidate answer can be checked.
-3. The check produces a **monotonic** true/false pattern.
+Same method as note 11 (binary search the answer with a monotonic check), but the checks are cleverer, and some problems have no obvious "array" at all.
 
-```text id="abs01"
-F F F F T T T T
-        ↑
-   Minimum Valid
+| Problem | Search over | `ok(x)` means |
+|---|---|---|
+| **Split Array Largest Sum** (410) | the largest allowed subarray sum | the array can be split into `<= m` parts, each with sum `<= x` |
+| **Magnetic Force Between Two Balls** (1552) | the minimum distance `x` | we can place `m` balls with every gap `>= x` |
+| **Find K-th Smallest Pair Distance** (719) | a distance `x` | at least `k` pairs have distance `<= x` |
+| **Median of Two Sorted Arrays** (4) | a cut position in the smaller array | the left parts are all `<=` the right parts |
+
+**Two flavours**
+
+| Goal | Search | Update |
+|---|---|---|
+| **Minimise the maximum** (smallest `x` that works) | first `true` | `ok(mid) → hi = mid`, else `lo = mid + 1` |
+| **Maximise the minimum** (largest `x` that works) | last `true` | `ok(mid) → lo = mid`, else `hi = mid − 1`, with `mid` rounded **up** |
+
+**Signals:** "minimise the largest", "maximise the smallest", "split into `k` parts", "Kth smallest distance / product / sum".
+
+#### 2. How It Works
+
+**Split Array Largest Sum.** Split `[7, 2, 5, 10, 8]` into `m = 2` parts to **minimise the largest part sum**.
+
+```text
+range: lo = max element = 10,  hi = total = 32
+ok(x): greedily fill parts, start a new part when the sum would exceed x; ok if parts <= m
+x = 18: [7,2,5] = 14, then [10,8] = 18  → 2 parts → ok
+x = 17: [7,2,5] = 14, [10] , [8]       → 3 parts → not ok
+answer 18
 ```
 
-or:
+**Magnetic Force (maximise the minimum).** Positions `[1, 2, 3, 4, 7]`, `m = 3` balls. Sort. `ok(d)`: place the first ball at the first position, then the next ball at the first position at least `d` away, and so on. Count balls placed; `ok` if `>= m`.
 
-```text id="abs02"
-T T T T F F F
-      ↑
-  Maximum Valid
+```text
+d = 3: place at 1, then 4 (>= 1 + 3), then 7 (>= 4 + 3) → 3 balls → ok
+d = 4: place at 1, then 7 (>= 5) → 2 balls → not ok          answer 3
 ```
 
-#### 2. Main Interview Pattern — Must Know
+**K-th Smallest Pair Distance.** Sort. Count pairs with distance `<= x` with two pointers in `O(n)`. Find the smallest `x` with count `>= k`.
 
-Most advanced problems can be reduced to:
-
-```text id="abs03"
-Find Answer Range
-        ↓
-Choose mid
-        ↓
-Check feasibility(mid)
-        ↓
-Eliminate half
+```mermaid
+flowchart LR
+    A["range [lo, hi] of possible answers"] --> B["mid"]
+    B --> C["greedy / counting check in O(n)"]
+    C -->|"ok"| D["minimise: hi = mid<br/>maximise: lo = mid"]
+    C -->|"not ok"| E["minimise: lo = mid + 1<br/>maximise: hi = mid - 1"]
 ```
 
-The difficult part is usually **not Binary Search**.
+**Median of Two Sorted Arrays (`O(log min(m, n))`).** Binary search how many items `i` to take from the smaller array `a` into the left half. The rest `j = (m + n + 1) / 2 − i` come from `b`. The split is valid when `a[i − 1] <= b[j]` and `b[j − 1] <= a[i]`. The median comes from the four border values.
 
-It is designing:
+**Rounding rule for "maximise":** use `mid = lo + (hi − lo + 1) / 2` (round up), or the loop never ends when `lo + 1 == hi` and `lo = mid`.
 
-```text id="abs04"
-canDo(mid)
+#### 3. Brute Force vs Optimized
+
+| Problem | Brute force | Binary search on answer |
+|---|---|---|
+| Split Array Largest Sum | try all splits `O(C(n, m))` or DP `O(n² m)` | `O(n log sum)` |
+| Magnetic Force | try every distance | `O(n log range)` |
+| K-th Smallest Pair Distance | all pairs, sort: `O(n² log n)` | `O(n log range)` |
+| Median of two sorted arrays | merge `O(m + n)` | `O(log min(m, n))` |
+
+```kotlin
+// Brute force kth smallest pair distance: all pairs, sort
+fun smallestDistancePairBrute(nums: IntArray, k: Int): Int {
+    val d = mutableListOf<Int>()
+    for (i in nums.indices) for (j in i + 1 until nums.size) d.add(Math.abs(nums[i] - nums[j]))
+    d.sort()
+    return d[k - 1]
+}
 ```
 
-correctly.
+#### 4. Kotlin Code
 
-#### 3. Minimum Valid Answer
-
-Pattern:
-
-```text id="abs05"
-F F F T T T T
-      ↑
-```
-
-If `mid` is valid:
-
-```text id="abs06"
-answer = mid
-search LEFT
-```
-
-Otherwise:
-
-```text id="abs07"
-search RIGHT
-```
-
-Template:
-
-```kotlin id="abs08"
-fun findMinimum(leftValue: Long, rightValue: Long): Long {
-
-    var left = leftValue
-    var right = rightValue
-    var answer = rightValue
-
-    while (left <= right) {
-
-        val mid = left + (right - left) / 2
-
-        if (canDo(mid)) {
-            answer = mid
-            right = mid - 1
-        } else {
-            left = mid + 1
+```kotlin
+// Split Array Largest Sum (LeetCode 410): minimise the maximum
+fun splitArray(nums: IntArray, m: Int): Int {
+    var lo = nums.maxOrNull()!!
+    var hi = nums.sum()
+    fun ok(limit: Int): Boolean {
+        var parts = 1
+        var sum = 0
+        for (x in nums) {
+            if (sum + x > limit) { parts++; sum = 0 }
+            sum += x
         }
+        return parts <= m
     }
-
-    return answer
+    while (lo < hi) {
+        val mid = lo + (hi - lo) / 2
+        if (ok(mid)) hi = mid else lo = mid + 1
+    }
+    return lo
 }
-```
 
-#### 4. Maximum Valid Answer
+// Magnetic Force Between Two Balls (LeetCode 1552): maximise the minimum
+fun maxDistance(position: IntArray, m: Int): Int {
+    val p = position.sortedArray()
+    var lo = 1
+    var hi = p.last() - p.first()
+    fun ok(d: Int): Boolean {
+        var count = 1
+        var last = p[0]
+        for (i in 1 until p.size) if (p[i] - last >= d) { count++; last = p[i] }
+        return count >= m
+    }
+    while (lo < hi) {
+        val mid = lo + (hi - lo + 1) / 2                 // round UP
+        if (ok(mid)) lo = mid else hi = mid - 1
+    }
+    return lo
+}
 
-Pattern:
-
-```text id="abs09"
-T T T T F F F
-      ↑
-```
-
-If `mid` is valid:
-
-```text id="abs10"
-answer = mid
-search RIGHT
-```
-
-Otherwise:
-
-```text id="abs11"
-search LEFT
-```
-
-Template:
-
-```kotlin id="abs12"
-fun findMaximum(leftValue: Long, rightValue: Long): Long {
-
-    var left = leftValue
-    var right = rightValue
-    var answer = leftValue
-
-    while (left <= right) {
-
-        val mid = left + (right - left) / 2
-
-        if (canDo(mid)) {
-            answer = mid
-            left = mid + 1
-        } else {
-            right = mid - 1
+// Find K-th Smallest Pair Distance (LeetCode 719)
+fun smallestDistancePair(nums: IntArray, k: Int): Int {
+    val a = nums.sortedArray()
+    var lo = 0
+    var hi = a.last() - a.first()
+    fun countAtMost(d: Int): Int {
+        var count = 0
+        var left = 0
+        for (right in a.indices) {
+            while (a[right] - a[left] > d) left++
+            count += right - left                         // pairs (left..right-1, right)
         }
+        return count
     }
+    while (lo < hi) {
+        val mid = lo + (hi - lo) / 2
+        if (countAtMost(mid) >= k) hi = mid else lo = mid + 1
+    }
+    return lo
+}
 
-    return answer
+// Median of Two Sorted Arrays (LeetCode 4): binary search the cut in the smaller array
+fun findMedianSortedArrays(a: IntArray, b: IntArray): Double {
+    if (a.size > b.size) return findMedianSortedArrays(b, a)
+    val m = a.size
+    val n = b.size
+    var lo = 0
+    var hi = m
+    while (lo <= hi) {
+        val i = (lo + hi) / 2                             // items taken from a into the left half
+        val j = (m + n + 1) / 2 - i                       // items taken from b
+        val aLeft = if (i == 0) Int.MIN_VALUE else a[i - 1]
+        val aRight = if (i == m) Int.MAX_VALUE else a[i]
+        val bLeft = if (j == 0) Int.MIN_VALUE else b[j - 1]
+        val bRight = if (j == n) Int.MAX_VALUE else b[j]
+        if (aLeft <= bRight && bLeft <= aRight) {
+            return if ((m + n) % 2 == 1) maxOf(aLeft, bLeft).toDouble()
+            else (maxOf(aLeft, bLeft).toLong() + minOf(aRight, bRight)) / 2.0
+        } else if (aLeft > bRight) hi = i - 1 else lo = i + 1
+    }
+    throw IllegalArgumentException("arrays are not sorted")
 }
 ```
 
-#### 5. Important Advanced Pattern — Minimize the Maximum
+Checks: `splitArray(intArrayOf(7, 2, 5, 10, 8), 2)` → `18`. `splitArray(intArrayOf(1, 2, 3, 4, 5), 2)` → `9`. `maxDistance(intArrayOf(1, 2, 3, 4, 7), 3)` → `3`. `maxDistance(intArrayOf(5, 4, 3, 2, 1, 1000000000), 2)` → `999999999`. `smallestDistancePair(intArrayOf(1, 3, 1), 1)` → `0`. `smallestDistancePair(intArrayOf(1, 6, 1), 3)` → `5`. `smallestDistancePairBrute(intArrayOf(1, 3, 1), 1)` → `0`. `findMedianSortedArrays(intArrayOf(1, 3), intArrayOf(2))` → `2.0`. `findMedianSortedArrays(intArrayOf(1, 2), intArrayOf(3, 4))` → `2.5`. `findMedianSortedArrays(intArrayOf(), intArrayOf(1))` → `1.0`.
 
-Example:
+#### 5. Complexity
 
-```text id="abs13"
-Split Array Largest Sum
-```
+| | Time | Space |
+|---|---|---|
+| Split Array Largest Sum | `O(n log sum)` | `O(1)` |
+| Magnetic Force | `O(n log range)` (+ sort) | `O(1)` |
+| K-th Smallest Pair Distance | `O(n log n + n log range)` | `O(1)` |
+| Median of Two Sorted Arrays | `O(log min(m, n))` | `O(1)` |
 
-Question:
+#### 6. Common Mistakes
 
-> Split an array into `K` parts while minimizing the largest part sum.
+1. **Rounding `mid` down** when maximising (`lo = mid` loops forever).
+2. **A greedy `ok` that is not correct** (for example not resetting the running sum properly).
+3. **Wrong range** (`lo` below the true minimum is fine, above it is wrong).
+4. **Splitting with `parts < m` expected to be exactly `m`**: `<= m` is correct because fewer parts can always be split further.
+5. **Median:** not binary searching the **smaller** array, or mishandling empty sides with `±∞`.
+6. **Median:** `Int` overflow when adding the two middle values (use `Long`).
+7. **Counting pairs** with `O(n²)` inside the check.
 
-Search range:
+#### 7. Say This in the Interview
 
-```text id="abs14"
-left  = maximum element
-right = sum of all elements
-```
+1. "I want to minimise the largest sum, and 'can I split into at most `m` parts with each sum at most `x`?' is monotonic in `x`. So I binary search `x` between the biggest element and the total, with an `O(n)` greedy check."
+2. "For maximising the minimum distance I round `mid` up so the loop terminates."
+3. "For the median of two sorted arrays I binary search the cut in the smaller array: `O(log min(m, n))`."
 
-For each `mid`:
+#### 8. Quick Check
 
-```text id="abs15"
-Can we split the array into ≤ K parts
-where every part sum ≤ mid?
-```
+1. Range for `x` in Split Array Largest Sum?
+2. Which rounding for "maximise"?
+3. Why is `ok` monotonic in Split Array?
 
-If yes:
+<details>
+<summary>Answers</summary>
 
-```text id="abs16"
-mid is possible
-→ try smaller
-→ move LEFT
-```
+1. From `max(nums)` to `sum(nums)`.
+2. Round `mid` up: `lo + (hi − lo + 1) / 2`.
+3. If a limit `x` works, any larger limit also works (the same split still satisfies it).
 
-This is a very common FAANG pattern.
+</details>
 
-#### 6. Important Advanced Pattern — Maximize the Minimum
+#### 9. Related LeetCode Questions
 
-Example:
-
-```text id="abs17"
-Place K items while maximizing
-the minimum distance between them.
-```
-
-Search over:
-
-```text id="abs18"
-minimum distance
-```
-
-For each `mid`:
-
-```text id="abs19"
-Can we place K items
-with at least mid distance?
-```
-
-If yes:
-
-```text id="abs20"
-mid is possible
-→ try larger
-→ move RIGHT
-```
-
-Typical problems:
-
-```text id="abs21"
-Aggressive Cows
-Magnetic Force Between Two Balls
-```
-
-#### 7. Common Search Range Patterns
-
-**Capacity / Sum**
-
-```text id="abs22"
-left  = max element
-right = total sum
-```
-
-**Speed**
-
-```text id="abs23"
-left  = 1
-right = maximum required speed/value
-```
-
-**Distance**
-
-```text id="abs24"
-left  = 0 or 1
-right = maxPosition - minPosition
-```
-
-**Time**
-
-```text id="abs25"
-left  = minimum possible time
-right = safe maximum possible time
-```
-
-Choosing good bounds is part of the interview problem.
-
-#### 8. Feasibility Function — Most Important
-
-A feasibility check should answer only:
-
-```text id="abs26"
-Is candidate X possible?
-```
-
-Example:
-
-```kotlin id="abs27"
-fun canDo(limit: Long): Boolean {
-
-    // Simulate using "limit"
-
-    return true
-}
-```
-
-Keep Binary Search and feasibility logic separate.
-
-This makes the solution easier to reason about and debug.
-
-#### 9. Common FAANG-Level Problems
-
-1. Koko Eating Bananas.
-2. Capacity to Ship Packages Within D Days.
-3. Split Array Largest Sum.
-4. Magnetic Force Between Two Balls.
-5. Minimum Number of Days to Make Bouquets.
-6. Allocate Books / workload partitioning.
-7. Minimum Speed / Rate problems.
-8. Minimum Time to Complete Tasks.
-
-#### 10. Complexity
-
-Suppose:
-
-```text id="abs28"
-Answer range = R
-Feasibility check = O(N)
-```
-
-Then:
-
-```text id="abs29"
-Time  → O(N log R)
-Space → usually O(1)
-```
-
-If sorting is required first:
-
-```text id="abs30"
-O(N log N + N log R)
-```
-
-#### 11. Use Long for Large Search Spaces — Must Know
-
-Advanced problems often involve:
-
-```text id="abs31"
-sum
-distance
-capacity
-time
-multiplication
-```
-
-Prefer `Long` when values can become large.
-
-```kotlin id="abs32"
-var left = 0L
-var right = 1_000_000_000_000L
-
-val mid = left + (right - left) / 2
-```
-
-#### 12. Common Mistakes
-
-1. Using Binary Search without proving monotonicity.
-2. Searching the input instead of the **answer space**.
-3. Incorrect minimum/maximum bounds.
-4. Incorrect `canDo(mid)` logic.
-5. Moving left/right in the wrong direction.
-6. Confusing **minimum valid** with **maximum valid**.
-7. Integer overflow.
-8. Returning `mid` directly instead of preserving the best valid answer when needed.
-
-#### 13. Interview Must Remember
-
-1. Look for **minimize maximum** or **maximize minimum**.
-2. Identify the **answer search space**.
-3. Prove the feasibility result is **monotonic**.
-4. Write a clean `canDo(mid)`.
-5. Minimum valid → valid means **go left**.
-6. Maximum valid → valid means **go right**.
-7. Typical complexity → **`O(N log R)`**.
-8. For large values, use **`Long`**.
+| # | Question | Idea |
+|---|---|---|
+| 410 | [Split Array Largest Sum](https://leetcode.com/problems/split-array-largest-sum/) (Hard) | minimise the maximum |
+| 1552 | [Magnetic Force Between Two Balls](https://leetcode.com/problems/magnetic-force-between-two-balls/) (Medium) | maximise the minimum |
+| 719 | [Find K-th Smallest Pair Distance](https://leetcode.com/problems/find-k-th-smallest-pair-distance/) (Hard) | count pairs by distance |
+| 4 | [Median of Two Sorted Arrays](https://leetcode.com/problems/median-of-two-sorted-arrays/) (Hard) | partition search |
+| 2226 | [Maximum Candies Allocated to K Children](https://leetcode.com/problems/maximum-candies-allocated-to-k-children/) (Medium) | maximise the minimum |
+| 1231 | [Divide Chocolate](https://leetcode.com/problems/divide-chocolate/) (Hard, premium) | maximise the minimum |

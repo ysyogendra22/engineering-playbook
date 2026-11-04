@@ -1,96 +1,185 @@
-# Floyd-Warshall — All-Pairs Shortest Path
+# Floyd-Warshall: All-Pairs Shortest Path
 
-#### 1. Definition — Must Know
+> Three nested loops that compute the shortest distance between **every pair** of nodes. Allow one more intermediate node `k` at a time. `O(V³)`, so only for small graphs.
 
-**Floyd-Warshall** computes the shortest path between **every pair** of nodes in a graph, all at once, in a single algorithm — instead of running a single-source algorithm (like Dijkstra's) once per node.
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
-
-1. When the question is "what's the shortest distance between *any two* nodes", running Dijkstra's from every single node (V times) is more complex to reason about than one clean Floyd-Warshall pass.
-2. It's short to write — three nested loops — which makes it a fast, low-risk choice for small graphs in an interview.
-
-#### 3. How It Works — Must Know
+`dist[i][j]` = shortest distance from `i` to `j`. Start with direct edges, then ask for each node `k`: *is it cheaper to go `i → k → j`?*
 
 ```text
-The core idea: for every pair (i, j), check if going THROUGH some
-intermediate node k gives a shorter path than the current best.
-
 dist[i][j] = min(dist[i][j], dist[i][k] + dist[k][j])
-
-Try this for every possible k, one at a time, updating dist as you go.
-After considering all nodes as possible "waypoints", dist[i][j] holds
-the true shortest path from i to j.
 ```
+
+| | Value |
+|---|---|
+| Time | `O(V³)` |
+| Space | `O(V²)` |
+| Negative edges | yes |
+| Negative cycles | detected: `dist[i][i] < 0` |
+| Best when | `V ≤ ~400`, many queries, dense graph, transitive closure |
+
+**Signals:** "shortest distance between all pairs", "for each city, how many reachable within X", "can A reach B" (many queries), "small `n` (≤ 100–400)", ratio / conversion tables.
+
+#### 2. How It Works
+
+**The invariant.** After processing nodes `0..k`, `dist[i][j]` is the shortest path from `i` to `j` that uses only nodes `0..k` as intermediate stops. When `k` runs through all nodes, every path is covered.
+
+**The loop order matters:** `k` must be the **outermost** loop.
+
+```mermaid
+flowchart TD
+    A["dist = direct edge weights<br/>dist[i][i] = 0, missing = INF"] --> B["for k in 0 until n"]
+    B --> C["for i in 0 until n"]
+    C --> D["for j in 0 until n"]
+    D --> E{"dist[i][k] + dist[k][j] < dist[i][j] ?"}
+    E -->|"yes"| F["dist[i][j] = dist[i][k] + dist[k][j]"]
+    E -->|"no"| D
+    F --> D
+```
+
+Example (undirected): `0-1 (3)`, `1-2 (1)`, `1-3 (4)`, `2-3 (1)`.
 
 ```text
-Initial distances (direct edges only, infinity if no direct edge):
-      A    B    C
-A  [  0,   4,   ∞ ]
-B  [  ∞,   0,   2 ]
-C  [  1,   ∞,   0 ]
-
-Consider A as a waypoint: does A→...→A→...→ help anyone? (usually not, skip trivial cases)
-Consider B as a waypoint: dist[A][C] = min(∞, dist[A][B] + dist[B][C]) = min(∞, 4+2) = 6
-Consider C as a waypoint: dist[B][A] = min(∞, dist[B][C] + dist[C][A]) = min(∞, 2+1) = 3
-                          dist[A][A] stays 0, but now check A→C→A type improvements, etc.
-
-Final: dist[A][C] = 6 (via B), and other pairs updated similarly.
+start:      0-3 = INF         (no direct edge)
+k = 1:      0-2 = 3+1 = 4,    0-3 = 3+4 = 7
+k = 2:      0-3 = min(7, 4+1) = 5,   1-3 = min(4, 1+1) = 2
+final 0→3 = 5   (0 → 1 → 2 → 3)
 ```
 
-#### 4. Algorithm — Must Know
+**Transitive closure (Warshall).** Replace distances with booleans: `reach[i][j] = reach[i][j] or (reach[i][k] and reach[k][j])`. Answers "can `i` reach `j`" for all pairs.
 
-```text
-dist = the direct-edge distance matrix (infinity where there's no direct edge, 0 on the diagonal)
+**Path reconstruction.** Keep `next[i][j]` (the first step on the best path) and update it together with `dist`.
 
-for k in all nodes:               # try every node as a possible waypoint
-    for i in all nodes:
-        for j in all nodes:
-            dist[i][j] = min(dist[i][j], dist[i][k] + dist[k][j])
-```
+**Floyd-Warshall vs running Dijkstra from every node**
 
-The order of the loops matters: `k` **must** be the outermost loop — it represents "having now considered node k as a possible waypoint for every pair".
+| | Floyd-Warshall | Dijkstra × V |
+|---|---|---|
+| Time | `O(V³)` | `O(V · E log V)` |
+| Negative edges | yes | no |
+| Code | 5 lines | longer |
+| Better for | dense or small graphs | sparse, large graphs |
 
-#### 5. Kotlin Implementation — Must Know
+#### 3. Brute Force vs Optimized
+
+| Approach | Time |
+|---|---|
+| DFS all paths for every pair | exponential |
+| Dijkstra from every node | `O(V · E log V)` |
+| **Floyd-Warshall** | `O(V³)` |
+| Matrix multiplication ideas | `O(V³ log V)` or more (not used) |
 
 ```kotlin
-fun floydWarshall(n: Int, dist: Array<IntArray>): Array<IntArray> {
-    val INF = Int.MAX_VALUE / 2   // avoid overflow when adding two "infinities"
-    for (k in 0 until n) {
-        for (i in 0 until n) {
-            for (j in 0 until n) {
-                if (dist[i][k] + dist[k][j] < dist[i][j]) {
-                    dist[i][j] = dist[i][k] + dist[k][j]
-                }
+// Brute force: run a single-source shortest path from each node (Bellman-Ford style, V × V × E)
+fun allPairsBrute(n: Int, edges: Array<IntArray>): Array<IntArray> {
+    val INF = 1_000_000_000
+    return Array(n) { src ->
+        val d = IntArray(n) { INF }
+        d[src] = 0
+        repeat(n - 1) {
+            for ((u, v, w) in edges) {
+                if (d[u] + w < d[v]) d[v] = d[u] + w
+                if (d[v] + w < d[u]) d[u] = d[v] + w          // undirected
             }
         }
+        d
     }
-    return dist
 }
 ```
 
-#### 6. Complexity — Must Know
+#### 4. Kotlin Code
 
-| | Complexity |
-|---|---|
-| Time | O(V³) |
-| Space | O(V²) — the full distance matrix |
+```kotlin
+const val BIG = 1_000_000_000                              // BIG + BIG still fits in an Int
 
-O(V³) sounds worse than running Dijkstra V times (O(V × (V+E) log V)), and for sparse graphs it usually is — Floyd-Warshall is best suited to **small or dense** graphs where its simplicity outweighs the raw complexity.
+fun floydWarshall(n: Int, edges: Array<IntArray>, directed: Boolean = false): Array<IntArray> {
+    val d = Array(n) { i -> IntArray(n) { j -> if (i == j) 0 else BIG } }
+    for ((u, v, w) in edges) {
+        d[u][v] = minOf(d[u][v], w)
+        if (!directed) d[v][u] = minOf(d[v][u], w)
+    }
+    for (k in 0 until n)                                   // k outermost
+        for (i in 0 until n)
+            for (j in 0 until n)
+                if (d[i][k] + d[k][j] < d[i][j]) d[i][j] = d[i][k] + d[k][j]
+    return d
+}
 
-#### 7. Common Mistakes — Must Know
+fun hasNegativeCycle(d: Array<IntArray>): Boolean = d.indices.any { d[it][it] < 0 }
 
-1. Putting `k` in the innermost loop instead of the outermost — this silently gives a wrong (or incomplete) answer, since it changes what "already considered" means at each step.
-2. Using `Int.MAX_VALUE` directly for "infinity" and then adding two of them together — this overflows. Use a large-but-safe placeholder like `Int.MAX_VALUE / 2` instead.
-3. Reaching for Floyd-Warshall for a **single-source** shortest path question — that's Dijkstra's or Bellman-Ford's job, and Floyd-Warshall does far more work than needed.
+// Find the City With the Smallest Number of Neighbors at a Threshold Distance (LeetCode 1334)
+fun findTheCity(n: Int, edges: Array<IntArray>, threshold: Int): Int {
+    val d = floydWarshall(n, edges)
+    var best = -1
+    var bestCount = Int.MAX_VALUE
+    for (i in 0 until n) {
+        var count = 0
+        for (j in 0 until n) if (i != j && d[i][j] <= threshold) count++
+        if (count <= bestCount) { bestCount = count; best = i }      // ties: larger index wins
+    }
+    return best
+}
 
-#### 8. Related Topics
+// Course Schedule IV (LeetCode 1462): transitive closure
+fun checkIfPrerequisite(numCourses: Int, prerequisites: Array<IntArray>, queries: Array<IntArray>): List<Boolean> {
+    val reach = Array(numCourses) { BooleanArray(numCourses) }
+    for ((a, b) in prerequisites) reach[a][b] = true
+    for (k in 0 until numCourses)
+        for (i in 0 until numCourses)
+            for (j in 0 until numCourses)
+                if (reach[i][k] && reach[k][j]) reach[i][j] = true
+    return queries.map { reach[it[0]][it[1]] }
+}
+```
 
-1. `1` Dijkstra's Algorithm — Shortest Path, Non-Negative Weights — the single-source equivalent
-2. `4` Bellman-Ford — Handles Negative Weights, Detects Negative Cycles — also handles negative weights, single-source
-3. `3` Choosing the Right Algorithm for the Weights You Have
+Checks: `floydWarshall(4, [[0,1,3],[1,2,1],[1,3,4],[2,3,1]])[0][3]` → `5`; `[1][3]` → `2`; the matrix is symmetric. `allPairsBrute` gives the same matrix. `findTheCity(4, [[0,1,3],[1,2,1],[1,3,4],[2,3,1]], 4)` → `3`; `findTheCity(5, [[0,1,2],[0,4,8],[1,2,3],[1,4,2],[2,3,1],[3,4,1]], 2)` → `0`. `hasNegativeCycle(floydWarshall(2, [[0,1,-1],[1,0,-1]], directed = true))` → `true`. `checkIfPrerequisite(2, [[1,0]], [[0,1],[1,0]])` → `[false, true]`; `checkIfPrerequisite(3, [[1,2],[1,0],[2,0]], [[1,0],[1,2]])` → `[true, true]`.
 
-#### 9. Interview Must Remember
+#### 5. Complexity
 
-1. Floyd-Warshall = **for every possible waypoint k, try improving every pair (i, j) by routing through k.**
-2. **`k` must be the outermost loop** — this is the one detail people get wrong from memory.
-3. O(V³) time, O(V²) space — best for small or dense graphs needing all-pairs distances, not for single-source questions.
+| | Time | Space |
+|---|---|---|
+| Floyd-Warshall | `O(V³)` | `O(V²)` |
+| 400 nodes | about 64 million steps | 160,000 cells |
+| 5,000 nodes | 1.25 × 10¹¹ steps: too slow | |
+
+#### 6. Common Mistakes
+
+1. **Wrong loop order** (`k` must be the outer loop).
+2. **`INF + INF` overflow** with `Int.MAX_VALUE`. Use a "big" value like `10⁹` (or `Long`).
+3. **`dist[i][i]` not set to 0.**
+4. **Multiple edges between the same pair:** keep the minimum weight.
+5. **Forgetting the reverse edge** for undirected graphs.
+6. **Using it for large `V`.**
+7. **Tie-breaking in "smallest count" problems** (LeetCode 1334 wants the largest index).
+8. **Negative cycle ignored:** distances become meaningless; check the diagonal.
+
+#### 7. Say This in the Interview
+
+1. "There are at most a few hundred nodes and I need all pairs, so Floyd-Warshall at `O(V³)` is simple and fast enough."
+2. "The outer loop is the intermediate node `k`; after processing it, `dist[i][j]` is the best path using nodes `0..k` as stops."
+3. "For reachability only, I'll use the boolean version (transitive closure)."
+
+#### 8. Quick Check
+
+1. Which loop is outermost?
+2. How do you detect a negative cycle?
+3. Time for `V = 100`?
+
+<details>
+<summary>Answers</summary>
+
+1. The intermediate node `k`.
+2. After the run, some `dist[i][i] < 0`.
+3. About 10⁶ steps.
+
+</details>
+
+#### 9. Related LeetCode Questions
+
+| # | Question | Idea |
+|---|---|---|
+| 1334 | [Find the City With the Smallest Number of Neighbors at a Threshold Distance](https://leetcode.com/problems/find-the-city-with-the-smallest-number-of-neighbors-at-a-threshold-distance/) (Medium) | all-pairs distances |
+| 1462 | [Course Schedule IV](https://leetcode.com/problems/course-schedule-iv/) (Medium) | transitive closure |
+| 399 | [Evaluate Division](https://leetcode.com/problems/evaluate-division/) (Medium) | multiplicative closure |
+| 2976 | [Minimum Cost to Convert String I](https://leetcode.com/problems/minimum-cost-to-convert-string-i/) (Medium) | letter graph, 26 nodes |
+| 743 | [Network Delay Time](https://leetcode.com/problems/network-delay-time/) (Medium) | alternative on small `n` |
+| 1971 | [Find if Path Exists in Graph](https://leetcode.com/problems/find-if-path-exists-in-graph/) (Easy) | reachability |

@@ -1,98 +1,186 @@
-# State Machine DP — Buy/Sell Stock with Cooldown
+# State Machine DP: Buy/Sell Stock with Cooldown
 
-#### 1. Definition — Must Know
+> Add a **state** (are you holding a stock?) to the DP. Each day you move between states by an action. The family of stock problems all use this idea.
 
-**State machine DP** adds an extra dimension to the state: not just "where am I" (like a day index), but "which **mode** am I in" (holding a stock, not holding one, in a cooldown period). The recurrence becomes transitions between these modes.
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+In **state machine DP**, what you are allowed to do depends on a **mode**: holding a stock, free to buy, in cooldown. You track the **best profit in each mode** for each day, and update them with the day's price.
 
-1. Stock-trading problems (buy once, buy and sell multiple times, with a cooldown, with a transaction fee) are a very common DP family, and they're all solved by defining a small state machine of 2-3 modes.
-2. It's a useful bridge between simple 1D DP and more complex, multi-condition DP problems.
+| Problem | Rule | Number of states |
+|---|---|---|
+| **Stock I** (121) | one transaction | 2 (or a running minimum) |
+| **Stock II** (122) | unlimited transactions | 2: `hold`, `free` |
+| **With Cooldown** (309) | after selling you must rest one day | 3: `hold`, `sold`, `rest` |
+| **With Fee** (714) | pay a fee per transaction | 2: `hold`, `free` |
+| **Stock IV** (188) | at most `k` transactions | `2k` states |
 
-#### 3. How It Works — Must Know
+**Signals:** "buy and sell", "cannot do X right after Y", "at most `k` times", "holding".
 
-Buy/Sell Stock with Cooldown: after selling, you must wait one day before buying again.
+#### 2. How It Works
 
-```text
-Three states per day, each holding the best profit so far:
+**Stock with cooldown (3 states).**
 
-hold[i]    = best profit on day i, currently HOLDING a stock
-sold[i]    = best profit on day i, just SOLD today
-rest[i]    = best profit on day i, not holding, and not just sold (free to buy)
-
-Transitions:
-hold[i] = max(hold[i-1],           # kept holding
-              rest[i-1] - price[i]) # bought today, coming from "rest" (not cooldown)
-
-sold[i] = hold[i-1] + price[i]      # sold today, must have been holding yesterday
-
-rest[i] = max(rest[i-1],            # stayed resting
-              sold[i-1])            # cooldown day is over
+```mermaid
+stateDiagram-v2
+    [*] --> Rest
+    Rest --> Rest: do nothing
+    Rest --> Hold: buy (profit - price)
+    Hold --> Hold: do nothing
+    Hold --> Sold: sell (profit + price)
+    Sold --> Rest: cooldown day
 ```
 
-Drawing the three states as a small diagram makes the transitions clear:
+On each new price `p`:
 
 ```text
-   ┌────────┐  buy   ┌────────┐  sell  ┌────────┐
-   │  rest  │ ─────→ │  hold  │ ─────→ │  sold  │
-   └────────┘        └────────┘        └────────┘
-        ↑                                   │
-        └──────────── (one cooldown day) ───┘
+sold = hold + p                    (sell the stock I was holding)
+hold = max(hold, rest - p)         (keep holding, or buy from the free state)
+rest = max(rest, previous sold)    (stay free, or come out of the cooldown)
+answer = max(sold, rest)
 ```
-
-#### 4. Algorithm — Must Know
 
 ```text
-1. Identify the distinct MODES the problem can be in (here: hold, sold, rest).
-2. Draw the allowed transitions between modes as a small diagram.
-3. Define dp[mode][day] = best value while in that mode on that day.
-4. Write one recurrence line per mode, based on which modes can transition into it.
-5. The final answer is the best value across modes that don't require holding
-   a stock at the end (you can't count unsold stock as profit).
+prices = [1, 2, 3, 0, 2]
+start:  hold = -1, sold = 0, rest = 0
+p=2:  sold = -1 + 2 = 1;  hold = max(-1, 0 - 2) = -1;  rest = max(0, 0) = 0
+p=3:  sold = -1 + 3 = 2;  hold = max(-1, 0 - 3) = -1;  rest = max(0, 1) = 1
+p=0:  sold = -1 + 0 = -1; hold = max(-1, 1 - 0) = 1;   rest = max(1, 2) = 2
+p=2:  sold = 1 + 2 = 3;   hold = max(1, 2 - 2) = 1;    rest = max(2, -1) = 2
+answer max(3, 2) = 3
 ```
 
-#### 5. Kotlin Implementation — Must Know
+**With a fee.** Two states. Selling pays the fee:
+
+```text
+free = max(free, hold + p - fee)
+hold = max(hold, free - p)         (use the old value of free)
+```
+
+**At most `k` transactions.** For each transaction number `j` keep `buy[j]` (best profit while holding during the `j`-th transaction) and `sell[j]`. Update with each price.
+
+**The method:** list the states, draw the arrows (actions), write one update per state using **last day's** values, and take the best final state.
+
+#### 3. Brute Force vs Optimized
+
+| Approach | Time | Space |
+|---|---|---|
+| Recursion over buy / sell / skip each day | `O(3ⁿ)` | `O(n)` |
+| Recursion + memo on `(day, holding)` | `O(n)` | `O(n)` |
+| **Rolling state variables** | **`O(n)`** | **`O(1)`** |
 
 ```kotlin
-fun maxProfitWithCooldown(prices: IntArray): Int {
-    if (prices.isEmpty()) return 0
+// Brute force with a cooldown: try buy / sell / skip every day. Exponential.
+fun maxProfitBrute(prices: IntArray, day: Int = 0, holding: Boolean = false): Int {
+    if (day >= prices.size) return 0
+    val skip = maxProfitBrute(prices, day + 1, holding)
+    return if (holding) maxOf(skip, prices[day] + maxProfitBrute(prices, day + 2, false))     // sell, then cooldown
+    else maxOf(skip, -prices[day] + maxProfitBrute(prices, day + 1, true))                    // buy
+}
+```
+
+#### 4. Kotlin Code
+
+```kotlin
+// Best Time to Buy and Sell Stock with Cooldown (LeetCode 309)
+fun maxProfitCooldown(prices: IntArray): Int {
     var hold = -prices[0]
     var sold = 0
     var rest = 0
     for (i in 1 until prices.size) {
-        val prevHold = hold
         val prevSold = sold
-        val prevRest = rest
-        hold = maxOf(prevHold, prevRest - prices[i])
-        sold = prevHold + prices[i]
-        rest = maxOf(prevRest, prevSold)
+        sold = hold + prices[i]
+        hold = maxOf(hold, rest - prices[i])
+        rest = maxOf(rest, prevSold)
     }
-    return maxOf(sold, rest)   // never holding a stock at the very end
+    return maxOf(sold, rest)
+}
+
+// Best Time to Buy and Sell Stock with Transaction Fee (LeetCode 714)
+fun maxProfitFee(prices: IntArray, fee: Int): Int {
+    var hold = -prices[0]
+    var free = 0
+    for (i in 1 until prices.size) {
+        val newFree = maxOf(free, hold + prices[i] - fee)
+        val newHold = maxOf(hold, free - prices[i])
+        free = newFree
+        hold = newHold
+    }
+    return free
+}
+
+// Best Time to Buy and Sell Stock II (LeetCode 122): unlimited transactions
+fun maxProfitUnlimited(prices: IntArray): Int {
+    var hold = -prices[0]
+    var free = 0
+    for (i in 1 until prices.size) {
+        val newFree = maxOf(free, hold + prices[i])
+        hold = maxOf(hold, free - prices[i])
+        free = newFree
+    }
+    return free
+}
+
+// Best Time to Buy and Sell Stock IV (LeetCode 188): at most k transactions
+fun maxProfitK(k: Int, prices: IntArray): Int {
+    if (k == 0 || prices.isEmpty()) return 0
+    val buy = IntArray(k + 1) { Int.MIN_VALUE / 2 }
+    val sell = IntArray(k + 1)
+    for (p in prices) {
+        for (j in 1..k) {
+            buy[j] = maxOf(buy[j], sell[j - 1] - p)
+            sell[j] = maxOf(sell[j], buy[j] + p)
+        }
+    }
+    return sell[k]
 }
 ```
 
-#### 6. Complexity — Must Know
+Checks: `maxProfitCooldown(intArrayOf(1, 2, 3, 0, 2))` → `3`. `maxProfitCooldown(intArrayOf(1))` → `0`. `maxProfitBrute(intArrayOf(1, 2, 3, 0, 2))` → `3`. `maxProfitFee(intArrayOf(1, 3, 2, 8, 4, 9), 2)` → `8`. `maxProfitUnlimited(intArrayOf(7, 1, 5, 3, 6, 4))` → `7`. `maxProfitK(2, intArrayOf(2, 4, 1))` → `2`. `maxProfitK(2, intArrayOf(3, 2, 6, 5, 0, 3))` → `7`. `maxProfitK(100, intArrayOf(1, 2, 3, 4, 5))` → `4`.
+
+#### 5. Complexity
 
 | | Time | Space |
 |---|---|---|
-| Any fixed number of states | O(n × number of states) | O(number of states), easily space-optimised |
+| Cooldown / Fee / Unlimited | `O(n)` | `O(1)` |
+| Stock IV | `O(n · k)` | `O(k)` |
 
-With a small, fixed number of states (2 or 3), this is effectively O(n) time and O(1) space.
+#### 6. Common Mistakes
 
-#### 7. Common Mistakes — Must Know
+1. **Updating a state with a value already changed today** (use the **previous day's** value: save `prevSold`, `newFree`).
+2. **Wrong initial `hold`.** It is `−prices[0]`, not `0`.
+3. **Cooldown:** letting `hold` use today's `sold`.
+4. **Returning `hold`** (you must not end holding a stock). Return `free` / `max(sold, rest)`.
+5. **Stock IV:** initial `buy` as `0` (it must be very negative) and overflow from `Int.MIN_VALUE − p`.
+6. **Confusing "transaction" count** (a buy and a sell together are one transaction).
 
-1. Forgetting a state (for example, missing the "rest" / cooldown state and only tracking "hold" and "sold") — the cooldown rule can't be enforced without it.
-2. Reading the *updated* value of another state within the same day's transitions, instead of the *previous* day's value — save all previous values before overwriting them (as `prevHold`, `prevSold`, `prevRest` above).
-3. Forgetting that the final answer must come from a state where you're **not** holding a stock — unsold stock isn't realised profit.
+#### 7. Say This in the Interview
 
-#### 8. Related Topics
+1. "I'll track the best profit in each state: holding a stock, just sold, and resting. Each day I update the states from yesterday's values."
+2. "Buying costs the price, selling earns it. The cooldown means I can only buy from the rest state, not right after selling."
+3. "It's `O(n)` time and `O(1)` space. I return the best non-holding state."
 
-1. `4` 1D DP — Fibonacci, Climbing Stairs, House Robber — the simpler, single-state version of this idea
-2. `3` The Four Steps — State, Recurrence, Base Case, Fill Order — still applies, just with a mode added to the state
-3. `LC 18` Dynamic Programming (in `03-leetcode-patterns`) — more DP practice problems
+#### 8. Quick Check
 
-#### 9. Interview Must Remember
+1. Answer for `[1, 2]` with a cooldown?
+2. Why can't the final answer be `hold`?
+3. How many states in the cooldown problem?
 
-1. When a problem has **rules about what you can do next** (must cooldown, limited transactions, can't do X right after Y), draw a small state diagram first.
-2. Each mode gets its own `dp[mode][i]`, and the recurrence for each mode says which modes can transition into it.
-3. Watch for reading updated-this-round values by accident — save the previous round's values first.
+<details>
+<summary>Answers</summary>
+
+1. `1` (buy at 1, sell at 2).
+2. Holding a stock means you did not realise the profit.
+3. Three: `hold`, `sold`, `rest`.
+
+</details>
+
+#### 9. Related LeetCode Questions
+
+| # | Question | Idea |
+|---|---|---|
+| 121 | [Best Time to Buy and Sell Stock](https://leetcode.com/problems/best-time-to-buy-and-sell-stock/) (Easy) | one transaction |
+| 122 | [Best Time to Buy and Sell Stock II](https://leetcode.com/problems/best-time-to-buy-and-sell-stock-ii/) (Medium) | unlimited |
+| 309 | [Best Time to Buy and Sell Stock with Cooldown](https://leetcode.com/problems/best-time-to-buy-and-sell-stock-with-cooldown/) (Medium) | three states |
+| 714 | [Best Time to Buy and Sell Stock with Transaction Fee](https://leetcode.com/problems/best-time-to-buy-and-sell-stock-with-transaction-fee/) (Medium) | fee on sell |
+| 123 | [Best Time to Buy and Sell Stock III](https://leetcode.com/problems/best-time-to-buy-and-sell-stock-iii/) (Hard) | `k = 2` |
+| 188 | [Best Time to Buy and Sell Stock IV](https://leetcode.com/problems/best-time-to-buy-and-sell-stock-iv/) (Hard) | `k` transactions |

@@ -1,100 +1,171 @@
-# Space Optimisation — Keeping Only the Last Row or Two
+# Space Optimisation: Keeping Only the Last Row or Two
 
-#### 1. Definition — Must Know
+> If a state depends only on the previous row (or the last few values), keep just those. `O(n · m)` memory becomes `O(m)`, or even `O(1)`.
 
-1. When a DP recurrence for state `i` only depends on a **fixed, small number** of previous states (like `i-1` and `i-2`, or just the row above in a 2D table), you don't need to keep the whole table — only the last one or two rows.
-2. This turns O(n) or O(n × m) space into O(1) or O(m), without changing the time complexity at all.
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+A DP table is often much bigger than what the recurrence reads. If `dp[i]` uses only `dp[i − 1]` and `dp[i − 2]`, you do not need the older cells.
 
-1. It's a common, expected follow-up question after any working DP solution: "can you reduce the space?"
-2. It's usually a small, mechanical change once the full-table version already works — a good, safe thing to offer even if not asked.
+| Dependency | Memory needed |
+|---|---|
+| `dp[i]` uses the last `k` values | `k` variables: `O(1)` |
+| `dp[i][j]` uses only row `i − 1` (and row `i`) | two rows: `O(m)` |
+| `dp[i][j]` uses `dp[i − 1][j]`, `dp[i][j − 1]`, `dp[i − 1][j − 1]` | one row + one saved diagonal value |
+| 0/1 knapsack `dp[i][w]` uses row `i − 1` only | **one** row, updated **backwards** |
 
-#### 3. How It Works — Must Know
+**Signals:** "can you reduce the space?", a DP table that is filled row by row. **The trade-off:** you can no longer **reconstruct** the solution from the table (note 9).
 
-Fibonacci with a full array vs. two variables:
+#### 2. How It Works
 
-```text
-Full table:  dp = [0, 1, 1, 2, 3, 5, 8, ...]     ← O(n) space
-                    ↑ but dp[i] only ever needs dp[i-1] and dp[i-2]
+**Case 1: rolling variables** (Fibonacci, Climbing Stairs, House Robber): replace `dp[i]` by `cur`, `dp[i − 1]` by `prev`, and shift each step.
 
-Optimised:   keep only `prev` and `prevPrev`      ← O(1) space
-```
-
-For 2D DP (like Grid Paths or LCS), the same idea applies one dimension up:
+**Case 2: two rows** (LCS, Edit Distance). Row `i` depends only on row `i − 1`. Keep `prev` and `cur`, and swap after each row.
 
 ```text
-dp[i][j] only depends on dp[i-1][j], dp[i][j-1], and dp[i-1][j-1]
-                           ↑ row above              ↑ same row, earlier column
-
-→ you only ever need the PREVIOUS row and the CURRENT row being built,
-  not the entire table.
+LCS "abcde" / "ace":   prev = [0,0,0,0]
+row a: cur = [0,1,1,1]      swap → prev = [0,1,1,1]
+row b: cur = [0,1,1,1]
+row c: cur = [0,1,2,2]
+row d: cur = [0,1,2,2]
+row e: cur = [0,1,2,3]      answer = last cell = 3
 ```
 
-#### 4. Algorithm — Must Know
+**Case 3: one row, backwards** (0/1 knapsack). `dp[w]` still holds the value from the **previous item** until you overwrite it. Going from high `w` to low `w` means `dp[w − weight]` has **not** been overwritten yet. Going upwards would overwrite it first and use the item twice.
 
-```text
-1D:  replace the array with two (or a fixed few) variables, updated each step
-2D:  replace the full table with two 1D arrays: "previous row" and "current row",
-     swapping them after each row is filled (or update one row in place,
-     if the recurrence allows it)
+```mermaid
+flowchart LR
+    subgraph A["2D table: O(n * W)"]
+        r1["row i-1"] --> r2["row i"]
+    end
+    subgraph B["Two rows: O(W)"]
+        p["prev"] --> c["cur"]
+        c -->|"swap"| p
+    end
+    subgraph C["One row backwards: O(W)"]
+        d["dp[w] from dp[w - weight]<br/>w goes high to low"]
+    end
 ```
 
-#### 5. Kotlin Implementation — Must Know
+**Choose the smaller dimension** for the row length: LCS can use `O(min(m, n))`.
 
-```kotlin
-// House Robber, space-optimised from O(n) to O(1)
-fun robOptimised(houses: IntArray): Int {
-    var prev = 0       // dp[i - 2]
-    var curr = 0       // dp[i - 1]
-    for (house in houses) {
-        val next = maxOf(curr, prev + house)
-        prev = curr
-        curr = next
-    }
-    return curr
-}
-```
+#### 3. Brute Force vs Optimized
 
-```kotlin
-// Unique Paths, space-optimised from O(rows * cols) to O(cols)
-fun uniquePathsOptimised(rows: Int, cols: Int): Int {
-    var previousRow = IntArray(cols) { 1 }
-    repeat(rows - 1) {
-        val currentRow = IntArray(cols)
-        currentRow[0] = 1
-        for (j in 1 until cols) {
-            currentRow[j] = currentRow[j - 1] + previousRow[j]
-        }
-        previousRow = currentRow
-    }
-    return previousRow[cols - 1]
-}
-```
-
-#### 6. Complexity — Must Know
-
-| | Before | After |
+| Problem | Full table | Optimised |
 |---|---|---|
-| 1D DP (Fibonacci, House Robber) | O(n) space | O(1) space |
-| 2D DP (Grid Paths, LCS) | O(n × m) space | O(m) space (one row) |
+| LCS / Edit Distance | `O(m · n)` | two rows, `O(n)` |
+| 0/1 Knapsack | `O(n · W)` | one row, `O(W)` |
+| Unique Paths | `O(m · n)` | one row, `O(n)` |
+| Fibonacci / House Robber | `O(n)` | two variables, `O(1)` |
 
-Time complexity is **unchanged** in both cases — this optimisation is purely about memory.
+```kotlin
+// Full table version of knapsack: O(n * W) memory
+fun knapsackTable(w: IntArray, v: IntArray, cap: Int): Int {
+    val dp = Array(w.size + 1) { IntArray(cap + 1) }
+    for (i in 1..w.size) for (c in 0..cap) {
+        dp[i][c] = dp[i - 1][c]
+        if (w[i - 1] <= c) dp[i][c] = maxOf(dp[i][c], dp[i - 1][c - w[i - 1]] + v[i - 1])
+    }
+    return dp[w.size][cap]
+}
+```
 
-#### 7. Common Mistakes — Must Know
+#### 4. Kotlin Code
 
-1. Updating a variable (or a row, in-place) before you've read the old value you still need — order the updates carefully.
-2. Trying to space-optimise before the full-table version is correct — get it right first, then shrink it.
-3. Space-optimising a problem that also needs to **reconstruct the actual solution** (topic 9) — you usually can't do both at once, since reconstruction needs the full table (or a separate way to trace back).
+```kotlin
+// LCS with two rows
+fun lcsTwoRows(a: String, b: String): Int {
+    var prev = IntArray(b.length + 1)
+    var cur = IntArray(b.length + 1)
+    for (i in 1..a.length) {
+        for (j in 1..b.length) {
+            cur[j] = if (a[i - 1] == b[j - 1]) prev[j - 1] + 1 else maxOf(prev[j], cur[j - 1])
+        }
+        val t = prev; prev = cur; cur = t              // swap the rows
+    }
+    return prev[b.length]
+}
 
-#### 8. Related Topics
+// Edit Distance with two rows
+fun editDistanceTwoRows(a: String, b: String): Int {
+    var prev = IntArray(b.length + 1) { it }           // dp[0][j] = j
+    for (i in 1..a.length) {
+        val cur = IntArray(b.length + 1)
+        cur[0] = i                                      // dp[i][0] = i
+        for (j in 1..b.length) {
+            cur[j] = if (a[i - 1] == b[j - 1]) prev[j - 1]
+            else 1 + minOf(prev[j - 1], prev[j], cur[j - 1])
+        }
+        prev = cur
+    }
+    return prev[b.length]
+}
 
-1. `4` 1D DP — Fibonacci, Climbing Stairs, House Robber — the examples optimised here
-2. `5` 2D DP — Grid Paths, Edit Distance, Longest Common Subsequence — the 2D version of this trick
-3. `9` Reconstructing the Actual Solution, Not Only Its Value — the case where you can't fully space-optimise
+// Unique Paths with one row
+fun uniquePathsOneRow(m: Int, n: Int): Int {
+    val dp = IntArray(n) { 1 }
+    for (r in 1 until m) for (c in 1 until n) dp[c] += dp[c - 1]      // dp[c] is "up", dp[c-1] is "left"
+    return dp[n - 1]
+}
 
-#### 9. Interview Must Remember
+// 0/1 Knapsack with one row, capacity going DOWN
+fun knapsackOneRow(weights: IntArray, values: IntArray, capacity: Int): Int {
+    val dp = IntArray(capacity + 1)
+    for (i in weights.indices) {
+        for (w in capacity downTo weights[i]) dp[w] = maxOf(dp[w], dp[w - weights[i]] + values[i])
+    }
+    return dp[capacity]
+}
+```
 
-1. Ask: **"does state `i` only depend on a fixed number of previous states?"** — if yes, space optimisation is possible.
-2. Get the full-table solution correct first, then offer the space-optimised version as a follow-up.
-3. If the problem needs to reconstruct the actual path or sequence, say that space optimisation and reconstruction usually trade off against each other.
+Checks: `lcsTwoRows("abcde", "ace")` → `3`. `lcsTwoRows("abc", "def")` → `0`. `editDistanceTwoRows("horse", "ros")` → `3`. `editDistanceTwoRows("intention", "execution")` → `5`. `uniquePathsOneRow(3, 7)` → `28`. `knapsackOneRow(intArrayOf(1, 3, 4, 5), intArrayOf(1, 4, 5, 7), 7)` → `9`. `knapsackTable(intArrayOf(1, 3, 4, 5), intArrayOf(1, 4, 5, 7), 7)` → `9`.
+
+#### 5. Complexity
+
+| | Time | Space |
+|---|---|---|
+| LCS / Edit Distance | `O(m · n)` | `O(n)` (was `O(m · n)`) |
+| 0/1 Knapsack | `O(n · W)` | `O(W)` (was `O(n · W)`) |
+| Unique Paths | `O(m · n)` | `O(n)` |
+
+Time stays the same. Only memory shrinks.
+
+#### 6. Common Mistakes
+
+1. **Updating knapsack upwards** with a single row (an item is used many times).
+2. **Overwriting a value you still need** (the diagonal in a one-row LCS needs a saved temporary).
+3. **Forgetting to reset** `cur[0]` (Edit Distance base case) for each new row.
+4. **Optimising too early** and then needing the table to rebuild the answer.
+5. **Swapping rows but not clearing** values that the next row reads as zero.
+6. **Using the longer string** as the row length when the shorter one would use less memory.
+
+#### 7. Say This in the Interview
+
+1. "Each row only depends on the previous row, so I keep two rows and swap them. Space drops from `O(m · n)` to `O(n)`. Time is the same."
+2. "For 0/1 knapsack I can use a single array if I iterate capacity from high to low, so each item is used once."
+3. "The cost is that I can't rebuild the actual solution from the table anymore, only its value."
+
+#### 8. Quick Check
+
+1. Space of Edit Distance with two rows?
+2. Why must the 0/1 knapsack row be updated downwards?
+3. What do you lose by optimising space?
+
+<details>
+<summary>Answers</summary>
+
+1. `O(n)` for the shorter string's length.
+2. So `dp[w − weight]` still holds the previous item's value. Going upwards would use the same item twice.
+3. The ability to reconstruct the chosen items or characters.
+
+</details>
+
+#### 9. Related LeetCode Questions
+
+| # | Question | Idea |
+|---|---|---|
+| 70 | [Climbing Stairs](https://leetcode.com/problems/climbing-stairs/) (Easy) | two variables |
+| 198 | [House Robber](https://leetcode.com/problems/house-robber/) (Medium) | two variables |
+| 62 | [Unique Paths](https://leetcode.com/problems/unique-paths/) (Medium) | one row |
+| 1143 | [Longest Common Subsequence](https://leetcode.com/problems/longest-common-subsequence/) (Medium) | two rows |
+| 72 | [Edit Distance](https://leetcode.com/problems/edit-distance/) (Medium) | two rows |
+| 416 | [Partition Equal Subset Sum](https://leetcode.com/problems/partition-equal-subset-sum/) (Medium) | one boolean row |

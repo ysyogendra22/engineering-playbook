@@ -1,82 +1,187 @@
-# XOR Tricks — Single Number, Cancelling Pairs
+# XOR Tricks: Single Number and Cancelling Pairs
 
-#### 1. Definition — Must Know
+> XOR cancels equal values: `a xor a = 0`. XOR a whole array and everything that appears twice vanishes, leaving the one that does not.
 
-XOR has a special property that makes it useful far beyond a basic bitwise operation: **`x XOR x = 0`** (anything XORed with itself cancels to zero), and **`x XOR 0 = x`** (XOR with zero does nothing). Combined, this means **pairs of equal numbers cancel out** when XORed together, leaving only whatever doesn't have a pair.
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+**XOR properties**
 
-This single property solves a small, well-known family of problems in O(n) time and O(1) space — no hash set or extra memory needed, which is exactly what makes it a favourite "clever trick" interview question.
+| Property | Meaning |
+|---|---|
+| `a xor a = 0` | a value cancels itself |
+| `a xor 0 = a` | zero changes nothing |
+| `a xor b = b xor a` | order does not matter |
+| `(a xor b) xor c = a xor (b xor c)` | grouping does not matter |
 
-#### 3. How It Works — Must Know
+So the XOR of a list is the same in any order, and every value that appears an even number of times disappears.
 
-**Single Number**: every number in an array appears twice, except one — find it.
+**Signals:** "every element appears twice except one", "find the missing / extra number", "without extra space", `O(1)` space and `O(n)` time, "find the difference between two strings".
 
-```text
-[4, 1, 2, 1, 2]
+#### 2. How It Works
 
-XOR all of them together:
-4 xor 1 xor 2 xor 1 xor 2
-= 4 xor (1 xor 1) xor (2 xor 2)      ← XOR is commutative/associative, so pairs group together
-= 4 xor 0 xor 0
-= 4
-
-Answer: 4  — every paired number cancelled to 0, leaving only the unpaired one.
-```
-
-**Swapping two numbers without a temp variable** (a related classic trick):
+`[4, 1, 2, 1, 2]`:
 
 ```text
-a = a xor b
-b = a xor b   // = (original a xor b) xor b = original a
-a = a xor b   // = (original a xor b) xor (original a) = original b
+0 xor 4 = 4
+4 xor 1 = 5
+5 xor 2 = 7
+7 xor 1 = 6
+6 xor 2 = 4        ← the 1s and 2s cancelled; 4 is left
 ```
 
-#### 4. Algorithm — Must Know
+```mermaid
+flowchart LR
+    A["0"] -->|"xor 4"| B["4"]
+    B -->|"xor 1"| C["5"]
+    C -->|"xor 2"| D["7"]
+    D -->|"xor 1"| E["6"]
+    E -->|"xor 2"| F["4 = the single number"]
+```
+
+**Common patterns**
+
+| Problem | Trick |
+|---|---|
+| Single Number (others twice) | XOR all values |
+| Missing Number in `0..n` | XOR all indexes `0..n` with all values |
+| Find the Difference (string `t` = `s` + one letter) | XOR all characters of both |
+| Two single numbers (others twice) | XOR all → `a xor b`; split by one differing bit (note 10) |
+| XOR of `1..n` | pattern by `n % 4` (below) |
+| Subarray XOR | prefix XOR: `xor(l..r) = prefix[r+1] xor prefix[l]` |
+
+**XOR of `0..n` in `O(1)`**
+
+| `n % 4` | `0 xor 1 xor ... xor n` |
+|---|---|
+| 0 | `n` |
+| 1 | `1` |
+| 2 | `n + 1` |
+| 3 | `0` |
+
+Check: `1 xor 2 xor 3 xor 4 xor 5 = 1` (5 % 4 = 1) ✓.
+
+**Swap without a temporary variable** (a trick to recognise, not to use):
 
 ```text
-function findSingleNumber(nums):
-    result = 0
-    for num in nums:
-        result = result xor num
-    return result
+a = a xor b;  b = a xor b;  a = a xor b
 ```
 
-#### 5. Kotlin Implementation — Must Know
+It fails when both names refer to the same memory location (`a xor a = 0`), and a temp is clearer.
+
+#### 3. Brute Force vs Optimized
+
+| Problem | Brute force | XOR |
+|---|---|---|
+| Single Number | `HashMap` counts `O(n)` time, `O(n)` space | `O(n)` time, `O(1)` space |
+| Single Number | sort and compare neighbours `O(n log n)` | `O(n)` |
+| Missing Number | `HashSet`, or sum formula | XOR (no overflow) |
+| Find the Difference | count letters `O(n)`, `O(1)` space | XOR, no table |
 
 ```kotlin
-fun singleNumber(nums: IntArray): Int {
-    var result = 0
-    for (num in nums) {
-        result = result xor num
-    }
-    return result
+// Brute force: count with a map
+fun singleNumberMap(nums: IntArray): Int {
+    val count = HashMap<Int, Int>()
+    for (x in nums) count[x] = (count[x] ?: 0) + 1
+    return count.entries.first { it.value == 1 }.key
 }
 ```
 
-#### 6. Complexity — Must Know
+#### 4. Kotlin Code
+
+```kotlin
+// Single Number (LeetCode 136)
+fun singleNumber(nums: IntArray): Int {
+    var result = 0
+    for (x in nums) result = result xor x
+    return result
+}
+
+// Missing Number (LeetCode 268): numbers 0..n with one missing
+fun missingNumber(nums: IntArray): Int {
+    var result = nums.size                              // start with n
+    for (i in nums.indices) result = result xor i xor nums[i]
+    return result
+}
+
+// Find the Difference (LeetCode 389)
+fun findTheDifference(s: String, t: String): Char {
+    var x = 0
+    for (c in s) x = x xor c.code
+    for (c in t) x = x xor c.code
+    return x.toChar()
+}
+
+// XOR of 0..n in O(1)
+fun xorUpTo(n: Int): Int = when (n % 4) {
+    0 -> n
+    1 -> 1
+    2 -> n + 1
+    else -> 0
+}
+
+// XOR Queries of a Subarray (LeetCode 1310): prefix XOR
+fun xorQueries(arr: IntArray, queries: Array<IntArray>): IntArray {
+    val prefix = IntArray(arr.size + 1)
+    for (i in arr.indices) prefix[i + 1] = prefix[i] xor arr[i]
+    return IntArray(queries.size) { prefix[queries[it][1] + 1] xor prefix[queries[it][0]] }
+}
+
+// Swap two array elements with XOR (only when i != j)
+fun swapXor(a: IntArray, i: Int, j: Int) {
+    if (i == j) return
+    a[i] = a[i] xor a[j]
+    a[j] = a[i] xor a[j]
+    a[i] = a[i] xor a[j]
+}
+```
+
+Checks: `singleNumber(intArrayOf(4, 1, 2, 1, 2))` → `4`; `(intArrayOf(2, 2, 1))` → `1`; `(intArrayOf(7))` → `7`. `singleNumberMap(intArrayOf(4, 1, 2, 1, 2))` → `4`. `missingNumber(intArrayOf(3, 0, 1))` → `2`; `(intArrayOf(0, 1))` → `2`; `(intArrayOf(9, 6, 4, 2, 3, 5, 7, 0, 1))` → `8`. `findTheDifference("abcd", "abcde")` → `'e'`; `("", "y")` → `'y'`. `xorUpTo(5)` → `1`; `xorUpTo(6)` → `7`; `xorUpTo(7)` → `0`; `xorUpTo(8)` → `8`. `xorQueries(intArrayOf(1, 3, 4, 8), arrayOf(intArrayOf(0, 1), intArrayOf(1, 2), intArrayOf(0, 3), intArrayOf(3, 3)))` → `[2, 7, 14, 8]`. `swapXor` on `[3, 5]` indexes `0, 1` → `[5, 3]`.
+
+#### 5. Complexity
 
 | | Time | Space |
 |---|---|---|
-| XOR trick | O(n) | O(1) |
-| Alternative: HashMap counting | O(n) | O(n) |
+| Single Number, Missing Number, Find the Difference | `O(n)` | `O(1)` |
+| `xorUpTo` | `O(1)` | `O(1)` |
+| `xorQueries` | `O(n + q)` | `O(n)` |
 
-Same time complexity as the hash map approach, but **no extra memory** — this is the whole reason the trick is worth knowing.
+#### 6. Common Mistakes
 
-#### 7. Common Mistakes — Must Know
+1. **Using XOR when values may appear an odd number of times other than once** (it only cancels pairs). Use bit counting (note 10).
+2. **Starting with `n` for Missing Number** forgotten (the index `n` has no matching element).
+3. **XOR swap with `i == j`** zeroes the value.
+4. **Using `+`/sum for Missing Number** and overflowing for huge `n`.
+5. **Assuming the XOR of all values** identifies the answer when there are *two* singles (it gives `a xor b`).
+6. **Converting the XOR result back** wrongly (`x.toChar()` for characters).
 
-1. Trying to apply this trick when a number could appear **three or more times**, or when there could be **two** unpaired numbers — the plain XOR trick only works for the exact "everything paired except one" shape (variants exist for these harder cases, but they're a different technique).
-2. Forgetting that XOR is both **commutative** (order doesn't matter) and **associative** (grouping doesn't matter) — this is *why* the pairs can cancel regardless of where they appear in the array.
-3. Overcomplicating a problem that's really just "find the odd one out" with sorting or a hash set, when XOR solves it more simply.
+#### 7. Say This in the Interview
 
-#### 8. Related Topics
+1. "XOR is its own inverse, so paired numbers cancel and the unpaired one remains: `O(n)` time and `O(1)` space with no hash map."
+2. "For the missing number I XOR every index and every value together; everything cancels except the missing number."
+3. "XOR of a range is a difference of prefix XORs, like prefix sums."
 
-1. `1` AND, OR, XOR, NOT, Left Shift, Right Shift — the base operation
-2. `20` More Patterns to Know (in `03-leetcode-patterns`) — where Single Number is listed as a classic problem
-3. `9` Bit Manipulation (this folder's own index) — other tricks in the same family
+#### 8. Quick Check
 
-#### 9. Interview Must Remember
+1. `7 xor 7 xor 3`?
+2. Why start `missingNumber` with `nums.size`?
+3. Does XOR work if every number appears 3 times except one?
 
-1. **`x XOR x = 0`, `x XOR 0 = x`** — the whole trick in two facts.
-2. Recognise the shape: **"everything appears twice/in pairs except one thing"** is the signal for this trick.
-3. O(n) time, O(1) space — a strong answer specifically because it beats the "obvious" hash-map solution on space.
+<details>
+<summary>Answers</summary>
+
+1. `3`.
+2. The indexes run `0..n−1` but the values are from `0..n`; the extra `n` accounts for the top value.
+3. No. Three equal values XOR to the value itself. Count bits modulo 3 instead (note 10).
+
+</details>
+
+#### 9. Related LeetCode Questions
+
+| # | Question | Idea |
+|---|---|---|
+| 136 | [Single Number](https://leetcode.com/problems/single-number/) (Easy) | XOR all |
+| 268 | [Missing Number](https://leetcode.com/problems/missing-number/) (Easy) | XOR indexes and values |
+| 389 | [Find the Difference](https://leetcode.com/problems/find-the-difference/) (Easy) | XOR characters |
+| 1310 | [XOR Queries of a Subarray](https://leetcode.com/problems/xor-queries-of-a-subarray/) (Medium) | prefix XOR |
+| 260 | [Single Number III](https://leetcode.com/problems/single-number-iii/) (Medium) | split by one bit |
+| 137 | [Single Number II](https://leetcode.com/problems/single-number-ii/) (Medium) | bits mod 3 |

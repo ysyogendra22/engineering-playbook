@@ -1,96 +1,174 @@
 # Modelling Choices as a Decision Tree
 
-#### 1. Definition — Must Know
+> Before you code a backtracking solution, draw the decision tree: **what is decided at each level, and what are the options?** The tree gives you the loop, the base case and the complexity.
 
-A **decision tree**, here, is a way of drawing out every choice a backtracking algorithm could make at each step, as branches of a tree — the same picture as a recursion tree (`03-Recursion & Divide and Conquer/04`), but built from **choices**, not just function calls.
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+A **decision tree** shows every choice the search can make.
 
-1. Drawing the tree before coding turns a vague problem ("generate all valid arrangements") into a clear structure: what are the branches at each node, and what makes a leaf valid?
-2. It's the fastest way to spot where pruning (topic 3) will actually help — branches that clearly can't lead anywhere useful.
+- Each **level** is one decision (which element, which cell, which position).
+- Each **branch** is one option for that decision.
+- Each **leaf** (or node) is a complete (or partial) answer.
 
-#### 3. How It Works — Must Know
+Backtracking is a **depth-first walk** of this tree. The code is the walk. The drawing is the plan.
 
-Decision tree for generating all permutations of `[1, 2]`:
+**Signals:** you can describe the problem as "at each step, pick one of several options".
 
-```text
-                    []
-                  /    \
-              choose 1  choose 2
-                /            \
-             [1]             [2]
-              |                |
-          choose 2         choose 1
-              |                |
-            [1,2]           [2,1]     ← leaves = complete permutations
+#### 2. How It Works
+
+**Three common tree shapes**
+
+| Model | Level decides | Options | Total leaves |
+|---|---|---|---|
+| **Include / exclude** | "is element `i` in the subset?" | 2: take it, skip it | `2ⁿ` |
+| **Start index** (combinations, subsets) | "which element is picked next?" | elements **after** the last pick | `C(n, k)` or `2ⁿ` |
+| **Used array** (permutations) | "which element goes in position `i`?" | any **unused** element | `n!` |
+
+*Include / exclude for `[1, 2]`: every level has exactly two branches.*
+
+```mermaid
+flowchart TD
+    a["decide 1"] -->|"take 1"| b["decide 2"]
+    a -->|"skip 1"| c["decide 2"]
+    b -->|"take 2"| d["[1, 2]"]
+    b -->|"skip 2"| e["[1]"]
+    c -->|"take 2"| f["[2]"]
+    c -->|"skip 2"| g["[]"]
 ```
 
-1. Each **level** of the tree represents one decision point (which number goes next).
-2. Each **path from root to leaf** is one complete answer.
-3. The **branching factor** (how many children each node has) tells you roughly how fast the tree grows — this is where the complexity in topic 4 comes from.
+**From the tree to the code**
 
-#### 4. Algorithm — Must Know
+| Part of the tree | Part of the code |
+|---|---|
+| a level | one recursive call (its depth is the parameter, such as `index`) |
+| the branches at a node | the `for` loop (or two calls: take, skip) |
+| a leaf | the base case: save the answer |
+| going back up | the un-choose step |
+| a branch that cannot succeed | a `continue` / early `return` (pruning, note 3) |
+
+**Questions to ask while drawing**
+
+1. What is **one decision**? (Pick an element? Place a queen in a row?)
+2. What are the **options**, and which are already **invalid**?
+3. When is a path **complete**?
+4. How many **levels** (depth) and how many **branches** (breadth)?
 
 ```text
-1. Ask: "what are ALL the choices at this point?" → these are the branches.
-2. Ask: "when is a path complete?" → this defines the leaves.
-3. Ask: "can I tell early that a branch is invalid?" → this is where pruning (topic 3) attaches.
-4. The backtracking template (topic 1) is just code that walks this tree,
-   depth-first, undoing each choice on the way back up.
+Generate Parentheses, n = 2: decision = "add '(' or ')'"
+valid options: add '(' if open < n;  add ')' if close < open
+              ""
+             /
+            (
+           /  \
+         ((    ()
+         |      |
+        (()    ()(
+         |      |
+       (())   ()()          answers: "(())" and "()()"
 ```
 
-#### 5. Kotlin Implementation — Must Know
+#### 3. Brute Force vs Optimized
+
+| Approach | Nodes visited | Note |
+|---|---|---|
+| Decide every position freely, filter valid ones at the end | all `2^(2n)` strings | brute force |
+| Decide with **rules built into the options** | only valid prefixes | the decision tree with constraints |
 
 ```kotlin
-// The tree itself isn't code — it's what you sketch on paper or a whiteboard
-// before writing the backtracking function. The code just walks it:
-fun permutations(nums: IntArray): List<List<Int>> {
-    val result = mutableListOf<List<Int>>()
-    val path = mutableListOf<Int>()
-    val used = BooleanArray(nums.size)
-
-    fun backtrack() {
-        if (path.size == nums.size) {          // reached a leaf
-            result.add(path.toList())
-            return
-        }
-        for (i in nums.indices) {               // branches at this node
-            if (used[i]) continue
-            used[i] = true
-            path.add(nums[i])
-            backtrack()
-            path.removeAt(path.size - 1)
-            used[i] = false
-        }
+// Brute force: generate all 2^(2n) strings of '(' and ')', keep the valid ones
+fun generateBrute(n: Int): List<String> {
+    val result = mutableListOf<String>()
+    fun valid(s: String): Boolean {
+        var balance = 0
+        for (c in s) { balance += if (c == '(') 1 else -1; if (balance < 0) return false }
+        return balance == 0
     }
-
-    backtrack()
+    fun gen(sb: StringBuilder) {
+        if (sb.length == 2 * n) { if (valid(sb.toString())) result.add(sb.toString()); return }
+        sb.append('('); gen(sb); sb.deleteCharAt(sb.length - 1)
+        sb.append(')'); gen(sb); sb.deleteCharAt(sb.length - 1)
+    }
+    gen(StringBuilder())
     return result
 }
 ```
 
-#### 6. Complexity — Must Know
+#### 4. Kotlin Code
 
-| Tree shape | Meaning |
-|---|---|
-| Branching factor `k`, depth `n` | Roughly O(k^n) leaves and nodes |
-| Subsets (branching factor 2, depth n) | O(2ⁿ) |
-| Permutations (branching factor shrinks: n, n-1, n-2, ...) | O(n!) |
+```kotlin
+// Include / exclude model: subsets with a binary decision at each element
+fun subsetsIncludeExclude(nums: IntArray): List<List<Int>> {
+    val result = mutableListOf<List<Int>>()
+    val path = mutableListOf<Int>()
+    fun decide(i: Int) {
+        if (i == nums.size) { result.add(path.toList()); return }   // a leaf = one complete subset
+        path.add(nums[i]); decide(i + 1); path.removeAt(path.size - 1)   // take it
+        decide(i + 1)                                                    // skip it
+    }
+    decide(0)
+    return result
+}
 
-#### 7. Common Mistakes — Must Know
+// Constraints inside the options: Generate Parentheses (LeetCode 22)
+fun generateParenthesis(n: Int): List<String> {
+    val result = mutableListOf<String>()
+    val sb = StringBuilder()
+    fun gen(open: Int, close: Int) {
+        if (sb.length == 2 * n) { result.add(sb.toString()); return }
+        if (open < n) { sb.append('('); gen(open + 1, close); sb.deleteCharAt(sb.length - 1) }
+        if (close < open) { sb.append(')'); gen(open, close + 1); sb.deleteCharAt(sb.length - 1) }
+    }
+    gen(0, 0)
+    return result
+}
+```
 
-1. Coding directly without sketching the tree first — this is where most backtracking bugs (wrong branches, wrong leaf condition) actually come from.
-2. Miscounting the branching factor — permutations have a *shrinking* branching factor (fewer choices remain at each level), which is different from subsets' constant factor of 2.
-3. Not distinguishing "a leaf" (a complete, valid answer) from "an invalid dead end" — both stop the recursion, but only one should be recorded.
+Checks: `subsetsIncludeExclude(intArrayOf(1, 2))` → `[[1, 2], [1], [2], []]`. `generateParenthesis(3)` → `["((()))", "(()())", "(())()", "()(())", "()()()"]`. `generateParenthesis(1)` → `["()"]`. `generateBrute(3)` gives the same 5 strings.
 
-#### 8. Related Topics
+#### 5. Complexity
 
-1. `1` The Template — Choose, Explore, Un-choose — the code that walks this tree
-2. `3` Pruning — Stopping a Branch Early — cutting parts of this tree before exploring them
-3. `4` Why It's Exponential: O(2ⁿ) and O(n!) — where these numbers come from
+| Tree | Depth | Leaves | Time |
+|---|---|---|---|
+| Include / exclude | `n` | `2ⁿ` | `O(n · 2ⁿ)` |
+| Permutations | `n` | `n!` | `O(n · n!)` |
+| Parentheses | `2n` | Catalan `Cₙ` (5 for `n = 3`) | `O(4ⁿ / √n)` |
 
-#### 9. Interview Must Remember
+#### 6. Common Mistakes
 
-1. **Draw the tree before writing code** — branches at each node, and what a leaf looks like.
-2. The branching factor and depth together tell you the rough size of the search — say this out loud when asked for complexity.
-3. Subsets tree: branching factor 2 (include or don't). Permutations tree: shrinking branching factor (fewer remaining choices each level).
+1. **Coding before drawing the tree.** You may miss a constraint or a base case.
+2. **Mixing models:** using a start index (combinations) for a problem where order matters (permutations).
+3. **Counting leaves wrongly** and quoting the wrong complexity.
+4. **Making every decision "free"** and filtering at the end instead of building rules into the options.
+5. **Depth confusion:** the recursion parameter should be the **level** (index, row, length).
+
+#### 7. Say This in the Interview
+
+1. "Let me draw the decision tree: each level chooses one thing, and each branch is an option. A complete path is an answer."
+2. "I'll build the constraints into the options, so I never generate an invalid prefix: I only add `)` if there is an unmatched `(`."
+3. "The tree has `2ⁿ` leaves, so exponential time is expected."
+
+#### 8. Quick Check
+
+1. In the include/exclude model, how many branches does each node have?
+2. What does a level represent in the permutations tree?
+3. Why add `)` only when `close < open`?
+
+<details>
+<summary>Answers</summary>
+
+1. Two (take or skip).
+2. The choice of which element goes into the next position.
+3. Otherwise the string would have a `)` with no `(` to match, which can never become valid.
+
+</details>
+
+#### 9. Related LeetCode Questions
+
+| # | Question | Idea |
+|---|---|---|
+| 78 | [Subsets](https://leetcode.com/problems/subsets/) (Medium) | include / exclude |
+| 22 | [Generate Parentheses](https://leetcode.com/problems/generate-parentheses/) (Medium) | constraints in the options |
+| 46 | [Permutations](https://leetcode.com/problems/permutations/) (Medium) | used array |
+| 39 | [Combination Sum](https://leetcode.com/problems/combination-sum/) (Medium) | reuse allowed |
+| 17 | [Letter Combinations of a Phone Number](https://leetcode.com/problems/letter-combinations-of-a-phone-number/) (Medium) | one digit per level |
+| 784 | [Letter Case Permutation](https://leetcode.com/problems/letter-case-permutation/) (Medium) | two options per letter |

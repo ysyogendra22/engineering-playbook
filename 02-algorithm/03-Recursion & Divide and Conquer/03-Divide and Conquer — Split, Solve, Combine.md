@@ -1,95 +1,157 @@
-# Divide and Conquer — Split, Solve, Combine
+# Divide and Conquer: Split, Solve, Combine
 
-#### 1. Definition — Must Know
+> Break the problem into **independent** smaller pieces of the same kind, solve each recursively, and combine the answers. Merge sort, quick sort, binary search and many tree problems all work this way.
 
-1. **Divide and conquer** solves a problem by splitting it into smaller pieces of the same problem, solving each piece recursively, and combining their results.
-2. Three steps, always: **divide**, **conquer** (recurse), **combine**.
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+| Step | What happens | Merge sort example |
+|---|---|---|
+| **Divide** | split the input | cut the array in half |
+| **Conquer** | solve each part recursively (base case at size 1) | sort each half |
+| **Combine** | merge the sub-answers | merge two sorted halves |
 
-1. Many problems shrink cleanly into smaller versions of themselves, and solving the small versions is easier than solving the whole thing at once.
-2. It is the technique behind some of the most important algorithms: Merge Sort, Quick Sort, Binary Search.
+**Divide and conquer vs dynamic programming**
 
-#### 3. How It Works — Must Know
+| | Divide and conquer | Dynamic programming |
+|---|---|---|
+| Subproblems | **independent** (no overlap) | **overlapping** (same subproblem repeats) |
+| Remember answers? | no need | yes (memo / table) |
+| Examples | merge sort, binary search, tree depth | Fibonacci, knapsack, edit distance |
 
-Example: Merge Sort on `[5, 2, 4, 1]`.
+**Signals:** "split the array in half", sorted input, a binary tree, "combine results from left and right", target time `O(n log n)` or `O(log n)`.
 
-```text
-Divide:
-[5, 2, 4, 1]  →  [5, 2]  and  [4, 1]
-[5, 2]        →  [5]     and  [2]
-[4, 1]        →  [4]     and  [1]
+#### 2. How It Works
 
-Conquer (base case — one element is already sorted):
-[5], [2], [4], [1]
-
-Combine (merge sorted halves back together):
-[5] + [2]  →  [2, 5]
-[4] + [1]  →  [1, 4]
-[2, 5] + [1, 4]  →  [1, 2, 4, 5]
+```mermaid
+flowchart TD
+    A["problem of size n"] --> B["divide into sub-problems"]
+    B --> C["left half"]
+    B --> D["right half"]
+    C --> E["solve recursively"]
+    D --> F["solve recursively"]
+    E --> G["combine the answers"]
+    F --> G
+    G --> H["answer for size n"]
 ```
 
-#### 4. Algorithm — Must Know
+**Common algorithms and their recurrences** (explained in note 05)
 
-```text
-function solve(problem):
-    if problem is small enough:
-        return the direct answer          # base case
-    left, right = split problem in half   # divide
-    leftAnswer = solve(left)              # conquer
-    rightAnswer = solve(right)            # conquer
-    return combine(leftAnswer, rightAnswer)  # combine
-```
+| Algorithm | Divide | Combine | Recurrence | Time |
+|---|---|---|---|---|
+| Binary search | pick half | none | `T(n) = T(n/2) + 1` | `O(log n)` |
+| Merge sort | halves | merge `O(n)` | `T(n) = 2T(n/2) + n` | `O(n log n)` |
+| Quick sort (good pivot) | partition `O(n)` | none | `T(n) = 2T(n/2) + n` | `O(n log n)` |
+| Quickselect | partition, one side | none | `T(n) = T(n/2) + n` | `O(n)` |
+| Tree height | left, right | `1 + max` | `T(n) = 2T(n/2) + 1` | `O(n)` |
+| Fast power | halve the exponent | square | `T(n) = T(n/2) + 1` | `O(log n)` |
+| Max subarray (D&C) | halves | cross-sum `O(n)` | `T(n) = 2T(n/2) + n` | `O(n log n)` |
 
-#### 5. Kotlin Implementation — Must Know
+**Split evenly.** If you split `n` into `1` and `n − 1`, you get `O(n²)` (quick sort with a bad pivot). Balanced splits give `log n` levels.
+
+**Tip:** if the two halves are unrelated and only one matters (binary search), you do not even need a combine step.
+
+#### 3. Brute Force vs Optimized
+
+| Problem | Brute force | Divide and conquer |
+|---|---|---|
+| Find a value in sorted data | scan `O(n)` | binary search `O(log n)` |
+| Sort | `O(n²)` | merge sort `O(n log n)` |
+| Build a balanced BST from a sorted array | insert one by one (can be skewed) | pick the middle as root `O(n)` |
+| Count inversions | all pairs `O(n²)` | merge sort `O(n log n)` |
+| Largest value | scan `O(n)` | halves (same `O(n)`, but parallelisable) |
 
 ```kotlin
-fun mergeSort(arr: IntArray): IntArray {
-    if (arr.size <= 1) return arr                    // base case
-    val mid = arr.size / 2
-    val left = mergeSort(arr.copyOfRange(0, mid))     // divide + conquer
-    val right = mergeSort(arr.copyOfRange(mid, arr.size))
-    return merge(left, right)                         // combine
-}
-
-fun merge(left: IntArray, right: IntArray): IntArray {
-    val result = IntArray(left.size + right.size)
-    var i = 0; var j = 0; var k = 0
-    while (i < left.size && j < right.size) {
-        result[k++] = if (left[i] <= right[j]) left[i++] else right[j++]
-    }
-    while (i < left.size) result[k++] = left[i++]
-    while (j < right.size) result[k++] = right[j++]
-    return result
-}
+// Brute force: maximum by scanning
+fun maxScan(a: IntArray): Int { var m = a[0]; for (x in a) if (x > m) m = x; return m }
 ```
 
-#### 6. Complexity — Must Know
+#### 4. Kotlin Code
 
-| Step | Cost |
-|---|---|
-| Divide | Usually O(1) or O(n) to split |
-| Conquer | Recursive calls on smaller pieces |
-| Combine | Often the most expensive step (O(n) to merge, for example) |
+```kotlin
+// Maximum of an array by divide and conquer (same O(n), shows the pattern)
+fun maxDC(a: IntArray, lo: Int = 0, hi: Int = a.size - 1): Int {
+    if (lo == hi) return a[lo]                          // base case: one element
+    val mid = lo + (hi - lo) / 2
+    return maxOf(maxDC(a, lo, mid), maxDC(a, mid + 1, hi))   // combine
+}
 
-The overall complexity comes from the **recurrence relation** the divide and combine steps create — worked out properly in topic 5 (Master Theorem). Merge Sort is O(n log n): log n levels of splitting, O(n) work to combine at each level.
+// Recursive binary search: divide only, no combine
+fun binarySearch(a: IntArray, target: Int, lo: Int = 0, hi: Int = a.size - 1): Int {
+    if (lo > hi) return -1
+    val mid = lo + (hi - lo) / 2
+    return when {
+        a[mid] == target -> mid
+        a[mid] < target -> binarySearch(a, target, mid + 1, hi)
+        else -> binarySearch(a, target, lo, mid - 1)
+    }
+}
 
-#### 7. Common Mistakes — Must Know
+// Convert Sorted Array to a height-balanced BST (LeetCode 108)
+class TreeNode(var `val`: Int) { var left: TreeNode? = null; var right: TreeNode? = null }
 
-1. Forgetting the combine step and assuming solving the pieces is enough.
-2. Splitting unevenly by accident (for example, always taking one element off instead of halving), which can turn O(log n) depth into O(n) depth.
-3. An expensive combine step that quietly dominates the whole algorithm's cost.
-4. Not defining a clear base case for the smallest possible piece.
+fun sortedArrayToBST(nums: IntArray): TreeNode? {
+    fun build(lo: Int, hi: Int): TreeNode? {
+        if (lo > hi) return null
+        val mid = lo + (hi - lo) / 2
+        val node = TreeNode(nums[mid])                  // the middle becomes the root
+        node.left = build(lo, mid - 1)
+        node.right = build(mid + 1, hi)
+        return node
+    }
+    return build(0, nums.size - 1)
+}
 
-#### 8. Related Topics
+fun preorder(root: TreeNode?): List<Int> =
+    if (root == null) emptyList() else listOf(root.`val`) + preorder(root.left) + preorder(root.right)
+```
 
-1. `1` Sorting — Merge Sort and Quick Sort are the classic examples
-2. `2` Searching — Binary Search is divide and conquer with no real "combine" step
-3. `5` Recurrence Relations & the Master Theorem — how to work out the complexity
-4. `9` Classic Divide & Conquer — more problems that use this shape
+Checks: `maxDC(intArrayOf(3, 9, 2, 7))` → `9`; `maxDC(intArrayOf(5))` → `5`. `binarySearch(intArrayOf(1, 3, 5, 7, 9), 7)` → `3`; `(…, 4)` → `-1`. `preorder(sortedArrayToBST(intArrayOf(-10, -3, 0, 5, 9)))` → `[0, -10, -3, 5, 9]`. `maxScan(intArrayOf(3, 9, 2, 7))` → `9`.
 
-#### 9. Interview Must Remember
+#### 5. Complexity
 
-1. **Divide, conquer, combine** — say all three steps, not just "split it up".
-2. The **combine step's cost** is often the key to the algorithm's complexity — check it.
-3. If the split is uneven, the complexity gets worse. A balanced split is what gives you O(log n) levels.
+| | Time | Space |
+|---|---|---|
+| Balanced split, linear combine | `O(n log n)` | `O(log n)` stack (+ helper memory) |
+| Halve, constant combine | `O(n)` | `O(log n)` |
+| Halve, no combine, one side | `O(log n)` | `O(log n)` (or `O(1)` iterative) |
+
+#### 6. Common Mistakes
+
+1. **Overlapping subproblems** treated as independent (Fibonacci by halves). Use DP instead.
+2. **Uneven split** causing `O(n²)`.
+3. **Missing base case** for size 0 or 1.
+4. **Slow combine step** (`O(n²)` merge) that spoils the recurrence.
+5. **Wrong midpoint** or `mid` that does not shrink the range (infinite recursion).
+6. **Copying subarrays** (`copyOfRange`) at every level instead of passing indexes.
+
+#### 7. Say This in the Interview
+
+1. "I'll divide the array in half, solve each half recursively, then combine. The combine step is `O(n)`, and there are `log n` levels, so `O(n log n)`."
+2. "The subproblems do not overlap, so plain divide and conquer works. If they overlapped I'd add memoization."
+3. "I pass index bounds instead of copying subarrays, to keep the extra space at the stack depth."
+
+#### 8. Quick Check
+
+1. Three steps?
+2. D&C vs DP difference?
+3. Recurrence for binary search?
+
+<details>
+<summary>Answers</summary>
+
+1. Divide, conquer (solve recursively), combine.
+2. D&C subproblems are independent; DP subproblems overlap and are cached.
+3. `T(n) = T(n/2) + O(1)` → `O(log n)`.
+
+</details>
+
+#### 9. Related LeetCode Questions
+
+| # | Question | Idea |
+|---|---|---|
+| 704 | [Binary Search](https://leetcode.com/problems/binary-search/) (Easy) | divide only |
+| 108 | [Convert Sorted Array to Binary Search Tree](https://leetcode.com/problems/convert-sorted-array-to-binary-search-tree/) (Easy) | middle as root |
+| 912 | [Sort an Array](https://leetcode.com/problems/sort-an-array/) (Medium) | merge sort |
+| 53 | [Maximum Subarray](https://leetcode.com/problems/maximum-subarray/) (Medium) | D&C or Kadane |
+| 105 | [Construct Binary Tree from Preorder and Inorder Traversal](https://leetcode.com/problems/construct-binary-tree-from-preorder-and-inorder-traversal/) (Medium) | split by root |
+| 23 | [Merge k Sorted Lists](https://leetcode.com/problems/merge-k-sorted-lists/) (Hard) | merge pairs |

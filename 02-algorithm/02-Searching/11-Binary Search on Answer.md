@@ -1,302 +1,190 @@
 # Binary Search on Answer
 
-#### 1. Definition — Must Know
+> You cannot binary search the array, but you can binary search the **answer**. If "can I do it with value `x`?" flips from no to yes exactly once, find the flip.
 
-Binary Search on Answer means applying Binary Search to a **range of possible answers**, instead of searching directly inside an array.
+#### 1. What Is It?
 
-Example:
+Some questions ask for the **smallest** (or **largest**) value that satisfies a condition:
 
-```text id="bsa01"
-Possible answers:
+- "minimum eating speed so Koko finishes in `h` hours",
+- "least ship capacity to deliver in `D` days",
+- "largest `m` with `m² <= x`".
 
-1  2  3  4  5  6  7  8  9  10
+The answer lies in a **range** `[low, high]`. Write a function `ok(x)` that answers "is `x` enough?". If `ok` is **monotonic** (all `false` then all `true`), binary search finds the boundary.
+
+```text
+x:      1  2  3  4  5  6  7  8 ...
+ok(x):  F  F  F  T  T  T  T  T      ← find the first T
 ```
 
-We use a condition to decide which half can be removed.
+**Signals:** "minimum X such that ...", "maximum X such that ...", "minimise the maximum", "maximise the minimum", and a monotonic condition.
 
-#### 2. When to Recognize It — Must Know
+#### 2. How It Works
 
-Look for questions like:
+**Template (minimum value that works)**
 
-```text id="bsa02"
-Minimum possible X
-Maximum possible X
-Smallest value that can...
-Largest value that can...
-Minimum capacity
-Minimum speed
-Maximum distance
+```text
+lo = smallest possible answer, hi = largest possible answer
+while lo < hi:
+    mid = lo + (hi - lo) / 2
+    if ok(mid): hi = mid         // mid works: try smaller
+    else:       lo = mid + 1     // mid fails: need bigger
+return lo
 ```
 
-Then ask:
+For the **maximum** value that works, flip it: `if ok(mid) lo = mid + 1 else hi = mid` and return `lo − 1`, or use `mid = lo + (hi − lo + 1) / 2` with `lo = mid`.
 
-```text id="bsa03"
-Can I check whether a candidate answer is possible?
+**Koko Eating Bananas (875).** Piles `[3, 6, 7, 11]`, `h = 8` hours. At speed `k` she needs `Σ ceil(pile / k)` hours.
+
+```text
+range of k: 1 .. max(piles) = 11
+ok(k) = total hours at speed k <= 8
+k=4: 1 + 2 + 2 + 3 = 8 → ok.      k=3: 1 + 2 + 3 + 4 = 10 → too slow.     answer 4
 ```
 
-If yes, Binary Search on Answer may work.
-
-#### 3. Core Requirement — Must Know
-
-The condition must be **monotonic**.
-
-Example:
-
-```text id="bsa04"
-Candidate:
-
-1  2  3  4  5  6  7
-
-Valid?
-
-F  F  F  T  T  T  T
-         ↑
-    First Valid
+```mermaid
+flowchart LR
+    A["pick mid in [lo, hi]"] --> B["ok(mid)?<br/>simulate in O(n)"]
+    B -->|"yes"| C["hi = mid<br/>try a smaller value"]
+    B -->|"no"| D["lo = mid + 1<br/>need a bigger value"]
+    C --> A
+    D --> A
 ```
 
-Once the answer becomes valid, all larger values are also valid.
+**How to choose the range**
 
-Or the opposite:
+| Problem | `lo` | `hi` |
+|---|---|---|
+| Koko | 1 | `max(piles)` |
+| Ship packages | `max(weights)` (must carry the heaviest) | `sum(weights)` (everything in one day) |
+| Sqrt(x) | 0 | `x` |
 
-```text id="bsa05"
-T  T  T  T  F  F  F
-         ↑
-     Last Valid
-```
+**How to build `ok`**: simulate the process greedily with the candidate value. It usually costs `O(n)`.
 
-This monotonic behavior allows Binary Search.
+**Total cost:** `O(n × log(range))`.
 
-#### 4. Core Pattern — Must Know
+#### 3. Brute Force vs Optimized
 
-Most problems contain two parts:
+| Approach | Time |
+|---|---|
+| Try every value from `lo` to `hi` | `O(range × n)` |
+| **Binary search the range** | **`O(n × log range)`** |
 
-```text id="bsa06"
-Binary Search
-      +
-Feasibility Check
-```
-
-The feasibility function answers:
-
-```text id="bsa07"
-Can candidate X satisfy the requirement?
-```
-
-Usually:
-
-```kotlin id="bsa08"
-fun canDo(candidate: Int): Boolean
-```
-
-#### 5. Example — Minimum Eating Speed
-
-Suppose:
-
-```text id="bsa09"
-Piles = [3, 6, 7, 11]
-Hours = 8
-```
-
-Question:
-
-```text id="bsa10"
-What is the minimum eating speed
-to finish everything within 8 hours?
-```
-
-Search space:
-
-```text id="bsa11"
-1 ... 11
-```
-
-For each speed:
-
-```text id="bsa12"
-Can all piles be finished within 8 hours?
-```
-
-The results become:
-
-```text id="bsa13"
-Invalid Invalid ... Valid Valid Valid
-```
-
-We need the:
-
-```text id="bsa14"
-First Valid Answer
-```
-
-#### 6. Generic Algorithm — Must Know
-
-```text id="bsa15"
-left  = minimum possible answer
-right = maximum possible answer
-
-while left <= right:
-
-    mid = left + (right - left) / 2
-
-    if mid is feasible:
-        save mid
-        search for better answer
-
-    else:
-        discard invalid half
-```
-
-For a **minimum valid answer**:
-
-```text id="bsa16"
-Valid   → move LEFT
-Invalid → move RIGHT
-```
-
-#### 7. Kotlin Template — Minimum Valid Answer
-
-```kotlin id="bsa17"
-fun binarySearchAnswer(leftValue: Int, rightValue: Int): Int {
-
-    var left = leftValue
-    var right = rightValue
-    var answer = rightValue
-
-    while (left <= right) {
-
-        val mid = left + (right - left) / 2
-
-        if (canDo(mid)) {
-            answer = mid
-            right = mid - 1
-        } else {
-            left = mid + 1
-        }
+```kotlin
+// Brute force Koko: try speeds 1, 2, 3, ...
+fun minEatingSpeedBrute(piles: IntArray, h: Int): Int {
+    var k = 1
+    while (true) {
+        var hours = 0L
+        for (p in piles) hours += (p + k - 1) / k
+        if (hours <= h) return k
+        k++
     }
-
-    return answer
 }
 ```
 
-Where:
+#### 4. Kotlin Code
 
-```kotlin id="bsa18"
-fun canDo(value: Int): Boolean {
-    // Check whether value satisfies the requirement
-    return true
+```kotlin
+// Koko Eating Bananas (LeetCode 875)
+fun minEatingSpeed(piles: IntArray, h: Int): Int {
+    var lo = 1
+    var hi = piles.maxOrNull()!!
+    while (lo < hi) {
+        val mid = lo + (hi - lo) / 2
+        var hours = 0L
+        for (p in piles) hours += (p + mid - 1) / mid                 // ceil(p / mid)
+        if (hours <= h) hi = mid else lo = mid + 1
+    }
+    return lo
+}
+
+// Capacity To Ship Packages Within D Days (LeetCode 1011)
+fun shipWithinDays(weights: IntArray, days: Int): Int {
+    var lo = weights.maxOrNull()!!
+    var hi = weights.sum()
+    while (lo < hi) {
+        val mid = lo + (hi - lo) / 2
+        var need = 1
+        var load = 0
+        for (w in weights) {
+            if (load + w > mid) { need++; load = 0 }
+            load += w
+        }
+        if (need <= days) hi = mid else lo = mid + 1
+    }
+    return lo
+}
+
+// Minimum Number of Days to Make m Bouquets (LeetCode 1482)
+fun minDays(bloomDay: IntArray, m: Int, k: Int): Int {
+    if (m.toLong() * k > bloomDay.size) return -1
+    var lo = bloomDay.minOrNull()!!
+    var hi = bloomDay.maxOrNull()!!
+    fun ok(day: Int): Boolean {
+        var bouquets = 0
+        var run = 0
+        for (b in bloomDay) {
+            if (b <= day) { run++; if (run == k) { bouquets++; run = 0 } } else run = 0
+        }
+        return bouquets >= m
+    }
+    while (lo < hi) {
+        val mid = lo + (hi - lo) / 2
+        if (ok(mid)) hi = mid else lo = mid + 1
+    }
+    return lo
 }
 ```
 
-#### 8. Minimum vs Maximum Answer — Must Know
+Checks: `minEatingSpeed(intArrayOf(3, 6, 7, 11), 8)` → `4`. `minEatingSpeed(intArrayOf(30, 11, 23, 4, 20), 5)` → `30`. `minEatingSpeed(intArrayOf(30, 11, 23, 4, 20), 6)` → `23`. `minEatingSpeedBrute(intArrayOf(3, 6, 7, 11), 8)` → `4`. `shipWithinDays(intArrayOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10), 5)` → `15`. `shipWithinDays(intArrayOf(3, 2, 2, 4, 1, 4), 3)` → `6`. `minDays(intArrayOf(1, 10, 3, 10, 2), 3, 1)` → `3`. `minDays(intArrayOf(1, 10, 3, 10, 2), 3, 2)` → `-1`.
 
-For **minimum valid**:
+#### 5. Complexity
 
-```text id="bsa19"
-F F F T T T
-      ↑
+| | Time | Space |
+|---|---|---|
+| Koko | `O(n log max)` | `O(1)` |
+| Ship packages | `O(n log sum)` | `O(1)` |
+| Bouquets | `O(n log range)` | `O(1)` |
 
-Valid → Search LEFT
-```
+#### 6. Common Mistakes
 
-For **maximum valid**:
+1. **Searching an array that is not the answer space** (the array is not sorted, the answer range is).
+2. **A non-monotonic `ok`.** If `ok(5)` is true but `ok(6)` is false, binary search fails.
+3. **Wrong range** (a too-low `lo` is harmless but a too-high `lo` misses the answer).
+4. **Using `mid = (lo + hi + 1) / 2` and `hi = mid`** (infinite loop). Pair each rounding with the right update.
+5. **Ceiling division bug:** `p / k` instead of `(p + k − 1) / k`.
+6. **Overflow:** total hours as `Int` can overflow. Use `Long`.
+7. **Returning `lo − 1` vs `lo`** (first true vs last true).
 
-```text id="bsa20"
-T T T T F F
-      ↑
+#### 7. Say This in the Interview
 
-Valid → Search RIGHT
-```
+1. "I can't binary search the array, but the answer has a yes/no check that flips once: if speed `k` works, so does `k + 1`. So I binary search the speed between `1` and the largest pile."
+2. "The check simulates the process in `O(n)`, so the total is `O(n log max)`."
+3. "I'll make sure the range includes the answer and that the check is monotonic."
 
-This distinction is very important.
+#### 8. Quick Check
 
-#### 9. Common Interview Patterns — Must Know
+1. Why is `lo = max(weights)` in the ship problem?
+2. What makes binary search on the answer valid?
+3. Time for `n = 10⁵` piles with speeds up to `10⁹`?
 
-Binary Search on Answer commonly appears in:
+<details>
+<summary>Answers</summary>
 
-1. Minimum capacity.
-2. Minimum speed/rate.
-3. Maximum minimum distance.
-4. Minimum time.
-5. Split / allocate array problems.
-6. Minimum value satisfying a constraint.
+1. A ship must carry the heaviest package at least once, so any smaller capacity is impossible.
+2. The condition `ok(x)` is monotonic: false, false, ..., true, true.
+3. About `10⁵ × 30 = 3 × 10⁶` steps.
 
-Typical problems include:
+</details>
 
-```text id="bsa21"
-Koko Eating Bananas
-Capacity to Ship Packages
-Allocate Books
-Aggressive Cows / Maximum Distance
-Split Array Largest Sum
-```
+#### 9. Related LeetCode Questions
 
-#### 10. Choosing the Search Range — Must Know
-
-You must correctly identify:
-
-```text id="bsa22"
-Minimum possible answer
-Maximum possible answer
-```
-
-Example:
-
-```text id="bsa23"
-Minimum eating speed:
-
-left  = 1
-right = maximum pile
-```
-
-A wrong search range can produce incorrect results.
-
-#### 11. Time & Space Complexity
-
-If:
-
-```text id="bsa24"
-Search range = R
-Feasibility check = O(N)
-```
-
-Then:
-
-```text id="bsa25"
-Time → O(N log R)
-```
-
-Because Binary Search performs:
-
-```text id="bsa26"
-O(log R)
-```
-
-feasibility checks.
-
-Extra space is usually:
-
-```text id="bsa27"
-O(1)
-```
-
-depending on the feasibility function.
-
-#### 12. Edge Cases / Common Mistakes
-
-1. Applying Binary Search when the condition is not monotonic.
-2. Choosing the wrong minimum/maximum search range.
-3. Moving in the wrong direction after a valid answer.
-4. Forgetting whether the problem asks for **minimum valid** or **maximum valid**.
-5. Writing an incorrect feasibility function.
-6. Integer overflow for large answer ranges.
-7. Using `Int` when calculations may require `Long`.
-
-#### 13. Interview Must Remember
-
-1. Binary Search on Answer searches the **answer space**, not necessarily an array.
-2. Look for **minimum/maximum value satisfying a condition**.
-3. The feasibility condition must be **monotonic**.
-4. Think: **Binary Search + `canDo(mid)`**.
-5. Minimum valid → valid means search **left**.
-6. Maximum valid → valid means search **right**.
-7. Typical complexity → **`O(N log R)`** when each feasibility check is `O(N)`.
+| # | Question | Idea |
+|---|---|---|
+| 875 | [Koko Eating Bananas](https://leetcode.com/problems/koko-eating-bananas/) (Medium) | minimum speed |
+| 1011 | [Capacity To Ship Packages Within D Days](https://leetcode.com/problems/capacity-to-ship-packages-within-d-days/) (Medium) | minimum capacity |
+| 1482 | [Minimum Number of Days to Make m Bouquets](https://leetcode.com/problems/minimum-number-of-days-to-make-m-bouquets/) (Medium) | minimum day |
+| 69 | [Sqrt(x)](https://leetcode.com/problems/sqrtx/) (Easy) | largest that fits |
+| 410 | [Split Array Largest Sum](https://leetcode.com/problems/split-array-largest-sum/) (Hard) | note 15 |
+| 1552 | [Magnetic Force Between Two Balls](https://leetcode.com/problems/magnetic-force-between-two-balls/) (Medium) | maximise the minimum |

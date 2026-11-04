@@ -1,212 +1,151 @@
 # Searching with HashMap / HashSet
 
-#### 1. Definition — Good to Know
+> When you search **many times** or the data is **unsorted**, a hash table gives `O(1)` average lookups. Trade memory for speed.
 
-HashMap and HashSet provide **fast lookup** using hashing.
+#### 1. What Is It?
 
-Typical lookup:
+A `HashSet` answers "is it there?". A `HashMap` answers "where is it?" or "what goes with it?". Both take `O(1)` on average, with `O(n)` to build.
 
-```text
-Average → O(1)
-```
+| Need | Structure | Time |
+|---|---|---|
+| Is `x` in the collection? | `HashSet` | `O(1)` |
+| Index / count / value for `x` | `HashMap` | `O(1)` |
+| Is `x` in a **sorted** collection, little memory | binary search | `O(log n)` |
+| Nearest value, floor, ceiling | `TreeSet` / `TreeMap` | `O(log n)` |
 
-Use them when you need to quickly check whether a value or key has already been seen.
+**Signals:** "does it exist", "two numbers that add up to", "seen before", "first repeated", "count of each".
 
-#### 2. HashSet vs HashMap
+#### 2. How It Works
 
-**HashSet**
-
-Store only values:
-
-```text
-{10, 20, 30}
-```
-
-Use when you only need:
+**Complement search (Two Sum).** For each `x`, search for `target − x` among the numbers already seen. The search is a hash lookup, not a scan.
 
 ```text
-Does this value exist?
+nums = [2, 7, 11, 15], target 9
+x=2: need 7 → not seen → store 2
+x=7: need 2 → seen at index 0 → answer [0, 1]
 ```
 
-**HashMap**
-
-Store key-value pairs:
-
-```text
-10 → 0
-20 → 1
-30 → 2
+```mermaid
+flowchart LR
+    A["need to find a partner<br/>for every element"] --> B{"Sorted input,<br/>little memory?"}
+    B -->|"yes"| C["two pointers / binary search<br/>O(n log n) or O(n), O(1) space"]
+    B -->|"no"| D["HashMap of seen values<br/>O(n) time, O(n) space"]
 ```
 
-Use when you need:
+**Linear vs binary vs hash**
 
-```text
-Does this key exist?
-+
-Associated information
-```
+| | Linear | Binary (sorted) | Hash |
+|---|---|---|---|
+| Build | none | sort `O(n log n)` | `O(n)` |
+| One lookup | `O(n)` | `O(log n)` | `O(1)` |
+| `q` lookups | `O(q · n)` | `O(n log n + q log n)` | `O(n + q)` |
+| Memory | `O(1)` | `O(1)` | `O(n)` |
+| Keeps order / nearest | no | yes | no |
 
-#### 3. HashSet Search — Must Know
+**When hashing does not help:** you need the **closest** or **range** answers (use a sorted structure), or memory is very tight.
+
+**Pitfalls:** hash lookups are `O(1)` on average, not worst case. Arrays make bad keys (identity equality). Mutable keys break the table.
+
+#### 3. Brute Force vs Optimized
+
+| Question | Brute force | Hash |
+|---|---|---|
+| Two Sum | all pairs `O(n²)` | `O(n)` |
+| Contains duplicate | all pairs `O(n²)` | `O(n)` |
+| Common elements of two arrays | nested loops `O(m · n)` | `O(m + n)` |
+| First repeated element | nested loops | `O(n)` |
 
 ```kotlin
-val seen = HashSet<Int>()
-
-seen.add(10)
-seen.add(20)
-
-if (seen.contains(10)) {
-    println("Found")
-}
-```
-
-Typical operations:
-
-```text
-add()      → O(1) average
-contains() → O(1) average
-remove()   → O(1) average
-```
-
-#### 4. HashMap Search — Must Know
-
-```kotlin
-val map = HashMap<Int, Int>()
-
-map[10] = 0
-map[20] = 1
-
-if (map.containsKey(10)) {
-    println(map[10])
-}
-```
-
-Typical operations:
-
-```text
-put       → O(1) average
-get       → O(1) average
-contains  → O(1) average
-remove    → O(1) average
-```
-
-#### 5. Common Pattern — Seen / Duplicate
-
-```kotlin
-fun containsDuplicate(nums: IntArray): Boolean {
-
-    val seen = HashSet<Int>()
-
-    for (num in nums) {
-
-        if (num in seen) {
-            return true
-        }
-
-        seen.add(num)
-    }
-
-    return false
-}
-```
-
-Pattern:
-
-```text
-Visit element
-    ↓
-Already in Set?
-    ↓
-Yes → Duplicate
-No  → Add to Set
-```
-
-#### 6. Common Pattern — Complement Lookup
-
-Example: **Two Sum**
-
-```text
-target = 9
-current = 7
-
-needed = 9 - 7 = 2
-```
-
-Check whether `2` was already seen.
-
-```kotlin
-fun twoSum(nums: IntArray, target: Int): IntArray {
-
-    val map = HashMap<Int, Int>()
-
-    for (i in nums.indices) {
-
-        val needed = target - nums[i]
-
-        if (map.containsKey(needed)) {
-            return intArrayOf(map[needed]!!, i)
-        }
-
-        map[nums[i]] = i
-    }
-
+// Brute force: every pair
+fun twoSumBrute(nums: IntArray, target: Int): IntArray {
+    for (i in nums.indices) for (j in i + 1 until nums.size) if (nums[i] + nums[j] == target) return intArrayOf(i, j)
     return intArrayOf()
 }
 ```
 
-#### 7. Time & Space Complexity — Must Know
+#### 4. Kotlin Code
 
-For processing `N` elements:
+```kotlin
+// Two Sum (LeetCode 1): hash map of value -> index
+fun twoSum(nums: IntArray, target: Int): IntArray {
+    val indexOf = HashMap<Int, Int>()
+    for ((i, x) in nums.withIndex()) {
+        val j = indexOf[target - x]
+        if (j != null) return intArrayOf(j, i)
+        indexOf[x] = i
+    }
+    return intArrayOf()
+}
 
-```text
-Time  → O(N) average
-Space → O(N)
+// Contains Duplicate (LeetCode 217): hash set
+fun containsDuplicate(nums: IntArray): Boolean {
+    val seen = HashSet<Int>()
+    for (x in nums) if (!seen.add(x)) return true
+    return false
+}
+
+// Intersection of Two Arrays (LeetCode 349)
+fun intersection(a: IntArray, b: IntArray): IntArray {
+    val set = a.toHashSet()
+    return b.filter { it in set }.toSet().toIntArray()
+}
+
+// First Unique Character in a String (LeetCode 387)
+fun firstUniqChar(s: String): Int {
+    val count = IntArray(26)
+    for (c in s) count[c - 'a']++
+    for (i in s.indices) if (count[s[i] - 'a'] == 1) return i
+    return -1
+}
 ```
 
-Each HashMap / HashSet lookup is typically:
+Checks: `twoSum(intArrayOf(2, 7, 11, 15), 9)` → `[0, 1]`. `twoSum(intArrayOf(3, 2, 4), 6)` → `[1, 2]`. `twoSum(intArrayOf(3, 3), 6)` → `[0, 1]`. `twoSumBrute(intArrayOf(2, 7, 11, 15), 9)` → `[0, 1]`. `containsDuplicate(intArrayOf(1, 2, 3, 1))` → `true`. `intersection(intArrayOf(1, 2, 2, 1), intArrayOf(2, 2))` → `[2]`. `firstUniqChar("leetcode")` → `0`; `("loveleetcode")` → `2`; `("aabb")` → `-1`.
 
-```text
-O(1) average
-```
+#### 5. Complexity
 
-Hash-based operations can degrade in pathological collision cases, but `O(1)` average is the standard interview expectation.
+| | Time | Space |
+|---|---|---|
+| Build + one lookup | `O(n)` | `O(n)` |
+| `q` lookups after building | `O(1)` each | |
+| Two Sum | `O(n)` | `O(n)` |
 
-#### 8. When to Use
+#### 6. Common Mistakes
 
-Think HashMap / HashSet when you see:
+1. **Rebuilding the set inside a loop.**
+2. **Adding before checking** in Two Sum (an element pairs with itself).
+3. **Using `IntArray` as a key.**
+4. **Using a hash when the data is sorted and `O(1)` space is needed** (two pointers or binary search).
+5. **Expecting order** from a `HashSet`.
+6. **Assuming worst-case `O(1)`.**
 
-1. **Have I seen this before?**
-2. **Does this value exist?**
-3. **Find duplicates.**
-4. **Find a complement.**
-5. **Need value → index/count mapping.**
-6. **Need repeated fast lookups.**
+#### 7. Say This in the Interview
 
-#### 9. HashSet vs HashMap — Decision
+1. "I'm searching many times in unsorted data, so I'll build a hash set once: `O(n)` build and `O(1)` per lookup, instead of `O(n)` per lookup."
+2. "The trade-off is `O(n)` extra memory. If the array is sorted I could use two pointers or binary search with `O(1)` space."
+3. "For the nearest value I'd need a `TreeSet`, because a hash set has no order."
 
-```text
-Only need existence?
-        ↓
-     HashSet
+#### 8. Quick Check
 
+1. Hash vs binary search: which needs sorted data?
+2. Time to answer `q` membership queries on `n` items with a hash set?
+3. Why can't a `HashSet` find the nearest value?
 
-Need additional information?
-(index, count, mapping)
-        ↓
-     HashMap
-```
+<details>
+<summary>Answers</summary>
 
-#### 10. Common Mistakes
+1. Binary search.
+2. `O(n + q)`.
+3. It has no order, so it can only test exact equality.
 
-1. Using HashMap when only existence is needed.
-2. Forgetting HashMap/HashSet uses extra `O(N)` space.
-3. Assuming elements are returned in sorted order.
-4. In Two Sum, inserting before checking can accidentally reuse the same element in some implementations.
-5. Assuming hashing is always worst-case `O(1)`.
+</details>
 
-#### 11. Interview Must Remember
+#### 9. Related LeetCode Questions
 
-1. HashMap / HashSet → **`O(1)` average lookup**.
-2. HashSet → **value/existence**.
-3. HashMap → **key + associated data**.
-4. Common patterns → **seen, duplicate, complement, mapping**.
-5. Processing an array with hashing is commonly **`O(N)` time + `O(N)` space**.
+| # | Question | Idea |
+|---|---|---|
+| 1 | [Two Sum](https://leetcode.com/problems/two-sum/) (Easy) | complement lookup |
+| 217 | [Contains Duplicate](https://leetcode.com/problems/contains-duplicate/) (Easy) | seen set |
+| 349 | [Intersection of Two Arrays](https://leetcode.com/problems/intersection-of-two-arrays/) (Easy) | set lookups |
+| 387 | [First Unique Character in a String](https://leetcode.com/problems/first-unique-character-in-a-string/) (Easy) | counts |
+| 128 | [Longest Consecutive Sequence](https://leetcode.com/problems/longest-consecutive-sequence/) (Medium) | set + starts |
+| 49 | [Group Anagrams](https://leetcode.com/problems/group-anagrams/) (Medium) | key lookups |

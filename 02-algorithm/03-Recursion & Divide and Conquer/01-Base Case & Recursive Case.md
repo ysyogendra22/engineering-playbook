@@ -1,76 +1,159 @@
 # Base Case & Recursive Case
 
-#### 1. Definition — Must Know
+> Recursion = a function that solves a problem by calling itself on a **smaller** version of the same problem. Every recursive function needs exactly two parts: a **base case** that stops, and a **recursive case** that moves toward it.
 
-1. Every recursive function has two parts: a **base case** that stops the recursion, and a **recursive case** that calls the function again on a smaller input.
-2. Without a base case, the function keeps calling itself forever and crashes with a stack overflow.
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
+| Part | Meaning | Example (`factorial`) |
+|---|---|---|
+| **Base case** | the smallest input, answered directly | `factorial(0) = 1` |
+| **Recursive case** | solve the problem using a smaller call | `factorial(n) = n × factorial(n − 1)` |
 
-1. It lets you describe a solution in terms of a smaller version of the same problem, instead of writing out every step by hand.
-2. Many problems are naturally recursive: trees, nested folders, "do this, then do the rest".
+Without a base case you get **infinite recursion** (a `StackOverflowError`). Without progress toward the base case you get the same result.
 
-#### 3. How It Works — Must Know
+**The "trust" rule.** Assume the recursive call already works for the smaller input. Your only job: (1) handle the base case, (2) combine the smaller answer with the current item.
 
-Example: factorial of 5.
+**Signals:** "defined in terms of a smaller version of itself", trees and linked lists, "all combinations", "divide the input", mathematical definitions (factorial, Fibonacci, power, GCD).
 
-```text
-factorial(5)
-= 5 * factorial(4)
-= 5 * 4 * factorial(3)
-= 5 * 4 * 3 * factorial(2)
-= 5 * 4 * 3 * 2 * factorial(1)
-= 5 * 4 * 3 * 2 * 1 * factorial(0)   ← base case, factorial(0) = 1
-= 120
-```
+#### 2. How It Works
 
-1. `factorial(0) = 1` is the base case — it needs no further calls.
-2. `factorial(n) = n * factorial(n - 1)` is the recursive case — it calls itself on a smaller input, `n - 1`.
-
-#### 4. Algorithm — Must Know
+`factorial(3)`:
 
 ```text
-function f(n):
-    if n meets the base case:
-        return the base answer directly
-    return combine(n, f(smaller n))
+factorial(3) = 3 × factorial(2)
+                    factorial(2) = 2 × factorial(1)
+                                        factorial(1) = 1      ← base case
+             = 3 × (2 × 1) = 6
 ```
 
-1. Always check the base case first, before doing any recursive work.
-2. Always call the function on an input that is strictly smaller, so it eventually reaches the base case.
+```mermaid
+flowchart TD
+    A["factorial(3)"] -->|"calls"| B["factorial(2)"]
+    B -->|"calls"| C["factorial(1)"]
+    C -->|"base case: returns 1"| B2["2 × 1 = 2"]
+    B2 -->|"returns 2"| A2["3 × 2 = 6"]
+```
 
-#### 5. Kotlin Implementation — Must Know
+**A 3-question checklist before writing any recursion**
+
+1. **What is the smallest input?** (base case: `n == 0`, empty list, `null` node)
+2. **How do I make the input smaller?** (`n − 1`, `next` node, half the array, left/right child)
+3. **How do I combine the smaller answer into mine?** (`n × result`, `1 + result`, `max(left, right)`)
+
+**Shapes of recursion**
+
+| Shape | Calls per step | Example |
+|---|---|---|
+| Linear | 1 | factorial, sum of a list, reverse a linked list |
+| Binary | 2 | Fibonacci, tree traversal, merge sort |
+| Multiple | many | permutations, subsets (backtracking) |
+
+#### 3. Brute Force vs Optimized
+
+| Problem | Plain recursion | Better |
+|---|---|---|
+| Fibonacci | `O(2ⁿ)` two overlapping calls | memoize `O(n)` (note 08), or loop `O(n)` with `O(1)` space |
+| Power `xⁿ` | `O(n)` multiply `n` times | halve the exponent `O(log n)` (note 09) |
+| Reverse a string | `O(n²)` with `substring` copies | two pointers `O(n)` |
+| Sum of `1..n` | `O(n)` stack | formula `n(n + 1)/2` `O(1)` |
 
 ```kotlin
-fun factorial(n: Int): Int {
-    if (n <= 1) return 1          // base case
-    return n * factorial(n - 1)   // recursive case
+// Naive Fibonacci: each call makes two more calls
+fun fibNaive(n: Int): Int = if (n < 2) n else fibNaive(n - 1) + fibNaive(n - 2)
+
+// Naive reverse: substring copies the rest each time, O(n²)
+fun reverseNaive(s: String): String = if (s.length <= 1) s else reverseNaive(s.substring(1)) + s[0]
+```
+
+#### 4. Kotlin Code
+
+```kotlin
+// Factorial
+fun factorial(n: Int): Long = if (n <= 1) 1L else n * factorial(n - 1)
+
+// Sum of an array, recursing on the index
+fun sum(a: IntArray, i: Int = 0): Int = if (i == a.size) 0 else a[i] + sum(a, i + 1)
+
+// Reverse a character array in place with two ends moving inward
+fun reverse(c: CharArray, l: Int = 0, r: Int = c.size - 1) {
+    if (l >= r) return                              // base case: 0 or 1 characters left
+    val t = c[l]; c[l] = c[r]; c[r] = t
+    reverse(c, l + 1, r - 1)
+}
+
+// Palindrome check
+fun isPalindrome(s: String, l: Int = 0, r: Int = s.length - 1): Boolean {
+    if (l >= r) return true
+    return s[l] == s[r] && isPalindrome(s, l + 1, r - 1)
+}
+
+// Power by repeated multiplication (simple version, O(n))
+fun powSimple(x: Int, n: Int): Long = if (n == 0) 1L else x * powSimple(x, n - 1)
+
+// Reverse a linked list recursively (LeetCode 206)
+class ListNode(var `val`: Int) { var next: ListNode? = null }
+
+fun reverseList(head: ListNode?): ListNode? {
+    if (head?.next == null) return head             // empty or single node
+    val newHead = reverseList(head.next)            // reverse the rest
+    head.next!!.next = head                         // the next node now points back to us
+    head.next = null
+    return newHead
 }
 ```
 
-#### 6. Complexity — Must Know
+Checks: `factorial(5)` → `120`; `factorial(0)` → `1`; `factorial(20)` → `2432902008176640000`. `sum(intArrayOf(1, 2, 3, 4))` → `10`; `sum(intArrayOf())` → `0`. `reverse` on `"abc".toCharArray()` → `"cba"`; on `"ab"` → `"ba"`; on `""` → unchanged. `isPalindrome("racecar")` → `true`; `("ab")` → `false`; `("")` → `true`. `powSimple(2, 10)` → `1024`. `fibNaive(10)` → `55`. `reverseNaive("abc")` → `"cba"`. `reverseList(1→2→3)` → `3→2→1`.
 
-| Case | Time | Space |
+#### 5. Complexity
+
+| Function | Time | Space (call stack) |
 |---|---|---|
-| `factorial(n)` | O(n) | O(n) — one stack frame per call |
+| `factorial(n)`, `sum`, `reverse` | `O(n)` | `O(n)` (`O(n/2)` for two-ended) |
+| `fibNaive(n)` | `O(2ⁿ)` | `O(n)` depth |
+| `powSimple` | `O(n)` | `O(n)` |
+| `reverseNaive` | `O(n²)` | `O(n)` |
 
-The time is one unit of work per call. The space is the depth of the call stack (topic 2).
+Recursion always costs **stack space** equal to the maximum depth (note 02).
 
-#### 7. Common Mistakes — Must Know
+#### 6. Common Mistakes
 
-1. Forgetting the base case, so the function never stops.
-2. A base case that is never reached (for example, shrinking by 2 but checking only for an odd base case).
-3. Calling the function again on the same input instead of a smaller one.
-4. Writing the base case after code that already assumes a smaller input exists.
+1. **Missing or wrong base case** (off by one: `n == 1` vs `n == 0`).
+2. **Not shrinking the input** (calling with the same `n`).
+3. **Forgetting to return the recursive result**, so you get `Unit` or a wrong value.
+4. **Handling only one base case** when two are needed (Fibonacci needs `0` and `1`).
+5. **Recursing on a `null` node** without a null base case.
+6. **Using recursion where a loop is simpler** (and cheaper).
+7. **Overflow:** `factorial(21)` overflows `Long`.
 
-#### 8. Related Topics
+#### 7. Say This in the Interview
 
-1. `2` The Call Stack & Space Complexity — what the base case protects you from
-2. `3` Divide and Conquer — recursion with more than one recursive call
-3. `8` Memoization — the Bridge to Dynamic Programming
+1. "The base case is the empty/smallest input. The recursive case solves a smaller problem and combines the result."
+2. "I'll assume the recursive call is correct for the smaller input and just handle my current element."
+3. "Depth is `n`, so the stack space is `O(n)`. If `n` can be very large I'd switch to a loop."
 
-#### 9. Interview Must Remember
+#### 8. Quick Check
 
-1. **Two parts, always:** a base case that stops it, and a recursive case that shrinks the problem.
-2. State the base case **before** you write the recursive case.
-3. Check: does every recursive call move strictly closer to the base case?
+1. Base case for Fibonacci?
+2. What happens without a base case?
+3. Stack space of `factorial(n)`?
+
+<details>
+<summary>Answers</summary>
+
+1. `fib(0) = 0` and `fib(1) = 1`.
+2. The calls never stop and the program crashes with `StackOverflowError`.
+3. `O(n)`: one frame per pending call.
+
+</details>
+
+#### 9. Related LeetCode Questions
+
+| # | Question | Idea |
+|---|---|---|
+| 509 | [Fibonacci Number](https://leetcode.com/problems/fibonacci-number/) (Easy) | two base cases |
+| 231 | [Power of Two](https://leetcode.com/problems/power-of-two/) (Easy) | divide by 2 |
+| 344 | [Reverse String](https://leetcode.com/problems/reverse-string/) (Easy) | two ends inward |
+| 206 | [Reverse Linked List](https://leetcode.com/problems/reverse-linked-list/) (Easy) | trust the rest |
+| 70 | [Climbing Stairs](https://leetcode.com/problems/climbing-stairs/) (Easy) | Fibonacci shape |
+| 21 | [Merge Two Sorted Lists](https://leetcode.com/problems/merge-two-sorted-lists/) (Easy) | smaller head + recurse |
+| 50 | [Pow(x, n)](https://leetcode.com/problems/powx-n/) (Medium) | halve the exponent |

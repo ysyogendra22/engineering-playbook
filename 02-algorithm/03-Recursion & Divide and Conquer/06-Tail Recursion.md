@@ -1,80 +1,152 @@
 # Tail Recursion
 
-#### 1. Definition — Must Know
+> A recursive call that is the **very last thing** a function does. The compiler can turn it into a loop and reuse one stack frame. Kotlin supports this with the `tailrec` keyword.
 
-1. A recursive call is a **tail call** when it is the very last action in the function — nothing happens after it returns.
-2. **Tail recursion** is a recursive function where every recursive call is a tail call.
+#### 1. What Is It?
 
-#### 2. Why It Is Used — Must Know
-
-1. A tail-recursive function can, in principle, be turned into a plain loop by the compiler, using O(1) stack space instead of O(n).
-2. It matters for functions that could recurse very deep — a tail-recursive version avoids a stack overflow that a normal recursive version would hit.
-
-#### 3. How It Works — Must Know
-
-Not tail recursive — there is work left to do *after* the recursive call returns:
-
-```kotlin
-fun factorial(n: Int): Int {
-    if (n <= 1) return 1
-    return n * factorial(n - 1)   // multiplication happens AFTER the call returns
-}
-```
-
-Tail recursive — the recursive call is the last thing that happens, with no pending work:
-
-```kotlin
-fun factorialTail(n: Int, accumulator: Int = 1): Int {
-    if (n <= 1) return accumulator
-    return factorialTail(n - 1, n * accumulator)  // nothing left to do after this call
-}
-```
-
-The trick is carrying the running result forward as a parameter (the **accumulator**), instead of computing it on the way back up.
-
-#### 4. Algorithm — Must Know
+A call is in **tail position** if nothing is left to do after it returns: no multiplying, adding or combining.
 
 ```text
-Not tail recursive:  return combine(n, f(n - 1))     ← work after the call
-Tail recursive:      return f(n - 1, updatedState)   ← nothing after the call
+not tail:   return n * factorial(n - 1)          // multiply AFTER the call returns
+tail:       return factorial(n - 1, n * acc)     // the call is the last action
 ```
 
-#### 5. Kotlin Implementation — Must Know
+| | Normal recursion | Tail recursion |
+|---|---|---|
+| Work after the call | yes | none |
+| Frames kept | `n` | 1 (when optimised) |
+| Space | `O(n)` | `O(1)` with `tailrec` |
+| How | return value is combined on the way back | an **accumulator** carries the answer forward |
 
-Kotlin has a `tailrec` keyword. The compiler checks that the function really is tail recursive, and if so, rewrites it into a loop for you:
+**Important:** the JVM itself does not optimise tail calls. Kotlin's `tailrec` does it at compile time, **only for a function calling itself directly**.
+
+**Signals:** "can you avoid stack overflow", "make it `O(1)` space", linear recursion that just accumulates a value.
+
+#### 2. How It Works
+
+Turn `factorial` into a tail-recursive version by adding an accumulator.
+
+```text
+factorialTail(4, acc=1)
+→ factorialTail(3, acc=4)
+→ factorialTail(2, acc=12)
+→ factorialTail(1, acc=24)    base case: return acc = 24
+```
+
+```mermaid
+flowchart LR
+    subgraph N["Normal recursion: work waits on the stack"]
+        direction LR
+        N1["4 × ?"] --> N2["3 × ?"] --> N3["2 × ?"] --> N4["1"]
+    end
+    subgraph T["Tail recursion: answer carried forward"]
+        direction LR
+        T1["n=4, acc=1"] --> T2["n=3, acc=4"] --> T3["n=2, acc=12"] --> T4["n=1, acc=24 → return"]
+    end
+```
+
+**Recipe**
+
+1. Add an accumulator parameter (with a default value).
+2. Base case: return the accumulator.
+3. Recursive case: update the accumulator **in the arguments** and call yourself last.
+4. Add `tailrec`. If the call is not truly last, Kotlin warns you.
+
+**What `tailrec` compiles to:** a `while` loop that reassigns the parameters. So it is the same as writing the loop yourself.
+
+**Does not work for:** Fibonacci's `fib(n−1) + fib(n−2)` (two calls, and an addition after), tree recursion, backtracking. For those, use memoization or an explicit stack.
+
+#### 3. Brute Force vs Optimized
+
+| Version | Time | Space | Overflows at depth ~10⁵? |
+|---|---|---|---|
+| Normal recursion | `O(n)` | `O(n)` | yes |
+| **Tail recursion (`tailrec`)** | `O(n)` | `O(1)` | no |
+| Loop | `O(n)` | `O(1)` | no |
 
 ```kotlin
-tailrec fun factorialTail(n: Int, accumulator: Int = 1): Int {
-    if (n <= 1) return accumulator
-    return factorialTail(n - 1, n * accumulator)
+// Not tail recursive: the + happens after the call
+fun sumNormal(n: Int): Long = if (n == 0) 0L else n + sumNormal(n - 1)
+// sumNormal(1_000_000) → StackOverflowError on a default stack
+```
+
+#### 4. Kotlin Code
+
+```kotlin
+// Sum 1..n with an accumulator
+tailrec fun sumTail(n: Int, acc: Long = 0L): Long =
+    if (n == 0) acc else sumTail(n - 1, acc + n)
+
+// Factorial
+tailrec fun factorialTail(n: Int, acc: Long = 1L): Long =
+    if (n <= 1) acc else factorialTail(n - 1, acc * n)
+
+// Fibonacci in O(n) time and O(1) space: two accumulators
+tailrec fun fibTail(n: Int, a: Long = 0L, b: Long = 1L): Long =
+    if (n == 0) a else fibTail(n - 1, b, a + b)
+
+// GCD (Euclid): naturally tail recursive
+tailrec fun gcd(a: Int, b: Int): Int = if (b == 0) a else gcd(b, a % b)
+
+// Reverse a linked list with an accumulator (LeetCode 206)
+class ListNode(var `val`: Int) { var next: ListNode? = null }
+
+tailrec fun reverseTail(cur: ListNode?, prev: ListNode? = null): ListNode? {
+    if (cur == null) return prev
+    val next = cur.next
+    cur.next = prev
+    return reverseTail(next, cur)
 }
 ```
 
-If the function is not actually tail recursive, the compiler gives a warning that `tailrec` had no effect.
+Checks: `sumTail(100_000)` → `5000050000` with no stack overflow. `sumTail(0)` → `0`. `factorialTail(5)` → `120`; `factorialTail(0)` → `1`. `fibTail(10)` → `55`; `fibTail(0)` → `0`; `fibTail(1)` → `1`; `fibTail(90)` → `2880067194370816120`. `gcd(48, 18)` → `6`; `gcd(7, 0)` → `7`; `gcd(17, 5)` → `1`. `reverseTail(1→2→3)` → `3→2→1`. `sumNormal(1000)` → `500500`.
 
-#### 6. Complexity — Must Know
+#### 5. Complexity
 
-| Version | Space |
-|---|---|
-| Plain recursive `factorial` | O(n) — one stack frame per call |
-| `tailrec` `factorialTail` | O(1) — compiled into a loop, no growing stack |
+| | Time | Space |
+|---|---|---|
+| `sumTail`, `factorialTail`, `gcd` | `O(n)` (`gcd`: `O(log min(a, b))`) | `O(1)` with `tailrec` |
+| `fibTail` | `O(n)` | `O(1)` |
+| Normal recursion version | same time | `O(n)` |
 
-Time stays O(n) either way. Only the space changes.
+#### 6. Common Mistakes
 
-#### 7. Common Mistakes — Must Know
+1. **Believing Java/Kotlin tail calls are optimised automatically.** Only `tailrec` on direct self-calls.
+2. **A call that looks last but is not** (`n + f(n − 1)` or `f(n − 1) + f(n − 2)`).
+3. **Forgetting the accumulator default** (callers must pass an extra argument).
+4. **Updating the accumulator after the call** instead of in the arguments.
+5. **Mutual recursion** (`a` calls `b`, `b` calls `a`) is not optimised by `tailrec`.
+6. **Overflow:** `Int` accumulators for large sums; use `Long`.
+7. **Calling it "recursion with no stack" in an interview without saying `tailrec` does the conversion.**
 
-1. Assuming Kotlin optimises *all* recursion automatically — it only does so for functions marked `tailrec` that genuinely qualify.
-2. Adding `tailrec` to a function that isn't actually tail recursive (for example, `n * factorial(n - 1)`) and not noticing the compiler's warning that it did nothing.
-3. Forgetting that a function with two recursive calls (like naive Fibonacci) can never be simple tail recursion, since one call's result still needs combining with the other.
+#### 7. Say This in the Interview
 
-#### 8. Related Topics
+1. "This recursion does work after the call returns, so it isn't tail recursive. I can add an accumulator and make the call the last action."
+2. "Kotlin's `tailrec` compiles a self tail call into a loop, so the space drops from `O(n)` to `O(1)`. The JVM itself doesn't do tail-call optimisation."
+3. "For tree recursion I can't use `tailrec`; I'd use an explicit stack if depth is a risk."
 
-1. `1` Base Case & Recursive Case — the accumulator still needs a correct base case
-2. `2` The Call Stack & Space Complexity — what tail recursion avoids growing
-3. `7` Recursion to Iteration — the general technique when `tailrec` doesn't apply
+#### 8. Quick Check
 
-#### 9. Interview Must Remember
+1. Is `return 1 + f(n − 1)` a tail call?
+2. What does `tailrec` produce?
+3. Can naive `fib(n−1) + fib(n−2)` be `tailrec`?
 
-1. Tail call = the recursive call is the **last** thing the function does, with no leftover work.
-2. Kotlin's `tailrec` turns a true tail-recursive function into a loop — O(1) space instead of O(n).
-3. The usual trick to make a function tail recursive is passing the running result as an **accumulator** parameter.
+<details>
+<summary>Answers</summary>
+
+1. No: the `1 +` happens after the call returns.
+2. A loop that reuses the same frame.
+3. No. Rewrite with two accumulators (`fibTail`).
+
+</details>
+
+#### 9. Related LeetCode Questions
+
+| # | Question | Idea |
+|---|---|---|
+| 509 | [Fibonacci Number](https://leetcode.com/problems/fibonacci-number/) (Easy) | two accumulators |
+| 70 | [Climbing Stairs](https://leetcode.com/problems/climbing-stairs/) (Easy) | Fibonacci with accumulators |
+| 206 | [Reverse Linked List](https://leetcode.com/problems/reverse-linked-list/) (Easy) | accumulator = reversed part |
+| 1071 | [Greatest Common Divisor of Strings](https://leetcode.com/problems/greatest-common-divisor-of-strings/) (Easy) | Euclid's idea |
+| 258 | [Add Digits](https://leetcode.com/problems/add-digits/) (Easy) | repeated reduction |
+| 50 | [Pow(x, n)](https://leetcode.com/problems/powx-n/) (Medium) | accumulator power |
