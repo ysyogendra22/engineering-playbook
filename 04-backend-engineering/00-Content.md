@@ -3,27 +3,30 @@
 Part 1 of the roadmap: build a working backend, **topics 1–12**. Continue with part 2 in `05-system-design` (topics 13–33).
 
 - **Marks:** 🟢 must have · 🟡 good to have · (New) beyond the original two roadmaps
+- **Every note has the same layout:** what it is and how to spot it in an interview, how it works (with a diagram), naive vs better approach, Kotlin / SQL code with checked outputs, performance and limits, common mistakes and edge cases, what to say in the interview, a quick check, and practice (interview questions, hands-on tasks, LeetCode SQL or design problems where they fit).
+- **References:** `10-database` and `05-system-design` go deeper on data and scaling; `06-mobile-engineering` covers the client side; `01-data-structure` and `02-algorithm` are the coding fundamentals.
 
 ---
 
 ## Index
 
-| #   | Topic                          | Stage              |
-| --- | ------------------------------ | ------------------ |
-| 1   | Client, Server & Request Flow  | 1. Foundations     |
-| 2   | Networking & HTTP              | 1. Foundations     |
-| 3   | API Design                     | 1. Foundations     |
-| 4   | Backend Building Blocks        | 2. Build a Backend |
-| 5   | Authentication & Authorization | 2. Build a Backend |
-| 6   | Backend Security Essentials    | 2. Build a Backend |
-| 7   | Testing & Debugging            | 2. Build a Backend |
-| 8   | Databases, SQL & Data Modeling | 3. Data            |
-| 9   | Connecting API to Database     | 3. Data            |
-| 10  | Indexes & Query Performance    | 3. Data            |
-| 11  | Transactions & Concurrency     | 3. Data            |
-| 12  | Checkpoint Project: Notes API  | 3. Data            |
+| #   | Topic                          | Stage              | Mark |
+| --- | ------------------------------ | ------------------ | ---- |
+| 1   | Client, Server & Request Flow  | 1. Foundations     | 🟢   |
+| 2   | Networking & HTTP              | 1. Foundations     | 🟢   |
+| 3   | API Design                     | 1. Foundations     | 🟢   |
+| 4   | Backend Building Blocks        | 2. Build a Backend | 🟢   |
+| 5   | Authentication & Authorization | 2. Build a Backend | 🟢   |
+| 6   | Backend Security Essentials    | 2. Build a Backend | 🟢   |
+| 7   | Testing & Debugging            | 2. Build a Backend | 🟡   |
+| 8   | Databases, SQL & Data Modeling | 3. Data            | 🟢   |
+| 9   | Connecting API to Database     | 3. Data            | 🟢   |
+| 10  | Indexes & Query Performance    | 3. Data            | 🟢   |
+| 11  | Transactions & Concurrency     | 3. Data            | 🟢   |
+| 12  | Checkpoint Project: Notes API  | 3. Data            | 🟢   |
+| 99  | Backend Cheat Sheet             | Revision           | 🟢   |
 
-**Short on time (2 weeks):** topics 1, 2, 3, 4, 5, 8, 10, 11. 🟢 items only. Then follow the short list in `05-system-design`.
+**Short on time (2 weeks):** topics 1, 2, 3, 4, 5, 8, 10, 11, then the cheat sheet (99). 🟢 items only. Then follow the short list in `05-system-design`.
 
 ---
 
@@ -184,3 +187,4 @@ Part 1 of the roadmap: build a working backend, **topics 1–12**. Continue with
 1. One language, one framework, one SQL database.
 2. Finish the Notes API (topic 12) before the distributed-systems topics in `05-system-design`.
 3. For each topic: what it is, what problem it solves, how it works, one downside.
+4. The night before an interview, read `99-Backend-Cheat-Sheet`, then the `Say This in the Interview` part of the topics you are least sure of.

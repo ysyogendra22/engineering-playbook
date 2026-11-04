@@ -1,66 +1,62 @@
 # Networking & HTTP
 
+> The road your request travels on. DNS finds the server, TCP and TLS build a safe connection, and HTTP is the language spoken on it.
+
 Roadmap topic 2 · Stage 1: Foundations
 
-**Marks:** 🟢 Must Know · 🟡 Good to Know
+**Go deeper:** `01` Client, Server & Request Flow · `03` API Design · `05` Authentication · `06` Backend Security · `05-system-design/14-Scaling-and-Load-Balancing` · `05-system-design/16-File-Storage-and-CDN` · `06-mobile-engineering/08-Networking` (OkHttp, Retrofit).
 
-**In simple words:** the road your request travels on. DNS finds the server, TCP and TLS build a safe connection, and HTTP is the language used on it.
+**Marks:** 🟢 must know · 🟡 good to know
 
 ---
 
-#### 1. IP, Domain, Port, DNS — 🟢 Must Know
+#### 1. What Is It?
 
 *IP = house address. Port = which door of the house. Domain = the name in your contacts. DNS = the phone book that turns the name into the address.*
 
-1. **IP address** — identifies a machine on the network (`142.250.183.14`). IPv6 is the newer, larger format.
-2. **Domain name** — human-friendly name (`api.example.com`).
-3. **Port** — identifies which program on that machine gets the traffic.
-4. **DNS** — turns a domain into an IP address. Results are cached for a while (**TTL**).
+| Term | Meaning |
+|---|---|
+| **IP address** | identifies a machine (`142.250.183.14`); IPv6 is the newer, larger format |
+| **Domain name** | human-friendly name (`api.example.com`) |
+| **Port** | which program on that machine gets the traffic: `80` HTTP, `443` HTTPS, `22` SSH |
+| **DNS** | turns a domain into an IP address; answers are cached for a while (**TTL**) |
+| **TCP** | reliable, ordered delivery. HTTP/1.1 and HTTP/2 run on it |
+| **UDP** | fast, may lose or reorder packets: video calls, games, HTTP/3 (QUIC) |
+| **TLS** | encryption + server identity + tamper protection. HTTPS = HTTP + TLS |
 
-```text
-api.example.com  →  DNS  →  203.0.113.10
-Connect to 203.0.113.10 : 443
+| 🟢 Must know | 🟡 Good to know |
+|---|---|
+| IP, domain, port, DNS | HTTP/2 and HTTP/3 |
+| TCP vs UDP | cookies, content types, compression |
+| HTTP vs HTTPS | reverse proxy |
+| request: method, headers, body | |
+| response: status codes (401 vs 403) | |
+| timeouts and connection reuse | |
+
+**Signals in an interview:** "what happens when you type a URL / call an API?", "401 vs 403", "why is the first request slow?", "is this method safe to retry?"
+
+---
+
+#### 2. How It Works
+
+```mermaid
+sequenceDiagram
+    participant App
+    participant DNS
+    participant Server
+    App->>DNS: where is api.example.com?
+    DNS-->>App: 203.0.113.10
+    App->>Server: TCP connect to port 443
+    Server-->>App: connection open
+    App->>Server: TLS handshake, check the certificate
+    Server-->>App: encrypted channel ready
+    App->>Server: POST /notes (method, headers, body)
+    Server-->>App: 201 Created (status, headers, body)
 ```
 
-Common ports:
+Short version: **DNS → TCP → TLS → HTTP**.
 
-```text
-80   → HTTP
-443  → HTTPS
-22   → SSH
-```
-
----
-
-#### 2. TCP vs UDP — 🟢 Must Know
-
-*TCP is a phone call that makes sure every word arrives in order. UDP is shouting messages and hoping they arrive.*
-
-| | TCP | UDP |
-|---|---|---|
-| Delivery | Reliable, in order | May lose or reorder |
-| Speed | Slower (setup + checks) | Faster |
-| Used for | HTTP, APIs, file download | Video calls, games, live streams |
-
-**Remember:** REST APIs run on TCP.
-
----
-
-#### 3. HTTP vs HTTPS — 🟢 Must Know
-
-*HTTP is a postcard anyone can read. HTTPS is a sealed, signed envelope.*
-
-1. **HTTP** — plain text. Anyone on the network can read or change it.
-2. **HTTPS** = HTTP + **TLS**.
-3. TLS gives: **encryption** (nobody can read it), **server identity** (a certificate proves you reached the real server), and **integrity** (data can't be changed on the way).
-
-**Mobile view:** iOS (App Transport Security) and modern Android block plain HTTP by default. Always use HTTPS in production.
-
----
-
-#### 4. HTTP Request — 🟢 Must Know
-
-*A request says: what do you want (method + URL), who am I (headers), and here is my data (body).*
+**HTTP request.** Method and URL (what do you want), headers (who am I, what format), body (the data).
 
 ```http
 POST /notes HTTP/1.1
@@ -71,28 +67,17 @@ Content-Type: application/json
 { "title": "Buy milk" }
 ```
 
-Parts:
-
-1. **Method** — the action.
-2. **URL** — path (`/notes/42`) and query (`?limit=20`).
-3. **Headers** — extra info: token, content type, app version.
-4. **Body** — data (POST, PUT, PATCH).
-
 | Method | Use | Safe? | Idempotent? |
 |---|---|---|---|
-| GET | Read | Yes | Yes |
-| POST | Create | No | No |
-| PUT | Replace | No | Yes |
-| PATCH | Partial update | No | Not guaranteed |
-| DELETE | Delete | No | Yes |
+| GET | read | yes | yes |
+| POST | create | no | no |
+| PUT | replace | no | yes |
+| PATCH | partial update | no | not guaranteed |
+| DELETE | delete | no | yes |
 
-*Safe = doesn't change data. Idempotent = repeating gives the same final result.*
+*Safe = does not change data. Idempotent = repeating gives the same final result.*
 
----
-
-#### 5. HTTP Response & Status Codes — 🟢 Must Know
-
-*The response says how it went (status code), gives info (headers), and returns data (body).*
+**HTTP response.**
 
 ```http
 HTTP/1.1 201 Created
@@ -101,139 +86,218 @@ Content-Type: application/json
 { "id": 42, "title": "Buy milk" }
 ```
 
-| Code | Meaning |
-|---|---|
-| 200 | OK |
-| 201 | Created |
-| 204 | Success, no body (often for delete) |
-| 400 | Bad request (invalid input) |
-| 401 | Not logged in / bad token |
-| 403 | Logged in, but not allowed |
-| 404 | Not found |
-| 409 | Conflict (for example, duplicate) |
-| 429 | Too many requests |
-| 500 | Server bug |
-| 503 | Server unavailable / overloaded |
+| Code | Meaning | Client should |
+|---|---|---|
+| 200 / 201 / 204 | OK / created / success with no body | use the result |
+| 400 | bad request (invalid input) | fix the request |
+| 401 | not logged in, or bad token | log in or refresh the token |
+| 403 | logged in, but not allowed | show "no access" |
+| 404 | not found | show not found |
+| 409 | conflict (duplicate) | tell the user |
+| 429 | too many requests | wait (`Retry-After`), then retry |
+| 500 | server bug | retry later if safe |
+| 503 | unavailable or overloaded | retry with backoff |
 
-Groups: **2xx** success · **3xx** redirect · **4xx** client's mistake · **5xx** server's problem.
-
+**2xx** success · **3xx** redirect · **4xx** the client's mistake · **5xx** the server's problem.
 **401 vs 403:** 401 = "I don't know who you are." 403 = "I know who you are, but you can't do this."
+**Retry rule:** `5xx`, `429` and timeouts may be retried if the operation is safe or idempotent. Other `4xx` will fail again, so fix the request.
 
-**Retry rule:** 5xx and timeouts can be retried (if the operation is safe). 4xx (except 429) will fail again, so fix the request instead.
+**Timeouts and connection reuse.** Never wait forever, and don't rebuild the phone line for every sentence.
 
----
+```mermaid
+flowchart LR
+    subgraph NEW["New connection"]
+        direction LR
+        A1["DNS"] --> A2["TCP"] --> A3["TLS"] --> A4["request"]
+    end
+    subgraph REUSE["Reused (keep-alive)"]
+        direction LR
+        B1["request"]
+    end
+```
 
-#### 6. Timeouts & Connection Reuse — 🟢 Must Know
+- **Connect timeout:** the longest you wait to open a connection. **Read timeout:** the longest you wait for the response. Set both.
+- **Keep-alive** reuses one connection for many requests and saves the setup round trips.
 
-*Never wait forever. And don't rebuild the phone line for every sentence.*
+🟡 **HTTP/1.1** handles one request at a time per connection. **HTTP/2** sends many at once on one connection with smaller headers. **HTTP/3** runs on UDP (QUIC): faster connect, and it survives switching between Wi-Fi and mobile data, which is good for mobile.
 
-1. **Connect timeout** — max time to open the connection.
-2. **Read timeout** — max time to wait for the response.
-3. Always set both in the app. Without them, a screen can hang.
-4. **Keep-alive** — reuse one connection for many requests. Opening a new one costs extra round trips (TCP + TLS).
+🟡 **Cookies, content types, compression.** A *cookie* is data the server sets and the browser sends back automatically (mostly web; mobile apps usually send a token in `Authorization`). `Content-Type` is the body format (`application/json`), `Accept` is the format the client wants. With `Accept-Encoding: gzip` the server replies `Content-Encoding: gzip`, which saves mobile data.
+
+🟡 **Reverse proxy** (for example Nginx) sits in front of your servers and handles TLS, routing, compression, load balancing and caching. Clients never see the real servers.
 
 ```text
-New connection:   DNS → TCP → TLS → request
-Reused connection:                  request
+App → Reverse proxy → Server A / Server B
 ```
 
 ---
 
-#### 7. Full Trace: App Calls `https://api.example.com/notes` — 🟢 Must Know
+#### 3. Naive vs Better Approach
 
-*One API call from tap to response, with DNS, TLS, and HTTP put together.*
+| Situation | Naive | Better |
+|---|---|---|
+| Transport | plain HTTP | HTTPS everywhere (modern Android and iOS block plain HTTP by default) |
+| Waiting | no timeout, a screen can hang | connect, read and overall call timeouts |
+| Connections | new connection per request | pooled, kept alive, HTTP/2 |
+| Errors | treat every failure the same | decide by status code |
+| Retries | retry everything | retry only safe or idempotent calls |
+| Payload | uncompressed JSON | gzip, smaller fields, pagination |
+| Changing data | `GET /deleteNote?id=1` | `DELETE /notes/1` |
 
-```text
-1. DNS        api.example.com → IP
-2. TCP        connect to IP : 443
-3. TLS        encrypt, verify certificate
-4. HTTP       send request (method, headers, body)
-5. Server     process
-6. HTTP       receive response (status, headers, body)
-7. App        parse JSON, update UI
+```kotlin
+// Naive: GET that changes data. A prefetcher, a crawler or a retry can delete notes.
+// GET /deleteNote?id=1
+// Better: DELETE /notes/1  (idempotent: deleting twice leaves the same final state)
 ```
 
 ---
 
-#### 8. HTTP/2 and HTTP/3 — 🟡 Good to Know
+#### 4. Code
 
-*Newer HTTP versions that send many requests over one connection.*
+```kotlin
+import okhttp3.*
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
+import java.net.URI
+import java.util.concurrent.TimeUnit
 
-1. **HTTP/1.1** — one request at a time per connection.
-2. **HTTP/2** — many requests at the same time on one connection; smaller headers.
-3. **HTTP/3** — runs on UDP (QUIC). Faster to connect and handles switching between Wi-Fi and mobile data better. Good for mobile.
+// One shared client: it owns the connection pool, so connections are reused
+val client: OkHttpClient = OkHttpClient.Builder()
+    .connectTimeout(10, TimeUnit.SECONDS)         // open the connection
+    .readTimeout(20, TimeUnit.SECONDS)            // wait for the response
+    .callTimeout(30, TimeUnit.SECONDS)            // the whole call
+    .connectionPool(ConnectionPool(5, 5, TimeUnit.MINUTES))
+    .build()
 
----
+fun createNoteRequest(token: String, json: String): Request =
+    Request.Builder()
+        .url("https://api.example.com/notes")
+        .header("Authorization", "Bearer $token")
+        .header("Accept-Encoding", "gzip")        // OkHttp adds and decodes gzip by itself; shown for clarity
+        .post(json.toRequestBody("application/json".toMediaType()))
+        .build()
 
-#### 9. Cookies, Content Types, Compression — 🟡 Good to Know
+// What should the client do with a response? Decide by status code.
+enum class Action { USE_RESULT, FOLLOW_REDIRECT, FIX_REQUEST, LOGIN_OR_REFRESH, SHOW_NO_ACCESS, WAIT_AND_RETRY, RETRY_WITH_BACKOFF }
 
-*Small details that show up in real APIs and in debugging.*
+fun classify(status: Int): Action = when (status) {
+    in 200..299 -> Action.USE_RESULT
+    in 300..399 -> Action.FOLLOW_REDIRECT
+    401 -> Action.LOGIN_OR_REFRESH
+    403 -> Action.SHOW_NO_ACCESS
+    429 -> Action.WAIT_AND_RETRY                  // honour the Retry-After header
+    in 400..499 -> Action.FIX_REQUEST
+    in 500..599 -> Action.RETRY_WITH_BACKOFF
+    else -> Action.FIX_REQUEST
+}
 
-1. **Cookie** — small data the server sets; the browser sends it back automatically. Mostly for web. Mobile apps usually send a token in the `Authorization` header.
-2. **Content-Type** — format of the body (`application/json`). **Accept** — the format the client wants.
-3. **Compression** — `gzip`. Client sends `Accept-Encoding: gzip`, server replies with `Content-Encoding: gzip`. Saves mobile data.
+// Retry only when repeating cannot do harm. status == null means a timeout or IOException.
+fun isRetryable(method: String, status: Int?): Boolean {
+    val idempotent = method.uppercase() in setOf("GET", "HEAD", "OPTIONS", "PUT", "DELETE")
+    return idempotent && (status == null || status == 429 || status in 500..599)
+}
 
----
+// Take a URL apart
+fun describe(url: String): Map<String, String?> {
+    val u = URI(url)
+    return mapOf(
+        "scheme" to u.scheme, "host" to u.host,
+        "port" to (if (u.port == -1) null else u.port.toString()),
+        "path" to u.path, "query" to u.query
+    )
+}
 
-#### 10. Reverse Proxy — 🟡 Good to Know
-
-*A middleman in front of your servers that receives requests first.*
-
-1. Sits in front of your servers (for example, Nginx).
-2. Handles TLS, routing, compression, load balancing, and caching.
-3. Clients talk to the proxy and never see the real servers.
-
-```text
-App → Reverse Proxy → Server A / Server B
+// Round trips before the first response byte (with DNS not cached, TLS 1.3 by default)
+fun roundTripsBeforeResponse(newConnection: Boolean, tls13: Boolean = true): Int =
+    if (!newConnection) 1 else 1 /* DNS */ + 1 /* TCP */ + (if (tls13) 1 else 2) /* TLS */ + 1 /* HTTP */
 ```
 
----
+```bash
+# See the whole trip: DNS, TCP, TLS, request and response headers
+curl -v https://api.example.com/notes
+# POST with a body and a token
+curl -X POST https://api.example.com/notes \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"title":"Buy milk"}'
+```
 
-#### 11. Common Interview Questions
-
-1. **What happens when you call `https://api.example.com/notes`?**
-   DNS lookup → TCP connection → TLS handshake → HTTP request → server processes → HTTP response → app updates UI.
-2. **TCP vs UDP?**
-   TCP is reliable and ordered (APIs). UDP is faster but may lose data (video calls, games).
-3. **What does HTTPS give you over HTTP?**
-   Encryption, server identity, and protection against tampering.
-4. **401 vs 403?**
-   401 = not authenticated. 403 = authenticated but not allowed.
-5. **What is DNS?**
-   It converts a domain name into an IP address, and the result is cached.
-6. **Why set timeouts? Which ones?**
-   To avoid hanging forever. Connect timeout and read timeout.
-7. **What is a safe or idempotent method?**
-   Safe = no data change (GET). Idempotent = repeating gives the same result (GET, PUT, DELETE).
+Checks: `classify(200)` → `USE_RESULT`; `(301)` → `FOLLOW_REDIRECT`; `(401)` → `LOGIN_OR_REFRESH`; `(403)` → `SHOW_NO_ACCESS`; `(404)` → `FIX_REQUEST`; `(429)` → `WAIT_AND_RETRY`; `(503)` → `RETRY_WITH_BACKOFF`. `isRetryable("GET", 503)` → `true`; `("POST", 503)` → `false`; `("GET", 404)` → `false`; `("PUT", null)` → `true`; `("POST", null)` → `false`; `("DELETE", 429)` → `true`. `describe("https://api.example.com/notes?limit=20")` → scheme `https`, host `api.example.com`, port `null` (the default 443), path `/notes`, query `limit=20`. `roundTripsBeforeResponse(false)` → `1`; `(true)` → `4`; `(true, tls13 = false)` → `5`. At 100 ms per round trip that is 400 ms for the first call against 100 ms on a reused connection.
 
 ---
 
-#### 12. Common Mistakes
+#### 5. Performance & Limits
+
+| Cost | Why | Remedy |
+|---|---|---|
+| DNS lookup | one round trip, cached by TTL | reuse the connection, keep the TTL sensible |
+| TCP + TLS setup | 2 to 3 round trips | keep-alive, HTTP/2, HTTP/3 |
+| Payload size | mobile data is slow and expensive | gzip, pagination, only the fields needed |
+| Many small requests | each pays latency | batch, or HTTP/2 multiplexing |
+| Head-of-line blocking | one lost TCP packet stalls everything on that connection | HTTP/3 (QUIC) |
+
+Typical numbers: a same-region round trip is about 1 ms, a mobile network round trip tens to hundreds of ms, and a cross-ocean round trip 100 ms or more.
+
+---
+
+#### 6. Common Mistakes & Edge Cases
 
 1. Using HTTP instead of HTTPS.
 2. No timeouts in the app.
 3. Confusing 401 and 403.
 4. Using GET to change data.
-5. Retrying non-idempotent requests (like payments) blindly.
+5. Retrying non-idempotent requests (payments) blindly.
 6. Thinking a domain and an IP are the same thing.
+7. Creating a new `OkHttpClient` for every request, so no connection is ever reused.
+8. Ignoring `Retry-After` on a `429`.
+
+Edge cases: redirects (`301`/`302`) to another host; certificate expired or mismatched (the TLS step fails before HTTP starts); DNS change not yet visible because of the TTL; a `204` has no body, so parsing JSON will fail.
 
 ---
 
-#### 13. Related Topics
+#### 7. Say This in the Interview
 
-1. `01` Client, Server & Request Flow
-2. `03` API Design
-3. `05` Authentication & Authorization
-4. `06` Backend Security Essentials
-5. Load balancer, CDN (system design roadmap)
+1. "A call to `https://api.example.com/notes` does a DNS lookup, opens a TCP connection, does the TLS handshake, sends the HTTP request, and the server answers with a status, headers and a body."
+2. "TCP is reliable and ordered, so APIs use it. UDP is faster but may lose data: calls, games, and HTTP/3 builds its own reliability on top."
+3. "HTTPS gives encryption, server identity and integrity."
+4. "`401` means I don't know who you are; `403` means I know you, but you can't do this."
+5. "I set connect and read timeouts, reuse connections, and retry only `5xx`, `429` and timeouts on idempotent calls."
 
 ---
 
-#### 14. Interview Must Remember
+#### 8. Quick Check
 
-1. **DNS → TCP → TLS → HTTP** is the path of every request.
-2. **TCP** = reliable (APIs). **UDP** = fast, may lose data.
-3. **HTTPS = HTTP + TLS** (encrypt, identity, integrity).
-4. A request has **method, URL, headers, body**. A response has **status, headers, body**.
-5. **4xx = client's fault. 5xx = server's fault.** 401 vs 403.
-6. Set **connect and read timeouts**. Reuse connections.
+1. Which status code means "logged in, but not allowed"?
+2. Why does the first request on a new connection take longer?
+3. Is `PUT` idempotent? `POST`?
+4. Which timeouts should every client set?
+
+<details>
+<summary>Answers</summary>
+
+1. `403`.
+2. DNS, TCP and TLS must happen first (about 3 extra round trips).
+3. `PUT` yes (replacing twice gives the same result). `POST` no.
+4. Connect timeout and read timeout (and optionally an overall call timeout).
+
+</details>
+
+---
+
+#### 9. Practice
+
+**Interview questions**
+
+1. What happens when you call `https://api.example.com/notes`?
+2. TCP vs UDP?
+3. What does HTTPS give you over HTTP?
+4. 401 vs 403?
+5. What is DNS, and why does the TTL matter?
+6. Why set timeouts, and which ones?
+7. What is a safe method? An idempotent method?
+
+**Hands-on**
+
+1. Run `curl -v` on a public HTTPS site. Find the DNS, TLS and HTTP lines.
+2. Call the same URL twice with `curl --http2 -v` and compare to a fresh connection.
+3. Configure an OkHttp client with timeouts and observe a timeout by pointing it at a slow endpoint.
+
+**Remember:** DNS → TCP → TLS → HTTP · TCP for APIs, UDP for speed · HTTPS = HTTP + TLS · request: method, URL, headers, body; response: status, headers, body · 4xx is the client's fault, 5xx the server's · set timeouts and reuse connections.
