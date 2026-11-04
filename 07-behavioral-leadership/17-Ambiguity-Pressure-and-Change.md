@@ -1,103 +1,249 @@
 # Ambiguity, Pressure & Change
 
+> Real work is unclear, urgent and always changing. These stories show how you find direction when the goal is vague, keep quality under deadline, adapt to late changes, learn fast and stay steady.
+
 Roadmap topic 17 · Stage 5: Self & Career
 
-**Marks:** 🟢 Must Know · 🟡 Good to Know · (New) beyond your original ten topics
+**Go deeper:** `4` Project Challenges · `7` Failure · `8` Production Incidents · `11` Communication · `14` Delivery & Prioritization · `18` Situational Questions · `05-system-design/31-Interview-Answer-Structure` (clarifying questions).
 
-**In simple words:** real work is rarely clean — goals shift, deadlines are tight, and requirements change after you've already started. This topic collects the stories that show you can still make good progress when the ground isn't stable.
-
----
-
-#### 1. Unclear Goals — 🟢 Must Know
-
-A time the goal itself wasn't clear yet, and **how you found direction** — asking the right clarifying questions, proposing a working hypothesis and testing it, or breaking an ambiguous problem into smaller, clearer pieces.
+**Marks:** 🟢 must know · 🟡 good to know
 
 ---
 
-#### 2. A Tight Deadline — 🟢 Must Know
+#### 1. What Is It?
 
-A time with genuine time pressure, and how you **kept quality and focus** rather than just working more hours — what you explicitly cut or deferred (topic `14`), and how you communicated that trade-off.
+*Staying effective when things are unclear, rushed or changing.*
 
----
+| 🟢 Must know | 🟡 Good to know |
+|---|---|
+| unclear goal: how you found direction | staying calm and clear under stress |
+| tight deadline: keeping quality and focus | pushing back on an unrealistic request |
+| late requirement change: how you adapted | ethical concerns |
+| learning something fast | reorganizations and leadership change |
+| several priorities at once | looking after yourself: avoiding burnout |
 
-#### 3. Late Requirement Changes — 🟢 Must Know
+1. **Ambiguity:** the goal, scope or approach is not clear and no one can fully explain it.
+2. **Pressure:** a deadline, an incident or high stakes limits your options.
+3. **Change:** requirements, people or priorities shift mid-way.
 
-A time requirements shifted **after** you'd already started, and how you adapted — without simply discarding the earlier work if part of it was still salvageable, and without silently absorbing the change with no conversation about impact.
-
----
-
-#### 4. Learning Something Fast — 🟢 Must Know
-
-A time you had to pick up a new technology, domain, or skill quickly to get something done — show your actual learning approach (reading source code, building a small proof of concept, finding the right expert to ask), not just "I read the docs".
-
----
-
-#### 5. Handling Several Priorities at Once — 🟢 Must Know
-
-A time you had multiple real, competing demands simultaneously, and how you managed them — sequencing, delegating, or explicitly renegotiating scope with the people asking for each thing (topic `14`, item 1).
+**Signals in an interview:** "Tell me about a time the requirements were unclear", "a tight deadline", "something changed late", "you had to learn something quickly", "juggling priorities".
 
 ---
 
-#### 6. Staying Calm Under Stress — 🟡 Good to Know
+#### 2. How It Works
 
-A specific, real example of staying clear-headed during a stressful moment — and honestly, what actually helps you do that (a habit, a way of breaking the problem down) rather than a vague claim of natural calm.
+**Handling ambiguity: the clarity loop.**
+
+```mermaid
+flowchart LR
+    Q["Ask: what outcome do we want?<br/>who is it for? how will we know?"] --> A["Write assumptions<br/>and open questions"] --> B["Make a small, reversible bet<br/>(prototype, spike)"] --> L["Learn from real data"] --> D["Decide, communicate,<br/>and repeat"]
+    D --> Q
+```
+
+1. **Clarify the outcome**, not the solution: "What problem are we solving? What would success look like in numbers?"
+2. **Write assumptions** and share them. Wrong assumptions are found faster in writing.
+3. **Make small bets**: a spike, a prototype, an experiment behind a flag.
+4. **Decide with what you have**, mark the decision reversible or not, set a check date.
+5. **Communicate**: share what you decided and why.
+
+**Tight deadline.**
+
+| Do | Why |
+|---|---|
+| Re-confirm the must-have outcome | scope shrinks, the goal stays |
+| Cut scope, not quality-critical parts (tests for risky code, security, accessibility basics) | cheap now is costly later |
+| Break the work into a thin end-to-end slice first | something shippable early |
+| Make risks visible and decide with the owner | no hidden trade-offs |
+| Protect focus (fewer meetings, one channel) | speed |
+| Plan the rollout (staged, flag) | catches problems safely |
+| Debrief after | learning |
+
+**Late requirement change.**
+
+1. Understand the *why* behind the change.
+2. Estimate its cost and the impact on the plan.
+3. Offer options: absorb (and drop what?), move the date, or defer.
+4. Update the plan in writing and tell everyone affected.
+5. Keep a change log, so scope changes are visible.
+
+**Learning fast.** Define what "enough" means, find the shortest path (official docs, a small project, an expert for 30 minutes), build something real early, write notes, teach someone. Example: learning Compose in two weeks by migrating one screen.
+
+**Several priorities at once.** List them, rank by impact and deadline (topic 14), tell people what waits, batch interruptions, and reserve focused blocks.
+
+🟡 **Staying calm under stress.** Slow down to speed up: write down the facts, one change at a time, a checklist, ask for help early, breathe, hand off cleanly.
+
+🟡 **Pushing back with alternatives.** "I can't deliver all of it by Friday. I can deliver A and B by Friday and C by the 28th. Which do you prefer?" (topic 11)
+
+🟡 **Ethical concerns.** Privacy (collecting more data than needed), dark patterns (tricking users), skipping safety or security to hit a date. Raise it early, in writing, with a safer alternative; escalate if needed; know your company's policy. It is fine to refuse to do something harmful.
+
+🟡 **Reorganizations and leadership change.** Ask what changes for the goals, keep delivering, build relationships with the new people, document your work, and stay open. Uncertainty is normal.
+
+🟡 **Avoiding burnout.** Sustainable pace, real time off, saying no, small wins, support from friends, mentors and, if needed, professionals. Burnout signs: constant tiredness, cynicism, errors, withdrawal.
+
+**Example (illustrative): an unclear request, "make the app faster".**
+
+> **Situation:** My product manager said, "The app feels slow; make it faster," with no further detail. Everyone had a different idea of "slow". **Task:** I had to turn this into something we could deliver in a quarter.
+>
+> **Action:** I asked what outcome we wanted and for whom: the PM said the 1-star reviews mentioned slowness. I read 200 reviews and found two themes: slow start, and scrolling jank on cheaper phones. I wrote my assumptions in a doc: cold start under 2 s, jank under 5% on a mid-range device. I made a small bet first: a two-day measurement spike with Macrobenchmark, which showed 3.2 s cold start and 12% jank. I proposed two targets and a plan, got product's agreement, and shipped the startup fix first, since it was the cheaper win. After each release I checked the numbers.
+>
+> **Result:** Cold start went from 3.2 to 1.9 s and jank from 12% to 3%; the "slow" reviews dropped from 14% of 1-star reviews to 4%, and the rating rose 0.2.
+>
+> **Lesson:** I turn vague goals into measurable ones and a small first experiment before I plan the whole thing."
 
 ---
 
-#### 7. Pushing Back on an Unrealistic Request — 🟡 Good to Know
+#### 3. Weak Answer vs Strong Answer
 
-A time you said "that's not achievable as scoped" and offered an **alternative** — the same reasons-plus-alternative shape as topic `11`, item 5, applied under pressure.
-
----
-
-#### 8. Ethical Concerns — 🟡 Good to Know
-
-If relevant: a time you raised a concern about privacy, a dark pattern, or cutting a safety corner — how you raised it, and what happened. A sensitive category; only use a real example, told carefully and professionally.
-
----
-
-#### 9. A Reorganization or Leadership Change — 🟡 Good to Know
-
-How you adapted to a change in team structure or leadership you didn't choose — shows resilience and professionalism through organisational change, not just technical change.
+| | Weak | Strong |
+|---|---|---|
+| Ambiguity | waited for clearer instructions | asked about the outcome, wrote assumptions, ran a small spike |
+| Deadline | worked nights, hid the risk | cut scope, protected quality, made trade-offs visible |
+| Change | resisted or silently absorbed | understood the why, offered options, updated the plan |
+| Learning | "I'm a fast learner" | a specific method and result |
+| Pressure | panic or heroics | calm checklist, one change at a time |
+| Push back | refused or complied silently | no with an alternative |
+| Wellbeing | ignored | sustainable pace, asked for support |
 
 ---
 
-#### 10. Avoiding Burnout — 🟡 Good to Know
+#### 4. Templates & Worked Examples
 
-How you look after yourself under sustained pressure — a genuine, specific habit or boundary, not a throwaway line. Connects to topic `14`, item 8's team-level version of the same theme.
+**Assumptions log.**
+
+| # | Assumption | How to check | Owner | Status |
+|---|---|---|---|---|
+| 1 | "Slow" means cold start and list jank | read 200 reviews; benchmark | me | confirmed |
+| 2 | Mid-range phones are the target | analytics: 60% of users | PM | confirmed |
+| 3 | Backend latency is fine | trace the API | backend | open |
+
+**Clarifying questions for an unclear request.**
+
+```text
+What outcome do we want, and how will we know we got it (a metric)?     Who is it for?
+What triggered this now?                                               What's the deadline and why?
+What's in scope and out of scope?                                      What can't change? What can?
+Who decides? Who must be consulted?                                    What is the worst that could happen?
+```
+
+**Deadline plan.**
+
+```text
+Must-have outcome: ____          Cut line: features below are deferred: ____
+Thin slice by: ____ (end to end)  Risks + owners: ____
+Quality I will not cut: tests for sync, accessibility basics, staged rollout
+Check-ins: daily 10 minutes       Decision owner for trade-offs: ____
+```
+
+**Handling a late change (message).**
+
+```text
+Understood: the partner now needs Apple Pay on day one.
+Cost: +6 days (SDK, QA, review).  Impact: Mar 14 → Mar 22, or drop the share sheet and keep Mar 14.
+Options: A) keep date, drop share sheet  B) move the date  C) both, with higher risk (not recommended)
+Please choose by Wednesday. I'll update the plan and tell QA and design.
+```
+
+**Learning plan (two weeks).**
+
+```text
+Goal: ship one Compose screen to production.   "Enough" = I can explain state hoisting and recomposition.
+Days 1–3: official codelab, build a toy screen   Days 4–8: migrate one low-risk screen with a mentor's review
+Days 9–12: tests + performance check              Day 14: write a short note / give a 15-minute talk
+```
+
+**Time-boxing a spike (code).**
+
+```kotlin
+fun withinBudget(spentDays: Double, budgetDays: Double) = spentDays <= budgetDays
+
+fun spikeDecision(spentDays: Double, budgetDays: Double, questionAnswered: Boolean) = when {
+    questionAnswered -> "decide"
+    withinBudget(spentDays, budgetDays) -> "continue"
+    else -> "stop and re-plan"
+}
+```
+
+Checks: `spikeDecision(1.0, 2.0, false)` → `"continue"`; `(2.5, 2.0, false)` → `"stop and re-plan"`; `(1.0, 2.0, true)` → `"decide"`. A time-boxed spike keeps ambiguity from becoming an open-ended research project.
 
 ---
 
-#### 11. Common Interview Questions
+#### 5. Numbers & Metrics to Quote
 
-1. **"Tell me about a time the requirements were unclear."** — item 1; show your specific method for finding direction.
-2. **"Tell me about working under a tight deadline."** — item 2; be specific about what you cut, and how you communicated it.
-3. **"Tell me about a time priorities changed midway through a project."** — item 3.
-4. **"Tell me about learning something new quickly."** — item 4; describe your actual learning process.
-5. **"How do you stay calm under pressure?"** — item 6; give a real example, not just a claim.
-
----
-
-#### 12. Common Mistakes
-
-1. A vague "I just figured it out" with no actual method described.
-2. A tight-deadline story where quality secretly suffered and that's left unmentioned.
-3. Silently absorbing a late requirement change with no conversation about the impact.
-4. Claiming to stay calm under all pressure with no specific, grounded example.
+| Item | Guide |
+|---|---|
+| Spike | 1 to 3 days, with a written question to answer |
+| Clarifying questions | 4 to 8 |
+| Assumptions | written, with a check for each |
+| Scope cut | say what and why (for example 20% of features) |
+| Delay or change cost | days or weeks |
+| Outcome | metric before and after, date met, quality kept |
+| Time to learn | days to first working result |
+| Sustainable pace | no repeated weekends; time off after crunch |
 
 ---
 
-#### 13. Related Topics
+#### 6. Common Mistakes & Edge Cases
 
-1. `14` Delivery, Prioritization & Team Health — the trade-off skills this topic's pressure stories draw on
-2. `18` Situational & Tough Questions — hypothetical pressure scenarios, the forward-looking version of this topic
-3. `07-behavioral-leadership/11` Communication & Stakeholder Management — pushing back with reasons and alternatives
+1. Waiting for perfect clarity.
+2. Starting to build before understanding the outcome.
+3. Hiding a risk to look reliable.
+4. Heroics (nights and weekends) as the plan.
+5. Cutting tests or security silently.
+6. Accepting every change without cost or trade-off.
+7. "I'm a fast learner" with no example.
+8. Panic during incidents; no checklist.
+
+Edge cases: no one has the answer (make a reversible decision and set a check date); the stakeholder changes the goal repeatedly (written goals, change log, escalate); an ethical request (raise it, offer alternatives, escalate, refuse if needed); a reorganization makes the plan obsolete (re-plan with the new owner); you are overloaded (tell your manager the trade-offs, not just "I'm busy").
 
 ---
 
-#### 14. Interview Must Remember
+#### 7. Say This in the Interview
 
-1. **Have a real method for finding direction** in ambiguity — not just "I figured it out".
-2. **Name what you cut or deferred** under a tight deadline, and how you communicated it.
-3. **Adapting to a late change** means renegotiating impact, not silently absorbing it.
-4. **A real example for staying calm under pressure**, not a general claim.
+1. "I asked what outcome we wanted and how we'd know, wrote my assumptions, and ran a two-day spike."
+2. "Under the deadline I cut scope to a thin end-to-end slice, kept tests for the risky parts, and made the trade-off visible to the product owner."
+3. "When the requirement changed late, I priced it and offered three options."
+4. "To learn quickly I defined 'enough', built one real screen, and asked an expert to review."
+5. "Under stress I follow a checklist and change one thing at a time."
+6. "I can't do all of it by Friday; I can do A and B, and C by the 28th."
+
+---
+
+#### 8. Quick Check
+
+1. What do you do first with a vague goal?
+2. What do you cut under a deadline?
+3. How do you handle a late change?
+4. What is a spike?
+
+<details>
+<summary>Answers</summary>
+
+1. Clarify the outcome and how success is measured; write assumptions.
+2. Scope, not the quality-critical parts (tests for risky code, security, basics).
+3. Understand the why, cost it, offer options, update the plan in writing.
+4. A short, time-boxed experiment to answer one specific question.
+
+</details>
+
+---
+
+#### 9. Practice
+
+**Interview questions**
+
+1. Tell me about a time the requirements were unclear.
+2. Tell me about a tight deadline.
+3. Tell me about a time requirements changed late.
+4. Tell me about learning something new quickly.
+5. How do you handle several competing priorities?
+6. How do you stay calm under pressure?
+7. Tell me about an ethical concern at work.
+
+**Exercises**
+
+1. Write the clarity-loop version of one real ambiguous task.
+2. Write the deadline plan for a recent crunch; what did you cut?
+3. Prepare a story for "learned fast", with a measurable result.
+4. Write the "push back with alternatives" reply for a real request.
+
+**Remember:** clarify the outcome · write assumptions · small reversible bets · cut scope not quality · price changes and offer options · learn by building · stay calm with a checklist · protect your pace.

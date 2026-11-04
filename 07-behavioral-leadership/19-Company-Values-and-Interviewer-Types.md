@@ -1,105 +1,240 @@
 # Company Values & Interviewer Types
 
-Roadmap topic 19 · Stage 6: Interview & Career Moves · (New)
+> Every company tests a slightly different list of behaviours, and every interviewer listens for different things. Research the company, map your stories to its values, know who is in the room, and prepare good questions to ask.
 
-**Marks:** 🟢 Must Know · 🟡 Good to Know · (New) beyond your original ten topics
+Roadmap topic 19 · Stage 6: Interview & Career Moves (New)
 
-**In simple words:** the same story bank can sound generic or sound tailored, depending on whether you've actually researched the company and thought about who's asking. This topic is the preparation that turns a good story into the *right* story for this specific interview.
+**Go deeper:** `1` How Behavioral Interviews Work · `3` Story Bank · `15` Hiring (the interviewer's view) · `16` Career Story · `20` Offers.
 
----
-
-#### 1. Research the Company — 🟢 Must Know
-
-Before any interview: the **product** (actually use it if you can), the **users** it serves, the **culture**, **recent news**, and its **stated values**. Ten to fifteen minutes of real research produces noticeably better, more specific answers than none.
+**Marks:** 🟢 must know · 🟡 good to know · (New) beyond your original ten topics
 
 ---
 
-#### 2. Map Your Stories to Their Values — 🟢 Must Know
+#### 1. What Is It?
 
-Many companies have explicit stated values (for example, Amazon's Leadership Principles) that interviewers are trained to probe for directly. Go through your story bank (topic `3`) and note which stories best demonstrate which of *their* specific values — this is quick, high-leverage prep once your story bank already exists.
+*Tailoring the same real stories to the company and the interviewer.*
+
+| 🟢 Must know | 🟡 Good to know |
+|---|---|
+| research the company: product, users, culture, news, values | what each interviewer type listens for |
+| map your stories to their values | large company vs startup values rounds |
+| prepare good questions to ask | red flags in the company |
+| know who you are talking to | thank-you follow-up |
+| | reading the job description |
+
+1. **Values / leadership principles:** the behaviours a company says it rewards, and tests in interviews.
+2. **Interviewer type:** their role decides what they care about.
+3. **Your questions:** a chance to show judgment and to check the company too.
+
+**Signals in an interview:** "Which of our values resonates with you?", "Do you have questions for us?", an interviewer you haven't met before, a "bar raiser" or "values" round.
 
 ---
 
-#### 3. Prepare Good Questions to Ask — 🟢 Must Know
+#### 2. How It Works
 
-Have real questions ready about the **team**, **quality practices**, how **decisions** get made, **growth** opportunities, and current **challenges** — a candidate with no questions, or only generic ones, reads as under-prepared or uninterested.
+**Preparing for a company.**
+
+```mermaid
+flowchart LR
+    R["Research:<br/>product, users, engineering blog,<br/>values, recent news"] --> M["Map 5–6 values / competencies<br/>to your stories"] --> Q["Write 5 questions<br/>for each interviewer"] --> W["Who is interviewing?<br/>tune the emphasis"] --> F["Follow up with a short thank-you"]
+```
+
+**What to research.**
+
+| Source | What to learn |
+|---|---|
+| The app / product | use it; note what's great and what you'd improve |
+| Engineering blog, talks, open source | architecture, tools, quality practices |
+| Values / leadership principles page | the behaviours they test |
+| Job description | must-have skills, level, team goals |
+| News, funding, reviews | direction, risks |
+| LinkedIn / interviewers' public talks | their background (respectfully) |
+
+**Mapping stories to values.** Make a table: value → your best story → the one number or action that proves it. Example for Amazon's Leadership Principles (check the current list): Customer Obsession, Ownership, Invent and Simplify, Are Right A Lot, Learn and Be Curious, Hire and Develop the Best, Insist on the Highest Standards, Think Big, Bias for Action, Frugality, Earn Trust, Dive Deep, Have Backbone; Disagree and Commit, Deliver Results, and two newer ones about being an employer and about broad responsibility. Other companies publish similar lists; read yours.
+
+| Value | Your story | Proof |
+|---|---|---|
+| Ownership | stability programme nobody asked for | crash-free 98.6% → 99.5% |
+| Dive Deep | cold start analysis | found 900 ms in `Application.onCreate` |
+| Disagree and Commit | pagination dispute | duplicates 4% → 0, supported the compromise |
+| Customer Obsession | offline-first rebuild | "lost note" tickets 11% → 2% |
+| Deliver Results | payments launch | on time, 97.8% success on day one |
+
+**Who is interviewing, and what they listen for.**
+
+| Interviewer | Listens for | Tune your answer |
+|---|---|---|
+| Hiring manager | ownership, fit with team goals, growth, judgment | stories with outcomes and your plans |
+| Peer engineer | collaboration, technical judgment, code quality | decisions, trade-offs, how you work with others |
+| Product / design partner | communication, user focus, trade-offs | user impact, simple language |
+| Senior / skip-level | scope, influence, strategic thinking | cross-team impact, business metrics |
+| Bar raiser / values interviewer | consistency with the company's standard; depth of examples | specific, honest, probe-proof stories |
+| Recruiter | basics, motivation, logistics | career story, why us, expectations |
+
+🟡 **Large company vs startup.**
+
+| | Large company | Startup |
+|---|---|---|
+| Values round | formal, scored, structured | informal, "can you wear many hats?" |
+| Stories | process, scale, influence | speed, ownership, ambiguity |
+| Questions to ask | career ladder, team structure, on-call | runway, product direction, role growth |
+
+🟡 **Red flags in the company.** Unclear ownership, constant firefighting, no plan for quality (no tests, no staged rollout), high turnover, interviewers who can't describe their roadmap or who disparage past people, and evasive answers about on-call, pay or leveling. Treat the interview as two-sided.
+
+🟡 **Thank-you note.** Within 24 hours: two or three sentences, thank them, mention one specific thing you discussed, and restate interest. Keep it short.
+
+🟡 **Reading the job description.** Count the repeated words (ownership, quality, mentoring, cross-team) and make sure you have a story for each. "Must have" vs "nice to have"; the level (senior/staff) sets the scope of your stories.
+
+**Good questions to ask.**
+
+| Topic | Question |
+|---|---|
+| The team | "How is the Android team organised, and who do you work with most?" |
+| Quality | "What are your crash-free and ANR targets? How do you release?" |
+| Decisions | "How are technical decisions made and recorded?" |
+| Growth | "What does success look like in the first 6 months? How do people grow into lead roles?" |
+| Challenges | "What's the hardest problem the team faces right now?" |
+| Culture | "How does the team handle incidents and disagreements?" |
+| Practicalities | "What does on-call look like?" |
+
+---
+
+#### 3. Weak Answer vs Strong Answer
+
+| | Weak | Strong |
+|---|---|---|
+| Research | reads the homepage | used the product, read the blog and values |
+| Values | recites them | proves them with a real story and a number |
+| Questions | "no questions" or about perks only | thoughtful, role-specific, a few per interviewer |
+| Interviewer | same pitch to everyone | tunes emphasis to the role of the interviewer |
+| Honesty | says what they think the company wants | true stories, mapped to values |
+| Follow-up | none | short, specific thank-you |
+| Two-sided | passive | also checks the company for red flags |
+
+---
+
+#### 4. Templates & Worked Examples
+
+**Company research sheet.**
 
 ```text
-Examples:
-"What does the on-call and incident-response process look like here?"
-"How does the team balance new features against technical debt?"
-"What's the biggest technical challenge the team is facing right now?"
+COMPANY:                         ROLE / LEVEL:                    DATE:
+Product (what I like / what I'd improve):
+Users and scale:
+Engineering practices I learned (blog, talks, open source):
+Values / principles (list) → my story for each:
+Job description keywords (repeated words) → my proof:
+Questions for: hiring manager ___ | peers ___ | product ___ | skip-level ___
+Possible red flags to check:
+```
+
+**A thank-you note.**
+
+```text
+Hi Priya – thank you for the conversation today. I especially enjoyed discussing how your team handles
+offline sync; it's the kind of problem I like working on. I'm very interested in the role and happy to share
+anything else that would help. Best, <name>
+```
+
+**Matching stories to values: a coverage check (code).**
+
+```kotlin
+fun uncovered(values: List<String>, storiesByValue: Map<String, List<String>>, minStories: Int = 1) =
+    values.filter { (storiesByValue[it]?.size ?: 0) < minStories }
+```
+
+Checks: with values `[Ownership, Dive Deep, Frugality]` and stories `Ownership → [A, B]`, `Dive Deep → [C]` (none for Frugality), `uncovered(...)` → `[Frugality]`: a gap to fill with a new story (for example, a time you saved cost or did more with less).
+
+**Tuning one story for two interviewers.**
+
+| Story: offline-first rebuild | For the hiring manager | For the product partner |
+|---|---|---|
+| Emphasis | ownership, plan, outcomes, team | user problem, trade-offs, metrics |
+| Key line | "I owned the plan and the staged rollout." | "Lost-note tickets fell from 11% to 2%; we cut the share sheet to keep the date." |
+
+**Reading a job description (example).**
+
+```text
+"You will own the Android app's reliability, mentor engineers, and work with backend and design."
+→ stories needed: reliability (crash-free), mentoring, cross-team API contract
+"Nice to have: KMP" → mention what I know honestly (a small shared module), and that I'm learning.
 ```
 
 ---
 
-#### 4. Know Who You're Talking To — 🟢 Must Know
+#### 5. Numbers & Metrics to Quote
 
-1. **Hiring manager** — often weighs team fit and overall judgment most heavily.
-2. **Peer engineer** — often focused on technical depth and how you'd be to work with day to day.
-3. **Product partner** — often cares most about communication and collaboration.
-4. **Bar raiser** (or equivalent) — an interviewer specifically checking the company's hiring bar is maintained, often weighted heavily in the final decision.
-
----
-
-#### 5. What Each Interviewer Type Listens For — 🟡 Good to Know
-
-Adjust emphasis, not honesty — the same real story can lead with the technical decision-making for a peer engineer, and lead with the collaboration and communication for a product partner (topic `2`, item 11).
+| Item | Guide |
+|---|---|
+| Research | 2 to 3 hours per company |
+| Values mapped | 5 or 6 of them, each with a story and a number |
+| Questions | 5 per interview, 2 or 3 used per interviewer |
+| Thank-you | within 24 hours, 2 to 3 sentences |
+| Story reuse | at most 3 uses of one story in a loop |
+| Interview loop | usually 3 to 6 conversations |
 
 ---
 
-#### 6. Large Companies vs Startups — 🟡 Good to Know
+#### 6. Common Mistakes & Edge Cases
 
-Values-based rounds at large companies are often more structured and rubric-driven (explicit competencies, explicit scoring); startups often ask more conversationally, but are still listening for the same underlying signals (topic `1`).
+1. No research.
+2. Reciting values instead of proving them.
+3. Claiming a value you can't back up with a story.
+4. Having no questions.
+5. Asking only about pay and perks.
+6. The same emphasis for every interviewer.
+7. Ignoring red flags because you want the job.
+8. Criticising the product rudely.
 
----
-
-#### 7. Red Flags to Watch for in the Company — 🟡 Good to Know
-
-*The interview is evaluating you, but it's also your chance to evaluate them.*
-
-Unclear ownership, constant firefighting with no time for anything else, and no real plan for quality — signals worth noticing and, if appropriate, asking directly about.
-
----
-
-#### 8. Follow-Up — 🟡 Good to Know
-
-A short, genuine thank-you note after an interview is a small, low-cost, positive signal — keep it brief and specific to something from the actual conversation.
+Edge cases: the company's values don't match yours (be honest with yourself); a values round with a very structured format (answer in STAR, concisely); a surprise interviewer (ask about their role, then tune); an interviewer is late or distracted (stay professional, ask to continue); you're interviewing at many companies (keep a sheet per company, don't mix up the details).
 
 ---
 
-#### 9. Reading Between the Lines of the Job Description — 🟡 Good to Know
+#### 7. Say This in the Interview
 
-What a job description emphasises (or notably omits) often hints at real priorities or pain points — worth thinking about before the interview, and a good source for the questions in item 3.
-
----
-
-#### 10. Common Interview Questions
-
-This topic is preparation, not itself a question category — but doing it well is what makes your answers to the Question Bank (`00-Content.md`) sound specifically tailored rather than generic and interchangeable across companies.
-
----
-
-#### 11. Common Mistakes
-
-1. Walking in with no real research done on the company.
-2. Generic answers that could apply to any employer.
-3. No questions prepared to ask, or only surface-level ones.
-4. Not adjusting a story's emphasis for who's actually asking.
+1. "I've used the app for a few weeks; I especially like X, and I wondered about Y."
+2. "This story shows Ownership: nobody asked me to, and the result was…"
+3. "Since you're on the product side, let me describe the user impact first."
+4. "What are your crash-free and ANR targets, and how do you release?"
+5. "What's the hardest problem the team faces right now?"
+6. "Thank you for your time. I enjoyed discussing…"
 
 ---
 
-#### 12. Related Topics
+#### 8. Quick Check
 
-1. `3` Building Your Story Bank — the material this topic maps onto specific values
-2. `16` Career Story & Motivation — where "why this company" gets answered specifically, using this research
-3. `21` Mock Interviews & Practice Plan — where this preparation gets rehearsed before the real thing
+1. How do you prove a value in an interview?
+2. What does a peer engineer listen for?
+3. Name two good questions to ask.
+4. Name two red flags.
+
+<details>
+<summary>Answers</summary>
+
+1. A real story with your actions and a number that shows the behaviour.
+2. Collaboration, technical judgment and code quality.
+3. For example: "What are your quality targets and release process?" and "What's the hardest problem the team faces?"
+4. For example: unclear ownership, constant firefighting, no plan for quality, evasive answers on on-call or pay.
+
+</details>
 
 ---
 
-#### 13. Interview Must Remember
+#### 9. Practice
 
-1. **Research the company** — product, users, culture, values — before every interview.
-2. **Map existing stories to their stated values** — don't build new stories, just reframe.
-3. **Always have real questions to ask** — team, quality, decisions, growth, challenges.
-4. **Adjust emphasis by interviewer type**, without changing the underlying truth of the story.
+**Interview questions**
+
+1. Which of our values resonates with you most? Give an example.
+2. Why do you want to work here?
+3. What do you know about our product?
+4. Do you have any questions for us?
+5. What would you improve in our app?
+
+**Exercises**
+
+1. Fill in the research sheet for a company you like.
+2. Map five values to five of your stories; find the gap with the coverage idea.
+3. Write five questions each for a manager, a peer and a product partner.
+4. Draft a thank-you note for your last interview.
+
+**Remember:** research and use the product · prove values with stories and numbers · tune to the interviewer · ask good questions · watch for red flags · send a short thank-you.

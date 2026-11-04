@@ -2,7 +2,8 @@
 
 Behavioral rounds test how you work with people, make decisions, and handle problems. The technical folders teach what to know; this folder teaches **how to tell the story of what you did** — real stories, told clearly, with a result, often traced back to work covered there (e.g. `ARCH 3`, `SD 27`, `MOB 15`).
 
-- **Numbering:** own, 1–21.
+- **Numbering:** own, 1–21, plus 99 (cheat sheet).
+- **Every note has the same layout:** what it is and how to spot it in an interview, how it works (with a diagram), a weak answer vs a strong answer, templates and worked examples (including a short illustrative story), numbers and metrics to quote, common mistakes and edge cases, what to say in the interview, a quick check, and practice (interview questions and exercises). The example stories use made-up numbers: always replace them with your own real stories.
 - **References:** `7` = this folder · `ARCH`/`SD`/`MOB`/`BE`/`AI` = the other numbered roadmaps
 - **Marks:** 🟢 must have · 🟡 good to have · (New) beyond your original ten topics
 
@@ -10,31 +11,32 @@ Behavioral rounds test how you work with people, make decisions, and handle prob
 
 ## Index
 
-| #   | Topic                                     | Stage                     |
-| --- | ----------------------------------------- | ------------------------- |
-| 1   | How Behavioral Interviews Work            | 1. Foundations            |
-| 2   | The STAR Method                           | 1. Foundations            |
-| 3   | Building Your Story Bank                  | 1. Foundations            |
-| 4   | Project Challenges & Impact               | 2. Core Stories           |
-| 5   | Technical Decisions                       | 2. Core Stories           |
-| 6   | Architecture Decisions                    | 2. Core Stories           |
-| 7   | Failure Stories & Learning                | 2. Core Stories           |
-| 8   | Production Incidents                      | 2. Core Stories           |
-| 9   | Conflict Resolution & Disagreement        | 3. People & Collaboration |
-| 10  | Cross-Team Collaboration                  | 3. People & Collaboration |
-| 11  | Communication & Stakeholder Management    | 3. People & Collaboration |
-| 12  | Leadership Without Authority              | 4. Leadership             |
-| 13  | Mentoring & Growing Others                | 4. Leadership             |
-| 14  | Delivery, Prioritization & Team Health    | 4. Leadership             |
-| 15  | Hiring & Team Building (New)              | 4. Leadership             |
-| 16  | Career Story & Motivation                 | 5. Self & Career          |
-| 17  | Ambiguity, Pressure & Change              | 5. Self & Career          |
-| 18  | Situational & Tough Questions             | 6. Interview & Career Moves |
-| 19  | Company Values & Interviewer Types (New)  | 6. Interview & Career Moves |
-| 20  | Offers, Negotiation & Career Moves (New)  | 6. Interview & Career Moves |
-| 21  | Mock Interviews & Practice Plan           | 6. Interview & Career Moves |
+| #   | Topic                                     | Stage                       | Mark |
+| --- | ----------------------------------------- | ------------------------- | ---- |
+| 1   | How Behavioral Interviews Work            | 1. Foundations              | 🟢   |
+| 2   | The STAR Method                           | 1. Foundations              | 🟢   |
+| 3   | Building Your Story Bank                  | 1. Foundations              | 🟢   |
+| 4   | Project Challenges & Impact               | 2. Core Stories             | 🟢   |
+| 5   | Technical Decisions                       | 2. Core Stories             | 🟢   |
+| 6   | Architecture Decisions                    | 2. Core Stories             | 🟢   |
+| 7   | Failure Stories & Learning                | 2. Core Stories             | 🟢   |
+| 8   | Production Incidents                      | 2. Core Stories             | 🟢   |
+| 9   | Conflict Resolution & Disagreement        | 3. People & Collaboration   | 🟢   |
+| 10  | Cross-Team Collaboration                  | 3. People & Collaboration   | 🟢   |
+| 11  | Communication & Stakeholder Management    | 3. People & Collaboration   | 🟢   |
+| 12  | Leadership Without Authority              | 4. Leadership               | 🟢   |
+| 13  | Mentoring & Growing Others                | 4. Leadership               | 🟢   |
+| 14  | Delivery, Prioritization & Team Health    | 4. Leadership               | 🟢   |
+| 15  | Hiring & Team Building (New)              | 4. Leadership               | 🟡   |
+| 16  | Career Story & Motivation                 | 5. Self & Career            | 🟢   |
+| 17  | Ambiguity, Pressure & Change              | 5. Self & Career            | 🟢   |
+| 18  | Situational & Tough Questions             | 6. Interview & Career Moves | 🟢   |
+| 19  | Company Values & Interviewer Types (New)  | 6. Interview & Career Moves | 🟢   |
+| 20  | Offers, Negotiation & Career Moves (New)  | 6. Interview & Career Moves | 🟢   |
+| 21  | Mock Interviews & Practice Plan           | 6. Interview & Career Moves | 🟢   |
+| 99  | Behavioral & Leadership Cheat Sheet       | Revision                    | 🟢   |
 
-**Short on time:** 1, 2, 3, 4, 5, 7, 8, 9, 10, 12, 16, 18. 🟢 items only.
+**Short on time:** 1, 2, 3, 4, 5, 7, 8, 9, 10, 12, 16, 18, then the cheat sheet (99). 🟢 items only.
 
 **Your original ten topics:** STAR method (2), project challenges (4), technical decisions (5), conflict resolution (9), failure stories (7), leadership (12), mentoring (13), cross-team collaboration (10), architecture decisions (6), production incidents (8).
 
@@ -453,3 +455,4 @@ Plain meanings, with a priority. The last column is the topic that explains the 
 5. Prepare your career story (topic 16) and your company research (topic 19) for each interview.
 6. Practise out loud with a timer, and record yourself. Do topic 21 more than you think you need.
 7. For each story: the situation in one line, your actions in order, the result with a number, and the lesson.
+8. The night before an interview, read `99-Behavioral-Cheat-Sheet`, then your 30-second story versions.

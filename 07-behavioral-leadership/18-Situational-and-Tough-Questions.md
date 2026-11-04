@@ -1,112 +1,227 @@
 # Situational & Tough Questions
 
+> Situational questions ask what you *would* do. Tough questions probe weaknesses, failures and money. Answer with a clear approach, name the trade-offs, anchor it in real experience, then stop.
+
 Roadmap topic 18 · Stage 6: Interview & Career Moves
 
-**Marks:** 🟢 Must Know · 🟡 Good to Know · (New) beyond your original ten topics
+**Go deeper:** `1` How Behavioral Interviews Work · `2` STAR · `7` Failure · `9` Conflict · `11` Communication · `16` Career Story · `20` Offers & Negotiation · `05-system-design/31-Interview-Answer-Structure`.
 
-**In simple words:** "what did you do?" and "what would you do?" are different questions, but they're best answered the same way: ground the hypothetical in something real you've actually lived through, instead of speculating in the abstract.
-
----
-
-#### 1. Behavioral vs Situational — 🟢 Must Know
-
-1. **Behavioral** — "tell me about a time..." — asks for a real past event.
-2. **Situational** — "what would you do if...?" — asks for a hypothetical response.
-
-Both are testing the same underlying signals (topic `1`); situational questions are just a forward-looking framing of the same evaluation.
+**Marks:** 🟢 must know · 🟡 good to know
 
 ---
 
-#### 2. Answering a Situational Question — 🟢 Must Know
+#### 1. What Is It?
 
-*The structure that makes a hypothetical answer credible instead of speculative.*
+*Hypotheticals, traps and probes, and how to answer them honestly and briefly.*
 
-```text
-1. Clarify — ask a question or two if the scenario is underspecified.
-2. State your approach — the general process you'd follow.
-3. Name the trade-offs — what you'd be weighing, and why.
-4. Ground it in real experience — "this is similar to a time when I..."
+| 🟢 Must know | 🟡 Good to know |
+|---|---|
+| behavioral vs situational | trap questions |
+| situational: clarify, approach, trade-offs, real example | salary and leaving-early questions |
+| follow-up probes | hypotheticals about releases and incidents |
+| no perfect story: use a related one or explain your approach | staying concise |
+| | handling a question you didn't understand |
+
+1. **Behavioral:** "What did you do?" (a real past event, use STAR).
+2. **Situational:** "What would you do?" (a hypothetical; show your thinking).
+3. **Probe:** a follow-up that tests depth ("why?", "what was your part?", "what would you change?").
+
+**Signals in an interview:** "What would you do if…", "How would you handle…", "Imagine that…", "What's your biggest weakness?", "Why should we hire you?".
+
+---
+
+#### 2. How It Works
+
+**Answering a situational question.**
+
+```mermaid
+flowchart LR
+    C["1 Clarify the situation<br/>(1–2 questions)"] --> A["2 State your approach<br/>in 3 steps"] --> T["3 Name the trade-offs"] --> E["4 Tie to real experience"] --> S["5 Stop, offer detail"]
 ```
 
-Step 4 is what separates a strong answer from a guess — it shows the hypothetical isn't invented on the spot, but grounded in something you've actually done.
+1. **Clarify:** what is the severity? who is affected? what are the constraints (time, authority)? One or two questions, not an interrogation.
+2. **Approach:** 3 steps in order, with the reason for each.
+3. **Trade-offs:** what you give up, the risk you accept.
+4. **Experience:** "I faced something like this when…" (one sentence).
+5. **Stop.** Then offer to go deeper.
+
+**Follow-up probes.**
+
+| Probe | What they test | How to answer |
+|---|---|---|
+| "Why?" | reasoning | give the principle and the evidence |
+| "What was your part?" | ownership | name your decisions, credit others |
+| "What would you change?" | learning | one specific change |
+| "What if that didn't work?" | resilience | name the plan B |
+| "What if your manager disagreed?" | judgment and respect | data, options, commit |
+
+**When you have no perfect story.** Use a related story ("I haven't led an outage that large, but I handled a smaller one…") or say what you would do and why, and what you'd check. Don't invent.
+
+🟡 **Trap questions.**
+
+| Question | What they want | Good approach |
+|---|---|---|
+| "Biggest weakness?" | self-awareness | a real, non-critical weakness with action (topic 16) |
+| "A time you disagreed with your boss?" | respect plus backbone | evidence, private conversation, commit (topic 9) |
+| "A time you failed?" | ownership and learning | topic 7 |
+| "Why should we hire you?" | fit and clarity | 2 strengths linked to the role's needs, with evidence |
+| "Why was there a gap?" | honesty | brief, forward-looking |
+| "How do you handle criticism?" | openness | a real example of acting on feedback |
+| "Do you have other offers?" | honesty without pressure | "I'm in several processes; this role is a strong fit because…" |
+
+🟡 **Salary or leaving-early questions.** Be honest and calm. If asked about salary early: "I'd like to understand the role and level first; what's the range for this position?" If asked "will you stay?": "I'm looking for a place to grow for years; here's what I hope to build." Don't promise what you can't. (Details in topic 20.)
+
+🟡 **Hypotheticals on releases and incidents.** "What if the release has a crash and you cannot roll back?" Answer in order: assess impact, stop the harm (halt rollout, flag off), communicate, fix, prevent (topic 8).
+
+🟡 **Concise.** Answer, then stop. A 60 to 90 second answer is normal for a situational question.
+
+🟡 **A question you didn't understand.** Ask: "Could you give me an example of what you mean?" or restate: "So you're asking how I'd handle X; is that right?"
+
+**Example (illustrative): "A release is crashing for 3% of users and you can't roll back. What do you do?"**
+
+> "First I'd confirm the impact: how many users, which versions and devices, and whether it's data loss or just a crash. Then I'd stop the harm: halt the staged rollout and turn off the feature behind a remote flag, if there is one. I'd tell the team and stakeholders what we know, what we don't, and when the next update is. Then I'd find the root cause from the stack trace and reproduce it, ship a hotfix with a staged rollout, and run a blameless review to add the test or alert that was missing. The trade-off is speed against risk: a rushed hotfix can cause a second incident, so I'd keep the change minimal and test the upgrade path. I handled something like this when a migration crashed users upgrading from an old version; flagging the feature off cut the crashes by 90% in 20 minutes."
 
 ---
 
-#### 3. Expect Follow-Up Probes — 🟢 Must Know
+#### 3. Weak Answer vs Strong Answer
 
-"Why?", "What was your part specifically?", "What would you change?" — the same probing style as behavioral questions (topic `1`, item 3). Don't treat a situational question as a one-shot answer; expect the conversation to continue.
-
----
-
-#### 4. When You Have No Perfect Story — 🟢 Must Know
-
-Two honest options: use a **related** story and explain the connection explicitly, or say clearly what you *would* do and *why*, reasoning from your general approach and principles rather than pretending to have lived through the exact scenario.
-
----
-
-#### 5. Trap Questions — 🟡 Good to Know
-
-1. **"Biggest weakness"** — answer per topic `16`, item 5: real, with a genuine improvement effort.
-2. **"A time you disagreed with your boss"** — answer per topic `9`, item 4: "disagree and commit" is the strong shape.
-3. **"A time you failed"** — answer per topic `7`: a real failure, owned honestly.
-
-These aren't traps in the sense of having no good answer — they're traps only if you haven't prepared the honest version in advance.
+| | Weak | Strong |
+|---|---|---|
+| Start | jumps to an answer | clarifies severity and constraints |
+| Structure | rambling | 3 ordered steps with reasons |
+| Trade-offs | none | names the risk and the cost |
+| Experience | none or invented | a real related example |
+| Weakness | "I work too hard" | real, small, with action |
+| Money | evasive or aggressive | calm, honest, asks for the range |
+| Length | 4 minutes | 60 to 90 seconds, then stops |
+| Unknown question | guesses | asks for clarification |
 
 ---
 
-#### 6. Salary or Early-Leaving Questions — 🟡 Good to Know
+#### 4. Templates & Worked Examples
 
-Answer honestly, without over-explaining or being defensive — a straightforward, calm answer is stronger than a nervous, padded one.
+**Situational template.**
 
----
+```text
+CLARIFY: What is the impact / who is affected / what can I decide?
+APPROACH: 1) … because …   2) … because …   3) … because …
+TRADE-OFFS: I accept … in exchange for …
+EXPERIENCE: "I faced a similar situation when …"
+STOP: "I can go deeper on …"
+```
 
-#### 7. Hypotheticals — 🟡 Good to Know
+**More situational answers (outlines).**
 
-"What if the release has a crash and you can't roll back?" — a mobile-specific example (`MOB 15`, topic `8`): a strong answer names the real toolkit (feature flag, staged rollout halt, server-side mitigation, hotfix) rather than saying "I'd roll it back" and stopping there.
+| Question | Approach |
+|---|---|
+| A product manager asks you to skip tests to hit a date. | Understand the date's importance; propose the smallest safe cut (keep tests for risky areas, cut optional features); show the risk (bugs reach users, cost to fix later); get the owner's decision in writing; roll out in stages. |
+| A teammate's PR has a security issue. | Review privately and kindly, explain the risk with an example (SBI), suggest a fix, offer to pair, re-review; escalate only if it ships or repeats. |
+| Two urgent tasks arrive at the same time. | Ask what each is worth and the deadline; rank (impact, urgency, effort); tell stakeholders what waits and when; ask the manager to decide if there's a real conflict. |
+| You disagree with your tech lead's architecture decision. | Make sure you understand their reasons; bring data or a small test; present concerns once; if the decision stands, commit and set a checkpoint. |
+| You're asked to estimate something you've never done. | Ask for the outcome and constraints; break it down; spike the riskiest part; give a range with assumptions; re-estimate. |
+| A stakeholder insists on an unrealistic date. | Show the work and the critical path; offer options (scope, date, risk); recommend one; agree the decision owner. |
 
----
+**Replies to common traps.**
 
-#### 8. Stay Concise — 🟡 Good to Know
+| Question | Sample reply |
+|---|---|
+| "Biggest weakness?" | "I tend to take on too much myself. I've started delegating with clear context; last quarter I handed off two modules and they shipped without issues." |
+| "Why should we hire you?" | "You need someone to make an Android app reliable at scale and to mentor. I've cut crashes from 1.4% to 0.5% and coached a junior to own a feature in eight weeks." |
+| "Other offers?" | "I'm talking to a few teams. This one is my first choice because of the offline-first work, and I'd like to decide in the next two weeks." |
+| "Where do you see yourself?" | "Leading technical direction for a mobile product and growing other engineers." |
 
-**Answer, then stop.** Resist the urge to keep talking after you've actually answered the question — a strong, complete answer followed by silence is more confident than the same answer followed by nervous over-explanation.
+**Salary question reply.**
 
----
+> "I'd like to understand the scope and level first. Could you share the range for this role? Based on my research for senior Android roles in this market, I'd expect something in the range of… but I'm flexible depending on the whole package."
 
-#### 9. Handling a Question You Didn't Understand — 🟡 Good to Know
+**Counting your answer (code).**
 
-Ask for clarification directly — "could you clarify what you mean by X?" is a completely normal, expected response, far better than guessing at the question and answering something else entirely.
+```kotlin
+fun answerTooLong(text: String, maxSeconds: Int = 90, wpm: Int = 140) =
+    text.trim().split(Regex("\\s+")).size * 60.0 / wpm > maxSeconds
+```
 
----
-
-#### 10. Common Interview Questions
-
-1. **"What would you do if you disagreed with a decision your manager made?"** — the situational version of topic `9`; use the structure from item 2, grounded in a real past experience if you have one.
-2. **"What would you do if you found a critical bug the day before a release?"** — item 7's hypothetical style; name the real, concrete toolkit.
-3. **"What's your biggest weakness?"** — item 5's trap question; have the honest, prepared version ready.
-4. **"What if you and a teammate strongly disagreed on a technical approach and couldn't agree?"** — combine items 2 and 5's disagreement guidance; escalation (topic `9`, item 8) as a last resort.
-
----
-
-#### 11. Common Mistakes
-
-1. Answering a hypothetical with pure abstract speculation, never grounding it in real experience.
-2. Getting caught off guard by a "trap" question that actually had a well-known, prepared answer available.
-3. Rambling on after the question has already been fully answered.
-4. Guessing at an unclear question instead of asking for clarification.
-
----
-
-#### 12. Related Topics
-
-1. `1` How Behavioral Interviews Work — the shared signals behind both question types
-2. `7` Failure Stories & Learning, `9` Conflict Resolution & Disagreement — the prepared answers behind common trap questions
-3. `MOB 15` Build, Release & Monitoring — the real toolkit behind mobile-specific hypotheticals
+Checks: a 200-word answer → `false` (about 86 seconds); a 300-word answer → `true` (about 129 seconds). Trim, then stop.
 
 ---
 
-#### 13. Interview Must Remember
+#### 5. Numbers & Metrics to Quote
 
-1. **Situational questions test the same signals as behavioral ones** — just framed as "what would you do?"
-2. **Clarify → state approach → name trade-offs → ground it in real experience.**
-3. **"Trap" questions have known, prepared, honest answers** — don't be caught off guard by them.
-4. **Answer, then stop.** Ask for clarification rather than guessing at an unclear question.
+| Item | Guide |
+|---|---|
+| Situational answer | 60 to 90 seconds |
+| Clarifying questions | 1 or 2 |
+| Steps in your approach | 3 |
+| Experience | 1 sentence, with a number if possible |
+| Weakness answer | 30 to 45 seconds |
+| Salary | ask for the range first; know your market data |
+| Probes | expect 1 to 3 follow-ups per story |
+
+---
+
+#### 6. Common Mistakes & Edge Cases
+
+1. Answering a hypothetical as if you knew the details.
+2. A "perfect" answer with no trade-offs.
+3. Inventing a story to fit.
+4. Over-long answers.
+5. Blaming people in a hypothetical.
+6. Dodging weakness or salary questions.
+7. Giving a guess when you didn't understand the question.
+8. Arguing with the interviewer.
+
+Edge cases: a trick question with no good answer (be honest, stay calm); an illegal or inappropriate question (politely redirect to the job: "I'd prefer to focus on my qualifications"); the interviewer pushes back (stay open, restate, give evidence); a question outside your experience (explain how you'd learn and a related example); you blank (pause, take a breath, restate the question).
+
+---
+
+#### 7. Say This in the Interview
+
+1. "Before I answer, may I ask one question: how many users are affected?"
+2. "My approach would be three steps: first…, then…, then…"
+3. "The trade-off is…; I'd accept X to reduce Y."
+4. "I haven't faced exactly that, but a similar case was…"
+5. "A real weakness of mine is…, and here's what I'm doing about it."
+6. "Could you share the salary range for this role?"
+7. "Could you give me an example of what you mean?"
+
+---
+
+#### 8. Quick Check
+
+1. What is the difference between behavioral and situational?
+2. What are the five steps of a situational answer?
+3. What should you do if you have no perfect story?
+4. How do you answer a salary question early on?
+
+<details>
+<summary>Answers</summary>
+
+1. Behavioral asks for a real past event; situational asks what you would do.
+2. Clarify, approach in steps, trade-offs, real experience, stop.
+3. Use a related story or explain what you would do and why, without inventing.
+4. Ask for the range and say you'd like to understand the role first.
+
+</details>
+
+---
+
+#### 9. Practice
+
+**Interview questions**
+
+1. What would you do if a release crashes and you can't roll back?
+2. What would you do if a manager asked you to skip tests?
+3. What's your biggest weakness?
+4. Why should we hire you?
+5. Tell me about a time you disagreed with your boss.
+6. What are your salary expectations?
+7. Do you have other offers?
+
+**Exercises**
+
+1. Answer the six situational outlines in 90 seconds each, recorded.
+2. Write your weakness answer with a real action and evidence.
+3. Practise "I don't understand; could you give an example?" aloud.
+4. Prepare a calm salary-range reply with your market data.
+
+**Remember:** clarify → three steps → trade-offs → real example → stop · don't invent · honest, calm replies to traps · 60–90 seconds · ask when unsure.

@@ -1,110 +1,243 @@
 # Mock Interviews & Practice Plan
 
+> Stories improve when you say them aloud, with a timer and honest feedback. A short, regular practice plan turns your prepared stories into natural, clear answers.
+
 Roadmap topic 21 · Stage 6: Interview & Career Moves
 
-**Marks:** 🟢 Must Know · 🟡 Good to Know · (New) beyond your original ten topics
+**Go deeper:** `2` STAR · `3` Story Bank · `18` Situational Questions · `19` Company Values · `03-leetcode-patterns/22-Practice-Plan-and-Problem-Sets` and `05-system-design/32-Practice-Projects-and-Designs` (the technical practice plans).
 
-**In simple words:** a story you've only ever told yourself in your head is not the same as a story you've told out loud, under a timer, to another person who asks follow-up questions. This last step is where all the earlier preparation actually gets tested.
-
----
-
-#### 1. Tell Each Story Out Loud, with a Timer — 🟢 Must Know
-
-Reading a story silently and speaking it aloud feel completely different — timing, filler words, and pacing only become obvious once you actually say it. **Record yourself** so you can listen back honestly (item 3).
+**Marks:** 🟢 must know · 🟡 good to know
 
 ---
 
-#### 2. Practise with a Real Person — 🟢 Must Know
+#### 1. What Is It?
 
-Ask a friend, colleague, or mentor to **actually interview you** — not just listen politely, but ask real follow-up questions and give **honest** feedback. Practising alone only tests the story; practising with someone else tests whether it survives being questioned.
+*Deliberate practice for behavioral interviews.*
 
----
-
-#### 3. Listen Back Critically — 🟢 Must Know
-
-*The single highest-leverage practice habit — most people skip it.*
-
-Cut filler words ("um", "so", "basically"), cut unnecessary background, and check whether the **Action** and **Result** sections (topic `2`) are as strong and specific as they could be.
-
----
-
-#### 4. Practise Both Lengths — 🟢 Must Know
-
-The **short version** (about 30 seconds) and the **full version** (about 2 minutes, topic `3`) of each story — practise switching between them smoothly depending on how much time or detail the question calls for.
-
----
-
-#### 5. Practise Follow-Up Questions, Not Just the First Answer — 🟢 Must Know
-
-Most of the real signal in an interview comes from how you handle **"why?"**, **"what was your part specifically?"**, and **"what would you change?"** — practise these explicitly, not just the rehearsed opening answer.
-
----
-
-#### 6. Keep the Story Matrix Updated — 🟡 Good to Know
-
-As you practise and discover gaps (a competency with a weak story, topic `3`), update the matrix and go find a better example from your raw event list.
-
----
-
-#### 7. Practise in a Realistic Setting — 🟡 Good to Know
-
-Video call, or in-person with a whiteboard, matching the actual format you'll face — the small frictions of a real setting (camera positioning, timing on a call) are worth practising, not just the content.
-
----
-
-#### 8. Practise the Difficult Stories Most — 🟡 Good to Know
-
-Failure (topic `7`), conflict (topic `9`), and incidents (topic `8`) are the stories people under-prepare, because they're less comfortable to rehearse — deliberately spend more practice time on exactly these.
-
----
-
-#### 9. Plan the Day — 🟡 Good to Know
-
-Rest the night before, arrive (or log on) with time to spare, and do a short warm-up — telling one story out loud to yourself right before the interview — rather than trying to recall everything cold.
-
----
-
-#### 10. A Two-Week Plan — 🟢 Must Know
-
-*A concrete schedule, from `00-Content.md`, for pulling this whole folder together.*
-
-| Days | Focus |
+| 🟢 Must know | 🟡 Good to know |
 |---|---|
-| 1 to 3 | Topics 1–3: collect stories, shape them in STAR form, build the matrix |
-| 4 to 7 | Topics 4–8: core stories (projects, decisions, architecture, failure, incident) |
-| 8 to 10 | Topics 9–13: people and leadership stories |
-| 11 to 12 | Topics 16–19: career story, situational questions, company research |
-| 13 to 14 | This topic: mock interviews, and polish the weakest stories |
+| tell each story aloud with a timer, and record it | keep your story matrix up to date |
+| ask a friend or mentor to interview you | practise in the real setting |
+| listen back: cut filler, strengthen action and result | practise the hard stories most |
+| practise short and full answers | plan the day |
+| practise with follow-ups | |
+
+1. **Mock interview:** a practice interview with a friend, mentor or recording.
+2. **Feedback loop:** record → listen → fix → repeat.
+3. **Probing:** follow-up questions that test your stories.
+
+**Signals:** you hesitate on follow-ups, your stories run past three minutes, or you reach for the same story every time.
 
 ---
 
-#### 11. Common Interview Questions
+#### 2. How It Works
 
-This topic doesn't have its own question category — it's the rehearsal step that makes every other topic's questions answerable smoothly and confidently, rather than for the first time in the real interview.
+**The practice loop.**
+
+```mermaid
+flowchart LR
+    T["Tell the story aloud<br/>with a timer"] --> R["Record it"] --> L["Listen back:<br/>filler, background, missing action/result"] --> F["Fix the script's weak spots"] --> P["Practise with probes"] --> T
+```
+
+**A two-week plan.**
+
+| Days | Focus | Output |
+|---|---|---|
+| 1 to 3 | topics 1 to 3: collect stories, shape them in STAR, build the matrix | 8 to 10 written stories |
+| 4 to 7 | topics 4 to 8: projects, decisions, architecture, failure, incident | 2-minute and 30-second versions, recorded |
+| 8 to 10 | topics 9 to 13: conflict, cross-team, communication, leadership, mentoring | people stories, with SBI and numbers |
+| 11 to 12 | topics 16 to 19: career story, situational questions, company research | the three basics and a company sheet |
+| 13 to 14 | topic 21: two full mock interviews; fix the weakest stories | a clean story matrix and a rested mind |
+
+**What to listen for.**
+
+| Issue | Fix |
+|---|---|
+| over 3 minutes | cut the situation; keep 3 to 5 actions |
+| no number in the result | find one (dashboard, ticket count, timing) |
+| "we" everywhere | say "I" for your actions |
+| filler ("um", "like", "you know") | pause instead; practise the opening sentence |
+| no lesson | add one sentence of learning |
+| monotone | emphasise the key action and the result |
+| you ramble on probes | answer in one or two sentences, then stop |
+
+**Mock-interview roles.**
+
+| Role | What they do |
+|---|---|
+| Interviewer (friend or mentor) | asks 3 to 4 main questions, probes with "what was your part?", "what would you change?" |
+| Observer (optional) | writes notes of signals and gaps |
+| You | answer as in the real interview |
+| After | 10 minutes of feedback: strengths, gaps, one thing to fix |
+
+**Feedback questions to ask.** "What was the clearest part? Where did you lose me? What was my part, in your words? What number do you remember? Did I sound honest?"
+
+🟡 **Keep the matrix updated.** After every practice, mark which stories worked and which competencies are still thin.
+
+🟡 **Practise in the real setting.** Same device and camera for video calls; a whiteboard or document for design rounds; the same time of day.
+
+🟡 **Practise the difficult stories most.** Failure, conflict and incident stories feel risky, so rehearse them until you can tell them calmly.
+
+🟡 **Plan the day.** Sleep, eat, arrive (or log in) 10 minutes early, do a 5-minute warm-up (say your career story aloud), keep water and a notepad with your story titles, not scripts.
 
 ---
 
-#### 12. Common Mistakes
+#### 3. Weak Answer vs Strong Answer
 
-1. Only ever practising silently, never out loud or recorded.
-2. Practising alone, with no one asking real follow-up questions.
-3. Skipping the hard stories (failure, conflict, incidents) because they're uncomfortable to rehearse.
-4. Never actually listening back to a recording, so filler words and pacing issues go unnoticed.
-5. Cramming everything the night before instead of following a spread-out plan.
-
----
-
-#### 13. Related Topics
-
-1. `2` The STAR Method, `3` Building Your Story Bank — what's actually being rehearsed here
-2. `18` Situational & Tough Questions — the follow-up-question practice this topic emphasises
-3. `00-Content.md` — the full two-week plan and Question Bank this topic pulls together
+| | Weak practice | Strong practice |
+|---|---|---|
+| Method | read stories silently | tell aloud, timed, recorded |
+| Feedback | none | a mentor, honest and specific |
+| Probes | only the first answer | two or three follow-ups per story |
+| Focus | favourite stories | the hard ones most |
+| Timing | night before | two weeks, with regular short sessions |
+| Delivery | memorised paragraphs | the structure and key numbers, in natural words |
+| Tracking | none | matrix, notes, and a list of fixes |
 
 ---
 
-#### 14. Interview Must Remember
+#### 4. Templates & Worked Examples
 
-1. **Out loud, timed, and recorded** — not silent, not just in your head.
-2. **Practise with a real person** asking real follow-ups, not just alone.
-3. **Listen back critically** — this is the step most people skip, and it matters most.
-4. **Spend extra time on the uncomfortable stories** — failure, conflict, incidents.
+**A 30-minute mock interview.**
+
+```text
+0:00–0:03  Warm-up: "Tell me about yourself" (career story)
+0:03–0:10  Q1: a project / impact story  → probe: "What was your part? How did you measure?"
+0:10–0:17  Q2: a conflict or failure story → probe: "What would you change?"
+0:17–0:24  Q3: a situational question → probe: "What if that didn't work?"
+0:24–0:30  Feedback: clearest part, gaps, one thing to fix
+```
+
+**Feedback sheet.**
+
+```text
+Story: ______   Time: ___ min
+Clear? (1–5) _   Specific actions? (1–5) _   Result with a number? Y/N   "I" vs "we"? OK / too "we"
+Lesson? Y/N   Honest / credible? (1–5)   Probes handled? (1–5)
+Best moment:            Fix first:
+```
+
+**Timing log (code).**
+
+```kotlin
+data class Run(val story: String, val seconds: Int)
+
+fun overTime(runs: List<Run>, targetSeconds: Int = 150) = runs.filter { it.seconds > targetSeconds }.map { it.story }
+fun averageSeconds(runs: List<Run>) = runs.map { it.seconds }.average()
+```
+
+Checks: runs `A 135`, `B 200`, `C 170`, `D 120` with `targetSeconds = 150` → `overTime` = `[B, C]`; `averageSeconds` = `156.25`. Trim the stories that run long; the aim is about 120 seconds on average.
+
+**Opening warm-up (say aloud before the interview).**
+
+```text
+1. My career story (60–90 seconds).   2. My best result in one sentence with a number.
+3. Why this company (three reasons).   4. One question I will ask.
+```
+
+**The night before / day of.**
+
+```text
+[ ] Review the story matrix and 30-second versions   [ ] Re-read the company sheet and my questions
+[ ] Test camera, sound, link (or route)              [ ] Prepare water, notepad, resume copy
+[ ] Sleep; no new stories                            [ ] Warm up with the career story
+```
+
+**After the interview.**
+
+```text
+[ ] Send the thank-you note               [ ] Write down the questions asked and how it went
+[ ] Update the matrix: what to improve    [ ] Note any new story ideas
+```
+
+**Common feedback and the fix.**
+
+| Feedback | Fix |
+|---|---|
+| "I couldn't tell what you did." | rewrite the action in the first person, with reasons |
+| "Too long." | cut the situation; remove side details |
+| "No result." | find a metric or a clear outcome |
+| "Sounded rehearsed." | practise the structure and key numbers, not the words |
+| "Defensive on probes." | answer plainly: "Fair question. What I'd do differently is…" |
+
+---
+
+#### 5. Numbers & Metrics to Quote
+
+| Item | Guide |
+|---|---|
+| Practice time | 30 to 60 minutes a day for two weeks |
+| Story length | 2 minutes (about 280 words); 30-second version (about 70 words) |
+| Repetitions | each story aloud at least 3 times |
+| Mock interviews | at least 2 full ones, with someone who will be honest |
+| Recordings | listen to every story at least once |
+| Probes | 2 or 3 per story |
+| Feedback | 10 minutes after each mock |
+
+---
+
+#### 6. Common Mistakes & Edge Cases
+
+1. Reading stories silently and calling it practice.
+2. Memorising word for word.
+3. Practising only first answers, not probes.
+4. Avoiding the hard stories.
+5. Only asking friends who say "it's great".
+6. Practising the night before.
+7. Not recording.
+8. Ignoring feedback.
+
+Edge cases: nobody to practise with (record yourself, or use an online mock partner); too nervous (practise in a low-stakes setting first, e.g. with a recording); an interview next day (do the essentials: career story, 3 best stories, questions); a bad practice run (note one fix and move on).
+
+---
+
+#### 7. Say This in the Interview
+
+1. (Opening) "Let me start with a quick overview of my background…" (the career story you practised)
+2. "Let me pick the best example for that." (a calm pause)
+3. "Fair question. What I'd do differently is…" (a non-defensive reply to a probe)
+4. "To summarise, the result was… and what I learned was…"
+5. "Do you have any follow-up questions on that?"
+
+---
+
+#### 8. Quick Check
+
+1. Why record yourself?
+2. What do you listen for?
+3. How many mock interviews do you need?
+4. What do you do the night before?
+
+<details>
+<summary>Answers</summary>
+
+1. To hear filler, length and missing results that you don't notice while speaking.
+2. Length, filler, "we" vs "I", the result and number, the lesson, and tone on probes.
+3. At least two full ones, with someone who gives honest feedback.
+4. Review the matrix and 30-second versions, prepare logistics, and sleep; no new stories.
+
+</details>
+
+---
+
+#### 9. Practice
+
+**Interview questions (a practice set)**
+
+1. Tell me about yourself.
+2. Tell me about a project you're proud of.
+3. Tell me about a hard technical decision.
+4. Tell me about a failure.
+5. Tell me about a production incident.
+6. Tell me about a disagreement.
+7. Tell me about helping someone grow.
+8. What would you do if…? (one situational question)
+
+**Exercises**
+
+1. Schedule two 45-minute mock interviews in the next two weeks.
+2. Record all ten stories and keep a timing log.
+3. Ask a mentor to give feedback with the feedback sheet.
+4. Update the matrix, then re-record the three weakest stories.
+
+**Remember:** aloud, timed, recorded · honest feedback · practise probes and the hard stories · two full mocks · structure and numbers, not memorised words · prepare logistics the night before.
