@@ -1,8 +1,20 @@
-#READ 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/logo-dark.png">
+    <img src="assets/logo.png" alt="Engineering Playbook" width="520">
+  </picture>
+</p>
+
+<p align="center">
+  Structured FAANG interview prep for mobile engineers.<br>
+  Simple notes, Kotlin code and cheat-sheet posters.
+</p>
 
 ---
 
 Structured notes for Software Engineering interview preparation, built for a mobile engineer growing toward senior and architect roles. Written in simple English for a beginner, aimed at FAANG-style interviews, with Kotlin for the code.
+
+Licensed under the [MIT License](LICENSE).
 
 ## Contents
 
@@ -35,7 +47,10 @@ engineering-playbook/
 ├── 08-artificial-intelligence/ 00-Content, notes 1–22, 99 cheat sheet, poster
 ├── 09-architecture/            00-Content, notes 1–22, 99 cheat sheet, poster
 ├── 10-database/                00-Content, notes 1–23, 99 cheat sheet, poster
+├── assets/                     logo files + social-preview.png (repo card image)
 │
+├── LICENSE
+├── .gitignore
 └── README.md
 ```
 
