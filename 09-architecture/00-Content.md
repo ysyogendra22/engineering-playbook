@@ -2,7 +2,8 @@
 
 What to do on any project, which decisions matter most, and which terms to know first.
 
-- **Numbering:** own, 1–22.
+- **Numbering:** own, 1–22, plus 99 (cheat sheet).
+- **Every note has the same layout:** what it is and how to spot it in an interview, how it works (with a diagram), naive vs better design, templates and examples (ADRs, diagrams, Kotlin and config) with checked outputs, numbers and rules of thumb, common mistakes and edge cases, what to say in the interview, a quick check, and practice (interview questions and exercises).
 - **References:** `7` = this folder · `BE 3`/`SD 21`/`AI 7` = topic N in that roadmap · mobile detail in `06-mobile-engineering`, interview stories in `07-behavioral-leadership`
 - **Start with:** `BE 1–4` (backend basics), `SD 13–15`, `SD 26` (scale, caching, service boundaries)
 - **Marks:** 🟢 must have · 🟡 good to have · (New) for a mobile engineer moving into architecture, or still changing
@@ -11,32 +12,33 @@ What to do on any project, which decisions matter most, and which terms to know 
 
 ## Index
 
-| #   | Topic                                        | Stage                          |
-| --- | -------------------------------------------- | ------------------------------ |
-| 1   | What an Architect Does                       | 1. Role & Mindset              |
-| 2   | Requirements, Constraints & Quality Attributes | 1. Role & Mindset            |
-| 3   | Trade-Offs & Decision Making                 | 1. Role & Mindset              |
-| 4   | Design Principles                            | 2. Design Foundations          |
-| 5   | Architectural Styles                         | 2. Design Foundations          |
-| 6   | Architecture & Design Patterns               | 2. Design Foundations          |
-| 7   | Domain-Driven Design Essentials              | 2. Design Foundations          |
-| 8   | Modularity, Coupling & Boundaries            | 2. Design Foundations          |
-| 9   | Data Architecture                            | 3. Cross-Cutting Concerns      |
-| 10  | Integration & API Architecture               | 3. Cross-Cutting Concerns      |
-| 11  | Security Architecture                        | 3. Cross-Cutting Concerns      |
-| 12  | Scalability, Performance & Resilience        | 3. Cross-Cutting Concerns      |
-| 13  | Operations, Deployment & Cost                | 3. Cross-Cutting Concerns      |
-| 14  | Documentation & Diagrams                     | 4. Documenting & Communicating |
-| 15  | Communicating & Influencing                  | 4. Documenting & Communicating |
-| 16  | Evolutionary Architecture & Technical Debt   | 5. Evolving & Governing        |
-| 17  | Architecture Governance & Quality            | 5. Evolving & Governing        |
-| 18  | Teams & Delivery                             | 5. Evolving & Governing        |
-| 19  | Mobile App Architecture (New)                | 6. Your Domain                 |
-| 20  | Architecting AI-Enabled Systems (New)        | 6. Your Domain                 |
-| 21  | Architecture Interview Answers (New)         | 7. Interview & Practice        |
-| 22  | Practice: Case Studies & Exercises           | 7. Interview & Practice        |
+| #   | Topic                                        | Stage                          | Mark |
+| --- | -------------------------------------------- | ------------------------------ | ---- |
+| 1   | What an Architect Does                       | 1. Role & Mindset              | 🟢   |
+| 2   | Requirements, Constraints & Quality Attributes | 1. Role & Mindset              | 🟢   |
+| 3   | Trade-Offs & Decision Making                 | 1. Role & Mindset              | 🟢   |
+| 4   | Design Principles                            | 2. Design Foundations          | 🟢   |
+| 5   | Architectural Styles                         | 2. Design Foundations          | 🟢   |
+| 6   | Architecture & Design Patterns               | 2. Design Foundations          | 🟢   |
+| 7   | Domain-Driven Design Essentials              | 2. Design Foundations          | 🟢   |
+| 8   | Modularity, Coupling & Boundaries            | 2. Design Foundations          | 🟢   |
+| 9   | Data Architecture                            | 3. Cross-Cutting Concerns      | 🟢   |
+| 10  | Integration & API Architecture               | 3. Cross-Cutting Concerns      | 🟢   |
+| 11  | Security Architecture                        | 3. Cross-Cutting Concerns      | 🟢   |
+| 12  | Scalability, Performance & Resilience        | 3. Cross-Cutting Concerns      | 🟢   |
+| 13  | Operations, Deployment & Cost                | 3. Cross-Cutting Concerns      | 🟢   |
+| 14  | Documentation & Diagrams                     | 4. Documenting & Communicating | 🟢   |
+| 15  | Communicating & Influencing                  | 4. Documenting & Communicating | 🟢   |
+| 16  | Evolutionary Architecture & Technical Debt   | 5. Evolving & Governing        | 🟢   |
+| 17  | Architecture Governance & Quality            | 5. Evolving & Governing        | 🟢   |
+| 18  | Teams & Delivery                             | 5. Evolving & Governing        | 🟢   |
+| 19  | Mobile App Architecture (New)                | 6. Your Domain                 | 🟢   |
+| 20  | Architecting AI-Enabled Systems (New)        | 6. Your Domain                 | 🟢   |
+| 21  | Architecture Interview Answers (New)         | 7. Interview & Practice        | 🟢   |
+| 22  | Practice: Case Studies & Exercises           | 7. Interview & Practice        | 🟢   |
+| 99  | Architecture Cheat Sheet                     | Revision                       | 🟢   |
 
-**Short on time:** 1, 2, 3, 4, 5, 8, 10, 12, 14, 16, 19, 21. 🟢 items only.
+**Short on time:** 1, 2, 3, 4, 5, 8, 10, 12, 14, 16, 19, 21, then the cheat sheet (99). 🟢 items only.
 
 **Glossary:** the terms to learn first are listed at the end, each with a priority mark and the topic that explains it.
 
@@ -497,3 +499,4 @@ Plain meanings, with a priority. The last column is the topic that explains the 
 5. Do topic 19 alongside your daily mobile work: look at your own app and find its layers, boundaries, and debt.
 6. Do topics 21 and 22 last, and tell your decision stories out loud.
 7. For each topic: what it is, what problem it solves, how it works, one downside.
+8. The night before an interview, read `99-Architecture-Cheat-Sheet`, then the `Say This in the Interview` part of the topics you are least sure of.

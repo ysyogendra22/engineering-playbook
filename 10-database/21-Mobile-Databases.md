@@ -1,138 +1,307 @@
 # Mobile Databases
 
-Roadmap topic 21 · Stage 7: Mobile · (New)
+> Every phone app can have a real SQL database inside it: SQLite, usually through Room on Android and Core Data or SwiftData on iOS. Use it as the source of truth for offline-first apps, keep it off the main thread, and migrate it for every old app version.
 
-**Marks:** 🟢 Must Know · 🟡 Good to Know · (New) for a mobile engineer, or still changing
+Roadmap topic 21 · Stage 7: Mobile (New)
 
-**In simple words:** everything in Stages 1–3 of this folder — modeling, SQL, indexes, transactions, migrations — applies inside your phone too. The database is just embedded (`1`, item 4) instead of a network service, and every user's copy has to upgrade itself, alone, with no DBA watching over it.
+**Go deeper:** `06-mobile-engineering/09-Local-Storage-and-Offline-First` (the full client design) · `05-system-design/30-Mobile-Specific-Topics` (the server side of sync) · `10` Schema Migrations · `5` Indexes · `18` Security · `06-mobile-engineering/16-iOS-and-Swift-Essentials`.
 
----
+**Marks:** 🟢 must know · 🟡 good to know · (New) for a mobile engineer, or still changing
 
-#### 1. SQLite: the Embedded Database in Every Phone — 🟢 Must Know
-
-SQLite runs **inside** the app's own process (`1`, item 4), reading and writing a local file — no server, no network. It's the foundation underneath both platforms' local persistence libraries (item 2).
+**How the examples are checked:** the SQL (ID mapping, tombstones, pagination, migrations, WAL) runs on SQLite 3.54, the same engine as on phones; Room, Core Data and SwiftData code is shown and not compiled.
 
 ---
 
-#### 2. Room and Core Data / SwiftData — 🟢 Must Know
+#### 1. What Is It?
 
-**Room** (Android) is a type-safe layer built directly on top of SQLite — entities, DAOs, and queries in Kotlin, with compile-time checking of your SQL. **Core Data** and **SwiftData** (iOS) play the equivalent role. Full implementation detail lives in `06-mobile-engineering/9` and `06-mobile-engineering/16`; this topic connects that concrete detail back to general database theory.
+*The on-device database and how it fits with the server.*
+
+| 🟢 Must know | 🟡 Good to know |
+|---|---|
+| SQLite: the embedded database in every phone | sync design: changes since, conflicts, deletes |
+| Room (Android), Core Data / SwiftData (iOS) | encryption on device (SQLCipher) |
+| never use the database on the main thread | storing large data: files vs blobs |
+| schema versions and on-device migrations | testing database code and migrations |
+| offline-first: local DB is the source of truth | other options and their status (check current support) |
+| indexes and query design apply on the device | local IDs vs server IDs |
+| key-value settings vs a real database | |
+
+1. **SQLite:** a small, serverless SQL engine in one file, with ACID transactions. The most widely deployed database.
+2. **Room:** Android's library over SQLite (entities, DAOs, `Flow`, migrations, compile-time query checks).
+3. **Core Data / SwiftData:** Apple's object-graph persistence (backed by SQLite by default).
+4. **Offline-first:** the UI reads and writes the local database; a sync engine reconciles with the server.
+
+**Signals in an interview:** "how do you store data offline?", "how do you migrate the local database?", "Room vs DataStore?", "how do you sync?", "how do you handle IDs for offline-created items?".
+
+---
+
+#### 2. How It Works
+
+**Layers on a phone.**
+
+```mermaid
+flowchart LR
+    UI["UI"] --> VM["ViewModel"] --> REPO["Repository"] --> DAO["DAO / Room"] --> DB[("SQLite file<br/>WAL mode")]
+    REPO --> SYNC["Sync worker (WorkManager)"] --> API["Server API"]
+    DB -->|"Flow: UI updates on change"| UI
+```
+
+**Room essentials.** `@Entity` = table, `@Dao` = queries (checked at compile time), `@Database` = holder with a version. DAO functions are `suspend` (run off the main thread) or return `Flow` (re-emit when tables change). Room refuses main-thread queries by default.
+
+**Never access the database on the main thread.** Disk IO can take milliseconds to seconds; blocking the UI causes jank and ANRs (`MOB 11`). Use `suspend` DAOs / `Flow`, `Dispatchers.IO`, or Swift `actor`/background contexts.
+
+**Settings vs a real database.**
+
+| Need | Use |
+|---|---|
+| a few flags and preferences | DataStore (Android), `UserDefaults` (iOS) |
+| structured, queryable, relational data, lists, search, sync state | Room / SQLite, Core Data / SwiftData |
+| secrets (tokens) | Keystore/Keychain-backed storage, not a plain database |
+| big files (photos, videos) | files on disk; keep paths and metadata in the database |
+
+**Schema versions and on-device migrations.** There is no migration job you control: **every old app version upgrades itself on the user's device**, from whatever version it has. You must supply a migration path from every supported old schema version to the latest, and test each. A missing path crashes the app (or wipes user data with a destructive migration). This is the mobile twist on topic 10.
+
+**Offline-first.** Local database = source of truth for the UI. Writes go to the local database first (with a local ID and a `dirty` flag), then a sync worker pushes them; pulls bring server changes in. See the full design in `MOB 9` and `SD 30`.
+
+**Indexes and query design apply on the device too.** Phones are slower and have less memory; unindexed queries over thousands of rows cause visible jank. Index foreign keys, filter and sort columns; use keyset pagination; select only needed columns (Android's `CursorWindow` limits a row result to ~2 MB, so don't store huge blobs in rows).
+
+🟡 **Sync design: changes since, conflicts, deletes.**
+
+1. **Pull:** `GET /changes?since=<cursor>`; apply in a transaction; save the cursor after applying.
+2. **Push:** send `dirty` rows (outbox) with an idempotency key; mark clean on success.
+3. **Conflicts:** same record changed on both sides: last-write-wins by server version, field merge, or ask the user (`SD 23`).
+4. **Deletes:** **tombstones** (`deleted = 1`, kept until synced), otherwise the next pull resurrects the item or the server never learns of the delete.
+
+🟡 **Local IDs vs server IDs.** The client must be able to create records offline, so give them a **client-generated ID** (UUID/ULID) and keep an optional `server_id` once the server assigns one. Or make the UUID the server's ID too, which removes the mapping (`SD 20`).
+
+🟡 **Encryption on device.** The app sandbox already isolates files, and the OS encrypts storage on locked devices. For highly sensitive data add encryption: SQLCipher (encrypted SQLite) with a key kept in the Keystore/Keychain, or per-field encryption. Check the current recommended APIs; don't roll your own crypto (`MOB 13`).
+
+🟡 **Large data: files vs blobs.** Store big binary data (images, audio, documents) as files and keep path and metadata in the database; blobs bloat the database, slow queries and hit cursor-size limits.
+
+🟡 **Testing database code and migrations.** In-memory Room databases for DAO tests; `MigrationTestHelper` for every old version to latest; schema export (`exportSchema = true`) committed to source control; tests for sync (fake server), conflict rules and tombstones.
+
+🟡 **Other options and their status.** Realm and Firebase local persistence exist; support, licences and maintenance change (for example, vendors have announced end-of-life or changes for some mobile-sync products), so **check each library's current status before choosing**. Room/SQLite and Core Data/SwiftData are platform-supported defaults. Cross-platform: SQLDelight (Kotlin Multiplatform) over SQLite.
+
+---
+
+#### 3. Naive vs Better Design
+
+| Naive | Better |
+|---|---|
+| UI waits for the network and shows a spinner offline | UI reads Room; sync updates it |
+| database call on the main thread | `suspend`/`Flow`, `Dispatchers.IO` |
+| `fallbackToDestructiveMigration()` on user data | real, tested migrations |
+| auto-increment local IDs sent to the server | client UUIDs (or a `server_id` mapping) |
+| delete the row locally | tombstone until synced |
+| store images as blobs | files on disk + path in the database |
+| preferences stored in Room rows | DataStore/`UserDefaults` for settings |
+| no index on filter/sort columns | indexes on the columns queries use |
 
 ```kotlin
-@Entity(tableName = "notes")
-data class NoteEntity(@PrimaryKey val id: String, val title: String, val updatedAt: Long)
-
-@Dao
-interface NoteDao {
-    @Query("SELECT * FROM notes ORDER BY updatedAt DESC")
-    fun getAllNotes(): Flow<List<NoteEntity>>   // the same SQL fundamentals from topic 3, underneath
-}
+// Naive: wipes the user's data on every schema change
+Room.databaseBuilder(ctx, AppDatabase::class.java, "app.db").fallbackToDestructiveMigration().build()
 ```
 
 ---
 
-#### 3. Never Access the Database on the Main Thread — 🟢 Must Know
+#### 4. SQL & Code
 
-The same rule as `06-mobile-engineering/1`'s main-thread discipline, applied specifically to the database: any disk I/O (even a small local query) can be slow enough to jank the UI or trigger an ANR if done synchronously on the main thread. Room enforces this by default.
+Entities and DAO (Room):
+
+```kotlin
+@Entity(tableName = "notes", indices = [Index("updatedAt"), Index(value = ["serverId"], unique = true)])
+data class NoteEntity(
+    @PrimaryKey val localId: String,                // client-generated UUID
+    val serverId: Long? = null,                     // assigned by the server after the first push
+    val title: String, val body: String = "",
+    val updatedAt: Long, val dirty: Boolean = true, val deleted: Boolean = false     // outbox flag and tombstone
+)
+
+@Dao interface NoteDao {
+    @Query("SELECT * FROM notes WHERE deleted = 0 ORDER BY updatedAt DESC LIMIT :limit")
+    fun observe(limit: Int = 50): Flow<List<NoteEntity>>
+
+    @Query("SELECT * FROM notes WHERE deleted = 0 AND updatedAt < :before ORDER BY updatedAt DESC LIMIT :limit")   // keyset paging
+    suspend fun page(before: Long, limit: Int = 50): List<NoteEntity>
+
+    @Query("SELECT * FROM notes WHERE dirty = 1") suspend fun pending(): List<NoteEntity>
+    @Upsert suspend fun upsert(note: NoteEntity)
+}
+
+@Database(entities = [NoteEntity::class], version = 3, exportSchema = true)
+abstract class AppDatabase : RoomDatabase() { abstract fun notes(): NoteDao }
+```
+
+Local ID to server ID mapping and tombstones (SQL on SQLite, the same on a phone):
+
+```sql
+-- two notes created offline
+INSERT INTO note(local_id, title, updated_at) VALUES ('uuid-1','Buy milk',1), ('uuid-2','Plan',2);            -- dirty = 1
+-- the push succeeds for uuid-1: the server answers with id 101
+UPDATE note SET server_id = 101, dirty = 0 WHERE local_id = 'uuid-1';
+
+-- pull: server changes (101 renamed, 102 created on another device, 101 then deleted)
+UPDATE note SET title = COALESCE(:title, title), deleted = :deleted, updated_at = :ts, dirty = 0 WHERE server_id = :sid AND dirty = 0;
+-- no row for an unknown server id → INSERT it with a new local UUID
+```
+
+Checks: after applying the three changes, the table holds `uuid-1` (server 101, title "Buy oat milk", `deleted = 1`, clean), `uuid-2` (still dirty, never synced) and `srv-102` ("From other device", clean). The list screen query (`deleted = 0 ORDER BY updated_at DESC`) shows `srv-102` and `uuid-2`. A dirty local row is **not** overwritten by the pull (the `AND dirty = 0` guard) so a pending local edit isn't lost: a conflict rule decides later.
+
+Migrations and their tests:
+
+```kotlin
+val MIGRATION_2_3 = object : Migration(2, 3) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE notes ADD COLUMN deleted INTEGER NOT NULL DEFAULT 0")       // tombstone column
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_notes_serverId ON notes(serverId)")
+    }
+}
+Room.databaseBuilder(ctx, AppDatabase::class.java, "app.db")
+    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+    .setJournalMode(RoomDatabase.JournalMode.WRITE_AHEAD_LOGGING).build()
+
+@Test fun migrateAllOldVersionsToLatest() {
+    for (v in 1..2) {
+        helper.createDatabase("test.db", v).close()
+        helper.runMigrationsAndValidate("test.db", 3, true, MIGRATION_1_2, MIGRATION_2_3)       // every path must reach the latest
+    }
+}
+```
+
+Keyset pagination on the device (the SQL behind `page()`):
+
+```sql
+SELECT * FROM notes WHERE deleted = 0 AND updated_at < :before ORDER BY updated_at DESC, local_id DESC LIMIT 50;
+-- an index on (deleted, updated_at) makes each page cost about the same, however deep the list is
+```
+
+Apply a pull page atomically and save the cursor after it:
+
+```kotlin
+@Transaction suspend fun applyChanges(changes: List<ServerChange>, nextCursor: String) {
+    changes.forEach { apply(it) }            // upsert / tombstone, skipping rows with dirty = 1
+    cursors.save(nextCursor)                 // only after the page is applied
+}
+```
+
+DataStore for settings (not Room):
+
+```kotlin
+val Context.settings by preferencesDataStore("settings")
+suspend fun Context.setDarkMode(on: Boolean) = settings.edit { it[booleanPreferencesKey("dark")] = on }
+```
+
+iOS equivalents (not compiled):
+
+```swift
+@Model final class Note {                          // SwiftData
+    @Attribute(.unique) var localId: String
+    var serverId: Int?
+    var title: String
+    var updatedAt: Date
+    var dirty = true
+    var deleted = false
+    init(localId: String, title: String, updatedAt: Date) { self.localId = localId; self.title = title; self.updatedAt = updatedAt }
+}
+// Core Data: lightweight migrations for added attributes; mapping models for bigger changes; test migrations from every shipped model version.
+```
+
+Inspect the database on a device or emulator:
+
+```bash
+adb shell run-as com.example.notes ls databases/
+adb exec-out run-as com.example.notes cat databases/app.db > app.db && sqlite3 app.db ".tables" "PRAGMA user_version;"
+```
 
 ---
 
-#### 4. Schema Versions and On-Device Migrations — 🟢 Must Know
+#### 5. Numbers & Limits
 
-*The mobile-specific twist on topic `10`'s migration discipline — genuinely harder here.*
-
-**Every old app version, installed on a real user's device, must be able to upgrade its local schema on its own** — there's no DBA running a migration script; the migration code ships inside the app itself and runs automatically the first time the updated app opens against the old local database. A broken migration doesn't just fail loudly — it can silently corrupt or lose a real user's local data.
-
----
-
-#### 5. Offline-First: the Local Database as Source of Truth — 🟢 Must Know
-
-The single most distinctive mobile database pattern (`06-mobile-engineering/9`, `SD 30`): the local database **is** the source of truth for the UI; the network's job is to **sync** it, not to feed the UI directly. This is what makes the app usable through flaky, intermittent connectivity — a normal phone condition, not an edge case.
-
----
-
-#### 6. Indexes and Query Design Apply on the Device Too — 🟢 Must Know
-
-Topic `5`'s indexing principles are not just a "big server database" concern — a local table with a few thousand unindexed rows can visibly lag a screen on a phone's much more limited hardware. Design the local schema from the actual queries the app runs, exactly as `2`, item 4 recommends generally.
+| Item | Rule of thumb |
+|---|---|
+| SQLite size | comfortable up to hundreds of MB–GBs on a phone; keep it lean |
+| Writers | one writer at a time (WAL allows readers during a write) |
+| Main-thread budget | no database work; a single query can exceed a 16 ms frame |
+| Row/cursor size | Android `CursorWindow` ≈ 2 MB per window; avoid huge rows/blobs |
+| Page size for lists | 20–50 rows |
+| Batch writes | one transaction per batch of hundreds of rows (10–100× faster than single commits) |
+| Migrations | one per schema version; test every path from every shipped version |
+| Old app versions | support the versions covering ≥ 95–99% of active users |
+| Cursor/sync batch | 100–500 changes per request |
+| Storage cleanup | clear caches on logout and low storage; keep user data |
 
 ---
 
-#### 7. Key-Value Settings Storage vs a Real Database — 🟢 Must Know
+#### 6. Common Mistakes & Edge Cases
 
-For simple settings (a theme preference, a feature flag cache), a lightweight key-value store (DataStore on Android) is more appropriate than a full relational database — reserve Room/SQLite for genuinely structured, queryable data (notes, messages, any real entity with relationships).
+1. Database or file work on the main thread.
+2. Destructive migrations on user data; missing migration paths.
+3. Server-assigned IDs only, so offline creation is impossible.
+4. Deleting locally with no tombstone.
+5. Storing large blobs and files inside rows.
+6. Overwriting dirty local rows during a pull.
+7. Saving the sync cursor before applying the page.
+8. No indexes on list/sort columns; loading thousands of rows.
+9. Putting secrets in a plain database.
 
----
-
-#### 8. Sync Design — 🟡 Good to Know
-
-**Changes since a timestamp/cursor** (the same keyset-pagination idea from `3`, item 7, applied to sync), **conflict resolution** (last-write-wins or a merge rule, `16` item 9), and **deletes** — handled with **tombstones** (a marker for a deleted record, so the delete itself can sync, `06-mobile-engineering/9`).
-
----
-
-#### 9. Encryption on Device — 🟡 Good to Know
-
-**SQLCipher** (an encrypted SQLite variant) or platform-provided encrypted storage options protect local data at rest — relevant for genuinely sensitive local data, connecting to `18`'s "encryption at rest" principle and `06-mobile-engineering/13`'s mobile security guidance.
+Edge cases: the app updated from a very old version; low storage during a migration; the process killed mid-sync (transactions and idempotency keys make it safe); multiple processes or widgets opening the same database; device clock changes (use server versions); logout with unsynced changes (warn or keep); backup and restore to a new phone (`allowBackup` rules, topic 18 and `MOB 13`).
 
 ---
 
-#### 10. Storing Large Data: Files vs Blobs — 🟡 Good to Know
+#### 7. Say This in the Interview
 
-The same principle from `2`, item 13, applied locally: store large binary data (downloaded images, documents) as **files**, with only a path or reference in the database — bloating local SQLite rows with large blobs slows queries and wastes app storage.
-
----
-
-#### 11. Testing Database Code and Migrations — 🟡 Good to Know
-
-An in-memory Room database for fast repository tests, and **dedicated migration tests** that actually run each migration against real sample data (`06-mobile-engineering/12`) — the mobile-specific application of topic `10`'s "test migrations on a copy of real data" principle, made even more important given item 4's stakes.
+1. "SQLite is the embedded database in every phone; I use Room on Android (Core Data or SwiftData on iOS), with `suspend` DAOs and `Flow`, never on the main thread."
+2. "For offline-first the local database is the source of truth: writes go local first with a client UUID and a dirty flag, a WorkManager job pushes them with an idempotency key, pulls use a cursor saved after the page is applied, and deletes are tombstones."
+3. "Every old app version must upgrade its own database, so I keep a tested migration path for each version and never use destructive migration on user data."
+4. "Indexes and keyset pagination matter on the device too; big files live on disk, with paths in the database."
+5. "Settings go to DataStore, secrets to the Keystore, and sensitive data can use SQLCipher with a Keystore-held key."
 
 ---
 
-#### 12. Other Options and Their Status — 🟡 Good to Know
+#### 8. Quick Check
 
-Realm and Firebase's local persistence are alternative options — **check each library's current support and maintenance status before choosing**, since this specific area of the mobile ecosystem changes over time.
+1. Why client-generated IDs?
+2. What is a tombstone?
+3. Room or DataStore for user notes?
+4. Why test migrations from every old version?
 
----
+<details>
+<summary>Answers</summary>
 
-#### 13. Local IDs Mapping to Server IDs — 🟡 Good to Know
+1. So records can be created offline without waiting for the server, and retries are idempotent.
+2. A marker (`deleted = 1`) that keeps a deleted record until the delete has synced.
+3. Room: structured, queryable data; DataStore is for small settings.
+4. Users upgrade from any old version, and a missing path crashes the app or loses data.
 
-When a record is created offline before ever reaching the server, it needs a **local ID** that later reconciles with the **server-assigned ID** once synced (`SD 20`) — a real design detail in any offline-first sync system, not an afterthought.
-
----
-
-#### 14. Common Interview Questions
-
-1. **Why is a broken Room/SQLite migration more dangerous on mobile than a broken server migration?**
-   It ships inside the app and runs automatically on a real user's device, with no DBA supervising it — a failure can silently corrupt or lose that specific user's local data, and there's no way to intervene remotely.
-2. **What makes "offline-first" the recommended default for mobile apps?**
-   The local database is the source of truth the UI observes; the network syncs it in the background — this keeps the app working through the flaky, intermittent connectivity that's a normal phone condition, not a rare edge case.
-3. **Do indexing principles from server databases apply to a local mobile database?**
-   Yes — a local table with even a few thousand unindexed rows can visibly lag a screen, especially on more limited phone hardware; design local schema and indexes from the app's actual queries.
-4. **How would you design sync for an offline-first notes app?**
-   Track changes since a cursor/timestamp, choose a conflict resolution rule appropriate to the feature, and use tombstones so deletes propagate correctly — the same core ideas as server-side sync, applied locally.
+</details>
 
 ---
 
-#### 15. Common Mistakes
+#### 9. Practice
 
-1. Querying the local database synchronously on the main thread.
-2. Shipping a schema migration untested against real, populated sample data.
-3. Feeding the UI from the network directly instead of treating the local database as the source of truth.
-4. Storing large binary blobs (photos) directly in SQLite rows instead of as files.
+**Interview questions**
 
----
+1. How do you store and query data offline on a phone?
+2. How do you migrate the local schema?
+3. How do you sync local changes with the server and handle conflicts?
+4. Room vs DataStore vs files?
+5. How do you handle IDs for items created offline?
+6. How do you keep the UI fast with a large local database?
 
-#### 16. Related Topics
+**Hands-on**
 
-1. `06-mobile-engineering/9` Local Storage & Offline-First — full implementation-level detail
-2. `06-mobile-engineering/16` iOS & Swift Essentials — Core Data and SwiftData
-3. `10` Schema Migrations & Evolution — the general migration discipline this topic specialises for mobile
-4. `SD 30` Mobile-Specific Topics — offline-first from the system design side
+1. Write the Room entities and DAO above, add a migration, and test version 1 → 3.
+2. Implement the push/pull SQL for local and server IDs and tombstones against a fake server.
+3. Open your app's database on an emulator with `sqlite3` and run `EXPLAIN QUERY PLAN` on its main list query.
+4. Add keyset pagination and an index, and compare with `OFFSET` on 100,000 rows.
 
----
+**Coding warm-ups (LeetCode)**
 
-#### 17. Interview Must Remember
+| # | Question | Link to this topic |
+|---|---|---|
+| 146 | [LRU Cache](https://leetcode.com/problems/lru-cache/) (Medium) | an on-device cache layer |
+| 1146 | [Snapshot Array](https://leetcode.com/problems/snapshot-array/) (Medium) | versions and sync snapshots |
+| 981 | [Time Based Key-Value Store](https://leetcode.com/problems/time-based-key-value-store/) (Medium) | changes since a timestamp |
+| 380 | [Insert Delete GetRandom O(1)](https://leetcode.com/problems/insert-delete-getrandom-o1/) (Medium) | O(1) local store operations |
 
-1. **SQLite is embedded** (`1`, item 4) — no server, runs inside the app's own process.
-2. **Every old app version must self-migrate its local schema** — no DBA supervising it.
-3. **Offline-first**: local database is the source of truth, network syncs it.
-4. **Indexing and query design matter locally too** — phone hardware is more limited, not exempt from the same principles.
+**Remember:** SQLite via Room / Core Data / SwiftData · never on the main thread · local DB is the source of truth · client UUIDs, dirty flags, tombstones · cursor saved after the page · migrate from every old version, no destructive migrations · indexes and keyset paging · files for big data · DataStore for settings.

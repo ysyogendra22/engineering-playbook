@@ -1,178 +1,227 @@
 # AI Landscape & ML Basics
 
+> Before building with LLMs, know the map: what AI, machine learning, deep learning and generative AI mean, how a model learns, and how to tell whether it is any good.
+
 Roadmap topic 1 · Stage 1: Foundations
 
-**Marks:** 🟢 Must Know · 🟡 Good to Know · (New) a newer idea, still changing
+**Go deeper:** `2` How LLMs Work · `3` Training, Fine-Tuning & Model Choice · `15` Evaluation & Quality · `16` Safety (bias) · `001-AI Terminology - Basic` (35 plain-language terms).
 
-**In simple words:** AI is a big field. Machine learning is one way to build it: instead of writing rules, you show a program many examples and it learns the pattern. LLMs are one kind of machine learning model. Know how these words fit together, because interviews start here.
+**Marks:** 🟢 must know · 🟡 good to know · (New) still changing
 
 ---
 
-#### 1. AI, ML, Deep Learning, Generative AI, LLM — 🟢 Must Know
+#### 1. What Is It?
 
-*Each word is a smaller circle inside the one before it.*
+*The vocabulary and the habits of thinking that every later topic uses.*
 
-```text
-AI  (any software that seems intelligent)
- └─ Machine learning  (learns patterns from data)
-     └─ Deep learning  (ML with many-layer neural networks)
-         └─ Generative AI  (creates new text, images, audio, code)
-             └─ LLM  (generative AI for text: predicts the next token)
+| 🟢 Must know | 🟡 Good to know |
+|---|---|
+| AI vs ML vs deep learning vs generative AI vs LLM | precision, recall, accuracy (when accuracy misleads) |
+| training vs inference | classic ML tasks: classification, regression, clustering, recommendation |
+| supervised, unsupervised, reinforcement learning | the neural network idea (layers, weights, learning from errors) |
+| overfitting; train / validation / test data | bias and fairness: where they come from |
+
+1. **AI** is software that does tasks that normally need human intelligence.
+2. **Machine learning (ML)** learns patterns from data instead of following hand-written rules.
+3. **Deep learning** is ML with many-layered neural networks.
+4. **Generative AI** creates new content (text, images, audio, code).
+5. **LLM** (large language model) is a generative model for text, trained to predict the next token.
+
+**Signals in an interview:** "what is the difference between AI and ML?", "training vs inference", "why is 99% accuracy not good?", "what is overfitting?".
+
+---
+
+#### 2. How It Works
+
+**The nesting.**
+
+```mermaid
+flowchart TD
+    AI["AI: any software that appears intelligent"] --> ML["Machine learning: learns from data"]
+    ML --> DL["Deep learning: neural networks with many layers"]
+    DL --> GEN["Generative AI: creates new content"]
+    GEN --> LLM["LLMs: text (and often images, audio)"]
 ```
 
-1. **AI** — software that does tasks that normally need human intelligence.
-2. **Machine learning (ML)** — the program learns from data instead of following hand-written rules.
-3. **Deep learning** — ML that uses neural networks with many layers. Good at images, voice, and language.
-4. **Generative AI** — creates new content instead of only labelling existing content.
-5. **LLM (large language model)** — a model trained on huge amounts of text. ChatGPT-style assistants are built on LLMs.
-
-**Example:** a spam filter is ML (it learns from labelled emails). Face Unlock is deep learning. An assistant that writes an email is generative AI, powered by an LLM.
-
----
-
-#### 2. Training vs Inference — 🟢 Must Know
-
-*Training is learning. Inference is using what was learned.*
+**Training vs inference.**
 
 | | Training | Inference |
 |---|---|---|
-| What happens | The model learns from data | The trained model answers a request |
-| Cost | Very high, done rarely | Small per request, but paid on every call |
-| Who does it | Model providers, big labs | You, every time your app calls a model |
+| What happens | the model adjusts its weights to reduce errors on data | the trained model produces an output for new input |
+| Cost | very high (many GPUs, days to months) | per request (small, but at scale it dominates) |
+| Who does it | model providers (you rarely train from scratch) | your app, through an API or on a device |
+| Changes the model? | yes | no |
 
-1. As an app developer you almost always do **inference**: you call a model that someone else trained.
-2. Every API call to an LLM is inference. That is what you pay for.
-3. A trained model is fixed. It does not learn from your calls unless someone trains it again.
+**Three ways to learn.**
 
-**Mobile view:** training is like building and shipping the app. Inference is like the app running on a user's phone.
-
----
-
-#### 3. Three Ways Machines Learn — 🟢 Must Know
-
-*The difference is what kind of feedback the model gets.*
-
-| Type | Feedback | Example |
+| Type | Idea | Example |
 |---|---|---|
-| **Supervised** | Examples with the right answer (labels) | Email marked "spam" or "not spam" |
-| **Unsupervised** | No answers. The model finds groups or patterns | Grouping customers with similar behaviour |
-| **Reinforcement** | A reward or penalty for actions | A game-playing agent, or tuning a chat model to give better answers |
+| Supervised | learn from labelled examples (input → correct answer) | spam vs not spam; price prediction |
+| Unsupervised | find structure in unlabelled data | customer clustering, anomaly detection |
+| Reinforcement | learn by trial, reward and penalty | game playing, robot control; shaping chat behaviour (RLHF, topic 3) |
 
-1. Most business ML is supervised.
-2. LLMs are first trained by predicting the next token in text. This needs no human labels.
-3. After that, reinforcement-style training (from human feedback) shapes how helpful and safe they are (topic `03`).
+**Classic ML tasks.** *Classification* (which category?), *regression* (what number?), *clustering* (which items group together?), *recommendation* (what might this user like?).
 
----
+**The neural network idea (no math).** Layers of simple units pass numbers forward. Each connection has a **weight**. During training, the model compares its output with the right answer, measures the error, and nudges the weights to reduce it, millions of times. After training, the weights hold what it "learned".
 
-#### 4. Overfitting and Data Splits — 🟢 Must Know
+**Train / validation / test.**
 
-*A model that memorizes its practice questions will fail the real exam.*
-
-1. **Overfitting** — the model does very well on its training data but badly on new data. It memorized instead of learning the pattern.
-2. To detect it, split the data:
-
-```text
-Training set    → the model learns from this
-Validation set  → you tune settings with this
-Test set        → you check the final result, once
+```mermaid
+flowchart LR
+    D["All labelled data"] --> TR["Train (≈70–80%)<br/>the model learns here"]
+    D --> VA["Validation (≈10–15%)<br/>tune settings, pick the best version"]
+    D --> TE["Test (≈10–15%)<br/>used once at the end, to report quality"]
 ```
 
-3. Never test on data the model has already seen. The score would look better than reality.
-4. This same idea returns in evaluation for LLM apps (topic `15`): test on examples the prompt was not built around.
+**Overfitting.** The model memorises the training data (including noise) and fails on new data. Sign: high training score, much lower validation score. Fixes: more or better data, a simpler model, regularisation, early stopping, and never tuning on the test set.
 
----
+🟡 **Precision, recall, accuracy.** Given predictions on a "positive" class (say, spam):
 
-#### 5. Accuracy, Precision, Recall — 🟡 Good to Know
-
-*Accuracy can look great while the model is useless.*
-
-Example: fraud is 1 in 100 transactions. A model that always says "not fraud" is **99% accurate** and catches **zero** fraud.
-
-1. **Precision** — of the items the model flagged, how many were really positive. (Few false alarms.)
-2. **Recall** — of all the real positives, how many the model found. (Few misses.)
-3. Choose by cost of the mistake: for fraud, missing a case is worse (favour recall). For an auto-ban system, a false alarm is worse (favour precision).
-
----
-
-#### 6. Classic ML Tasks — 🟡 Good to Know
-
-*Many "AI features" are one of these four jobs. Not everything needs an LLM.*
-
-| Task | Question it answers | Example |
+| Metric | Meaning | Formula |
 |---|---|---|
-| Classification | Which category? | Spam or not spam |
-| Regression | What number? | Estimated delivery time |
-| Clustering | Which items are similar? | Group similar photos |
-| Recommendation | What should the user see next? | "You may also like" |
+| Accuracy | how many predictions were right | (TP + TN) / all |
+| Precision | when it says positive, how often is it right | TP / (TP + FP) |
+| Recall | of all real positives, how many it found | TP / (TP + FN) |
+| F1 | balance of precision and recall | 2 × P × R / (P + R) |
 
-A small classic model is often cheaper, faster, and easier to test than an LLM for these tasks.
+**Accuracy misleads on rare events.** If only 1% of emails are spam, a model that always says "not spam" is 99% accurate and catches nothing (recall 0).
 
----
-
-#### 7. Neural Networks in One Minute — 🟡 Good to Know
-
-*Layers of simple math units. The numbers between them are learned.*
-
-1. A neural network is layers of small units. Each unit takes numbers in and passes numbers out.
-2. The numbers that control it are **parameters** (also called **weights**). Training adjusts them to reduce mistakes.
-3. "Deep" means many layers.
-4. You do not need the math for interviews. Know: layers, weights, and "learning means adjusting weights to reduce error".
+🟡 **Bias and fairness.** Models copy patterns in their data: unrepresentative samples, historical bias, biased labels, and proxies (a postcode standing in for a protected group). Check performance by group, document limits, keep a human in the loop for high-stakes decisions (topic 16).
 
 ---
 
-#### 8. Bias and Fairness — 🟡 Good to Know
+#### 3. Naive vs Better Design
 
-*A model learns whatever its data contains, including unfair patterns.*
+| Naive | Better |
+|---|---|
+| "AI" for everything | pick the simplest tool: a rule, a query, a classic model, then an LLM |
+| judge a model by accuracy alone | precision, recall and cost of each error type |
+| tune on the test set | tune on validation; touch the test set once |
+| train on all the data | hold out data you never train on |
+| trust a model that was great in a demo | measure on your own data (topic 15) |
+| ignore who is missing from the data | check groups and edge cases |
 
-1. **Bias** — the model treats groups differently because the training data was unbalanced or reflected past unfairness.
-2. Sources: unbalanced data, missing groups, biased labels, and your own choices about what to measure.
-3. Reduce it: check results per group, use more representative data, and keep a human in the loop for high-impact decisions (loans, hiring).
-
----
-
-#### 9. Common Interview Questions
-
-1. **What is the difference between AI, ML, and deep learning?**
-   AI is the broad goal. ML learns from data. Deep learning is ML with many-layer neural networks.
-2. **Training vs inference?**
-   Training teaches the model and is costly. Inference uses the trained model and happens on every request.
-3. **What is overfitting and how do you spot it?**
-   The model memorizes training data and fails on new data. You see high training score, low test score.
-4. **Why can accuracy be misleading?**
-   With rare events, always predicting "no" scores high. Use precision and recall.
-5. **Supervised vs unsupervised learning?**
-   Supervised uses labelled examples. Unsupervised finds structure without labels.
-6. **Is an LLM machine learning?**
-   Yes. It is a deep learning model trained to predict the next token.
-7. **When would you not use an LLM?**
-   When a simple rule, a database query, or a small classic model does the job faster, cheaper, and more predictably.
+```kotlin
+// Naive: "always predict the common class" looks great and is useless
+fun predictSpam(email: String) = false
+```
 
 ---
 
-#### 10. Common Mistakes
+#### 4. Code
 
-1. Treating "AI" and "LLM" as the same thing.
-2. Using an LLM for a job that a rule or a small model handles better.
-3. Testing on the data used to build or tune the system.
-4. Judging a model by accuracy alone.
-5. Thinking a deployed model keeps learning from user requests by itself.
-6. Ignoring bias until users complain.
+Metrics from a confusion matrix, plus a train/validation/test split:
+
+```kotlin
+data class Confusion(val tp: Int, val fp: Int, val fn: Int, val tn: Int) {
+    val total get() = tp + fp + fn + tn
+    val accuracy get() = (tp + tn).toDouble() / total
+    val precision get() = if (tp + fp == 0) 0.0 else tp.toDouble() / (tp + fp)
+    val recall get() = if (tp + fn == 0) 0.0 else tp.toDouble() / (tp + fn)
+    val f1 get() = if (precision + recall == 0.0) 0.0 else 2 * precision * recall / (precision + recall)
+}
+
+fun <T> split(items: List<T>, trainPct: Int = 70, valPct: Int = 15, seed: Long = 42): Triple<List<T>, List<T>, List<T>> {
+    val shuffled = items.shuffled(java.util.Random(seed))
+    val nTrain = items.size * trainPct / 100
+    val nVal = items.size * valPct / 100
+    return Triple(shuffled.take(nTrain), shuffled.drop(nTrain).take(nVal), shuffled.drop(nTrain + nVal))
+}
+
+fun looksOverfit(trainScore: Double, valScore: Double, gap: Double = 0.1) = trainScore - valScore > gap
+```
+
+Checks: `Confusion(tp = 6, fp = 2, fn = 4, tn = 88)` → precision `0.75`, recall `0.6`, accuracy `0.94`, f1 `0.667`. The "always not spam" classifier on 1,000 emails with 10 spam: `Confusion(0, 0, 10, 990)` → accuracy `0.99` but recall `0.0`. `split` of 100 items → sizes `70, 15, 15` (the same seed gives the same split every time). `looksOverfit(0.99, 0.70)` → `true`; `(0.90, 0.88)` → `false`.
+
+Choosing a metric by the cost of mistakes:
+
+| Task | Costly error | Favour |
+|---|---|---|
+| spam filter | a real email lost (false positive) | precision |
+| cancer screening | a missed case (false negative) | recall |
+| fraud review queue | both, with limited reviewers | F1 or a chosen threshold |
 
 ---
 
-#### 11. Related Topics
+#### 5. Numbers & Limits
 
-1. `02` How LLMs Work
-2. `03` Training, Fine-Tuning & Model Choice
-3. `15` Evaluation & Quality
-4. `21` AI Interview Answer Points (when AI is needed at all)
+| Item | Rule of thumb |
+|---|---|
+| Split | 70 / 15 / 15 or 80 / 10 / 10 |
+| Class imbalance | if the positive class is under 5%, never rely on accuracy |
+| Overfitting signal | training score ≥ 10 points above validation |
+| Training cost | millions of dollars for frontier models; you will almost never train from scratch |
+| Data quality | small, clean, representative data beats large, noisy data |
+| Test set | use once; if you tune on it, it is no longer a test |
 
 ---
 
-#### 12. Interview Must Remember
+#### 6. Common Mistakes & Edge Cases
 
-1. **AI ⊃ ML ⊃ deep learning ⊃ generative AI ⊃ LLM.**
-2. **Training** is costly and rare. **Inference** is every request.
-3. **Overfitting** = memorized training data. Always test on unseen data.
-4. **Accuracy misleads** on rare events. Know precision and recall.
-5. Not every problem needs an LLM.
+1. Using AI where a rule or a SQL query would do.
+2. Reporting accuracy on imbalanced data.
+3. Tuning on the test set (the score becomes optimistic).
+4. Data leakage: the same user or document in both training and test sets.
+5. Believing a demo; no evaluation on real inputs.
+6. Ignoring bias in the data.
+7. Mixing up "the model learned it" with "the model looked it up".
+
+Edge cases: data drift (the world changes and the model decays); rare classes with few examples; labels that are wrong; distribution shift between training data and production; privacy of training data.
+
+---
+
+#### 7. Say This in the Interview
+
+1. "AI is the broad field, ML learns from data, deep learning uses many-layered neural networks, and generative AI creates new content; an LLM is a generative model for text."
+2. "Training changes the model's weights; inference uses the trained model. I use inference through an API, and I rarely train."
+3. "Accuracy can mislead on rare events; I look at precision and recall for the cost of each kind of error."
+4. "To avoid overfitting I hold out validation and test data, and I touch the test set once."
+5. "Before using an LLM I check whether a rule or classic model solves it more cheaply and predictably."
+
+---
+
+#### 8. Quick Check
+
+1. What is the difference between training and inference?
+2. Why is 99% accuracy not always good?
+3. What does a test set protect against?
+4. Name a source of bias.
+
+<details>
+<summary>Answers</summary>
+
+1. Training adjusts the model from data; inference runs the trained model on new input.
+2. On rare events a model that always predicts the common class scores high and finds nothing (recall 0).
+3. Fooling yourself: it gives an honest score on data the model never saw or was tuned on.
+4. Unrepresentative or historically biased data, biased labels, or proxy features.
+
+</details>
+
+---
+
+#### 9. Practice
+
+**Interview questions**
+
+1. AI vs ML vs deep learning vs generative AI vs LLM?
+2. Training vs inference?
+3. Supervised vs unsupervised vs reinforcement learning?
+4. What is overfitting, and how do you detect it?
+5. Precision vs recall: when does each matter?
+6. Where does bias come from?
+
+**Hands-on**
+
+1. Build a confusion matrix for a spam rule on 100 emails and compute the four metrics.
+2. Write a split function and check it gives the same result with the same seed.
+3. Find a feature in your app that an LLM is overkill for.
+
+**Coding warm-ups (LeetCode)**
+
+| # | Question | Link to this topic |
+|---|---|---|
+| 1 | [Two Sum](https://leetcode.com/problems/two-sum/) (Easy) | counting with a map |
+| 347 | [Top K Frequent Elements](https://leetcode.com/problems/top-k-frequent-elements/) (Medium) | frequency counting, as in class counts |
+| 528 | [Random Pick with Weight](https://leetcode.com/problems/random-pick-with-weight/) (Medium) | sampling from probabilities |
+
+**Remember:** AI ⊃ ML ⊃ deep learning ⊃ generative AI · training changes weights, inference uses them · accuracy misleads on rare events · hold out data, touch the test set once · watch for bias · use the simplest tool that works.

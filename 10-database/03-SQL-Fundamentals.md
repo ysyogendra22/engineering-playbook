@@ -1,195 +1,287 @@
 # SQL Fundamentals
 
+> SQL is how you ask for exactly the data you need. Master `SELECT`, `WHERE`, joins, grouping, subqueries and safe pagination, and always pass values as parameters.
+
 Roadmap topic 3 · Stage 1: Foundations
 
-**Marks:** 🟢 Must Know · 🟡 Good to Know · (New) for a mobile engineer, or still changing
+**Go deeper:** `2` Relational Model · `4` Advanced SQL · `5` Indexes · `6` Query Performance · `18` Security (SQL injection) · `04-backend-engineering/08-Databases-SQL-and-Data-Modeling` and `09-Connecting-API-to-Database`.
 
-**In simple words:** SQL is the one language every backend and database topic in this vault assumes you can read and write comfortably. This topic is the baseline: the handful of clauses and join types that cover the large majority of real queries.
+**Marks:** 🟢 must know · 🟡 good to know
+
+**How the examples are checked:** all queries run on SQLite 3.54 against the dataset below. PostgreSQL-only syntax is marked.
 
 ---
 
-#### 1. `SELECT`, `WHERE`, `ORDER BY`, `LIMIT`, `DISTINCT` — 🟢 Must Know
+#### 1. What Is It?
+
+*Reading and changing data with queries.*
+
+| 🟢 Must know | 🟡 Good to know |
+|---|---|
+| `SELECT`, `WHERE`, `ORDER BY`, `LIMIT`, `DISTINCT` | upsert (`ON CONFLICT`) |
+| `INSERT`, `UPDATE`, `DELETE` and the missing-`WHERE` danger | `UNION`, `INTERSECT`, `EXCEPT` |
+| aggregates: `COUNT`, `SUM`, `AVG`, `MIN`, `MAX` | bulk insert and batching |
+| `GROUP BY` and `HAVING` | readable SQL |
+| joins: inner, left, right, full, cross | |
+| subqueries and `EXISTS` | |
+| pagination: `OFFSET` vs keyset | |
+| parameterized queries | |
+
+**The sample data used below:**
 
 ```sql
-SELECT DISTINCT user_id
-FROM notes
-WHERE created_at > '2025-01-01'
-ORDER BY created_at DESC
-LIMIT 20;
+-- users: (1, Ann, age 30), (2, Bob, age NULL), (3, Cy, age 25)
+-- orders: (1, user 1, 1000, paid), (2, user 1, 2500, paid), (3, user 2, 500, new)
 ```
 
-The basic shape of almost every read query: filter with `WHERE`, sort with `ORDER BY`, cap the result with `LIMIT`, and remove duplicates with `DISTINCT` where needed.
+**Signals in an interview:** "write a query that…", "inner vs left join?", "`WHERE` vs `HAVING`?", "why is `OFFSET` slow?", "how do you prevent SQL injection?".
 
 ---
 
-#### 2. `INSERT`, `UPDATE`, `DELETE` — 🟢 Must Know
+#### 2. How It Works
+
+**Logical order of a query** (not the order you write it):
+
+```mermaid
+flowchart LR
+    F["FROM / JOIN"] --> W["WHERE (filter rows)"] --> G["GROUP BY"] --> H["HAVING (filter groups)"] --> S["SELECT (compute, DISTINCT)"] --> O["ORDER BY"] --> L["LIMIT / OFFSET"]
+```
+
+This explains why you can't use a `SELECT` alias in `WHERE` (it runs later), and why `WHERE` filters rows before grouping while `HAVING` filters groups after.
+
+**Changing data.** `INSERT` adds rows, `UPDATE` changes them, `DELETE` removes them. **An `UPDATE` or `DELETE` without `WHERE` changes every row.** Habit: write the `WHERE`, run it as a `SELECT` first, and do changes inside a transaction.
+
+**Aggregates and grouping.** `COUNT(*)` counts rows, `COUNT(col)` counts non-null values, `SUM/AVG/MIN/MAX` ignore `NULL`. `GROUP BY` makes one output row per group; every selected column must be grouped or aggregated.
+
+**Joins.**
+
+```mermaid
+flowchart TD
+    subgraph J["Which rows survive?"]
+        I["INNER JOIN: only matches on both sides"]
+        L["LEFT JOIN: all left rows + matches (NULL when none)"]
+        R["RIGHT JOIN: all right rows + matches"]
+        FU["FULL JOIN: all rows from both"]
+        C["CROSS JOIN: every left × every right"]
+    end
+```
+
+Use `LEFT JOIN` to keep rows without a match ("users with zero orders"). Filtering on the right table in `WHERE` turns a left join into an inner join; put such conditions in the `ON` clause.
+
+**Subqueries and `EXISTS`.** A subquery is a query inside a query. `EXISTS (SELECT 1 ...)` asks "is there at least one matching row?" and is usually the safest way to say "users with no orders" (`NOT EXISTS`); `NOT IN` breaks when the subquery returns `NULL`.
+
+**Pagination.**
+
+| | `OFFSET` | Keyset (cursor) |
+|---|---|---|
+| Query | `ORDER BY id DESC LIMIT 20 OFFSET 40` | `WHERE id < :last ORDER BY id DESC LIMIT 20` |
+| Cost | reads and discards the first 40 rows: slower on later pages | uses the index to jump to the position: constant |
+| Live data | rows shift: duplicates or gaps | stable |
+| Jump to page N | easy | not directly |
+
+Mobile feeds should use keyset pagination (`BE 3`). Sort by a unique column (add `id` as a tie-breaker).
+
+**Parameterized queries.** Send SQL text and values separately (`WHERE email = ?`). The database never treats the value as SQL, which prevents SQL injection (topic 18). Never build SQL with string concatenation.
+
+🟡 **Upsert.** Insert, or update if the key exists: `INSERT ... ON CONFLICT (id) DO UPDATE SET ...` (PostgreSQL and SQLite; MySQL uses `ON DUPLICATE KEY UPDATE`). Great for idempotent writes and sync.
+
+🟡 **Set operations.** `UNION` (distinct), `UNION ALL` (keep duplicates, faster), `INTERSECT`, `EXCEPT`. Columns must match in number and type.
+
+🟡 **Bulk insert and batching.** One multi-row `INSERT` or a batch of prepared statements inside one transaction is far faster than thousands of single inserts (fewer round trips and commits).
+
+🟡 **Readable SQL.** One clause per line, meaningful aliases, explicit `JOIN ... ON`, no `SELECT *` in code, comments for the unusual, and CTEs for steps (topic 4).
+
+---
+
+#### 3. Naive vs Better Design
+
+| Naive | Better |
+|---|---|
+| `"... WHERE email = '" + email + "'"` | `WHERE email = ?` with a parameter |
+| `SELECT *` | only the columns you need |
+| `OFFSET 100000` for deep paging | keyset pagination |
+| `UPDATE ... ` with no `WHERE` | `WHERE` + test as a `SELECT` + a transaction |
+| `NOT IN (subquery)` | `NOT EXISTS` |
+| `COUNT(*)` after a `LEFT JOIN` | `COUNT(right_table.id)` |
+| a query per row in a loop (N+1) | one join or one `IN` query |
+| thousands of single inserts | one transaction with batches |
+
+```kotlin
+// Naive: SQL injection and N+1 in four lines
+val rows = users.map { u -> db.query("SELECT * FROM orders WHERE user_id = " + u.id) }       // one query per user, string-built
+```
+
+---
+
+#### 4. SQL & Code
+
+Basic reads (checks are the results on the sample data):
 
 ```sql
-INSERT INTO notes (id, user_id, title) VALUES (gen_random_uuid(), $1, $2);
-UPDATE notes SET title = $1 WHERE id = $2;
-DELETE FROM notes WHERE id = $1;
+SELECT name FROM users WHERE age >= 25 ORDER BY name;                  -- Ann, Cy   (Bob's NULL age is not >= 25)
+SELECT DISTINCT status FROM orders ORDER BY status;                    -- new, paid
+SELECT id FROM orders ORDER BY id DESC LIMIT 2;                        -- 3, 2
 ```
 
-**`UPDATE` or `DELETE` without a `WHERE` clause changes or removes every row in the table** — one of the most common and most damaging mistakes possible in SQL. Always double-check the `WHERE` clause before running either, especially by hand in production.
-
----
-
-#### 3. Aggregates — 🟢 Must Know
-
-`COUNT`, `SUM`, `AVG`, `MIN`, `MAX` — collapse many rows into one summary value.
+Aggregates and grouping:
 
 ```sql
-SELECT COUNT(*) FROM notes WHERE user_id = $1;
-SELECT AVG(balance_cents) FROM accounts;
+SELECT u.name, COUNT(o.id) AS orders, COALESCE(SUM(o.total_cents), 0) AS spent
+FROM users u LEFT JOIN orders o ON o.user_id = u.id
+GROUP BY u.id ORDER BY u.id;
+-- Ann 2 3500 | Bob 1 500 | Cy 0 0
+
+SELECT u.name FROM users u JOIN orders o ON o.user_id = u.id
+GROUP BY u.id HAVING SUM(o.total_cents) > 1000;                         -- Ann
 ```
 
----
+Checks: the left join keeps `Cy` with `0` orders. The common bug `COUNT(*)` instead of `COUNT(o.id)` makes Cy show `1` (the single joined row of NULLs). `HAVING` filters after grouping: only `Ann` spent more than 1000.
 
-#### 4. `GROUP BY` and `HAVING` — 🟢 Must Know
+Subqueries and `EXISTS`:
 
 ```sql
-SELECT user_id, COUNT(*) AS note_count
-FROM notes
-GROUP BY user_id
-HAVING COUNT(*) > 100;    -- filters on the AGGREGATE, after grouping
+SELECT name FROM users u WHERE NOT EXISTS (SELECT 1 FROM orders o WHERE o.user_id = u.id);     -- Cy
+SELECT name FROM users WHERE id NOT IN (SELECT user_id FROM orders);                           -- Cy (but see below)
 ```
 
-`WHERE` filters rows **before** grouping; `HAVING` filters groups **after** aggregation — a common source of confusion, and a common interview question in its own right.
+Checks: both return `Cy` here. If `orders.user_id` contained a `NULL`, the `NOT IN` version would return **no rows**, while `NOT EXISTS` still returns the right ones (`Bob`, `Cy` in that case).
 
----
-
-#### 5. Joins — 🟢 Must Know
-
-```text
-INNER JOIN:  only rows that match in both tables
-LEFT JOIN:   all rows from the left table, matched rows from the right (NULL if no match)
-RIGHT JOIN:  the mirror of LEFT JOIN
-FULL JOIN:   all rows from both tables, matched where possible
-CROSS JOIN:  every row of one table paired with every row of the other (no condition)
-```
+Keyset vs offset:
 
 ```sql
-SELECT u.name, n.title
-FROM users u
-LEFT JOIN notes n ON n.user_id = u.id;   -- includes users with zero notes (n.title = NULL)
+SELECT id FROM orders WHERE id < 4 ORDER BY id DESC LIMIT 2;           -- page 1: 3, 2
+SELECT id FROM orders WHERE id < 2 ORDER BY id DESC LIMIT 2;           -- page 2: 1   (the client sends the last id it saw)
+SELECT id FROM orders ORDER BY id DESC LIMIT 2 OFFSET 2;               -- same page 2 with OFFSET: 1 (but scans and discards 2 rows first)
 ```
 
----
+Checks: both give the same rows on a static table. If a new order arrives between the two page requests, `OFFSET` shows a duplicate (everything shifts down); keyset does not.
 
-#### 6. Subqueries and `EXISTS` — 🟢 Must Know
+The Kotlin side of keyset pagination (cursor in, cursor out):
+
+```kotlin
+data class Page<T>(val items: List<T>, val nextCursor: Long?)
+
+fun page(conn: Connection, userId: Long, cursor: Long?, limit: Int = 20): Page<Order> {
+    val sql = "SELECT id, total_cents FROM orders WHERE user_id = ? AND id < ? ORDER BY id DESC LIMIT ?"
+    conn.prepareStatement(sql).use { ps ->
+        ps.setLong(1, userId); ps.setLong(2, cursor ?: Long.MAX_VALUE); ps.setInt(3, limit + 1)        // ask for one extra row
+        val rows = ps.executeQuery().use { rs -> generateSequence { if (rs.next()) Order(rs.getLong(1), rs.getLong(2)) else null }.toList() }
+        return Page(rows.take(limit), if (rows.size > limit) rows[limit - 1].id else null)             // extra row ⇒ there is a next page
+    }
+}
+```
+
+Checks: with 45 orders and `limit = 20`: page 1 has 20 items and a cursor; page 2 has 20 and a cursor; page 3 has 5 items and `nextCursor = null`.
+
+Upsert (idempotent write):
 
 ```sql
-SELECT * FROM users
-WHERE EXISTS (
-    SELECT 1 FROM notes WHERE notes.user_id = users.id
-);   -- users who have at least one note
+INSERT INTO users(id, name, email) VALUES (3, 'Cyrus', 'cy@x.com')
+ON CONFLICT(id) DO UPDATE SET name = excluded.name;                      -- Cy becomes Cyrus; running it twice changes nothing more
 ```
 
-`EXISTS` is often faster than an equivalent `IN (SELECT ...)` subquery for this kind of "does a related row exist?" check, since the database can stop as soon as it finds one match.
-
----
-
-#### 7. Pagination: `OFFSET` vs Keyset — 🟢 Must Know
+Set operations:
 
 ```sql
--- OFFSET pagination: simple, but slow for deep pages — the database still
--- reads and discards every skipped row
-SELECT * FROM notes ORDER BY created_at DESC OFFSET 10000 LIMIT 20;
-
--- Keyset (cursor) pagination: fast at any depth — jumps straight to the
--- right place using an index
-SELECT * FROM notes
-WHERE created_at < $lastSeenCreatedAt
-ORDER BY created_at DESC
-LIMIT 20;
+SELECT 1 UNION SELECT 1 UNION SELECT 2;                                 -- 1, 2
+SELECT 1 UNION ALL SELECT 1;                                            -- 1, 1
 ```
 
-Prefer keyset pagination for any API that might page deeply (`BE 3`).
+Batch insert in one transaction (Kotlin/JDBC):
 
----
+```kotlin
+conn.autoCommit = false
+conn.prepareStatement("INSERT INTO notes(user_id, title) VALUES (?, ?)").use { ps ->
+    notes.chunked(500).forEach { chunk -> chunk.forEach { ps.setLong(1, it.userId); ps.setString(2, it.title); ps.addBatch() }; ps.executeBatch() }
+}
+conn.commit()
+```
 
-#### 8. Parameterized Queries — 🟢 Must Know
-
-*Never build SQL by concatenating strings with user input — the single most important security rule in this topic (`BE 6`).*
+SQL injection, shown safely:
 
 ```sql
--- Dangerous: string concatenation
-"SELECT * FROM users WHERE email = '" + userInput + "'"   -- SQL injection risk
-
--- Safe: parameterized query
-SELECT * FROM users WHERE email = $1;   -- value sent separately from the SQL text
+-- String-built:  "SELECT * FROM users WHERE name = '" + input + "'"   with input = x' OR '1'='1
+--   → SELECT * FROM users WHERE name = 'x' OR '1'='1'      returns EVERY user
+-- Parameterized: SELECT * FROM users WHERE name = ?        the whole input is just a (non-matching) name
 ```
 
 ---
 
-#### 9. Upsert — 🟡 Good to Know
+#### 5. Numbers & Limits
 
-```sql
-INSERT INTO settings (user_id, key, value)
-VALUES ($1, $2, $3)
-ON CONFLICT (user_id, key) DO UPDATE SET value = EXCLUDED.value;
-```
-
-Insert a row, or update it if a conflicting one already exists — one round trip instead of a separate check-then-insert-or-update, and avoids a race condition between the check and the write.
-
----
-
-#### 10. Set Operations — 🟡 Good to Know
-
-`UNION` (combine results, removing duplicates), `UNION ALL` (combine, keeping duplicates, faster), `INTERSECT` (rows in both), `EXCEPT` (rows in the first but not the second) — useful for combining or comparing result sets from separate queries.
+| Item | Rule of thumb |
+|---|---|
+| Page size | 20 to 50 rows; ask for `limit + 1` to know if there is more |
+| `OFFSET` cost | reads `offset + limit` rows; deep pages (offset 100,000) are slow |
+| Batching | 500 to 5,000 rows per batch inside one transaction |
+| `IN (...)` list | hundreds are fine; thousands: use a temp table or a join |
+| `COUNT(*)` on big tables | scans or uses index statistics; avoid on hot paths, use estimates or counters |
+| Round trips | each query costs ≈ 0.5 ms in the data centre; N+1 with 100 items ≈ 50 ms extra |
+| Join size | joining two 1M-row tables without a good index can be catastrophic: check the plan |
 
 ---
 
-#### 11. Bulk Insert and Batching — 🟡 Good to Know
+#### 6. Common Mistakes & Edge Cases
 
-Inserting many rows in one statement (or in reasonably sized batches) is far faster than one `INSERT` per row — each individual round trip to the database has real overhead that adds up quickly at scale.
+1. SQL built from strings (injection).
+2. `UPDATE`/`DELETE` without `WHERE`.
+3. `COUNT(*)` after `LEFT JOIN`.
+4. `WHERE` condition on the right table in a left join, turning it into an inner join.
+5. `NOT IN` with `NULL`s.
+6. `OFFSET` pagination on feeds.
+7. Ordering by a non-unique column and paginating with a cursor (rows repeat or vanish): add `id`.
+8. `SELECT *` in application code.
+9. Selecting non-grouped columns with `GROUP BY`.
 
----
-
-#### 12. Writing Readable SQL — 🟡 Good to Know
-
-Consistent capitalization of keywords, clear indentation for joins and conditions, and meaningful table aliases — SQL is read far more often than it's written, and a query someone else can follow at a glance saves real debugging time later.
-
----
-
-#### 13. Common Interview Questions
-
-1. **What's the difference between `WHERE` and `HAVING`?**
-   `WHERE` filters individual rows before grouping. `HAVING` filters groups after aggregation — you can't use an aggregate function in `WHERE`, which is exactly why `HAVING` exists.
-2. **Explain the different join types.**
-   Inner joins only matching rows; left/right joins keep all rows from one side, filling unmatched columns with `NULL`; full join keeps all rows from both sides; cross join pairs every row with every other row, with no condition.
-3. **Why is keyset pagination usually better than `OFFSET` for deep pages?**
-   `OFFSET` still makes the database read and discard every skipped row; keyset pagination uses an index to jump straight to the right position, staying fast regardless of how deep the page is.
-4. **Why are parameterized queries important?**
-   They send the SQL structure and the data values separately, so user input can never be interpreted as SQL — the standard defense against SQL injection.
-5. **What does `ON CONFLICT DO UPDATE` do?**
-   Implements an upsert in one atomic statement — insert if the row doesn't exist, update it if it does — avoiding both a separate round trip and a race condition between checking and writing.
+Edge cases: ties in `ORDER BY`; case-sensitive comparisons; integer division (`1050/100` is `10` in integer arithmetic); dates and time zones in filters; empty `IN ()`; `LIKE '%x'` can't use an index; `LIMIT` without `ORDER BY` returns arbitrary rows.
 
 ---
 
-#### 14. Common Mistakes
+#### 7. Say This in the Interview
 
-1. Running `UPDATE`/`DELETE` without a `WHERE` clause and affecting every row.
-2. Building SQL from string concatenation with user input.
-3. Using `OFFSET` for deep pagination on a large, frequently-changing table.
-4. Confusing `WHERE` and `HAVING`, or trying to use an aggregate in `WHERE`.
-5. Inserting rows one at a time in a loop instead of batching.
-
----
-
-#### 15. Related Topics
-
-1. `2` Relational Model & Data Modeling — the schema these queries run against
-2. `4` Advanced SQL — window functions, CTEs, and more complex query patterns
-3. `5` Indexes, `6` Query Performance & Execution Plans — making these queries actually fast
-4. `BE 3` API Design — cursor pagination applied at the API layer
-5. `BE 6` Backend Security Essentials — SQL injection in full depth
+1. "A query logically runs `FROM/JOIN`, `WHERE`, `GROUP BY`, `HAVING`, `SELECT`, `ORDER BY`, `LIMIT`. `WHERE` filters rows; `HAVING` filters groups."
+2. "I use `LEFT JOIN` to keep rows without matches and `COUNT(right.id)` so missing rows count as zero. For 'none exist' I use `NOT EXISTS`, not `NOT IN`."
+3. "Mobile lists use keyset pagination: `WHERE id < :last ORDER BY id DESC LIMIT n`, because offsets get slower and shift when data changes."
+4. "All values go in as parameters, never string concatenation, which prevents SQL injection."
+5. "I batch writes in one transaction and use upserts for idempotent writes."
 
 ---
 
-#### 16. Interview Must Remember
+#### 8. Quick Check
 
-1. **`UPDATE`/`DELETE` with no `WHERE` = every row.** Always double-check.
-2. **`WHERE` filters rows before grouping; `HAVING` filters groups after.**
-3. **Keyset pagination for deep pages**, not `OFFSET`.
-4. **Always parameterize queries** — never concatenate user input into SQL.
+1. `WHERE` vs `HAVING`?
+2. Inner vs left join?
+3. Why is `OFFSET 100000` slow?
+4. How do you prevent SQL injection?
+
+<details>
+<summary>Answers</summary>
+
+1. `WHERE` filters rows before grouping; `HAVING` filters groups after aggregation.
+2. Inner returns only matching rows; left returns all left rows with `NULL` for missing matches.
+3. The database must read and discard 100,000 rows before returning the page.
+4. Parameterized queries (separate SQL and values), plus least-privilege database users.
+
+</details>
+
+---
+
+#### 9. Practice
+
+**Interview questions**
+
+1. Write a query for the top 3 customers by total spend.
+2. List users with no orders (and explain why `NOT EXISTS`).
+3. Count orders per user including users with none.
+4. Implement pagination for a feed.
+5. What is the difference between `UNION` and `UNION ALL`?
+6. How do you make a write idempotent in SQL?
+
+**Hands-on**
+
+1. Create the sample tables in SQLite and run every query above; change the data and re-predict the output.
+2. Build a 100,000-row table and compare `OFFSET 90000` with a keyset query (time both).
+3. Write a SQL-injection test against a string-built query, then fix it with parameters.
+4. Write the Room `@Query` versions of three of the queries.
+
+**Remember:** `FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY → LIMIT` · `LEFT JOIN` + `COUNT(right.id)` · `NOT EXISTS` over `NOT IN` · keyset pagination · parameters always · always a `WHERE` on updates and deletes.

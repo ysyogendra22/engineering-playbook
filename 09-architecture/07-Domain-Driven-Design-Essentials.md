@@ -1,102 +1,250 @@
 # Domain-Driven Design Essentials
 
+> DDD is a way to model complex business domains: use the same words as the business, split the system into bounded contexts with one meaning each, and spend design effort where the business value is. Know the essentials, and know when it is overkill.
+
 Roadmap topic 7 · Stage 2: Design Foundations
 
-**Marks:** 🟢 Must Know · 🟡 Good to Know · (New) for a mobile engineer moving into architecture, or still changing
+**Go deeper:** `5` Styles · `6` Patterns · `8` Modularity & Boundaries · `9` Data Architecture · `10` Integration · `05-system-design/26-Service-Boundaries-and-Architecture`.
 
-**In simple words:** DDD's core insight is simple even though the vocabulary sounds heavy — model the software around the real business language and real business boundaries, instead of around whatever the database schema happens to look like.
-
----
-
-#### 1. Ubiquitous Language — 🟢 Must Know
-
-*The single most valuable DDD idea, usable even without adopting anything else from it.*
-
-Use the **same words** in code, documentation, and conversation with the business — if the business calls something a "reservation", the code should have a `Reservation` class, not a `Booking` or `Order` that means the same thing. This eliminates a whole category of miscommunication and translation bugs.
+**Marks:** 🟢 must know · 🟡 good to know
 
 ---
 
-#### 2. Bounded Context — 🟢 Must Know
+#### 1. What Is It?
 
-```text
-"Order" in the Sales context:      "Order" in the Fulfillment context:
-- customer, items, price           - items, shipping address, status
-- discount applied                 - warehouse, carrier
+*Modelling software around the business domain.*
+
+| 🟢 Must know | 🟡 Good to know |
+|---|---|
+| ubiquitous language | domain events |
+| bounded context | context map (shared kernel, customer–supplier, ACL) |
+| entities, value objects, aggregates | when DDD is overkill |
+| core, supporting, generic subdomains | |
+
+1. **Domain:** the business area the software serves (payments, notes, shipping).
+2. **Ubiquitous language:** the same terms used by business and developers, in code, docs and talk.
+3. **Bounded context:** a boundary within which a model and its words have one meaning.
+4. **Aggregate:** a cluster of objects changed together, with one entry point (the root) that protects the rules.
+
+**Signals in an interview:** "what is a bounded context?", "entity vs value object?", "how do you find service boundaries?", "when is DDD worth it?".
+
+---
+
+#### 2. How It Works
+
+**Ubiquitous language.** If the business says "booking", the code says `Booking`, not `Reservation` in one file and `Order` in another. Gaps in language are where bugs and misunderstandings start. Build a glossary together with domain experts and keep it in the repo.
+
+**Bounded contexts.** The same word can mean different things: a "Customer" in Sales (a prospect with a pipeline) is not the "Customer" in Billing (an account with invoices). Don't force one giant model; give each context its own model and let them talk through explicit contracts.
+
+```mermaid
+flowchart LR
+    subgraph Sales["Sales context"]
+        S1["Customer = prospect, leads, deals"]
+    end
+    subgraph Billing["Billing context"]
+        B1["Customer = account, invoices, payment method"]
+    end
+    subgraph Support["Support context"]
+        P1["Customer = requester, tickets"]
+    end
+    Sales -->|"customer-supplier<br/>CustomerSigned event"| Billing
+    Billing -->|"published language"| Support
 ```
 
-A **bounded context** is an area where one model and one set of words have exactly one meaning. The same word ("Order") can mean different things in different contexts — the mistake is trying to force one giant, shared model across the whole business instead of drawing clear boundaries.
+Bounded contexts are the best starting point for module and service boundaries (topic 8): a context is a good candidate for a module, and sometimes a service.
+
+**Building blocks.**
+
+| Block | Meaning | Example |
+|---|---|---|
+| Entity | has an identity that persists as attributes change | `Note(id)`, `User(id)` |
+| Value object | defined by its values; immutable; no identity | `Money(amount, currency)`, `EmailAddress`, `DateRange` |
+| Aggregate | cluster treated as one unit for changes; the root enforces invariants; references other aggregates by id | `Order` (root) with its `OrderLine`s |
+| Repository | loads and saves aggregates | `OrderRepository` |
+| Domain service | rule that doesn't belong to one entity | `PricingService` |
+| Domain event | a fact that happened | `OrderPlaced`, `NoteShared` |
+
+Rules for aggregates: keep them small; change one aggregate per transaction; use ids to refer to other aggregates; protect invariants inside the root ("an order's total equals the sum of its lines").
+
+**Subdomains.**
+
+| Kind | Meaning | Approach |
+|---|---|---|
+| Core | what makes the business win | invest the best people and design; build in-house |
+| Supporting | needed but not differentiating | simpler design; build or buy |
+| Generic | solved problems (auth, payments, email) | buy or reuse |
+
+Spend design effort on the core.
+
+🟡 **Domain events.** Record important facts and publish them to other contexts. They make behaviour explicit and decouple contexts (`SD 21`).
+
+🟡 **Context map.** How contexts relate:
+
+| Relationship | Meaning |
+|---|---|
+| Shared kernel | two contexts share a small model (tight coupling; use sparingly) |
+| Customer–supplier | downstream depends on upstream, and can ask for changes |
+| Conformist | downstream accepts the upstream model as is |
+| Anti-corruption layer | downstream translates the upstream's model into its own |
+| Open host / published language | upstream offers a stable, documented API for many consumers |
+| Separate ways | no integration |
+
+🟡 **When DDD is overkill.** Simple CRUD with little business logic, small apps, short-lived tools. Use the ideas that cost nothing (shared language, clear boundaries) and skip the heavy tactical patterns.
 
 ---
 
-#### 3. Entities, Value Objects, Aggregates — 🟢 Must Know
+#### 3. Naive vs Better Design
 
-1. **Entity** — has a distinct identity that persists over time, even as its attributes change (a specific user, tracked by ID).
-2. **Value object** — defined entirely by its attributes, no identity of its own (an amount of money, an address — two identical ones are interchangeable).
-3. **Aggregate** — a cluster of entities and value objects treated as one unit for changes, with a single **aggregate root** as the only entry point for modifications — this is what keeps the group's internal rules consistent.
-
----
-
-#### 4. Core, Supporting, and Generic Subdomains — 🟢 Must Know
-
-1. **Core subdomain** — what makes the business actually competitive; deserves the most design effort and your best engineers.
-2. **Supporting subdomain** — necessary, but not a differentiator; solid, straightforward implementation is enough.
-3. **Generic subdomain** — a solved problem elsewhere (authentication, payments) — buy or use an existing solution rather than building it (`3`, item 5).
-
-Spend design effort in proportion to which category something falls into — treating every subdomain as equally important wastes effort on parts that don't need it.
+| Naive | Better |
+|---|---|
+| one `Customer` class used by every part | one model per bounded context |
+| "data model first": tables drive everything | domain behaviour first, persistence second |
+| anemic entities (just getters) and logic in services | rules live in the aggregate |
+| aggregates that load half the database | small aggregates linked by ids |
+| code words differ from the business words | ubiquitous language in the code |
+| using an external system's model everywhere | an anti-corruption layer at the edge |
+| DDD ceremony for a simple CRUD screen | keep it simple |
 
 ---
 
-#### 5. Domain Events — 🟡 Good to Know
+#### 4. Templates & Examples
 
-A record of something meaningful that happened in the business ("order placed", "payment failed") — used to communicate between bounded contexts or trigger downstream processes (`SD 21`), instead of tight, direct coupling between them.
+**Value object.**
+
+```kotlin
+@JvmInline value class UserId(val value: String)
+
+data class Money(val minorUnits: Long, val currency: String) {            // 1050 = 10.50
+    init { require(currency.length == 3) { "currency code" } }
+    operator fun plus(o: Money): Money { require(o.currency == currency) { "currency mismatch" }; return Money(minorUnits + o.minorUnits, currency) }
+}
+```
+
+Checks: `Money(1050, "EUR") + Money(250, "EUR")` → `Money(1300, "EUR")`; adding `USD` to `EUR` throws `IllegalArgumentException("currency mismatch")`; `Money(1, "EURO")` throws at construction. Invalid states cannot exist.
+
+**Aggregate with invariants.**
+
+```kotlin
+class Order(val id: String) {
+    private val lines = mutableListOf<Pair<String, Money>>()
+    var status = "draft"; private set
+
+    fun addLine(sku: String, price: Money) {
+        check(status == "draft") { "cannot change a $status order" }
+        lines += sku to price
+    }
+    fun total(): Money = lines.map { it.second }.reduceOrNull { a, b -> a + b } ?: Money(0, "EUR")
+    fun place(): OrderPlaced {
+        check(lines.isNotEmpty()) { "an order needs at least one line" }
+        status = "placed"; return OrderPlaced(id, total())
+    }
+}
+data class OrderPlaced(val orderId: String, val total: Money)
+```
+
+Checks: an order with lines `(A, 10.00)` and `(B, 5.50)` → `total()` = `Money(1550, "EUR")`; `place()` returns `OrderPlaced(id, 1550)` and the status is `placed`; `addLine` after placing throws; `place()` on an empty order throws. The aggregate root enforces the rules, whatever the UI or API does.
+
+**Anti-corruption layer.**
+
+```kotlin
+// External model (legacy CRM): cust_nm, stat_cd
+data class LegacyCustomer(val cust_nm: String, val stat_cd: String)
+
+// Our model
+data class Customer(val name: String, val active: Boolean)
+
+fun LegacyCustomer.toDomain() = Customer(cust_nm.trim(), stat_cd == "A")
+```
+
+Checks: `LegacyCustomer(" Ann ", "A").toDomain()` → `Customer("Ann", true)`; `stat_cd = "X"` → `active = false`. Only the ACL knows the legacy codes.
+
+**Glossary and context sheet (keep in the repo).**
+
+```text
+CONTEXT: Billing
+Terms: Invoice (a request for payment, immutable once issued), Account (who pays), Credit note (reverses part of an invoice)
+Not in this context: Lead, Ticket
+Upstream: Sales (CustomerSigned)   Downstream: Reporting (InvoiceIssued)   Integration: events + ACL for the payment provider
+Owner: Billing team
+```
+
+**Finding boundaries (event storming in short).** List domain events on a wall in time order (`NoteCreated`, `NoteShared`, `SubscriptionStarted`), group them by the words and rules they use, and draw lines where the language changes; those lines are candidate contexts.
 
 ---
 
-#### 6. Context Map — 🟡 Good to Know
+#### 5. Numbers & Rules of Thumb
 
-A diagram of how bounded contexts relate to each other: **shared kernel** (contexts deliberately share a small common model), **customer–supplier** (one context's team depends on another's output), **anti-corruption layer** (`6`, item 10 — protects one context's model from another's).
-
----
-
-#### 7. When DDD Is Overkill — 🟡 Good to Know
-
-For simple CRUD systems with little real business logic, full DDD ceremony (aggregates, bounded contexts, domain events) adds more structure than the problem needs. **Ubiquitous language alone** (item 1) is almost always worth adopting regardless of scale — the rest of DDD is a tool to reach for once real domain complexity justifies it.
-
----
-
-#### 8. Common Interview Questions
-
-1. **What is ubiquitous language, and why does it matter?**
-   Using the same terms in code, docs, and business conversation — it removes a whole class of miscommunication that happens when engineers and the business quietly use different words for the same concept.
-2. **What's a bounded context?**
-   A boundary within which one model and one meaning for each term hold — the same word can mean different things in different bounded contexts, and that's fine as long as the boundaries are clear.
-3. **What's the difference between an entity and a value object?**
-   An entity has identity that persists as its attributes change. A value object is defined entirely by its attributes, with no identity — two identical value objects are interchangeable.
-4. **When would you decide DDD is overkill for a project?**
-   For simple CRUD systems with little real domain complexity — the full ceremony (aggregates, bounded contexts, domain events) costs more than it returns; ubiquitous language is worth keeping regardless.
+| Item | Guide |
+|---|---|
+| Aggregate size | a handful of objects; if loading it is slow, it is too big |
+| Transaction | change one aggregate per transaction; use events for the rest |
+| Contexts per team | one team can own one or a few contexts |
+| Glossary | 20 to 50 key terms, agreed with domain experts |
+| Core domain | 10 to 20% of the system; the place for your best design |
+| Event naming | past tense (`OrderPlaced`), business language |
 
 ---
 
-#### 9. Common Mistakes
+#### 6. Common Mistakes & Edge Cases
 
-1. Trying to build one giant shared model across the whole business instead of drawing bounded contexts.
-2. Confusing entities and value objects, giving identity to something that should just be a value.
-3. Applying full DDD ceremony to a simple CRUD system that doesn't need it.
-4. Treating every subdomain as equally deserving of design effort, instead of focusing on the core.
+1. One giant shared model (a "canonical" `Customer`).
+2. Technical words in the domain (`DataManager`, `Helper`).
+3. Big aggregates that cause contention and slow loads.
+4. Ignoring domain experts.
+5. Applying all tactical patterns to simple CRUD.
+6. Sharing a database between contexts.
+7. Letting an external system's model leak in.
+8. Boundaries drawn by technical layers, not by the domain.
 
----
-
-#### 10. Related Topics
-
-1. `4` Design Principles — abstraction and information hiding, which bounded contexts apply at a larger scale
-2. `6` Architecture & Design Patterns — anti-corruption layer, referenced in item 6
-3. `9` Data Architecture — data ownership, closely related to bounded contexts
+Edge cases: two contexts that really need the same data (share an id, copy what you need, update through events); an aggregate that needs data from another (read it by id before the command, or use a domain service); legacy systems (strangler + ACL); different teams naming the same concept differently (decide in a context map).
 
 ---
 
-#### 11. Interview Must Remember
+#### 7. Say This in the Interview
 
-1. **Ubiquitous language** — same words in code, docs, and conversation. Worth adopting almost always.
-2. **Bounded context** — one model, one meaning, clear edges. The same word can mean different things elsewhere.
-3. **Entity = identity. Value object = defined by attributes, no identity.**
-4. **Spend design effort proportional to subdomain type** — most on core, least on generic.
+1. "DDD starts with a shared language with domain experts and splits the system into bounded contexts, each with its own model and meaning for words like 'customer'."
+2. "Entities have identity; value objects are immutable and defined by their values; aggregates protect invariants and are changed one per transaction."
+3. "I put the best design effort into the core domain, and buy or simplify the generic and supporting ones."
+4. "Contexts are good candidates for module or service boundaries; between them I use events or APIs and an anti-corruption layer for external or legacy models."
+5. "For a simple CRUD app I'd use the language and boundaries, and skip the heavy tactical patterns."
+
+---
+
+#### 8. Quick Check
+
+1. What is a bounded context?
+2. Entity vs value object?
+3. What does an aggregate root do?
+4. Core vs generic subdomain?
+
+<details>
+<summary>Answers</summary>
+
+1. A boundary within which a model and its terms have one consistent meaning.
+2. An entity has a lasting identity; a value object is immutable and equal when its values are equal.
+3. It is the single entry point that enforces the aggregate's rules.
+4. Core differentiates the business (invest, build); generic is a solved problem (buy or reuse).
+
+</details>
+
+---
+
+#### 9. Practice
+
+**Interview questions**
+
+1. What is DDD, and when would you use it?
+2. What is a bounded context? Give an example.
+3. Entity vs value object vs aggregate?
+4. How do you find service boundaries?
+5. What is an anti-corruption layer?
+6. What are the downsides of DDD?
+
+**Exercises**
+
+1. Write a glossary of 15 terms for a product you know, and mark words that mean different things in different parts.
+2. Draw a context map for the Notes app (accounts, notes, sharing, billing, notifications).
+3. Model a value object and an aggregate with invariants and test them.
+4. Classify the subdomains of your product as core, supporting or generic.
+
+**Remember:** ubiquitous language · bounded contexts with one meaning · entities, value objects, aggregates (small, one per transaction) · invest in the core · context map and ACL at the edges · skip the ceremony for simple CRUD.

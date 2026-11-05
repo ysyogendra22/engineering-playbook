@@ -1,167 +1,254 @@
 # AI Interview Answer Points
 
-Roadmap topic 21 · Stage 6: Interview
+> In an AI interview, start with the user problem, then decide whether AI is needed at all. Cover the standard concerns every time: hallucination, cost, latency, privacy, safety and evaluation. Say it simply, name the trade-offs, and say how you would measure success.
 
-**Marks:** 🟢 Must Know · 🟡 Good to Know · (New) a newer idea, still changing
+Roadmap topic 21 · Stage 6: Interview (New)
 
-**In simple words:** AI questions in interviews are still system design questions. Use the same steps, then show that you know the AI-specific problems: wrong answers, cost, speed, privacy, safety, and how you would test it. Do not start with the model. Start with the user problem.
+**Go deeper:** every note `1`–`20` · `05-system-design/31-Interview-Answer-Structure` (the steps) · `06-mobile-engineering/21-Mobile-Interview-Answer-Points` · `03-leetcode-patterns/21-Coding-Interview-Answer-Points`.
 
----
-
-#### 1. Start With the Problem, Not the Model — 🟢 Must Know (New)
-
-*Ask whether AI is even needed.*
-
-1. Clarify the **user problem** and what a good result looks like.
-2. Ask: could a **rule, a search, or a database query** do it? Simple is faster, cheaper, and more predictable.
-3. If AI helps, ask what happens when it is **wrong**. Low-stakes (a suggestion) or high-stakes (money, health)?
-4. State the **constraints**: scale, latency, privacy, cost, platforms, offline needs.
+**Marks:** 🟢 must know · 🟡 good to know · (New) added beyond the original roadmaps
 
 ---
 
-#### 2. The Standard Concerns — 🟢 Must Know (New)
+#### 1. What Is It?
 
-*Cover these for any AI feature. Say them without being asked.*
+*A way to answer any AI question or design prompt in an organised, honest way.*
 
-| Concern | What to say |
+| 🟢 Must know | 🟡 Good to know |
 |---|---|
-| **Hallucination** | Ground answers with RAG, cite sources, allow "not found", validate output |
-| **Cost** | Estimate tokens, cache, smaller models, limits per user |
-| **Latency** | Stream, cache, shorter prompts, model routing |
-| **Privacy** | Send the minimum, per-user data, provider policy, delete on request |
-| **Safety** | Prompt injection, least privilege, human approval for risky actions |
-| **Quality** | An eval set, regression tests, feedback, monitoring |
-| **Reliability** | Timeouts, retries, fallbacks, graceful degradation |
+| start with the user problem; decide if AI is needed | 30-second explanations of LLM, RAG, tool use, MCP, agent, harness |
+| standard concerns: hallucination, cost, latency, privacy, safety, evaluation | what you would build first and how you would measure it |
+| ready answers: reduce hallucination, control cost, test it, stop prompt injection | common trade-offs |
+| ready answers: RAG vs fine-tuning, workflow vs agent, one agent vs many | |
+| fit AI into the normal design steps (`SD 31`) | |
+
+**Signals in an interview:** "design an AI assistant for…", "how would you add AI to our app?", "how do you stop it from making things up?", "how would you test it?", "what would it cost?".
 
 ---
 
-#### 3. Ready Answers to Common Questions — 🟢 Must Know (New)
+#### 2. How It Works
 
-*Short answers you can extend.*
+**The answer path for an AI design question.**
 
-1. **How do you reduce hallucination?**
-   Give the model the facts (RAG), tell it to answer only from them and to say "not found", cite sources, use tools for facts and math, validate the output, and keep temperature low.
-2. **How do you control cost?**
-   Count tokens, cache, shorten context, route easy tasks to a small model, batch offline work, and set per-user and per-run limits.
-3. **How do you test an AI feature?**
-   Build an eval set of real cases, score with code and a checked LLM judge, re-run on every change, and turn production failures into new cases.
-4. **How do you stop prompt injection?**
-   You cannot fully prevent it. Limit damage: least privilege, read-only where possible, human approval for risky actions, and validate output.
-5. **RAG or fine-tuning?**
-   RAG for facts and changing or private data. Fine-tuning for style, format, or a narrow skill.
-6. **Workflow or agent?**
-   Workflow when the steps are known. Agent only when the steps cannot be known ahead. Start with the simplest.
-7. **One agent or many?**
-   One, unless the context is too large, subtasks are independent, or parts need different permissions.
-8. **On-device or cloud?**
-   On-device for privacy, offline, and simple tasks. Cloud for strong reasoning. Often hybrid.
-
----
-
-#### 4. Fit AI Into the Normal Design Steps — 🟢 Must Know
-
-*Use the system design structure (`SD 31`).*
-
-```text
-1. Clarify        → user problem, is AI needed, stakes, scale, constraints
-2. Estimate       → requests/day, tokens per request, cost, latency target
-3. API + data     → endpoints, conversation and document storage, vector index
-4. High-level     → app → backend → (retrieval, tools, model) → answer
-5. Flows          → one chat request; one indexing job; one agent run
-6. Deep dive      → hallucination, injection, cost, or agent reliability
-7. Trade-offs     → quality vs cost, autonomy vs control, on-device vs cloud
+```mermaid
+flowchart LR
+    P["1 User problem<br/>and success metric"] --> N["2 Is AI needed?<br/>rule / search / classic ML / LLM"] --> D["3 Design: data, model, tools,<br/>API, app flows"] --> C["4 Standard concerns:<br/>hallucination, cost, latency,<br/>privacy, safety, evaluation"] --> F["5 Failures + fallbacks"] --> T["6 Trade-offs, first version,<br/>how to measure and grow"]
 ```
 
-Typical AI building blocks to draw: **API gateway/backend, model call, retrieval (vector index), tools, cache, queue and workers, storage, monitoring.**
+**Fit AI into the normal design steps (`SD 31`).**
 
----
-
-#### 5. Explain Each Term in 30 Seconds — 🟡 Good to Know
-
-*Practise saying these out loud.*
-
-1. **LLM** — a model trained on lots of text that predicts the next token.
-2. **RAG** — search your documents at question time and give the results to the model.
-3. **Tool use** — the model asks your code to run a function, and gets the result.
-4. **MCP** — an open standard for connecting AI apps to tools and data.
-5. **Agent** — a model with tools and a loop that works toward a goal.
-6. **Harness** — the code around the model that runs the loop, tools, context, and permissions.
-
----
-
-#### 6. Say What You Would Build First — 🟡 Good to Know
-
-*Show that you can start small and measure.*
-
-1. Propose a **small first version**: one use case, read-only, a handful of tools or a simple RAG.
-2. Say how you would **measure success**: task success rate, thumbs up rate, cost per request, latency, escalations.
-3. Say how it **grows**: more sources, more tools, more autonomy, only as evals justify.
-
----
-
-#### 7. Common Trade-Offs — 🟡 Good to Know
-
-*Every AI design choice gives up something.*
-
-| Trade-off | Think about |
+| Step | AI-specific content |
 |---|---|
-| Quality vs cost | Bigger model or more context helps, but costs more |
-| Quality vs latency | Reasoning and reflection improve answers but take time |
-| Autonomy vs control | More autonomy is faster and riskier |
-| On-device vs cloud | Privacy and offline vs strength and easy updates |
-| RAG vs fine-tuning | Fresh facts and citations vs style and speed |
-| One agent vs many | Simplicity vs parallelism and separation |
+| Clarify | who is the user, what is the job, what is the cost of a wrong answer, which data, languages, platforms, offline? |
+| Estimate | requests per day, tokens per request (input and output), cost per request, latency target, data volume to index |
+| API and data | chat/job endpoints, streaming, conversations, documents, embeddings, feedback, usage logs |
+| High-level design | app → backend → retrieval / tools / model; queue for long jobs; cache; safety layers |
+| Deep dive | the hard part: grounding, access control, agent safety, evaluation, cost |
+| Failures | provider down, hallucination, injection, rate limits, cut-off answers |
+| Trade-offs | quality vs cost, latency, autonomy vs control, on-device vs cloud |
+
+**The standard concerns: one-line answers.**
+
+| Concern | Answer |
+|---|---|
+| Hallucination | ground the answer in retrieved sources, cite them, allow "I don't know", validate outputs, use tools for exact facts, lower temperature for facts |
+| Cost | tokens × price: cache prefixes and answers, trim input, cap output, route easy work to small models, batch offline jobs, set budgets |
+| Latency | stream for perceived speed, smaller models, shorter prompts, parallel calls, prefetch, queue long jobs |
+| Privacy | send the minimum, redact, per-user isolation, provider retention terms, deletion support |
+| Safety | treat model output and retrieved text as untrusted, least privilege, approvals for irreversible actions, guardrails |
+| Evaluation | eval set from real cases, code checks plus a validated judge, regression on every change, production monitoring |
+
+**Ready answers.**
+
+| Question | Core answer |
+|---|---|
+| How do you reduce hallucination? | RAG with citations; answer-only-from-sources instruction; "I don't know" path; tools for calculations and lookups; output validation; evaluate groundedness |
+| How do you control cost? | measure tokens per feature; prompt caching; trim context; cap output; model routing; batch; per-user budgets and alerts; re-check quality after each saving |
+| How do you test an LLM feature? | eval set with real and adversarial cases; code graders first, rubric judge second; regression gate in CI; online metrics and feedback |
+| How do you stop prompt injection? | you can't rely on the prompt: untrusted-content labelling, least-privilege tools, no outbound channel plus private data, schema validation, approvals, sandbox, red-team tests |
+| RAG vs fine-tuning? | RAG for changing or private facts with citations; fine-tuning for style, format or narrow behaviour; try prompting first |
+| Workflow vs agent? | workflow when steps are known (cheaper, predictable); agent when steps depend on what is found; always with limits and approvals |
+| One agent vs many? | one by default; split for parallelism, context isolation or permissions; multi-agent costs several times more tokens |
+| Why a backend for the model? | keys, quotas, filters, logging, model changes without an app release |
+
+**Explain each in 30 seconds.**
+
+| Term | 30-second answer |
+|---|---|
+| LLM | A model trained to predict the next token. It reads a context window and writes text one token at a time. It is stateless and can be wrong. |
+| RAG | Retrieve relevant chunks of your data first, put them in the prompt, and answer from them with citations. It adds private, fresh knowledge and reduces hallucination. |
+| Tool use | The model asks your code to run a function with arguments; your code validates, runs it and returns the result. The model never executes anything. |
+| MCP | An open protocol that lets AI apps discover and call tools and read data from servers, so a tool is built once and used by many apps. |
+| Agent | A model with tools in a loop (think, act, observe) that works toward a goal, with limits, permissions and a stop condition. |
+| Harness | Everything around the model that makes it an agent: loop, prompts, tools, permissions, sandbox, context management and limits. Model + harness = agent. |
+
+🟡 **Say what you would build first and how you would measure it.** "A read-only RAG assistant over the help centre with citations, measured by answer correctness, groundedness, deflection rate and thumbs-up rate on 100 real questions; then add one write action behind approval."
+
+🟡 **Common trade-offs.**
+
+| Trade-off | How to talk about it |
+|---|---|
+| Quality vs cost | bigger model or more context raises quality and cost; route by difficulty, measure on the eval |
+| Quality vs latency | reasoning and long context are slower; stream, cache, use effort levels |
+| On-device vs cloud | privacy/offline vs capability/updates |
+| Autonomy vs control | more autonomy is faster and riskier; start at "ask first" |
+| Fresh vs cached | cached answers are cheap but can be stale |
+| Generality vs reliability | open chat vs a constrained workflow |
 
 ---
 
-#### 8. Common Interview Questions
+#### 3. Naive vs Better Design
 
-1. **Design a customer-support chatbot.**
-   RAG over help articles, cited answers, escalation to a human when confidence is low, per-user context, evals, and cost limits. (topic `22`)
-2. **Design "chat with your documents".**
-   Ingestion pipeline (chunk, embed, index), per-user filters, retrieval with hybrid search and reranking, grounded answers with citations.
-3. **Design an AI writing assistant in a mobile app.**
-   App to backend to model, streaming UI, cancel and retry, quotas, privacy, and a fallback when offline.
-4. **Design a coding or task-running agent.**
-   Harness with tools, permissions, sandbox, context management, limits, human approval, tracing, and evals.
-5. **What are the risks of putting an LLM in a product?**
-   Hallucination, injection, data leakage, cost, latency, and provider outages. Then the mitigations.
-6. **How do you decide if a feature should use AI?**
-   Check if a simpler solution works, what a wrong answer costs, and whether the value justifies the cost and risk.
-7. **How would you improve a feature that gives poor answers?**
-   Look at traces, find whether retrieval, prompt, tools, or model is at fault, fix in that order, and re-run evals.
+| Naive | Better |
+|---|---|
+| "I'd use GPT-whatever" | the user problem, then the simplest approach that meets it |
+| a demo, no metrics | success metric, eval set, monitoring |
+| ignores cost until asked | a token and cost estimate early |
+| "the prompt says don't leak" | permissions, validation, approvals |
+| "we fine-tune it on our docs" | RAG for facts, fine-tuning for style |
+| an agent for everything | workflow first |
+| only the happy path | failures: outage, injection, hallucination, rate limit |
+| buzzwords | plain 30-second explanations with trade-offs |
 
 ---
 
-#### 9. Common Mistakes
+#### 4. Code
 
-1. Starting with "I will use GPT/Claude" before understanding the problem.
+There is no code to write in the interview, but you should be able to do the arithmetic aloud. A cost estimate for a worked example, **a customer-support chatbot**:
+
+```kotlin
+data class Plan(val chatsPerDay: Int, val callsPerChat: Int, val inputTokens: Int, val outputTokens: Int)
+
+fun costPerCall(inTokens: Int, cachedTokens: Int, outTokens: Int, inPerM: Double, outPerM: Double, cachedFraction: Double = 0.1) =
+    ((inTokens - cachedTokens) * inPerM + cachedTokens * inPerM * cachedFraction + outTokens * outPerM) / 1_000_000
+
+fun monthly(plan: Plan, perCall: Double, days: Int = 30) = plan.chatsPerDay * plan.callsPerChat * perCall * days
+```
+
+Checks (example prices per 1M tokens: mid `$2 in / $10 out`, small `$0.10 / $0.50`; 200,000 daily users, 20% use the bot = `40,000` chats a day; 4 model calls per chat; 1,500 input and 250 output tokens per call):
+
+| Design | Per call | Per month |
+|---|---|---|
+| mid model, no optimisation | `$0.0055` | `$26,400` |
+| + cache 1,000 input tokens of 1,500 | `$0.0037` | about `$17,800` |
+| + route half the calls to the small model (`$0.000275` per call) | `$0.00199` average | about `$9,540` |
+
+So the optimised design is about `64%` cheaper, if the routed traffic still passes the eval. Say the assumptions out loud; the interviewer cares about the reasoning, not the exact dollars.
+
+The worked design in the 45-minute structure:
+
+```text
+1. Clarify (5 min): users = customers; job = answer account and product questions, hand off to a human when unsure;
+   a wrong answer on billing is costly → ground in help articles, escalate sensitive cases; channels: in-app chat; offline: not needed.
+2. Estimate (4 min): 40k chats/day, 4 calls each; ≈ $0.02 per chat unoptimised → $26k/month; target < $10k.
+3. API + data (6 min): POST /chat (stream), GET /conversations, POST /feedback; tables: conversations, messages, usage;
+   index: help-centre chunks with embeddings + keyword index; per-tenant filter.
+4. High-level (10 min): app → backend → retrieval (hybrid + rerank) → prompt → model (small first, large for hard) → output checks → stream.
+   Escalation tool creates a ticket (approval for refunds). Queue for analytics and evals.
+5. Deep dive (15 min): grounding with citations and "I don't know"; eval set of 200 real questions (recall@5, groundedness, resolution);
+   injection and PII handling; cost levers; monitoring and feedback loop.
+6. Trade-offs (5 min): quality vs cost (routing), autonomy (read-only first), staged rollout behind a flag; what I'd build first.
+```
+
+A checklist you can run through at the end of any AI design (and test yourself with):
+
+```kotlin
+val concerns = setOf("user problem", "need for AI", "success metric", "hallucination", "cost", "latency", "privacy", "safety", "evaluation", "failures", "rollout")
+
+fun missing(covered: Set<String>) = (concerns - covered).sorted()
+```
+
+Checks: `missing(setOf("user problem", "cost", "latency"))` → `[evaluation, failures, hallucination, need for AI, privacy, rollout, safety, success metric]`. Use it after a mock interview to see what you forgot.
+
+---
+
+#### 5. Numbers & Limits
+
+| Item | Rule of thumb |
+|---|---|
+| Tokens | 1 token ≈ 4 characters ≈ 0.75 words |
+| Cost per call | input tokens × input price + output tokens × output price (output ≈ 3 to 5× input per token) |
+| Prompt cache | reads at about 10% of the normal input price |
+| Price gap | small models 10 to 50× cheaper than large ones |
+| Latency | time to first token 0.3 to 2 s; output tens to hundreds of tokens/s |
+| Retrieval | retrieve 20 to 50, rerank to 3 to 8 |
+| Eval set | 30 to 100 to start; hundreds to detect small changes |
+| Agent reliability | 95% per step over 20 steps ≈ 36% end to end |
+| Agent steps | 10 to 25 maximum, plus token and time limits |
+
+---
+
+#### 6. Common Mistakes & Edge Cases
+
+1. Jumping to a model or a framework before the problem.
 2. Never asking whether AI is needed.
-3. Ignoring hallucination, cost, and safety until asked.
-4. Jumping to agents or multi-agent designs for simple tasks.
-5. No plan to measure quality.
-6. Forgetting the mobile side: streaming, offline, states, key security.
+3. Ignoring cost, latency, privacy and evaluation until prompted.
+4. Believing the prompt is a security control.
+5. Only the happy path; no fallback.
+6. Overclaiming ("it never hallucinates").
+7. Buzzwords with no explanation.
+8. A giant first version: agents, many tools, multi-agent.
+
+Edge cases: an interviewer who asks you to build with a specific vendor (say you would keep it behind an interface and name trade-offs); "no budget" (small model, caching, rules); "must work offline" (on-device, topic 19); "no cloud allowed" (open-weight models in your environment); regulated data (redaction, regions, retention, human review).
 
 ---
 
-#### 10. Related Topics
+#### 7. Say This in the Interview
 
-1. `07` RAG
-2. `10` Agents
-3. `15` Evaluation & Quality
-4. `16` Safety, Security & Privacy
-5. `17` Cost, Latency & Reliability
-6. `20` AI Features in the App
-7. `22` Practice: Projects & Designs
-8. `SD 31` Interview Answer Structure
+1. "First, what's the user problem and how will we know it's solved? Then, does it need an LLM, or would a rule, search or a classic model do?"
+2. "For hallucination I ground answers in retrieved sources with citations, allow 'I don't know', and measure groundedness."
+3. "I'd estimate tokens and cost per request early, and cut cost with caching, trimming, capped output and routing, checking quality on the eval each time."
+4. "Safety lives in code: least-privilege tools, validation, approvals, sandboxing; the prompt is not a control."
+5. "I'd build a read-only version first, measure it on 100 real questions, then add write actions behind approval."
+6. "The trade-off here is X for Y; at ten times the load I'd change Z."
 
 ---
 
-#### 11. Interview Must Remember
+#### 8. Quick Check
 
-1. **Problem first.** Ask if AI is needed.
-2. **Always cover:** hallucination, cost, latency, privacy, safety, quality, reliability.
-3. **Use the normal design steps,** with AI building blocks.
-4. **Simplest first:** prompt → RAG → workflow → agent.
-5. **Say how you would test and measure it.**
-6. **Include the mobile side** of the design.
+1. What do you ask first in an AI design question?
+2. Name the six standard concerns.
+3. RAG or fine-tuning for changing company policies?
+4. What would you build first?
+
+<details>
+<summary>Answers</summary>
+
+1. The user problem and the success metric; then whether AI is needed.
+2. Hallucination, cost, latency, privacy, safety, evaluation.
+3. RAG: facts change, so update the index instead of retraining; add citations.
+4. The simplest read-only, grounded version, with an eval to measure it.
+
+</details>
+
+---
+
+#### 9. Practice
+
+**Interview questions**
+
+1. Design an AI support chatbot for our app.
+2. How do you reduce hallucinations?
+3. How do you control the cost of an LLM feature?
+4. How do you test and monitor it?
+5. How do you stop prompt injection?
+6. RAG vs fine-tuning vs long context?
+7. Workflow vs agent; one agent vs many?
+8. Explain RAG, tool use, MCP, agent and harness in 30 seconds each.
+
+**Hands-on**
+
+1. Run the support-chatbot design aloud in 45 minutes with a timer; use `missing(...)` to find gaps.
+2. Write your own 30-second explanation of each term and record it.
+3. Estimate the monthly cost of a feature you know, under two designs.
+
+**Coding warm-ups (LeetCode)**
+
+| # | Question | Link to this topic |
+|---|---|---|
+| 146 | [LRU Cache](https://leetcode.com/problems/lru-cache/) (Medium) | answer and prompt caching |
+| 642 | [Design Search Autocomplete System](https://leetcode.com/problems/design-search-autocomplete-system/) (Hard, premium) | search features |
+| 355 | [Design Twitter](https://leetcode.com/problems/design-twitter/) (Medium) | feed-style system design basics |
+| 362 | [Design Hit Counter](https://leetcode.com/problems/design-hit-counter/) (Medium, premium) | usage limits |
+
+**Remember:** user problem first · is AI needed? · cover hallucination, cost, latency, privacy, safety, evaluation · safety in code, not prompts · estimate tokens and cost aloud · read-only first, measure, then add actions · plain 30-second explanations.

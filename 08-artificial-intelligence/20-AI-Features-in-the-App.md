@@ -1,179 +1,314 @@
 # AI Features in the App
 
+> The model lives behind your backend. The app's job is to send the request, show the answer as it arrives, handle slow and broken networks, ask before risky actions, and be honest that the answer may be wrong.
+
 Roadmap topic 20 · Stage 5: AI on Mobile
 
-**Marks:** 🟢 Must Know · 🟡 Good to Know · (New) a newer idea, still changing
+**Go deeper:** `06-mobile-engineering/20-AI-in-Mobile-Apps` (streaming UI states and the reducer) · `5` Calling an LLM API · `10` Agents · `11` Agent Harness · `16` Safety · `17` Cost · `05-system-design/24-Real-Time-Communication-and-Push` and `30-Mobile-Specific-Topics` · `06-mobile-engineering/10-Background-Work-and-Notifications`.
 
-**In simple words:** the model lives behind your backend. The app's job is to send the request, show the answer as it arrives, handle slow and broken networks, ask the user before risky actions, and be honest that the answer may be wrong. This is the mobile-engineer half of every AI design question.
+**Marks:** 🟢 must know · 🟡 good to know
 
 ---
 
-#### 1. The App Talks to Your Backend — 🟢 Must Know
+#### 1. What Is It?
 
-*Never put the provider key in the app.*
+*The mobile half of every AI design.*
 
-```text
-Mobile app  →  Your backend  →  LLM provider / your tools
-            (login, limits,      (keys live here)
-             logging, filters)
+| 🟢 Must know | 🟡 Good to know |
+|---|---|
+| the app calls your backend, which calls the model; no key in the app | push notification when a background task finishes |
+| streaming chat UI with cancel and retry | keep history locally and sync it |
+| clear states: loading, partial, error, offline | voice and camera input |
+| long agent tasks: progress, cancel, approval before actions | battery and data use of long AI features |
+| tell users the answer may be wrong; let them correct or report | |
+| per-user limits and quotas, enforced on the server | |
+
+**Signals in an interview:** "add an AI assistant to the app", "an agent that books things for the user", "what if the user closes the app mid-task?", "how do you stop a user from running up the bill?".
+
+---
+
+#### 2. How It Works
+
+**Architecture.**
+
+```mermaid
+flowchart LR
+    A["Mobile app<br/>UI state, history (Room)"] -->|"HTTPS + user token<br/>stream / job API"| B["Your backend<br/>auth, limits, logging, filters"]
+    B --> L["LLM provider"]
+    B --> T["Tools / agent harness (sandbox)"]
+    B --> DB[("Conversations, jobs, quotas")]
+    B -->|"push when a long job finishes"| P["FCM / APNs"] --> A
 ```
 
-1. The app sends the user's request to **your backend**, with the user's normal login token (`BE 5`).
-2. The backend adds the API key, applies limits, calls the model and tools, and streams the answer back.
-3. Benefits: no key in the app, per-user limits, logging, filters, easy provider or model changes with no app release.
+1. **App → backend:** the user's normal login token (`BE 5`). The backend adds the provider key, applies quotas, calls the model and tools, filters, logs and streams back.
+2. **Why:** no key in the app, per-user limits, one place to change models, prompts and safety rules without an app release.
 
----
+**Streaming chat UI** (details and the state reducer are in `MOB 20`): append tokens as they arrive; show a typing indicator until the first token; a stop button that cancels the request **and** the upstream model call; retry on failure with the partial text kept; update the screen in small batches, not once per token; render Markdown safely (no auto-opening links, no external images, topic 16).
 
-#### 2. Streaming Chat UI — 🟢 Must Know
+**Clear states.**
 
-*Show words as they arrive. Let the user cancel and retry.*
-
-1. Read the response as a **stream** (topic `05`) and append text to the message.
-2. Show a **typing indicator** until the first token arrives.
-3. **Cancel** — a stop button closes the request. The backend should stop the model call too, so you do not pay for unused tokens.
-4. **Retry** on failure. Keep the partial answer visible if the stream breaks.
-5. Render markdown carefully: code blocks, lists, and links. Do not auto-open links from model text without care (topic `16`).
-6. Update the UI in small batches, not once per token, to avoid needless redraws.
-
-**Mobile view:** consume with a `Flow` and `collect` (Kotlin), or an `AsyncSequence` with `for await` (Swift). Cancel the coroutine or task to cancel the request.
-
----
-
-#### 3. Clear States — 🟢 Must Know
-
-*AI features have more states than a normal screen.*
-
-| State | What to show |
+| State | What the user sees |
 |---|---|
-| Loading | Typing indicator or skeleton |
-| Streaming | Partial answer, stop button |
-| Done | Full answer, actions (copy, retry, feedback) |
-| Error | Plain message and a retry button |
-| Rate limited or quota reached | Explain, and say when it resets |
-| Offline | Say so. Show history, or use an on-device fallback (topic `19`) |
-| Blocked or refused | A short, kind explanation |
+| Idle | input box, suggestions |
+| Sending / waiting | typing indicator, stop button |
+| Streaming | growing answer, stop button |
+| Done | answer, copy, regenerate, feedback |
+| Error | message + retry; partial text kept |
+| Offline | input disabled or queued, explanation |
+| Limit reached | quota message with the reset time or upgrade option |
+| Blocked / refused | a polite, specific message |
 
-Design all of them before you start coding.
+**Long agent tasks** (minutes, many steps) do not fit in one HTTP request. Use a **job**:
 
----
+```mermaid
+sequenceDiagram
+    participant App
+    participant BE as Backend
+    participant AG as Agent (worker)
+    App->>BE: POST /tasks (goal, idempotency key)
+    BE-->>App: 202 + taskId
+    BE->>AG: run in the background
+    loop progress
+        AG-->>BE: step events (searching, drafting...)
+        App->>BE: GET /tasks/{id}/events (SSE or poll)
+        BE-->>App: progress
+    end
+    AG-->>BE: needs approval: "Send this email to ann@x.com?"
+    BE-->>App: state = AWAITING_APPROVAL (+ push if the app is closed)
+    App->>BE: POST /tasks/{id}/approve (exact action id)
+    AG-->>BE: finished
+    BE-->>App: push "Your task is done" → open the result
+```
 
-#### 4. Long Agent Tasks — 🟢 Must Know
+Show **progress** (what it is doing now), allow **cancel**, ask **approval before actions** with the exact content (recipient, amount, text), and keep the result when the user returns. The task survives the app being closed because it runs on the backend.
 
-*Agents can take seconds or minutes.*
+**Be honest about quality.** Label AI content, show sources where possible, allow thumbs up/down and "report a problem", let users edit before sending, and never present a guess as a fact. For health, legal or money topics add clear limits and human help.
 
-1. **Show progress:** "Searching notes…", "Reading 3 notes…", "Writing summary…".
-2. Let the user **cancel**.
-3. **Ask approval** before actions that change things (send, delete, pay). Show exactly what will happen, then Approve or Cancel (topics `10` and `16`).
-4. For very long runs, use a **background job** and a **push notification** when done (`SD 21`, `SD 24`).
-5. Handle **app background, kill, and reconnect:** the run continues on the server, so the app fetches the current status when it returns.
+**Per-user limits and quotas** are enforced **on the server** (requests per minute, tokens per day, concurrent tasks). The app shows the remaining quota and handles `429` gracefully.
 
----
+🟡 **Push when a background task finishes.** FCM data message → open the task result by id (`SD 24`, `MOB 10`). Push is best effort, so also refresh on app open.
 
-#### 5. Tell Users the Answer May Be Wrong — 🟢 Must Know
+🟡 **History locally and synced.** Store the conversation in Room (source of truth for the UI), sync with the backend (`SD 30`, `MOB 9`); conflict-free because messages are append-only with client ids; let users delete conversations (and delete server-side copies).
 
-*Be honest with users about what AI can and cannot do.*
+🟡 **Voice and camera input.** Microphone: speech-to-text (system, on-device or backend), a clear recording indicator, permissions in context. Camera: downsample images before upload, tell the user what is sent, handle sensitive scenes.
 
-1. Show a short notice that AI answers can be wrong, especially for health, money, or legal topics.
-2. Show **sources** when you have them (RAG, topic `07`), so users can check.
-3. Give easy ways to **correct, regenerate, or report** an answer.
-4. Never present model output as verified fact when it is not.
-5. Label AI-generated content where required or expected.
-
----
-
-#### 6. Per-User Limits and Quotas — 🟢 Must Know
-
-*Limits belong on the server, and the app only shows them.*
-
-1. Enforce **rate limits and quotas on the server**. The app can only show them.
-2. Show the user how much they have left, and what happens at the limit.
-3. Different limits per plan (free, paid) are a product decision, enforced by the backend.
-4. Protects your bill and the provider quota (topic `17`, `SD 25`).
-
----
-
-#### 7. Local History and Sync — 🟡 Good to Know
-
-*Keep chats on the device, and sync them.*
-
-1. Keep the chat history in a **local database** so it opens instantly and works offline (`SD 30`).
-2. Sync with the server, and resolve conflicts simply (the server is the source of truth for history).
-3. Let users **delete** conversations, locally and on the server (topic `16`).
-4. Do not store secrets or sensitive tool results on the device unencrypted.
+🟡 **Battery and data.** Streaming keeps a radio connection open: close it when the screen is gone; batch background syncs; compress images; ask before big uploads on mobile data; prefer push to polling for long tasks.
 
 ---
 
-#### 8. Voice and Camera Input — 🟡 Good to Know
+#### 3. Naive vs Better Design
 
-*Use the phone's microphone and camera, with care.*
-
-1. **Voice:** speech-to-text, then send text. Or send audio to a multimodal model.
-2. **Camera:** send a photo (a receipt, a document, a plant). Resize and compress first (topic `03`).
-3. Ask for **permissions** at the moment they are needed, with a clear reason.
-4. Photos and audio are personal data. Send only what is needed, and tell the user (topic `16`).
-
----
-
-#### 9. Battery and Data Use — 🟡 Good to Know
-
-*AI features can drain data and battery. Keep them light.*
-
-1. Long streams and repeated calls use data and battery.
-2. Do not poll. Use a stream or a push notification.
-3. Cache and reuse answers where it makes sense.
-4. Compress images before upload. Respect data-saver mode.
-5. Be careful with on-device inference in the background (topic `19`).
+| Naive | Better |
+|---|---|
+| provider key in the app | backend proxy |
+| one blocking request for a 5-minute task | job + progress + push |
+| the agent sends the email by itself | approval screen with exact content |
+| lost partial text on error | keep it, offer retry |
+| render model Markdown with links and images | sanitise, allow-list |
+| quotas only in the UI | server-side enforcement |
+| history only on the server | local history, synced |
+| no label that it is AI | clear label, feedback, sources |
+| polling every second | SSE or push |
 
 ---
 
-#### 10. Common Interview Questions
+#### 4. Code
 
-1. **How do you add an LLM chat to a mobile app?**
-   The app calls your backend, which calls the model. Stream the answer to the UI, with cancel and retry, and handle all the states.
-2. **Why not call the LLM directly from the app?**
-   The API key would be exposed, and you would lose per-user limits, logging, and control.
-3. **How do you make it feel fast?**
-   Stream tokens, show a typing indicator, and update the UI in small batches.
-4. **How do you handle a long-running agent task?**
-   Show progress, allow cancel, ask approval for risky actions, and use a background job with a push notification for very long runs.
-5. **What if the user goes offline mid-answer?**
-   Keep the partial answer, show a clear state, and offer retry. For long runs, the server continues and the app fetches the result later.
-6. **How do you handle wrong answers?**
-   Say answers may be wrong, show sources, allow correction and reporting, and log feedback.
-7. **How do you control cost from the client side?**
-   The server enforces quotas and limits. The app shows remaining usage and avoids unnecessary calls.
+Job status model and the transitions the app must handle (pure Kotlin, easy to test):
+
+```kotlin
+enum class TaskState { QUEUED, RUNNING, AWAITING_APPROVAL, DONE, FAILED, CANCELLED }
+
+val allowed: Map<TaskState, Set<TaskState>> = mapOf(
+    TaskState.QUEUED to setOf(TaskState.RUNNING, TaskState.CANCELLED),
+    TaskState.RUNNING to setOf(TaskState.AWAITING_APPROVAL, TaskState.DONE, TaskState.FAILED, TaskState.CANCELLED),
+    TaskState.AWAITING_APPROVAL to setOf(TaskState.RUNNING, TaskState.CANCELLED, TaskState.FAILED),
+)
+
+fun transition(from: TaskState, to: TaskState): TaskState =
+    if (to in allowed[from].orEmpty()) to else error("illegal transition $from → $to")
+
+fun canCancel(s: TaskState) = s == TaskState.QUEUED || s == TaskState.RUNNING || s == TaskState.AWAITING_APPROVAL
+```
+
+Checks: `QUEUED → RUNNING` ok; `RUNNING → AWAITING_APPROVAL → RUNNING → DONE` ok; `DONE → RUNNING` throws; `canCancel(DONE)` → `false`. The server rejects illegal transitions, so a double-tap on "approve" cannot run the action twice.
+
+Approval is bound to the exact action (so the model cannot swap content after approval):
+
+```kotlin
+@Serializable data class PendingAction(val id: String, val type: String, val summary: String, val payloadHash: String)
+
+fun approve(pending: PendingAction, approvedActionId: String, currentPayload: String): Boolean =
+    pending.id == approvedActionId && sha256(currentPayload) == pending.payloadHash
+```
+
+Checks: approving `act-7` with the original payload → `true`; the same id after the payload text changed → `false` (hash mismatch); a different id → `false`.
+
+Compose: show streamed text efficiently (batch tokens, restart-safe):
+
+```kotlin
+class ChatViewModel(private val repo: ChatRepository) : ViewModel() {
+    private val _text = MutableStateFlow("")
+    val text: StateFlow<String> = _text.asStateFlow()
+    private var job: Job? = null
+
+    fun send(message: String) {
+        job?.cancel()
+        _text.value = ""
+        job = viewModelScope.launch {
+            val buffer = StringBuilder()
+            repo.stream(message)
+                .onEach { buffer.append(it) }
+                .sample(50)                                         // redraw at most ~20 times per second
+                .collect { _text.value = buffer.toString() }
+            _text.value = buffer.toString()                         // make sure the last tokens are shown
+        }
+    }
+    fun stop() { job?.cancel() }                                    // closing the stream also cancels the model call on the server
+}
+```
+
+Safe link handling in model text:
+
+```kotlin
+fun openLinkIfSafe(context: Context, url: String, allowedHosts: Set<String>): Boolean {
+    val uri = runCatching { java.net.URI(url) }.getOrNull() ?: return false
+    if (uri.scheme != "https" || uri.host !in allowedHosts) return false
+    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+    return true
+}
+```
+
+Quota-aware error handling:
+
+```kotlin
+sealed interface AiError {
+    data object Offline : AiError
+    data class LimitReached(val retryAfterSeconds: Int?) : AiError
+    data object Blocked : AiError
+    data object Server : AiError
+}
+
+fun mapError(code: Int?, retryAfter: Int?, ioFailure: Boolean): AiError = when {
+    ioFailure -> AiError.Offline
+    code == 429 -> AiError.LimitReached(retryAfter)
+    code == 451 || code == 422 -> AiError.Blocked
+    else -> AiError.Server
+}
+```
+
+Checks: `mapError(null, null, true)` → `Offline`; `mapError(429, 3600, false)` → `LimitReached(3600)` (the UI shows "try again in 1 hour"); `mapError(500, null, false)` → `Server`.
+
+Server side: a per-user quota with a daily reset (shown to the app in a response header or field):
+
+```kotlin
+class Quota(private val limit: Int, private val clock: () -> Long) {
+    private val used = HashMap<String, Pair<Long, Int>>()                     // user → (day, count)
+    private fun day() = clock() / 86_400_000
+    fun tryTake(user: String, n: Int = 1): Boolean {
+        val (d, c) = used[user] ?: (day() to 0)
+        val count = if (d == day()) c else 0
+        if (count + n > limit) return false
+        used[user] = day() to count + n; return true
+    }
+    fun remaining(user: String) = limit - (used[user]?.takeIf { it.first == day() }?.second ?: 0)
+}
+```
+
+Checks: `Quota(3)`: three `tryTake` calls → `true`, the fourth → `false`, `remaining` → `0`; after the clock moves a day forward → `remaining` → `3`.
+
+Local history entity (Room) with append-only messages:
+
+```kotlin
+@Entity(tableName = "ai_messages", indices = [Index("conversationId")])
+data class AiMessageEntity(@PrimaryKey val id: String, val conversationId: String, val role: String, val text: String,
+                           val createdAt: Long, val synced: Boolean = false, val feedback: Int = 0)
+```
 
 ---
 
-#### 11. Common Mistakes
+#### 5. Numbers & Limits
 
-1. Provider key inside the app.
-2. Waiting for the whole answer before showing anything.
-3. No cancel button, so users keep paying for a run they abandoned.
-4. Only designing the happy path (no error, offline, or limit states).
-5. Running risky agent actions with no user approval.
-6. Limits enforced only in the app.
-7. Redrawing the whole screen for every token.
-
----
-
-#### 12. Related Topics
-
-1. `05` Calling an LLM API
-2. `10` Agents
-3. `16` Safety, Security & Privacy
-4. `17` Cost, Latency & Reliability
-5. `19` On-Device vs Cloud AI
-6. `SD 24` Real-Time Communication & Push
-7. `SD 30` Mobile-Specific Topics
+| Item | Rule of thumb |
+|---|---|
+| UI redraw while streaming | at most about 20 per second |
+| Job duration | seconds → stream; minutes → job + progress + push |
+| Event stream | SSE with reconnect and `Last-Event-ID`; poll every 2 to 5 s as a fallback |
+| Quotas | per user per day (tokens/requests) and concurrent tasks; enforced on the server |
+| Approval timeout | minutes to hours; then the task pauses or fails with a clear state |
+| History retention | user-controlled; delete means delete everywhere |
+| Image upload | downsample to about 1,000 to 2,000 px before sending |
+| Streaming battery | close the connection when the screen is gone |
 
 ---
 
-#### 13. Interview Must Remember
+#### 6. Common Mistakes & Edge Cases
 
-1. **App → your backend → model.** Never a key in the app.
-2. **Stream** the answer, with **cancel** and **retry**.
-3. **Design every state:** loading, streaming, error, offline, limit.
-4. **Agents:** show progress, ask approval, notify when done.
-5. **Be honest:** answers may be wrong. Show sources.
-6. **Limits and quotas are enforced on the server.**
+1. A provider key in the app.
+2. A long task in a single request that dies when the app is backgrounded.
+3. Actions without approval, or approval of a vague summary.
+4. Losing partial answers on errors.
+5. Rendering untrusted Markdown links and images.
+6. Quotas enforced only on the client.
+7. No indication that it is AI, no feedback path.
+8. Polling aggressively; keeping streams open in the background.
+
+Edge cases: the user rotates the screen mid-stream (the `ViewModel` keeps the job); the app is killed during a task (the task continues on the server; reattach by task id); the same approval tapped twice; a push arrives before the data is synced; the model produces a very long answer; the user deletes the conversation during a running task; two devices on the same account.
+
+---
+
+#### 7. Say This in the Interview
+
+1. "The app talks to my backend with the user's token. The backend holds the provider key, enforces quotas, filters, logs and calls the model and tools."
+2. "Chat streams over SSE; the UI redraws in batches, shows a stop button that cancels the upstream call, keeps partial text on errors and has explicit offline, error and limit states."
+3. "A long agent task is a backend job: the app gets a task id, follows progress, can cancel, and approves risky actions on a screen that shows the exact content, bound to a hash so it can't change after approval. A push tells the user when it is done."
+4. "Quotas live on the server, and the app shows the remaining amount and handles 429."
+5. "AI output is labelled, with feedback and sources; history is stored locally and synced."
+
+---
+
+#### 8. Quick Check
+
+1. Why run the agent on the backend?
+2. How does the user cancel a streamed answer so that cost stops?
+3. How do you make approval safe?
+4. Where do quotas live?
+
+<details>
+<summary>Answers</summary>
+
+1. It survives the app closing, keeps keys and tools secure, and lets you control limits and logging.
+2. Close the connection; the backend cancels the model call.
+3. Show the exact action and bind the approval to its id and a hash of the payload.
+4. On the server; the app only displays them.
+
+</details>
+
+---
+
+#### 9. Practice
+
+**Interview questions**
+
+1. How do you add an AI assistant to a mobile app?
+2. How do you design the UI for streaming, errors and offline?
+3. How do you handle a task that takes five minutes?
+4. How do you ask for approval before an agent acts?
+5. How do you limit cost per user?
+6. How do you communicate that the answer may be wrong?
+
+**Hands-on**
+
+1. Build the streaming chat screen with stop, retry and a fake SSE server.
+2. Implement the task state machine and a simple approval screen.
+3. Add a quota endpoint and show "N requests left today" in the UI.
+
+**Coding warm-ups (LeetCode)**
+
+| # | Question | Link to this topic |
+|---|---|---|
+| 1472 | [Design Browser History](https://leetcode.com/problems/design-browser-history/) (Medium) | conversation history navigation |
+| 362 | [Design Hit Counter](https://leetcode.com/problems/design-hit-counter/) (Medium, premium) | quota counters |
+| 641 | [Design Circular Deque](https://leetcode.com/problems/design-circular-deque/) (Medium) | a bounded buffer for streamed tokens |
+
+**Remember:** app → your backend → model · stream, cancel, retry, keep partial text · explicit states (offline, error, limit, refused) · long tasks are backend jobs with progress, cancel and bound approvals · push when done · quotas on the server · label AI, collect feedback.

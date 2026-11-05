@@ -1,129 +1,278 @@
 # Partitioning & Sharding
 
+> Splitting data is a last step, not a first one. Try indexes, caching, replicas, a bigger machine and archiving first. When you do split, choose the key carefully, because it decides performance, hotspots and which queries and transactions stay cheap.
+
 Roadmap topic 15 · Stage 4: Choosing & Scaling
 
-**Marks:** 🟢 Must Know · 🟡 Good to Know · (New) for a mobile engineer, or still changing
+**Go deeper:** `05-system-design/19-Partitioning-and-Sharding` (consistent hashing, virtual nodes) · `6` Query Performance · `13` Caching · `14` Replication · `16` Consistency · `09-architecture/12-Scalability-Performance-and-Resilience`.
 
-**In simple words:** when one database genuinely can't hold all your data or handle all your writes, you split it across several machines. It's a powerful tool and a genuinely painful one — this topic is as much about knowing when *not* to reach for it as how to do it.
+**Marks:** 🟢 must know · 🟡 good to know
 
----
-
-#### 1. Try First — 🟢 Must Know
-
-*The most important line in this whole topic.*
-
-**Indexes, cache, read replicas, a bigger machine, archiving old data** — try all of these before sharding (`SD 19`). Sharding solves a real problem (data or write volume genuinely too big for one machine), but it introduces real, lasting complexity — never reach for it before the simpler options are exhausted.
+**How the examples are checked:** the sharding movement numbers come from a 100,000-key simulation in Python (MD5 hashing); SQL partitioning syntax is PostgreSQL and not run.
 
 ---
 
-#### 2. Table Partitioning vs Sharding — 🟢 Must Know
+#### 1. What Is It?
 
-1. **Table partitioning** — splitting one large table into smaller physical pieces, **within one database** — the database still presents it as one logical table. Much simpler, and often enough on its own.
-2. **Sharding** — splitting data **across multiple separate databases**, usually on different machines. A bigger, more complex step, with real operational cost.
+*Splitting one big data set into smaller parts.*
+
+| 🟢 Must know | 🟡 Good to know |
+|---|---|
+| try first: indexes, cache, replicas, a bigger machine, archiving | consistent hashing |
+| table partitioning (one database) vs sharding (many databases) | directory-based sharding |
+| hash vs range partitioning | resharding with double writes |
+| choosing a shard key | partition pruning and archiving old partitions |
+| hotspots and rebalancing | distributed SQL databases that shard for you |
+| costs: cross-shard queries and transactions, operations | |
+
+1. **Partitioning:** splitting a table into parts *inside one database* (PostgreSQL declarative partitions).
+2. **Sharding:** splitting data across *several database servers*, each holding a subset.
+3. **Shard key:** the column that decides which shard (or partition) a row belongs to.
+4. **Hotspot:** one shard or key receiving far more load than the others.
+
+**Signals in an interview:** "the database is too big or too busy, what do you do?", "how do you choose a shard key?", "what breaks when you shard?", "range vs hash?".
 
 ---
 
-#### 3. Hash vs Range Partitioning — 🟢 Must Know
+#### 2. How It Works
 
-| | Hash | Range |
+**Try these first.**
+
+```mermaid
+flowchart LR
+    A["Slow / big database"] --> B["1 Indexes and query fixes"] --> C["2 Cache hot reads"] --> D["3 Read replicas"] --> E["4 Bigger machine (vertical)"] --> F["5 Archive / delete old data"] --> G["6 Partition big tables"] --> H["7 Shard across servers"]
+```
+
+Each step is cheaper and simpler than the next. Shard only after measuring that writes or data size exceed what one primary can do (topic 11 numbers).
+
+**Table partitioning (inside one database).** One logical table split into physical partitions (by date, by tenant, by hash). Benefits: **partition pruning** (queries that filter on the key touch only relevant partitions), cheap archiving (drop or detach an old partition instead of a giant `DELETE`), smaller indexes, parallelism. It does not add more machines or write capacity.
+
+**Sharding (across servers).** Each shard is an independent database with a slice of the data. Adds capacity for storage and writes. A **router** (library, proxy or service) maps a key to a shard.
+
+**Hash vs range partitioning.**
+
+| | Hash (`hash(key) % N`) | Range (`key` between A and B) |
 |---|---|---|
-| How | `shard = hash(key) % N` | Key ranges (A-H, dates, ID ranges) |
-| Data spread | Even | Can be uneven — hotspots |
-| Range queries | Hard (data scattered) | Easy (data stays together) |
-| Good for | Even load, point lookups | Time-series, ordered scans |
+| Spread | even | can be uneven (new data piles into the newest range) |
+| Range queries | scatter across all shards | stay local |
+| Hotspots | rare (except one hot key) | common (time-based keys: "today" is hot) |
+| Rebalancing | `% N` moves most keys when N changes; use consistent hashing | split or merge ranges |
+| Good for | user data by `user_id` | time-series, archival, ordered scans |
+
+**Choosing a shard key.**
+
+1. **High cardinality**: many distinct values, so data can spread.
+2. **Even distribution**: no single value dominating.
+3. **Matches the main query**: most queries include the key, so each hits one shard (`WHERE user_id = ?`).
+4. **Stable**: it doesn't change (a row can't easily move shards).
+5. Avoid keys that create hotspots (`country`, `status`, a current date, a celebrity user).
+
+Common good choices: `user_id` or `tenant_id`; conversation id for chat; composite keys for sub-ordering.
+
+**Hotspots and rebalancing.** A skewed key (one tenant with 40% of traffic) overloads a shard. Mitigations: split large tenants onto their own shards, add a salt (`user_id#bucket`) for hot keys, use finer-grained shards (many logical shards mapped to fewer servers so you can move whole logical shards), monitor per-shard load.
+
+**The costs.**
+
+| Cost | Why |
+|---|---|
+| Cross-shard queries | joins, global aggregates and `ORDER BY` across all users must query every shard and merge (scatter-gather) |
+| Cross-shard transactions | no single-database ACID across shards; sagas or two-phase commit (slow, complex) |
+| Operations | many databases to back up, migrate, monitor, upgrade; schema changes ×N |
+| Application complexity | routing, id generation (`SD 20`), uniqueness across shards, resharding |
+| Global uniqueness | a unique email across shards needs a lookup table or a global service |
+
+Design so most queries and transactions stay within one shard (all of a user's data together).
+
+🟡 **Consistent hashing.** Place nodes (with many virtual nodes) on a ring; a key belongs to the next node clockwise. When a node is added, only about `1/(N+1)` of the keys move, instead of almost all with `hash % N`.
+
+🟡 **Directory-based sharding.** A lookup table maps key (or key range, tenant) → shard. Flexible (move one tenant at a time) but the directory is a critical, cached dependency.
+
+🟡 **Resharding with double writes.** Create the new layout, write to both, backfill the old data, verify, switch reads, remove the old (the migration pattern, topic 10 and `SD 33`). Plan for it from day one by using many logical shards.
+
+🟡 **Partition pruning and archiving.** Filter on the partition key so the planner scans few partitions; detach/drop old partitions to archive or delete cheaply; keep indexes per partition.
+
+🟡 **Distributed SQL databases.** CockroachDB, YugabyteDB, TiDB, Spanner, Citus (PostgreSQL extension), Vitess (MySQL) shard and rebalance for you with SQL; they add latency and cost and have their own limits, so measure before choosing.
 
 ---
 
-#### 4. Choosing a Shard Key — 🟢 Must Know
+#### 3. Naive vs Better Design
 
-A good shard key has **high cardinality** (many distinct values), **spreads load evenly**, and **matches the main query** (so most requests hit only one shard).
+| Naive | Better |
+|---|---|
+| shard first "to be web scale" | indexes, cache, replicas, bigger box, archiving first |
+| `hash(user_id) % N` forever | consistent hashing or many logical shards |
+| shard by `country` or `status` | high-cardinality key matching the main query |
+| range-partition time-series by day on one hot partition | hash + time sub-partitions, or per-device keys |
+| global `ORDER BY` across all shards | design queries per shard; build a separate read model |
+| cross-shard transactions everywhere | keep a user's data together; sagas for the rest |
+| `DELETE FROM events WHERE day < ...` on a huge table | drop old partitions |
 
-```text
-Chat messages:  conversation_id  → all messages of a chat land on one shard
-User data:      user_id          → a user's data stays together
-Bad choice:     country          → a few huge, uneven shards
-Bad choice:     created_date     → all new writes hit the same shard (hotspot)
+```sql
+-- Naive: a huge events table, old data deleted with a giant DELETE (locks, bloat, hours)
+DELETE FROM events WHERE created_at < now() - interval '90 days';
 ```
 
 ---
 
-#### 5. Hotspots and Rebalancing — 🟢 Must Know
+#### 4. SQL & Code
 
-A **hotspot** is one shard receiving far more traffic than the others (a celebrity account, all of today's writes landing on one date-keyed shard). **Rebalancing** — moving data as shards are added or removed — is slow and operationally risky; plan for it from the start (item 6).
+Table partitioning by month with cheap archiving (PostgreSQL, not run):
+
+```sql
+CREATE TABLE events (
+  id bigint GENERATED ALWAYS AS IDENTITY, user_id bigint NOT NULL, created_at timestamptz NOT NULL, payload jsonb
+) PARTITION BY RANGE (created_at);
+CREATE TABLE events_2025_03 PARTITION OF events FOR VALUES FROM ('2025-03-01') TO ('2025-04-01');
+CREATE TABLE events_2025_04 PARTITION OF events FOR VALUES FROM ('2025-04-01') TO ('2025-05-01');
+CREATE INDEX ON events (user_id, created_at);                         -- created on each partition
+
+EXPLAIN SELECT * FROM events WHERE created_at >= '2025-03-10' AND created_at < '2025-03-11';      -- scans only events_2025_03 (pruning)
+ALTER TABLE events DETACH PARTITION events_2025_03;                    -- archive instantly, no giant DELETE
+```
+
+Checks: with 24 monthly partitions, a one-day query touches `1/24` (about `4.2%`) of the data; dropping the oldest month is a metadata operation.
+
+Hash sharding in the application, and why `% N` is fragile (100,000 keys, MD5):
+
+```kotlin
+fun shardFor(key: String, shards: Int): Int = Math.floorMod(md5Int(key), shards)
+```
+
+Checks (simulation): going from 4 to 5 shards with `hash % N` moves **79.9%** of the keys (data you must migrate and caches you must refill). A consistent-hash ring with 100 virtual nodes per node moves **22.2%** (close to the ideal 20% = 1/5), and spreads keys within about ±25% across shards (`16,306 … 22,225` keys per shard for 100,000 keys).
+
+Consistent hashing in Kotlin:
+
+```kotlin
+class Ring(nodes: List<String>, virtualNodes: Int = 100) {
+    private val ring = java.util.TreeMap<Int, String>().apply { for (n in nodes) for (i in 0 until virtualNodes) put(md5Int("$n#$i"), n) }
+    fun nodeFor(key: String): String = (ring.ceilingEntry(md5Int(key)) ?: ring.firstEntry()).value      // next point clockwise
+}
+```
+
+Routing with many logical shards (so you can move whole logical shards between servers later):
+
+```kotlin
+const val LOGICAL_SHARDS = 1024
+fun logicalShard(userId: Long) = Math.floorMod(userId.hashCode(), LOGICAL_SHARDS)
+fun server(logical: Int, directory: Map<IntRange, String>) = directory.entries.first { logical in it.key }.value
+// directory = {0..255 → "db1", 256..511 → "db2", 512..767 → "db3", 768..1023 → "db4"}; moving 0..127 to "db5" changes one entry and a copy job
+```
+
+Checks: with the 4-way directory, `server(300, directory)` → `db2`; after moving logical shards `0..127` to `db5`, users in those shards route to `db5` while 87.5% of the data stays put.
+
+Scatter-gather (what cross-shard queries cost):
+
+```kotlin
+suspend fun topNotesAcrossShards(shards: List<Db>, n: Int): List<Note> =
+    coroutineScope { shards.map { s -> async { s.recentNotes(limit = n) } }.awaitAll() }.flatten().sortedByDescending { it.createdAt }.take(n)
+```
+
+Every shard is asked; latency is the slowest shard; one failed shard breaks the result. Prefer queries that include the shard key.
+
+Key hotspot check:
+
+```kotlin
+fun hottest(requestsByShard: Map<Int, Long>): Pair<Int, Double> {
+    val total = requestsByShard.values.sum().toDouble()
+    val (shard, count) = requestsByShard.maxByOrNull { it.value }!!
+    return shard to count / total
+}
+```
+
+Checks: shard loads `{0: 400, 1: 150, 2: 250, 3: 200}` → hottest shard `0` with `40%` of traffic (even would be 25%): a hotspot to fix (split the tenant, salt the key, or re-balance).
+
+Salting a hot key:
+
+```kotlin
+fun saltedKey(hotKey: String, buckets: Int = 8, random: () -> Int = { (0 until 8).random() }) = "$hotKey#${random()}"      // writes spread over 8 keys; reads query all 8 and merge
+```
 
 ---
 
-#### 6. The Costs — 🟢 Must Know
+#### 5. Numbers & Limits
 
-1. **Cross-shard queries** are slow and complex — no simple join across shards.
-2. **Cross-shard transactions** are hard — avoid needing them by keeping related data on the same shard.
-3. **More operations** — backups, schema changes, and monitoring now happen per shard, multiplying operational work.
-
----
-
-#### 7. Consistent Hashing — 🟡 Good to Know
-
-A technique (`02-algorithm/07`) that spreads keys across nodes so that adding or removing a node moves only a **small fraction** of the data, instead of nearly everything — solves the rebalancing pain of a naive `hash(key) % N` scheme, where changing N reshuffles almost every key.
-
----
-
-#### 8. Directory-Based Sharding — 🟡 Good to Know
-
-A lookup table explicitly records which shard holds which key — flexible (rebalancing is just updating the directory), but the directory itself becomes a critical, must-protect component.
+| Item | Rule of thumb |
+|---|---|
+| When to shard | single primary saturated after indexing, caching and replicas, or data beyond a few TB |
+| Table partition size | 10–100 GB per partition; monthly or weekly for time data |
+| Shard count | start with many logical shards (hundreds to thousands) mapped to few servers |
+| `hash % N` rebalancing | moves ~80% of keys going 4 → 5 nodes; consistent hashing ~20% |
+| Per-shard skew | alert when one shard has > 1.5× the average load |
+| Scatter-gather | latency = slowest shard; failure probability grows with shard count |
+| Resharding | days to weeks of dual writes and verification: avoid by planning ahead |
+| Archiving | keep hot data (30–90 days) on fast storage, old data in cheap tiers |
 
 ---
 
-#### 9. Resharding with Double Writes — 🟡 Good to Know
+#### 6. Common Mistakes & Edge Cases
 
-Moving data to a new shard layout gradually: write to both the old and new layout during the transition, backfill historical data, validate, then cut over reads — the same expand-and-contract discipline as topic `10`, applied to sharding.
+1. Sharding before exhausting simpler options.
+2. A poor shard key (low cardinality, hot, or not in the main query).
+3. `hash % N` with no rebalancing plan.
+4. Cross-shard joins and transactions in the hot path.
+5. Forgetting global uniqueness and id generation.
+6. A time-based key that sends all writes to the newest partition.
+7. No per-shard monitoring.
+8. Schema changes and backups not automated across shards.
 
----
-
-#### 10. Partition Pruning and Archiving — 🟡 Good to Know
-
-The query planner can skip partitions that clearly can't contain matching rows (**pruning**) if the partition key is used in the query — and old partitions (last year's data) can be archived or dropped as a whole unit, much cheaper than deleting individual old rows.
-
----
-
-#### 11. Distributed SQL Databases — 🟡 Good to Know
-
-Some databases (names worth recognising, not needing deep implementation knowledge) handle sharding **for you** internally, presenting a single logical SQL interface while transparently distributing data — trading some of sharding's manual complexity for less mature tooling and a real product dependency.
+Edge cases: one huge tenant; moving a user between shards; global secondary indexes (a lookup by email must find the shard); shard-aware caching; failures of a single shard (partial outage); late-arriving data in a time-partitioned table; foreign keys across partitions or shards (not enforced across shards).
 
 ---
 
-#### 12. Common Interview Questions
+#### 7. Say This in the Interview
 
-1. **How would you shard a `messages` table for a chat app?**
-   By `conversation_id` — all messages of one conversation land on the same shard, so reads (per-conversation) hit only one shard, and load spreads evenly across many conversations. Watch for a very large, hot group chat.
-2. **What should you try before sharding?**
-   Indexes, caching, read replicas, a bigger machine, and archiving old data — sharding is a last resort given its lasting operational cost.
-3. **Hash vs range partitioning — trade-offs?**
-   Hash spreads data evenly but makes range queries hard, since matching data is scattered. Range keeps data together for efficient scans but risks hotspots if writes cluster around one part of the range (like recent dates).
-4. **What are the real costs of sharding, once you've done it?**
-   Cross-shard queries and transactions become slow or impossible to do simply, and every operational task (backups, schema changes, monitoring) multiplies across shards.
+1. "I'd try indexes, caching, replicas, a bigger machine and archiving first, then partition big tables, and shard only when measured limits are exceeded."
+2. "Partitioning splits a table inside one database (pruning, cheap archiving); sharding spreads data over servers (more write and storage capacity) at the cost of cross-shard queries and transactions."
+3. "The shard key needs high cardinality, an even spread and to appear in the main queries; `user_id` or `tenant_id` is typical. I avoid keys that make hotspots."
+4. "I'd use many logical shards or consistent hashing so adding servers moves about 1/N of the data instead of most of it."
+5. "I design so a user's data lives in one shard, and handle the rest with sagas, read models and scatter-gather only where needed."
 
 ---
 
-#### 13. Common Mistakes
+#### 8. Quick Check
 
-1. Sharding before trying indexes, caching, replicas, or a bigger machine.
-2. A shard key that creates hotspots (a date, a low-cardinality field).
-3. Needing cross-shard joins or transactions constantly, fighting the architecture.
-4. Using naive `hash % N` sharding with no plan for adding shards later (no consistent hashing, no rebalancing plan).
+1. Partitioning vs sharding?
+2. What makes a good shard key?
+3. Why is `hash % N` bad for rebalancing?
+4. What are the costs of sharding?
+
+<details>
+<summary>Answers</summary>
+
+1. Partitioning splits a table within one database; sharding spreads data across several database servers.
+2. High cardinality, even distribution, present in the main query, and stable.
+3. Changing N remaps most keys (about 80% when going from 4 to 5 nodes); consistent hashing moves only about 1/(N+1).
+4. Cross-shard queries and transactions, operational overhead, routing and id/uniqueness complexity, and resharding work.
+
+</details>
 
 ---
 
-#### 14. Related Topics
+#### 9. Practice
 
-1. `SD 19` Partitioning & Sharding — the same core content, first pass
-2. `02-algorithm/07` Graph Algorithms (consistent hashing) — the technique referenced in item 7
-3. `SD 20` Unique ID Generation — shard-aware ID generation strategies
+**Interview questions**
 
----
+1. The database is at its limit. What do you do, in order?
+2. Design the sharding for a chat app / notes app.
+3. Range vs hash partitioning?
+4. How do you handle a hot shard?
+5. How do you run a query across shards?
+6. How do you add a shard to a running system?
 
-#### 15. Interview Must Remember
+**Hands-on**
 
-1. **Shard last** — indexes, cache, replicas, and a bigger machine come first.
-2. **Shard key**: high cardinality, even spread, matches the main query.
-3. **Hash = even spread. Range = good for scans, risk of hotspots.**
-4. **Costs**: cross-shard queries and transactions, hotspots, multiplied operations.
+1. Simulate `hash % N` vs a consistent hash ring for 100,000 keys and measure the fraction moved.
+2. Create a monthly-partitioned table in PostgreSQL, use `EXPLAIN` to see pruning, and detach a partition.
+3. Compute the hottest shard of a skewed workload and propose a fix.
+4. Design the shard key and logical-shard directory for your product.
+
+**Coding warm-ups (LeetCode)**
+
+| # | Question | Link to this topic |
+|---|---|---|
+| 706 | [Design HashMap](https://leetcode.com/problems/design-hashmap/) (Easy) | hashing into buckets |
+| 1244 | [Design A Leaderboard](https://leetcode.com/problems/design-a-leaderboard/) (Medium, premium) | partitioned counters |
+| 56 | [Merge Intervals](https://leetcode.com/problems/merge-intervals/) (Medium) | range partitions |
+| 23 | [Merge k Sorted Lists](https://leetcode.com/problems/merge-k-sorted-lists/) (Hard) | merging results from shards |
+
+**Remember:** shard last · partition inside, shard across · key = high cardinality + even + in the main query · consistent hashing / logical shards, not `% N` · keep a user's data together · watch hotspots · drop partitions instead of giant deletes.

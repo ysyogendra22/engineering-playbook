@@ -1,216 +1,282 @@
 # Agent Harness
 
-Roadmap topic 11 · Stage 3: Tools & Agents
+> The harness is all the code around the model that turns it into a working agent: the loop, the prompts, the tools, the permissions, the sandbox, the limits and the context management. Model + harness = agent.
 
-**Marks:** 🟢 Must Know · 🟡 Good to Know · (New) a newer idea, still changing
+Roadmap topic 11 · Stage 3: Tools & Agents (New)
 
-**In simple words:** the model alone only writes text. The harness is all the code around it that turns it into a working agent: it builds the prompt, calls the model, runs the tools, manages the context, and enforces the rules. **Model + harness = agent.** A good harness matters as much as a good model.
+**Go deeper:** `8` Tool Use · `9` MCP · `10` Agents · `12` Building an Agent · `13` Memory & Context · `14` Multi-Agent Systems · `16` Safety · `18` Observability.
 
----
-
-#### 1. What Is a Harness — 🟢 Must Know (New)
-
-*The model is the engine. The harness is the rest of the car.*
-
-1. The **harness** (also called scaffolding or the agent runtime) is everything except the model.
-2. It runs the agent loop (topic `10`) and decides what the model sees and what it may do.
-3. Examples: a coding assistant in your terminal or IDE, an agent SDK, or a loop you write yourself.
-
-**Mobile view:** like the Android or iOS framework around your app code. Your code (the model) does the thinking. The framework handles lifecycle, permissions, threads, and resources.
+**Marks:** 🟢 must know · 🟡 good to know · (New) still changing
 
 ---
 
-#### 2. What It Does Each Turn — 🟢 Must Know (New)
+#### 1. What Is It?
 
-*One turn of the loop.*
+*Everything except the model.*
 
-```text
-Build the prompt (system prompt + tool list + history + new input)
-        ↓
-Call the model
-        ↓
-Reply has a tool call?  ── no ──→  show the final answer, done
-        │ yes
-        ↓
-Check permissions  →  run the tool (in a sandbox)  →  get the result
-        ↓
-Add the result to the history, trim the context if needed
-        ↓
-Check limits (steps, cost, time)  →  next turn
+| 🟢 Must know | 🟡 Good to know |
+|---|---|
+| harness = the code around the model | hooks |
+| what it does each turn | skills |
+| what it supplies: system prompt, tools, loop rules | project instruction files |
+| context management and compaction | subagents |
+| permissions: allow, ask, deny | sessions, checkpoints, resuming |
+| sandboxing | permission modes |
+| limits and errors | same model, different harness, different results |
+| | examples of harnesses |
+
+1. **Each turn:** build the prompt → call the model → run the tools it asks for → add the results → repeat.
+2. **It supplies:** the system prompt, tool definitions, and the rules of the loop.
+3. **It enforces:** permissions, sandboxing, limits, retries, cancellation.
+4. **It manages the context:** what stays, what is trimmed, what is summarised.
+
+**Signals in an interview:** "what is an agent harness?", "how do you control what an agent can do?", "how do you handle long tasks?", "why do two agents on the same model behave differently?".
+
+---
+
+#### 2. How It Works
+
+**The harness around the model.**
+
+```mermaid
+flowchart TD
+    U["User / app"] --> H
+    subgraph H["Harness"]
+        SP["System prompt + project instructions + skills"]
+        CM["Context manager: trim, summarise (compaction)"]
+        LOOP["Loop: call model → run tools → add results"]
+        PERM["Permissions: allow / ask / deny"]
+        HOOK["Hooks: before / after tool, start, stop"]
+        SB["Sandbox: restricted environment"]
+        LIM["Limits: steps, tokens, time, retries"]
+        TR["Tracing and logging"]
+    end
+    LOOP <--> M["Model"]
+    LOOP --> PERM --> SB --> TOOLS["Tools / MCP servers"]
+    HOOK -.-> LOOP
+    CM -.-> LOOP
+```
+
+**What the harness does every turn.**
+
+1. Assemble the prompt: system prompt, project instructions, relevant skills, tool definitions, history (trimmed), the new input.
+2. Call the model (streaming), handle errors and retries.
+3. If the model asks for tools: check permissions → run in the sandbox → shorten big results → add them to the history.
+4. Check limits and stop conditions; compact the context if needed.
+5. Save the session and the trace.
+
+**Permissions.** For each tool call decide **allow** (run), **ask** (confirm with the user), or **deny**. Use rules by tool and arguments (for example allow `read_file`, ask for `bash`, deny `bash(rm *)`). Deny beats ask beats allow. Default to ask for anything unknown. Permissions limit what the *harness* will run no matter what the model wants.
+
+**Sandboxing.** Run tools where mistakes are contained: a restricted directory, no network or an allow-list of hosts, no secrets in the environment, CPU/memory/time limits, a container or VM, and a snapshot to roll back. The model's output is untrusted input.
+
+**Context management and compaction.** The history grows with every tool result. The harness keeps recent turns verbatim, shortens or drops large old tool results, and when a threshold is passed it **compacts**: summarises older turns into a short note (goal, decisions, files touched, open tasks) and continues from that. Stable prefixes (system prompt, tool definitions) stay first so prompt caching works.
+
+**Limits and errors.** Max turns, max tokens, timeouts per tool, retries with backoff for model errors, cancellation (the user presses stop: cancel the model call and running tools), and a clean final message that says why it stopped.
+
+🟡 **Hooks.** Your code that runs at fixed points: before a tool call (block or modify it), after a tool call (format files, run lint, log), when the session starts, when the agent stops (check that tests pass before finishing). Hooks enforce rules deterministically, which prompts cannot.
+
+🟡 **Skills.** Packaged instructions, scripts and resources for a task (for example "create a release note", "review a PR"). Only a short description is always loaded; the full skill is loaded when relevant. This keeps the context small.
+
+🟡 **Project instruction files.** Standing rules the harness loads automatically (for example a `CLAUDE.md` or `AGENTS.md` in a repo): build commands, code style, architecture notes, "never edit generated files". Keep them short, specific and current.
+
+🟡 **Subagents.** A helper with its own context for one subtask; returns a short result (topic 14).
+
+🟡 **Sessions, checkpoints, resume.** Save the history and state so a task can continue after a crash or tomorrow; checkpoint file states to undo changes.
+
+🟡 **Permission modes.** For example *plan only* (read-only, propose a plan), *ask for edits*, *auto-approve edits in a workspace*, *fully autonomous in a sandbox*.
+
+🟡 **Same model, different harness.** Prompt design, tool quality, context handling, limits and verification steps change results as much as the model does. When an agent underperforms, inspect the harness before blaming the model.
+
+🟡 **Examples.** Coding CLIs and IDE agents, agent SDKs and frameworks, and the loop you write yourself in topic 12.
+
+---
+
+#### 3. Naive vs Better Design
+
+| Naive | Better |
+|---|---|
+| the model's output is run directly | permission rules between the model and the tools |
+| tools run on the host with your credentials | sandbox, scoped credentials |
+| history grows until the request fails | trim, shorten, compact |
+| rules only in the prompt ("please don't...") | enforced by permissions and hooks |
+| no max turns/timeouts | explicit limits and cancellation |
+| one huge system prompt | short prompt + project file + skills loaded on demand |
+| no trace | every step logged and replayable |
+| lose everything on a crash | sessions and checkpoints |
+
+```kotlin
+// Naive: a prompt that says "never delete files" is the only protection
+agent.run(goal, tools = listOf(shell))        // the shell tool can still run rm -rf
 ```
 
 ---
 
-#### 3. What the Harness Supplies — 🟢 Must Know (New)
+#### 4. Code
 
-*The harness decides everything the model sees.*
+A permission engine (deny > ask > allow, with simple wildcards):
 
-1. **System prompt** — the rules, role, and how to behave.
-2. **Tool definitions** — the list of tools and their schemas (topic `08`).
-3. **Loop rules** — when to stop, how to handle errors, what to do on limits.
-4. **Environment** — where the tools run (a folder, a project, an account).
+```kotlin
+enum class Decision { ALLOW, ASK, DENY }
+data class Rule(val tool: String, val pattern: String?, val decision: Decision)       // pattern null = any argument
 
-The model only sees what the harness chooses to show it.
+private fun glob(p: String) = Regex("^" + p.split("*").joinToString(".*") { Regex.escape(it) } + "$")
+
+fun decide(rules: List<Rule>, tool: String, argument: String): Decision {
+    val matching = rules.filter { it.tool == tool && (it.pattern == null || glob(it.pattern).matches(argument)) }
+    return when {
+        matching.any { it.decision == Decision.DENY } -> Decision.DENY
+        matching.any { it.decision == Decision.ASK } -> Decision.ASK
+        matching.any { it.decision == Decision.ALLOW } -> Decision.ALLOW
+        else -> Decision.ASK                                                          // unknown → ask
+    }
+}
+```
+
+Checks with rules `read_file → ALLOW`, `bash → ASK`, `bash("rm *") → DENY`, `bash("git status") → ALLOW`: `decide(read_file, "notes.txt")` → `ALLOW`; `decide(bash, "ls")` → `ASK`; `decide(bash, "rm -rf /")` → `DENY` (deny wins even though `bash` also has an ask rule); `decide(bash, "git status")` → `ASK` (an ask rule on the whole tool still matches; ask beats allow), so list narrower allows only when there is no broader ask. `decide(send_email, "x")` → `ASK` (unknown tool).
+
+Keep the path inside the workspace (a basic sandbox check):
+
+```kotlin
+fun isInside(root: String, path: String): Boolean {
+    val base = java.nio.file.Paths.get(root).normalize()
+    val target = base.resolve(path).normalize()
+    return target.startsWith(base)
+}
+```
+
+Checks: `isInside("/work", "src/a.kt")` → `true`; `isInside("/work", "../etc/passwd")` → `false`; `isInside("/work", "/etc/passwd")` → `false` (an absolute path replaces the base on resolve, so it is outside). Also resolve symlinks (`toRealPath`) in real code.
+
+Hooks around a tool call:
+
+```kotlin
+sealed interface HookResult { data object Continue : HookResult; data class Block(val reason: String) : HookResult }
+
+class Hooks(
+    val before: List<(ToolCall) -> HookResult> = emptyList(),
+    val after: List<(ToolCall, ToolResult) -> Unit> = emptyList()
+)
+
+fun runWithHooks(call: ToolCall, hooks: Hooks, run: (ToolCall) -> ToolResult): ToolResult {
+    hooks.before.map { it(call) }.filterIsInstance<HookResult.Block>().firstOrNull()?.let {
+        return ToolResult(call.id, "blocked by policy: ${it.reason}", isError = true)
+    }
+    return run(call).also { r -> hooks.after.forEach { it(call, r) } }              // e.g. audit log, lint
+}
+```
+
+Checks: a `before` hook that blocks writes to `.env` returns `blocked by policy: …` and the tool is never run; an `after` hook that appends to an audit list records every executed call.
+
+Compaction when the history is large:
+
+```kotlin
+fun compactIfNeeded(
+    messages: List<Msg>, windowTokens: Int, threshold: Double = 0.8, keepLast: Int = 6,
+    summarize: (List<Msg>) -> String
+): List<Msg> {
+    val used = messages.sumOf { approxTokens(it.text) }
+    if (used < windowTokens * threshold || messages.size <= keepLast) return messages
+    val old = messages.dropLast(keepLast)
+    val summary = Msg("system", "Summary of earlier work:\n" + summarize(old))
+    return listOf(summary) + messages.takeLast(keepLast)
+}
+```
+
+Checks: 20 messages of 400 tokens (8,000 total) with `windowTokens = 8,000` (80% = 6,400 exceeded) and `keepLast = 6` → result has `1 + 6 = 7` messages: the summary followed by the last six. With `windowTokens = 100,000` → the list is returned unchanged.
+
+A project instruction file (kept short and specific):
+
+```text
+# AGENTS.md
+Build: ./gradlew assembleDebug     Test: ./gradlew testDebugUnitTest (run before finishing)
+Style: Kotlin official style; no !!; ViewModels expose StateFlow.
+Never edit files under build/ or generated/. Ask before changing the database schema.
+```
 
 ---
 
-#### 4. Context Management — 🟢 Must Know (New)
+#### 5. Numbers & Limits
 
-*The harness decides what stays in the window (topic `13`).*
-
-1. The context fills as tool results pile up.
-2. **Trim** — cut old or large outputs.
-3. **Compaction** — summarize older turns into a short note and continue.
-4. **Load on demand** — read a file or fetch a record only when needed, instead of loading everything.
-5. Keep the goal, the rules, and key facts safe from being trimmed.
+| Item | Rule of thumb |
+|---|---|
+| Compaction trigger | at 70 to 85% of the context window |
+| Keep verbatim | the last 5 to 10 turns, the system prompt, the current plan |
+| Tool result cap | a few thousand tokens; summarise or paginate beyond that |
+| Per-tool timeout | seconds to a few minutes; shorter for reads |
+| Max turns | 20 to 100 for coding-style agents with checkpoints; far fewer for simple tasks |
+| Project instruction file | under about 100 to 200 lines; every line costs tokens every turn |
+| Skills | descriptions always loaded (tens of tokens); bodies on demand |
+| Sandbox | no secrets in env, no network unless needed, resource limits |
 
 ---
 
-#### 5. Permissions — 🟢 Must Know (New)
+#### 6. Common Mistakes & Edge Cases
 
-*Which actions run alone, which need approval, which are never allowed.*
+1. Relying on the prompt for safety instead of permissions and sandboxing.
+2. Running tools with the developer's full credentials.
+3. No compaction, so long tasks fail near the end.
+4. Compacting away the goal or constraints.
+5. A huge instruction file full of stale rules.
+6. No cancellation: the model keeps running after the user leaves.
+7. Hooks that are slow or flaky.
+8. Judging the model when the harness is the problem.
 
-| Rule | Meaning | Example |
+Edge cases: a tool call approved, then the world changes before it runs; two tools writing to the same file; a summary that loses a key decision; a crash mid-tool (idempotent steps and checkpoints); conflicting rules between the user, the project file and a document; permission fatigue (too many prompts, so users approve everything).
+
+---
+
+#### 7. Say This in the Interview
+
+1. "Model plus harness equals agent. The harness builds the prompt, runs the loop and the tools, enforces permissions and limits, and manages the context."
+2. "Safety lives in the harness: allow/ask/deny rules, a sandbox, least-privilege credentials, and hooks. A prompt can't enforce anything."
+3. "For long tasks the harness compacts older turns into a summary and keeps recent turns and the plan."
+4. "Hooks run my code deterministically at set points, such as blocking a write or running the tests before the agent can stop."
+5. "Same model, different harness, different results, so I improve tool descriptions, context handling and verification before blaming the model."
+
+---
+
+#### 8. Quick Check
+
+1. What are the three permission outcomes?
+2. Why use hooks instead of a prompt rule?
+3. When does the harness compact?
+4. What belongs in a project instruction file?
+
+<details>
+<summary>Answers</summary>
+
+1. Allow, ask, deny.
+2. Hooks run for sure, every time; a prompt rule is only a request the model may ignore.
+3. When the context passes a threshold (for example 80% of the window).
+4. Short, specific standing rules: build and test commands, style, areas not to touch.
+
+</details>
+
+---
+
+#### 9. Practice
+
+**Interview questions**
+
+1. What is an agent harness?
+2. What does the harness do each turn?
+3. How do you control what an agent may do?
+4. How do you handle a task longer than the context window?
+5. What are hooks and skills?
+6. Why can the same model perform differently in different agents?
+
+**Hands-on**
+
+1. Add a permission engine and path sandbox to the agent from topic 12; test allow, ask, deny and path escape.
+2. Add a `before` hook that blocks edits to certain files and an `after` hook that logs.
+3. Implement compaction and test that the goal survives it.
+
+**Coding warm-ups (LeetCode)**
+
+| # | Question | Link to this topic |
 |---|---|---|
-| **Allow** | Runs without asking | Read a file, search notes |
-| **Ask** | Needs the user's approval | Edit a file, send an email |
-| **Deny** | Never allowed | Delete the production database |
+| 146 | [LRU Cache](https://leetcode.com/problems/lru-cache/) (Medium) | evicting old context |
+| 71 | [Simplify Path](https://leetcode.com/problems/simplify-path/) (Medium) | normalising paths for the sandbox check |
+| 588 | [Design In-Memory File System](https://leetcode.com/problems/design-in-memory-file-system/) (Hard, premium) | a file tree for the workspace |
+| 1188 | [Design Bounded Blocking Queue](https://leetcode.com/problems/design-bounded-blocking-queue/) (Medium, premium) | back-pressure for tool output |
 
-1. Decide per tool and per action, not once for everything.
-2. Show the user what will happen before approval.
-3. Remember choices carefully. "Always allow" should be narrow.
-
-**Mobile view:** the same idea as Android runtime permissions and iOS permission prompts.
-
----
-
-#### 6. Sandboxing — 🟢 Must Know (New)
-
-*Run tools where they cannot do much harm.*
-
-1. A **sandbox** is a restricted environment: limited files, limited network, limited time and memory.
-2. It reduces the damage of a bad command, a bug, or a prompt-injection attack.
-3. Examples: a container, a temporary folder, a restricted user account.
-4. Permissions decide **whether** to run. The sandbox limits **what** can go wrong when it runs.
-
-**Mobile view:** like the app sandbox: an app can only touch its own files.
-
----
-
-#### 7. Limits and Errors — 🟢 Must Know (New)
-
-*Keep every run bounded and recoverable.*
-
-1. **Max turns**, **max cost**, and **timeout** for each run.
-2. **Retries** for transient model and tool errors (`SD 22`).
-3. **Cancellation** — the user can stop a run cleanly.
-4. **Tool errors** go back to the model as short messages, so it can adjust.
-5. **Repeat detection** — stop identical calls that keep repeating.
-
----
-
-#### 8. Hooks — 🟡 Good to Know
-
-*Your code that runs automatically at set points in the loop.*
-
-1. A **hook** is a rule like "before any tool runs, do X" or "after a file is edited, run the formatter".
-2. Typical points: session start, before a tool call, after a tool call, when the agent stops.
-3. Uses: block dangerous commands, add logging, run checks, inject extra context.
-4. Unlike a prompt instruction, a hook runs **every time**. The model cannot forget or skip it.
-
-**Mobile view:** like lifecycle callbacks (`onStart`, `viewWillAppear`), or interceptors in OkHttp.
-
----
-
-#### 9. Skills — 🟡 Good to Know (New)
-
-*Instructions the agent loads only when they are needed.*
-
-1. A **skill** is a packaged set of instructions, and sometimes scripts and files, for one kind of task ("write a release note", "review an API").
-2. The agent sees a short description of each skill and **loads the full text only when it is relevant**.
-3. This keeps the context small while giving the agent many abilities.
-
----
-
-#### 10. Project Instruction Files — 🟡 Good to Know (New)
-
-*Standing rules that load at the start, so you do not repeat them.*
-
-1. A file in the project (for example `CLAUDE.md` or `AGENTS.md`) holds standing rules: how to build, test, code style, things to avoid.
-2. The harness loads it at the start of a session, so you do not repeat yourself.
-3. Keep it short and specific. Long files waste context.
-
----
-
-#### 11. Sessions, Checkpoints, Subagents, Modes — 🟡 Good to Know
-
-*Smaller pieces that make long work safer and easier to manage.*
-
-1. **Session** — a saved conversation and state, so you can continue later.
-2. **Checkpoint** — a saved point you can go back to if the agent goes wrong (for example, before edits).
-3. **Subagents** — helper agents with their own context (topic `14`).
-4. **Permission modes** — for example "plan only" (no changes), "ask for edits", or "auto-approve". Choose the mode by risk.
-
----
-
-#### 12. Why the Harness Matters — 🟡 Good to Know
-
-*The model is only half of the result.*
-
-1. The **same model** in a different harness gives very different results.
-2. Better results often come from better tools, better context handling, and better feedback (tests, checks), not a bigger model.
-3. When an agent misbehaves, look at the harness first: the tool descriptions, the context, the limits, and the permissions.
-4. Building your own loop once (topic `12`) teaches how all harnesses work.
-
----
-
-#### 13. Common Interview Questions
-
-1. **What is an agent harness?**
-   The code around the model that runs the loop, builds the prompt, executes tools, manages context, and enforces permissions and limits. Model plus harness equals agent.
-2. **What does a harness do on each turn?**
-   Builds the prompt, calls the model, runs any requested tool after permission checks, adds the result, trims the context, and checks the limits.
-3. **How do permissions and sandboxes differ?**
-   Permissions decide whether an action is allowed to run. A sandbox limits the damage it can do when it does.
-4. **What are hooks?**
-   Code that runs automatically at set points, such as before a tool call. They are enforced every time, unlike instructions in a prompt.
-5. **How do you handle a long task filling the context?**
-   Trim tool outputs, compact old turns, load data on demand, and keep the goal and rules protected.
-6. **What are skills and instruction files?**
-   Skills are packaged instructions loaded when relevant. Instruction files hold standing project rules loaded at the start.
-7. **Why can two agents with the same model perform differently?**
-   Different harnesses: tools, context handling, feedback, and limits.
-
----
-
-#### 14. Common Mistakes
-
-1. Blaming the model when the harness (tools, context) is the problem.
-2. No permission model: every tool allowed.
-3. Running tools with no sandbox.
-4. Enforcing important rules only in the prompt, not with hooks or code.
-5. Never trimming the context.
-6. No step, cost, or time limits.
-
----
-
-#### 15. Related Topics
-
-1. `08` Tool Use & Function Calling
-2. `10` Agents
-3. `12` Building an Agent
-4. `13` Memory & Context Management
-5. `14` Multi-Agent Systems
-6. `16` Safety, Security & Privacy
-7. `SD 22` Reliable Requests & External Services
-
----
-
-#### 16. Interview Must Remember
-
-1. **Model + harness = agent.**
-2. **Turn:** build prompt → model → permission check → run tool → add result → trim → limits.
-3. **Permissions** = may it run. **Sandbox** = limit the damage.
-4. **Hooks** run every time. Prompts are only advice.
-5. **Skills** and **instruction files** load context only when needed.
-6. **Harness design** often matters more than model size.
+**Remember:** model + harness = agent · permissions and sandbox, not prompts, enforce safety · hooks are deterministic · compact before the window fills · keep prefixes stable · limits and cancellation · inspect the harness first.

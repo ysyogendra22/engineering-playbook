@@ -1,248 +1,277 @@
 # Building an Agent
 
+> Build the smallest loop that works, then add limits, permissions, context control and tests. This note takes you from the goal to a running agent in a fixed order.
+
 Roadmap topic 12 · Stage 3: Tools & Agents
 
-**Marks:** 🟢 Must Know · 🟡 Good to Know · (New) a newer idea, still changing
+**Go deeper:** `4` Prompting · `8` Tool Use · `10` Agents · `11` Agent Harness · `13` Memory & Context · `15` Evaluation · `16` Safety · `17` Cost · `18` Observability.
 
-**In simple words:** an agent is less magic than it looks. It is a loop in your code: call the model, run the tool it asks for, add the result, and repeat. Start with the smallest loop that works, then add limits, permissions, and tests. Build one yourself once, so every harness makes sense.
-
----
-
-#### 1. Define the Job and Check You Need an Agent — 🟢 Must Know
-
-*Steps 1 and 2. Most bad agents start here.*
-
-1. **Define the job:** one clear goal, who it is for, what "done" looks like, and what it must never do.
-2. Write 5 to 10 **real example tasks** now. They become your test set later (topic `15`).
-3. **Check that you need an agent.** Try in this order (topic `10`):
-
-```text
-One prompt  →  a fixed workflow  →  an agent (only if steps can't be known ahead)
-```
-
-Example job used below: a **notes assistant** that answers questions about a user's notes and can create a note, with approval.
+**Marks:** 🟢 must know · 🟡 good to know
 
 ---
 
-#### 2. Choose the Model and Write the System Prompt — 🟢 Must Know
+#### 1. What Is It?
 
-*Steps 3 and 4.*
+*A recipe: thirteen steps, in order.*
 
-1. **Model:** start with a strong model so you can tell if the design works. Move to a cheaper one after your tests pass (topic `03`).
-2. **System prompt** should state:
-   - the role and the goal,
-   - the rules ("never invent notes", "ask before creating or deleting"),
-   - **when to stop** and what a good final answer looks like,
-   - **when to ask the user** instead of guessing.
-3. Keep it short and clear (topic `04`).
+| 🟢 Must know | 🟡 Good to know |
+|---|---|
+| steps 1 to 10: job, need check, model, prompt, tools, loop, limits, permissions, context, tests | treat tool results as untrusted; sandbox risky tools |
+| the agent runs on your backend, not in the app | logging, tracing, cost tracking |
+| | improve in order: tool descriptions → prompt → tools |
+| | build from scratch once, then use an SDK |
+| | common first mistakes |
 
-```text
-You are a notes assistant. Use the tools to find the user's notes.
-Answer only from what the tools return. If nothing matches, say so.
-Ask the user before creating a note. Stop when you can answer the question.
-```
+**Signals in an interview:** "walk me through building an agent", "what would you build first?", "how do you test it?", "how do you keep it from doing damage?".
 
 ---
 
-#### 3. Define a Few Tools — 🟢 Must Know
+#### 2. How It Works
 
-*Step 5. Start read-only.*
+**The steps, in order.**
 
-| Tool | Type | Description (short) |
+| # | Step | Output |
 |---|---|---|
-| `search_notes(query)` | Read | Find notes by topic. Returns up to 5 ids, titles, snippets |
-| `get_note(id)` | Read | Get the full text of one note |
-| `create_note(title, body)` | Write | Create a note. **Needs user approval** |
+| 1 | **Define the job:** one goal, who it is for, what "done" means, what it must never do | a one-paragraph spec |
+| 2 | **Check that you need an agent:** one prompt, then a fixed workflow, then an agent (topic 10) | a decision with a reason |
+| 3 | **Pick a model:** a strong one to get it working; a cheaper one after tests pass (topic 3) | model + effort setting |
+| 4 | **Write the system prompt:** role, goal, rules, when to stop, when to ask the user (topic 4) | versioned prompt |
+| 5 | **Define a few tools:** clear names, descriptions, schemas; start read-only (topic 8) | tool specs + implementations |
+| 6 | **Write the loop:** call the model, run requested tools, add results, repeat | working agent |
+| 7 | **Add limits:** max steps, timeout, max cost; return tool errors to the model | no runaway runs |
+| 8 | **Add permissions:** ask before anything that changes something (send, delete, pay) | approval flow |
+| 9 | **Manage context:** shorten big outputs; stay inside the window (topic 13) | trimming / compaction |
+| 10 | **Test with an eval set** of real tasks; read the traces (topics 15, 18) | pass rate + failure list |
+| 11 | **Treat tool results as untrusted;** sandbox risky tools (topic 16) | injection defences |
+| 12 | **Add logging, tracing, cost tracking** (topic 18) | dashboards |
+| 13 | **Improve in order:** tool descriptions → prompt → add/remove tools | measured gains |
 
-1. Clear names, clear descriptions, precise argument schemas (topic `08`).
-2. Add **write** tools last, and only with approval and idempotency.
-3. Keep the count small. Three well-made tools beat ten vague ones.
+**The loop.**
+
+```mermaid
+flowchart TD
+    S["messages = [system, goal]"] --> L["repeat up to MAX_STEPS"]
+    L --> M["reply = model(messages, tools)"]
+    M --> Q{"tool calls?"}
+    Q -->|"no"| D["return the answer (done)"]
+    Q -->|"yes"| A["for each call: validate → permission → run (catch errors)"]
+    A --> AD["add the call and result to messages"]
+    AD --> SH["shorten messages if too long"] --> C{"limits hit?"}
+    C -->|"no"| L
+    C -->|"yes"| X["stop and report why"]
+```
+
+**Also know.**
+
+1. The agent runs on **your backend**; the mobile app only talks to your backend (topic 20 and `MOB 20`).
+2. Build the loop from scratch once to understand it; later use an SDK or framework.
+3. Common first mistakes: too many tools, vague descriptions, no step limit, no evals, write access too early.
 
 ---
 
-#### 4. Write the Loop — 🟢 Must Know
+#### 3. Naive vs Better Design
 
-*Step 6. This is the whole agent.*
+| Naive | Better |
+|---|---|
+| start with a multi-agent framework | start with a 50-line loop |
+| 20 tools on day one | 2 or 3 read-only tools |
+| tools that write immediately | read-only first; writes need approval |
+| "it seems to work" | 20+ eval tasks with expected outcomes |
+| tune the prompt first | fix tool descriptions first |
+| no cap on steps or tokens | limits and a clear stop reason |
+| swallow tool errors | return them to the model |
+| unit-test only the code | also test the agent's behaviour on tasks |
 
-Pseudocode:
+---
 
-```text
-messages = [system prompt, user goal]
-repeat up to MAX_STEPS:
-    reply = model(messages, tools)
-    if reply has no tool call:
-        return reply                      # done
-    for each tool call in reply:
-        ask the user first if it is risky
-        result = run the tool (catch errors)
-        add the tool call and result to messages
-    shorten messages if they are too long
-report that the step limit was reached
-```
+#### 4. Code
 
-Kotlin-style sketch (not a real SDK, just the shape):
+A complete, testable agent loop (Kotlin). The model is an interface, so tests use a scripted fake. It reuses `Dispatcher`, `ToolCall` and `ToolResult` from topic 8.
 
 ```kotlin
-suspend fun runAgent(goal: String, maxSteps: Int = 10): String {
-    val messages = mutableListOf(userMessage(goal))
-    repeat(maxSteps) {
-        val reply = llm.chat(system = SYSTEM_PROMPT, messages = messages, tools = tools)
-        messages += reply.asMessage()
-        if (reply.toolCalls.isEmpty()) return reply.text          // final answer
-        for (call in reply.toolCalls) {
-            val result = if (call.needsApproval && !askUser(call)) "User declined."
-                         else runCatching { tools.run(call) }.getOrElse { "Error: ${it.message}" }
-            messages += toolResult(call.id, result)
+sealed interface Reply {
+    val tokens: Int
+    data class Text(val text: String, override val tokens: Int = 0) : Reply
+    data class ToolCalls(val calls: List<ToolCall>, override val tokens: Int = 0) : Reply
+}
+
+sealed interface AMsg {
+    data class User(val text: String) : AMsg
+    data class Assistant(val reply: Reply) : AMsg
+    data class ToolResults(val results: List<ToolResult>) : AMsg
+}
+
+fun interface Model { suspend fun next(messages: List<AMsg>): Reply }
+
+enum class Stop { DONE, MAX_STEPS, TOKEN_BUDGET, TIMEOUT }
+data class Limits(val maxSteps: Int = 10, val maxTokens: Int = 50_000, val timeoutMs: Long = 60_000, val maxResultChars: Int = 2_000)
+data class AgentResult(val answer: String?, val steps: Int, val stop: Stop, val trace: List<String>)
+
+fun shorten(r: ToolResult, max: Int) =
+    if (r.content.length <= max) r else r.copy(content = r.content.take(max) + "… [truncated, ${r.content.length - max} more characters]")
+
+suspend fun runAgent(goal: String, model: Model, dispatcher: Dispatcher, limits: Limits = Limits()): AgentResult {
+    val messages = mutableListOf<AMsg>(AMsg.User(goal))
+    val trace = mutableListOf<String>()
+    var tokens = 0
+    var steps = 0
+    return try {
+        withTimeout(limits.timeoutMs) {
+            while (steps < limits.maxSteps) {
+                steps++
+                val reply = model.next(messages)
+                tokens += reply.tokens
+                when (reply) {
+                    is Reply.Text -> return@withTimeout AgentResult(reply.text, steps, Stop.DONE, trace)
+                    is Reply.ToolCalls -> {
+                        messages += AMsg.Assistant(reply)
+                        val results = reply.calls.map { dispatcher.run(it) }              // errors come back as results
+                        results.forEach { trace += "${it.callId}${if (it.isError) " ERROR" else ""}: ${it.content.take(60)}" }
+                        messages += AMsg.ToolResults(results.map { shorten(it, limits.maxResultChars) })
+                    }
+                }
+                if (tokens > limits.maxTokens) return@withTimeout AgentResult(null, steps, Stop.TOKEN_BUDGET, trace)
+            }
+            AgentResult(null, steps, Stop.MAX_STEPS, trace)
         }
-        trimIfTooLong(messages)
+    } catch (e: TimeoutCancellationException) {
+        AgentResult(null, steps, Stop.TIMEOUT, trace)
     }
-    return "Stopped: step limit reached."
 }
 ```
 
-Everything else in this topic is about making this loop safe and reliable.
+A scripted fake model for tests:
 
----
-
-#### 5. Add Limits and Permissions — 🟢 Must Know
-
-*Steps 7 and 8.*
-
-Limits:
-
-1. **Max steps**, **timeout**, and a **cost or token budget** per run.
-2. **Repeat detection** — stop if the same call repeats.
-3. **Send tool errors back** to the model as short messages ("note not found"), so it can recover. Do not crash the run.
-
-Permissions:
-
-1. **Read-only** tools run alone.
-2. **Write** tools ask the user first, showing exactly what will happen.
-3. Tools use the **real user's identity**, never one shared super-account (`BE 5`).
-4. Log every step (topic `18`).
-
----
-
-#### 6. Manage the Context — 🟢 Must Know
-
-*Step 9.*
-
-1. Every tool result adds tokens. Long runs fill the window (topic `13`).
-2. **Shorten** big tool outputs (return snippets, not whole documents).
-3. **Summarize or drop** old turns. Keep the goal and rules.
-4. **Load on demand:** `get_note(id)` only for the notes that matter.
-
----
-
-#### 7. Test It — 🟢 Must Know
-
-*Step 10. Without tests you are guessing.*
-
-1. Run your 5 to 10 real example tasks. Write down the expected result for each.
-2. Judge the **whole run**, not only the answer: right tools, few steps, in budget, no unsafe action (topic `15`).
-3. **Read the traces** (every model call and tool call) to see where it goes wrong (topic `18`).
-4. Re-run the tests after every change to the prompt, tools, or model.
-
----
-
-#### 8. Harden and Improve — 🟡 Good to Know
-
-*Steps 11 to 13.*
-
-1. **Treat tool results as untrusted text.** A note or web page can contain instructions (prompt injection, topic `16`).
-2. **Sandbox** risky tools (topic `11`).
-3. Add **logging, tracing, and cost tracking**.
-4. **Improve in this order:**
-   1. Tool descriptions and result formats.
-   2. The system prompt.
-   3. Add, remove, or merge tools.
-   4. Only then, a bigger model or a different design.
-
----
-
-#### 9. A Sample Run — 🟢 Must Know
-
-*What a good trace looks like.*
-
-```text
-User:   What did we decide about the release date? Save a summary.
-
-Step 1  model → search_notes("release date decision")
-        tool  → [note 12 "Sprint planning", note 31 "Release sync"]
-Step 2  model → get_note(31)
-        tool  → "…We agreed to ship on the 14th if QA signs off…"
-Step 3  model → create_note("Release date summary", "Ship on the 14th if QA signs off.")
-        harness → asks user: "Create this note?"   user → Yes
-        tool  → created note 58
-Step 4  model → "Decision: ship on the 14th if QA signs off. I saved a summary as note 58."
+```kotlin
+class ScriptedModel(private val script: List<Reply>) : Model {
+    private var i = 0
+    override suspend fun next(messages: List<AMsg>) = script[minOf(i++, script.lastIndex)]       // repeats the last reply if asked again
+}
 ```
 
-Four steps, two read-only, one approved write, then a final answer.
+Checks (with a dispatcher that has a read-only `search_notes` tool returning `"2 notes found"`):
+
+| Script | Result |
+|---|---|
+| `ToolCalls(search_notes)`, then `Text("Found 2 notes")` | answer `"Found 2 notes"`, `steps = 2`, `Stop.DONE` |
+| `Text("Hello")` immediately | `steps = 1`, `Stop.DONE` (no tools needed) |
+| `ToolCalls(search_notes)` forever, `maxSteps = 3` | `answer = null`, `steps = 3`, `Stop.MAX_STEPS` |
+| each reply uses `400` tokens, `maxTokens = 1000` | stops at `steps = 3` (1,200 > 1,000), `Stop.TOKEN_BUDGET` |
+| `ToolCalls(unknown_tool)`, then `Text("Sorry, I can't")` | trace contains `ERROR: unknown tool`, loop continues, `Stop.DONE` |
+| a model that `delay`s past `timeoutMs` | `Stop.TIMEOUT` |
+
+A tool result of 5,000 characters with `maxResultChars = 2,000` reaches the model as 2,000 characters plus `… [truncated, 3000 more characters]`.
+
+The system prompt for a notes assistant:
+
+```text
+You are an assistant that helps a user manage their notes.
+Goal: answer the user's request using the tools. Use search_notes before you update or delete anything.
+Rules: act only on the current user's notes. Never delete without the user's confirmation. If a tool returns an error, read it and try a different approach once; if it fails again, tell the user.
+When you are finished, reply with a short summary of what you did. If the request is ambiguous, ask one clarifying question instead of guessing.
+```
+
+An eval for the agent (the outcome, not the text):
+
+```kotlin
+data class AgentCase(val goal: String, val check: (AgentResult, NotesStore) -> Boolean, val label: String)
+
+suspend fun evalAgent(cases: List<AgentCase>, makeAgent: () -> Triple<Model, Dispatcher, NotesStore>): Map<String, Boolean> =
+    cases.associate { c ->
+        val (model, dispatcher, store) = makeAgent()                // fresh store per case
+        val result = runAgent(c.goal, model, dispatcher)
+        c.label to c.check(result, store)
+    }
+// e.g. "Delete my 'old' note" → check: the note still exists unless the confirmation was approved
+```
+
+Improving in order: (1) read three failing traces; (2) fix the tool description that caused the wrong call; (3) change the prompt rule; (4) only then add or remove tools; (5) re-run the eval after each change and keep a score table.
 
 ---
 
-#### 10. Where It Runs, and SDK vs From Scratch — 🟢 Must Know
+#### 5. Numbers & Limits
 
-*Where the agent runs, and whether to build it yourself or use a library.*
-
-1. The agent loop runs on **your backend**, not inside the app. The app sends the goal and shows progress (topic `20`).
-2. Runs can take a while: use streaming updates, or a background job with a "done" notification (`SD 21`, `SD 24`).
-3. 🟡 **Build from scratch once** to learn how it works. Then consider an **agent SDK or framework** for real projects: it handles the loop, streaming, retries, and tracing for you.
-4. Whichever you use, you still own the tools, prompts, permissions, and tests.
-
----
-
-#### 11. Common Interview Questions
-
-1. **How would you build an agent for X?**
-   Define the goal and example tasks, pick a model, write the system prompt, add a few tools, write the loop with limits and approvals, then test with an eval set.
-2. **What is the core of an agent in code?**
-   A loop: call the model, run the requested tools, add results to the context, repeat until a final answer or a limit.
-3. **How do you stop it running forever or spending too much?**
-   Max steps, timeout, cost budget, repeat detection, and user cancel.
-4. **How do you make it safe?**
-   Read-only tools first, approval for writes, the real user's permissions, validated arguments, sandboxing, and untrusted-text handling.
-5. **How do you test an agent?**
-   A set of real tasks with expected outcomes, judging the answer and the steps, re-run after each change.
-6. **What do you fix first when it performs badly?**
-   Tool descriptions, then the prompt, then the set of tools, before a bigger model.
-7. **Where does the agent run in a mobile product?**
-   On the backend. The app sends the goal, shows progress, and handles approvals.
+| Item | Rule of thumb |
+|---|---|
+| First version | under about 100 lines, 2 or 3 read-only tools |
+| Max steps | start at 10; raise only if evals show tasks need more |
+| Token budget per run | set from your cost target: for example 50,000 tokens |
+| Tool result cap | 1,000 to 3,000 tokens |
+| Eval set | 20 to 50 real tasks to start; add every production failure |
+| Pass-rate target | agree it before building (for example 90% task success at under 8 steps) |
+| Cost | multiply tokens per run by price, then by runs per day |
+| Model downgrade | only after the eval passes with the strong model |
 
 ---
 
-#### 12. Common Mistakes
+#### 6. Common Mistakes & Edge Cases
 
-1. Starting with many tools, or with write tools.
-2. No step or cost limit.
-3. Skipping the test set ("it seemed to work").
-4. Vague tool descriptions.
-5. Running the loop inside the mobile app with a provider key.
-6. Crashing the run on a tool error instead of returning it to the model.
-7. Reaching for a bigger model before improving tools and prompts.
+1. A framework before understanding the loop.
+2. Too many tools; vague descriptions.
+3. No step, token or time limits.
+4. Giving write tools before the read-only version works.
+5. No eval set; judging by a few demos.
+6. Tuning the prompt when the tool description is the problem.
+7. Swallowing tool errors.
+8. Running the agent inside the mobile app.
+9. Trusting tool results as instructions.
 
----
-
-#### 13. Related Topics
-
-1. `03` Training, Fine-Tuning & Model Choice
-2. `04` Prompting & Context Engineering
-3. `08` Tool Use & Function Calling
-4. `10` Agents
-5. `11` Agent Harness
-6. `13` Memory & Context Management
-7. `15` Evaluation & Quality
-8. `20` AI Features in the App
-9. `22` Practice: Projects & Designs
+Edge cases: the model asks for a tool that does not exist; two tool calls in one reply that depend on each other; a tool result larger than the window; the user cancels mid-run; the model finishes without calling a verification tool; an approval that never arrives (timeout and report).
 
 ---
 
-#### 14. Interview Must Remember
+#### 7. Say This in the Interview
 
-1. **Agent = a loop:** model → tool → result → repeat.
-2. **Start small:** clear job, few read-only tools, simple prompt.
-3. **Limits:** steps, time, cost. **Approvals** for writes.
-4. **Tools use the real user's permissions.**
-5. **Test on real tasks** and read the traces.
-6. **Fix in order:** tool descriptions → prompt → tool set → model.
-7. **Run on the backend,** not in the app.
+1. "I start with the job: one goal, what done means and what it must never do. Then I check a single prompt and a workflow first."
+2. "I build the smallest loop with two or three read-only tools, then add limits, permissions, context shortening and tests, in that order."
+3. "Tool errors go back to the model as results so it can recover; limits give a clear stop reason."
+4. "I test with an eval set of real tasks and read the traces; I fix tool descriptions first, then the prompt."
+5. "It runs on my backend with the user's permissions, behind approval for any action that changes data."
+
+---
+
+#### 8. Quick Check
+
+1. What are the first two steps?
+2. Why start with read-only tools?
+3. What do you do with a failing tool call?
+4. What do you improve first when the agent picks the wrong tool?
+
+<details>
+<summary>Answers</summary>
+
+1. Define the job (goal, done, never), then check whether you need an agent at all.
+2. They are safe to run and retry; you can add writes once reads work and tests pass.
+3. Return the error as a result to the model, so it can fix its arguments or choose another approach.
+4. The tool descriptions (name, when to use, arguments).
+
+</details>
+
+---
+
+#### 9. Practice
+
+**Interview questions**
+
+1. Walk me through building an agent.
+2. How do you keep it from running forever or costing too much?
+3. How do you test an agent?
+4. What tools would you give a notes assistant, and in what order?
+5. How do you make it safe to take actions?
+6. What do you improve first when it fails?
+
+**Hands-on**
+
+1. Implement `runAgent` and the scripted tests in the table.
+2. Add `create_note` with approval and an idempotency key; test decline and approve.
+3. Build an eval of 20 tasks for the notes assistant and record the pass rate after each change.
+
+**Coding warm-ups (LeetCode)**
+
+| # | Question | Link to this topic |
+|---|---|---|
+| 1472 | [Design Browser History](https://leetcode.com/problems/design-browser-history/) (Medium) | state across steps |
+| 621 | [Task Scheduler](https://leetcode.com/problems/task-scheduler/) (Medium) | scheduling tool calls with cool-downs |
+| 207 | [Course Schedule](https://leetcode.com/problems/course-schedule/) (Medium) | dependency order of subtasks |
+
+**Remember:** job → need check → model → prompt → tools (read-only first) → loop → limits → permissions → context → evals · return tool errors to the model · fix descriptions before prompts · backend, not the app.

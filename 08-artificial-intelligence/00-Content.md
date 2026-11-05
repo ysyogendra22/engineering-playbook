@@ -2,7 +2,8 @@
 
 Modern AI — LLMs, RAG, agents, harnesses — for building features and answering interview questions.
 
-- **Numbering:** own, 1–22.
+- **Numbering:** own, 1–22, plus 99 (cheat sheet). `001-AI Terminology - Basic` is a plain-language list of 35 starter terms.
+- **Every note has the same layout:** what it is and how to spot it in an interview, how it works (with a diagram), naive vs better design, code (Kotlin, SQL, JSON, prompts) with checked outputs, numbers and limits, common mistakes and edge cases, what to say in the interview, a quick check, and practice (interview questions, hands-on tasks, LeetCode warm-ups where they fit). Examples are provider-neutral: check your provider's SDK for exact names, and never hard-code model names or prices.
 - **References:** `7` = this folder · `BE 3`/`SD 21` = topic N in that roadmap
 - **Start with:** `BE 1–3` (APIs), `BE 5` (auth), `SD 15` (caching), `SD 21` (queues), `SD 22` (retries), `SD 24` (streaming), `SD 27` (observability)
 - **Marks:** 🟢 must have · 🟡 good to have · (New) still changing — know the idea, not the product
@@ -11,32 +12,33 @@ Modern AI — LLMs, RAG, agents, harnesses — for building features and answeri
 
 ## Index
 
-| #   | Topic                                | Stage                |
-| --- | ------------------------------------ | -------------------- |
-| 1   | AI Landscape & ML Basics             | 1. Foundations       |
-| 2   | How LLMs Work                        | 1. Foundations       |
-| 3   | Training, Fine-Tuning & Model Choice | 1. Foundations       |
-| 4   | Prompting & Context Engineering      | 2. Build with LLMs   |
-| 5   | Calling an LLM API                   | 2. Build with LLMs   |
-| 6   | Embeddings & Vector Search           | 2. Build with LLMs   |
-| 7   | RAG                                  | 2. Build with LLMs   |
-| 8   | Tool Use & Function Calling          | 3. Tools & Agents    |
-| 9   | MCP & Integrations (New)             | 3. Tools & Agents    |
-| 10  | Agents                               | 3. Tools & Agents    |
-| 11  | Agent Harness (New)                  | 3. Tools & Agents    |
-| 12  | Building an Agent                    | 3. Tools & Agents    |
-| 13  | Memory & Context Management          | 3. Tools & Agents    |
-| 14  | Multi-Agent Systems (New)            | 3. Tools & Agents    |
-| 15  | Evaluation & Quality                 | 4. AI in Production  |
-| 16  | Safety, Security & Privacy           | 4. AI in Production  |
-| 17  | Cost, Latency & Reliability          | 4. AI in Production  |
-| 18  | Observability & LLMOps               | 4. AI in Production  |
-| 19  | On-Device vs Cloud AI                | 5. AI on Mobile      |
-| 20  | AI Features in the App               | 5. AI on Mobile      |
-| 21  | AI Interview Answer Points           | 6. Interview         |
-| 22  | Practice: Projects & Designs         | 6. Interview         |
+| #   | Topic                                | Stage                | Mark |
+| --- | ------------------------------------ | -------------------- | ---- |
+| 1   | AI Landscape & ML Basics             | 1. Foundations       | 🟢   |
+| 2   | How LLMs Work                        | 1. Foundations       | 🟢   |
+| 3   | Training, Fine-Tuning & Model Choice | 1. Foundations       | 🟢   |
+| 4   | Prompting & Context Engineering      | 2. Build with LLMs   | 🟢   |
+| 5   | Calling an LLM API                   | 2. Build with LLMs   | 🟢   |
+| 6   | Embeddings & Vector Search           | 2. Build with LLMs   | 🟢   |
+| 7   | RAG                                  | 2. Build with LLMs   | 🟢   |
+| 8   | Tool Use & Function Calling          | 3. Tools & Agents    | 🟢   |
+| 9   | MCP & Integrations (New)             | 3. Tools & Agents    | 🟡   |
+| 10  | Agents                               | 3. Tools & Agents    | 🟢   |
+| 11  | Agent Harness (New)                  | 3. Tools & Agents    | 🟢   |
+| 12  | Building an Agent                    | 3. Tools & Agents    | 🟢   |
+| 13  | Memory & Context Management          | 3. Tools & Agents    | 🟢   |
+| 14  | Multi-Agent Systems (New)            | 3. Tools & Agents    | 🟡   |
+| 15  | Evaluation & Quality                 | 4. AI in Production  | 🟢   |
+| 16  | Safety, Security & Privacy           | 4. AI in Production  | 🟢   |
+| 17  | Cost, Latency & Reliability          | 4. AI in Production  | 🟢   |
+| 18  | Observability & LLMOps               | 4. AI in Production  | 🟢   |
+| 19  | On-Device vs Cloud AI                | 5. AI on Mobile      | 🟢   |
+| 20  | AI Features in the App               | 5. AI on Mobile      | 🟢   |
+| 21  | AI Interview Answer Points           | 6. Interview         | 🟢   |
+| 22  | Practice: Projects & Designs         | 6. Interview         | 🟢   |
+| 99  | AI Cheat Sheet                       | Revision             | 🟢   |
 
-**Short on time:** 1, 2, 4, 5, 7, 8, 10, 11, 12, 15, 16, 17, 19, 20, 21. 🟢 items only.
+**Short on time:** 1, 2, 4, 5, 7, 8, 10, 11, 12, 15, 16, 17, 19, 20, 21, then the cheat sheet (99). 🟢 items only.
 
 **Glossary:** all key terms are listed at the end, with the topic that explains each one.
 
@@ -490,3 +492,4 @@ Plain meanings. The last column is the topic that explains the term.
 3. After topics 10 and 11, follow topic 12 and build a small agent yourself. Then grow it into a mini harness (topics 13 and 14).
 4. Do topics 15 to 17 before any design practice. Interviewers push on quality, cost, and safety.
 5. For each topic: what it is, what problem it solves, how it works, one downside.
+6. The night before an interview, read `99-AI-Cheat-Sheet`, then the `Say This in the Interview` part of the topics you are least sure of.

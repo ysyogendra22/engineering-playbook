@@ -1,123 +1,217 @@
 # Practice: Case Studies & Exercises
 
+> Architecture is learned by doing: write ADRs, draw diagrams, rank quality attributes, compare styles, threat-model, review real systems, and think through case studies out loud.
+
 Roadmap topic 22 · Stage 7: Interview & Practice
 
-**Marks:** 🟢 Must Know · 🟡 Good to Know · (New) for a mobile engineer moving into architecture, or still changing
+**Go deeper:** every note `1`–`21` · `05-system-design/32-Practice-Projects-and-Designs` · `06-mobile-engineering/22-Practice-Projects-and-Exercises` · `07-behavioral-leadership/21-Mock-Interviews-and-Practice-Plan`.
 
-**In simple words:** every topic in this folder is a tool. This topic is where you actually pick them up and use them — on real exercises, in a fixed order, until applying them feels natural instead of theoretical.
-
----
-
-#### 1. Write Three ADRs — 🟢 Must Know
-
-Pick **three real decisions** you made or could make (at work, or on a personal project — even the notes app from `BE 12`), and write a full ADR (`3`, item 2) for each: context, options, decision, consequences. This is the fastest way to turn topic `3` from theory into a habit.
+**Marks:** 🟢 must know · 🟡 good to know
 
 ---
 
-#### 2. Draw C4 Diagrams for the Notes App — 🟢 Must Know
+#### 1. What Is It?
 
-Using the Notes API from `BE 12`: draw a **System Context** diagram (the app, its users, the backend it talks to) and a **Containers** diagram (mobile app, API, database) — the two levels covered in `14`, item 1, applied to a system you already know well.
+*Nine exercises and five case studies.*
 
----
+| 🟢 Must know | 🟡 Good to know |
+|---|---|
+| three ADRs for a real decision | review the architecture of an app you know |
+| C4 context and container diagrams for the Notes app | plan a strangler-fig migration |
+| top 5 quality attributes for three apps, with numbers | design mobile + backend architecture for an AI feature |
+| compare monolith, modular monolith, microservices | run a mock design review |
+| threat-model one feature with STRIDE | |
+| case studies: notes with sync and offline, chat, payments/checkout | case studies: startup outgrowing a monolith, legacy migration |
 
-#### 3. List Top 5 Quality Attributes for Three Apps — 🟢 Must Know
-
-Pick three different kinds of apps (for example: a banking app, a social feed, a note-taking app) and, for each, list the **top 5 quality attributes with numbers** (topic `2`) — this exercise makes clear how differently the same list of ten quality attributes gets ranked depending on the actual system.
-
----
-
-#### 4. Compare Monolith, Modular Monolith, Microservices — 🟢 Must Know
-
-For **one specific case** (pick a real or imagined product), compare all three (`5`, item 2) against its actual quality attributes and constraints, and give a **recommendation** with reasoning — not just a neutral comparison table.
-
----
-
-#### 5. Threat-Model One Feature with STRIDE — 🟢 Must Know
-
-Pick a real feature — login, or sharing a note with another user — and walk it through **STRIDE** (`11`, item 4): spoofing, tampering, repudiation, information disclosure, denial of service, elevation of privilege. Write down at least one real concern per category, even if some turn out to be low-risk on reflection.
+**Signals in an interview:** "walk me through an architecture you designed", "show me an ADR you wrote", "how would you approach this system?".
 
 ---
 
-#### 6. Review an App You Know — 🟡 Good to Know
+#### 2. How It Works
 
-Pick an app you actually work on or use deeply, and honestly assess: strengths, risks, and technical debt (`16`) — a real architecture review, not a hypothetical one, and often more revealing than a textbook exercise.
+**The practice path.**
+
+```mermaid
+flowchart LR
+    A["Write 3 ADRs"] --> B["Draw C4 for the Notes app"] --> C["Quality attributes for 3 apps"] --> D["Compare 3 styles"] --> E["Threat-model a feature"] --> F["Review a real app"] --> G["Plan a strangler migration"] --> H["Architect an AI feature"] --> I["Mock design review"]
+```
+
+**Exercises, with deliverables and checks.**
+
+| # | Exercise | Deliverable | Check |
+|---|---|---|---|
+| 1 🟢 | Write three ADRs for real decisions (made or possible) | 3 one-page ADRs | each has context, ≥ 2 options, decision, consequences, review trigger |
+| 2 🟢 | Draw C4 context + container diagrams for the Notes app (`BE 12`) | 2 diagrams (Mermaid) | every arrow labelled with what and how |
+| 3 🟢 | List the top 5 quality attributes for three different apps with numbers | 3 ASR tables | measurable, ranked |
+| 4 🟢 | Compare monolith, modular monolith, microservices for one case | a comparison table + recommendation + "revisit when" | trade-offs named |
+| 5 🟢 | Threat-model login or sharing with STRIDE | data-flow diagram + threat table | each threat has a mitigation or accepted risk |
+| 6 🟡 | Review an app you know | strengths, risks, debt (with interest), top 3 recommendations | evidence for each point |
+| 7 🟡 | Plan a strangler migration for a legacy screen or service | seam, facade, rollout steps, rollback, removal | each step shippable and reversible |
+| 8 🟡 | Design the mobile and backend architecture for one AI feature (`AI 22`) | architecture + ASR table + ADRs | gateway, data flow, eval gate |
+| 9 🟡 | Run a mock design review with a friend | notes, decisions, actions | strongest objections recorded |
+
+**Case studies to think through.**
+
+| Case | Top attributes | Key decisions | Main risks | Evolution |
+|---|---|---|---|---|
+| 🟢 **Notes app with sync and offline** | reliability, sync latency, privacy, delivery speed | Room as source of truth; outbox + cursor sync; conflict rule; add-only API; modular monolith backend | lost edits, migrations, old versions, conflicts | extract sync service; real-time collaboration |
+| 🟢 **Chat app** | message reliability, latency, availability, cost | WebSocket gateway; per-conversation ordering; client ids; push for offline; partition by conversation | connection storms, hot groups, ordering, abuse | extract gateway; search; E2E encryption |
+| 🟢 **Payments / checkout** | correctness, security, availability, auditability | idempotency keys; state machine; ledger; provider adapter + webhooks; reconciliation; strong consistency | double charge, lost webhook, fraud, PCI scope | multiple providers; saga for multi-step orders |
+| 🟡 **Startup outgrowing its monolith** | delivery speed, team independence, scalability | modularise first; extract the hottest module; platform basics (CI/CD, observability); data ownership | distributed monolith, ops load, consistency | strangler; team topologies |
+| 🟡 **Migration from a legacy backend** | continuity, risk reduction, cost | strangler facade; ACL; shadow traffic; data migration with dual-write; deprecation plan | hidden rules, data drift, long dual-run | decommission; fitness functions |
+
+**How to work a case study (20 minutes).**
+
+1. Clarify (2 min): users, scale, constraints. 2. Attributes with numbers (3 min). 3. Options (3 min). 4. Decision and diagram (5 min). 5. Risks, security, operations (4 min). 6. Evolution (3 min). Then record one ADR.
 
 ---
 
-#### 7. Plan a Strangler-Fig Migration — 🟡 Good to Know
+#### 3. Naive vs Better Design
 
-For a legacy screen or service you know (real or imagined), sketch a strangler-fig migration plan (`16`, item 4): what gets built first, how traffic shifts gradually, and what the final cutover and removal looks like.
-
----
-
-#### 8. Design an AI Feature's Architecture — 🟡 Good to Know
-
-Design both the mobile and backend architecture for one AI feature (`AI 22`, `20`) — a genuinely useful exercise for connecting this folder's Stage 6 topics (`19`, `20`) to the deeper `08-artificial-intelligence` and `06-mobile-engineering` material.
-
----
-
-#### 9. Run a Mock Design Review — 🟡 Good to Know
-
-Present one of your case-study designs to a friend or colleague as a real design review (`15`, item 4) — practising both giving and receiving review feedback, and handling pushback with data (`15`, item 5; `21`, item 9).
+| Naive | Better |
+|---|---|
+| read about architecture, never write it down | write ADRs and diagrams for real systems |
+| practise only "design X" prompts | also review existing systems and plan migrations |
+| draw once and forget | keep diagrams in the repo and update them |
+| practise silently | explain aloud to a friend; ask for hard questions |
+| one perfect answer | explore alternatives and trade-offs |
+| ignore failure and security | include STRIDE and failure modes every time |
 
 ---
 
-#### 10. Case Studies to Think Through — 🟢 Must Know
+#### 4. Templates & Examples
 
-*Work through these fully, using the answer structure from `21`, item 1.*
+**ADR quality rubric (use it to review your own ADRs).**
 
-1. 🟢 **Notes app with sync and offline support** — connects directly to `19` and `06-mobile-engineering`.
-2. 🟢 **Chat app** — real-time delivery, message ordering, offline queuing.
-3. 🟢 **Payments or checkout flow** — strong consistency requirements, idempotency, security.
-4. 🟡 **A startup outgrowing its monolith** — a "when do we actually split" case study.
-5. 🟡 **A migration from a legacy backend** — applies the strangler-fig planning from item 7.
+```kotlin
+data class Adr(val hasContext: Boolean, val options: Int, val hasDecision: Boolean, val hasConsequences: Boolean, val hasReviewTrigger: Boolean, val namesTradeOff: Boolean)
 
----
+fun adrScore(a: Adr): Int = listOf(
+    a.hasContext, a.options >= 2, a.hasDecision, a.hasConsequences, a.hasReviewTrigger, a.namesTradeOff
+).count { it }
+```
 
-#### 11. How to Practise Each Case Study — 🟢 Must Know
+Checks: a complete ADR `(true, 3, true, true, true, true)` → `6`; one with a single option and no review trigger `(true, 1, true, true, false, true)` → `4`: add an alternative and a revisit date.
+
+**Case study worksheet.**
 
 ```text
-1. Set a timer (30-45 minutes).
-2. Clarify requirements and constraints first — don't skip this (topic 2).
-3. Follow the structure from topic 21: quality attributes → options →
-   decision → risks → evolution.
-4. Draw the C4 diagrams as you go (topic 14).
-5. Say your reasoning OUT LOUD, even alone — this is what interview
-   practice actually needs.
-6. Afterward, write one ADR for the key decision you made.
+CASE: ____                      USERS / SCALE: ____             CONSTRAINTS: team ___, budget ___, deadline ___
+TOP ATTRIBUTES (ranked, numbers): 1. ____ 2. ____ 3. ____ 4. ____ 5. ____
+OPTIONS: A) ____ B) ____ C) ____            DECISION (I choose ___ because ___; the cost is ___; revisit when ___):
+DIAGRAMS: context, containers, one key flow (with a failure path)
+DATA: owners, store, consistency, retention, privacy      SECURITY: STRIDE highlights, authz, secrets
+FAILURES: SPOFs, timeouts/retries/fallbacks, SLOs         OPERATIONS: deploy, observe, cost estimate
+EVOLUTION: first slice, next 3 changes, what I'd extract or replace, debt I accept
+```
+
+**Estimates for a case (practice numbers).**
+
+```kotlin
+fun avgRps(dailyUsers: Long, perUser: Int) = dailyUsers * perUser / 86_400.0
+fun storageTbPerYear(eventsPerDay: Long, bytesEach: Int) = eventsPerDay * bytesEach * 365 / 1e12
+```
+
+Checks: `avgRps(5_000_000, 40)` → `2314.8`; `storageTbPerYear(200_000_000, 200)` → `14.6` TB for the chat case. Do these numbers in 2 minutes, aloud.
+
+**Review of an app: what to look at.**
+
+```text
+Structure: layers, modules, dependency directions, cycles          Data: ownership, source of truth, migrations
+Quality: crash-free, ANR, startup, build time, test mix           Delivery: CI/CD, release cadence, rollback, flags
+Security: tokens, secrets, authz, dependencies                    Compatibility: API versioning, old versions
+Debt register: top 5 with interest                                  Recommendations: 3 changes, in order, with evidence and effort
+```
+
+**Mock design review checklist.**
+
+```text
+[ ] Document sent 2 days ahead   [ ] Goal and decision needed stated   [ ] Strongest objections first
+[ ] Decisions + owners + dates recorded   [ ] ADR updated after the review   [ ] Feedback on tone and clarity
+```
+
+**Portfolio set (what to have ready for interviews).**
+
+```text
+- 3 ADRs (one adopted, one rejected option explained, one superseded)    - C4 diagrams + 1 sequence diagram of a real app
+- 1 threat model                                                         - 1 migration plan (strangler)
+- 2 decision stories with numbers                                        - 1 case study you can present in 10 minutes
 ```
 
 ---
 
-#### 12. Common Interview Questions
+#### 5. Numbers & Rules of Thumb
 
-*This topic is the practice ground, not a new question category — but a few meta-questions do come up:*
-
-1. **"Walk me through a system you designed recently."** — use one of your worked case studies (item 10), told with the structure from `21`.
-2. **"What's a design you're not fully happy with, looking back?"** — a genuine answer from item 6's honest app review.
-
----
-
-#### 13. Common Mistakes
-
-1. Reading this whole folder without ever doing a single hands-on exercise.
-2. Skipping the "say it out loud" step — silent practice doesn't build the same interview muscle.
-3. Jumping to the hardest case studies before the easier ones (Notes app, item 1's simplest case) feel comfortable.
-4. Never writing an actual ADR, treating topic `3` as theory only.
+| Item | Guide |
+|---|---|
+| ADR | one page; 15 to 30 minutes to write |
+| C4 diagrams | 5 to 12 boxes each |
+| Case study | 20 minutes working, 10 minutes review |
+| Mock review | 45 minutes with 3 to 5 people |
+| Practice cadence | one exercise a week for 9 weeks; repeat the case studies |
+| Quality attributes | 5 per system, with numbers |
+| Estimates | do requests per second and storage in under 2 minutes |
 
 ---
 
-#### 14. Related Topics
+#### 6. Common Mistakes & Edge Cases
 
-1. `21` Architecture Interview Answers — the structure every exercise here should follow
-2. `BE 12` Checkpoint Project: Notes API — the shared example system used across several exercises
-3. `19`, `20` — the mobile and AI case studies this topic extends into
+1. Producing diagrams with no decisions or reasons.
+2. ADRs with a single option or no consequences.
+3. Skipping numbers.
+4. Only practising greenfield designs.
+5. Never presenting to another person.
+6. Treating one case as "the answer".
+7. Forgetting failure, security and cost.
+
+Edge cases: no real project to use (use the Notes app or an open-source app); confidential details (generalise); different roles in teams (adapt the exercises to your scope); no one to review (record yourself and critique).
 
 ---
 
-#### 15. Interview Must Remember
+#### 7. Say This in the Interview
 
-1. **Every topic in this folder is a tool — this topic is where you actually use them.**
-2. **Write real ADRs and draw real C4 diagrams**, don't just read about them.
-3. **Practise out loud, timed**, the same discipline as `07-behavioral-leadership/21`.
-4. **Start with the Notes app and simpler case studies**, then build up to harder ones.
+1. "I write ADRs for the decisions that are costly to reverse. Here is one: context, three options, the decision, the cost, and the review trigger."
+2. "For this system I'd draw a context and container diagram, one sequence diagram for the main flow including failure, and keep them in the repo."
+3. "I threat-model with STRIDE on a data-flow diagram and record mitigations and accepted risks."
+4. "I planned a strangler migration: the facade, the shadow comparison, the rollout steps, the rollback, and the removal of the old path."
+5. "I practise case studies out loud with numbers and ask a friend to challenge the trade-offs."
+
+---
+
+#### 8. Quick Check
+
+1. What must an ADR contain?
+2. What is the first step of any case study?
+3. What makes a diagram useful?
+4. Which exercises cover migration and review skills?
+
+<details>
+<summary>Answers</summary>
+
+1. Context, options, decision, consequences (plus status and a review trigger).
+2. Clarify users, scale and constraints; then agree the quality attributes with numbers.
+3. A clear audience, labelled arrows, and a manageable number of boxes.
+4. Review an app you know, and plan a strangler-fig migration.
+
+</details>
+
+---
+
+#### 9. Practice
+
+**Interview questions**
+
+1. Walk me through an architecture you designed.
+2. Show me an ADR you wrote and explain the trade-off.
+3. How would you approach a chat app / checkout / notes app?
+4. How would you migrate a legacy system?
+5. How do you review an existing architecture?
+
+**Exercises**
+
+1. Do exercises 1 to 5 first (all 🟢), in order.
+2. Work two case studies with the worksheet and a timer.
+3. Present one case study to a friend and note the questions that stumped you.
+4. Build your portfolio set and keep it in a repository.
+
+**Remember:** write it down: ADRs, diagrams, ASRs · numbers every time · compare options, name the trade-off · include failure, security, operations · review real systems and plan migrations · practise aloud and repeat.

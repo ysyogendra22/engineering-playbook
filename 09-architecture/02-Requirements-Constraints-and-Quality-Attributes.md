@@ -1,122 +1,234 @@
 # Requirements, Constraints & Quality Attributes
 
+> Functional requirements say what the system does. Quality attributes say how well. A few of them, the architecturally significant ones, shape the whole design. Make them measurable, rank them, and respect the constraints.
+
 Roadmap topic 2 · Stage 1: Role & Mindset
 
-**Marks:** 🟢 Must Know · 🟡 Good to Know · (New) for a mobile engineer moving into architecture, or still changing
+**Go deeper:** `1` What an Architect Does · `3` Trade-Offs · `5` Architectural Styles · `12` Scalability & Resilience · `05-system-design/13-Requirements-and-Estimation`.
 
-**In simple words:** before you can design anything well, you need to know what "good" actually means for this specific system — and "good" is almost never just "it works". This topic is about making that explicit, measurable, and ranked, instead of assumed.
-
----
-
-#### 1. Functional Requirements vs Quality Attributes — 🟢 Must Know
-
-1. **Functional requirements** — what the system does: "users can create a note", "the app supports offline editing".
-2. **Quality attributes** — how well it does it: how fast, how available, how secure, how maintainable.
-3. Most architecture decisions are actually driven by quality attributes, not functional requirements — two systems doing the exact same thing can need completely different architectures if their quality needs differ.
+**Marks:** 🟢 must know · 🟡 good to know
 
 ---
 
-#### 2. Key Quality Attributes — 🟢 Must Know
+#### 1. What Is It?
 
-The standard list to know and be able to name unprompted: **performance, scalability, availability, reliability, security, maintainability, testability, observability, usability, cost.**
+*What must the system do, how well, and within what limits.*
 
-```text
-"The system must let users create notes" → functional
-"Note creation must complete in under 300ms at p95, for 100k
- concurrent users, with 99.9% availability" → the same requirement,
- with quality attributes attached
+| 🟢 Must know | 🟡 Good to know |
+|---|---|
+| functional requirements vs quality attributes | quality attribute scenarios |
+| key attributes: performance, scalability, availability, reliability, security, maintainability, testability, observability, usability, cost | business drivers and stakeholder needs |
+| architecturally significant requirements (ASRs) | quality-model standards (names only) |
+| make them measurable | |
+| constraints: budget, deadline, skills, existing systems, regulation, vendor rules | |
+| rank them: you cannot maximise all | |
+
+1. **Functional requirement (FR):** a behaviour ("a user can share a note").
+2. **Quality attribute (NFR, "-ility"):** a property of how it works ("sharing appears on the other device in under 2 seconds, 99% of the time").
+3. **ASR:** a requirement (usually a quality attribute) that strongly shapes the architecture.
+4. **Constraint:** a fixed limit you accept (budget, date, team skills, law, existing systems).
+
+**Signals in an interview:** "what would you ask first?", "what are the non-functional requirements?", "how would you design for 10M users?", "what are the top three quality attributes here?".
+
+---
+
+#### 2. How It Works
+
+**From the business goal to design drivers.**
+
+```mermaid
+flowchart LR
+    B["Business goal<br/>(why)"] --> R["Requirements<br/>functional + quality"] --> A["ASRs: the few that shape the design"] --> K["Rank + measure<br/>(scenarios, numbers)"] --> D["Design decisions<br/>(styles, patterns, data, deployment)"]
+    C["Constraints<br/>budget, date, skills, law"] --> D
 ```
 
+**Key quality attributes.**
+
+| Attribute | The question | Example measure |
+|---|---|---|
+| Performance | how fast? | p95 API latency under 300 ms; cold start under 2 s |
+| Scalability | can it handle growth? | 10× users with 2× cost |
+| Availability | is it up? | 99.9% monthly |
+| Reliability | does it work correctly over time? | no lost writes; crash-free users 99.5% |
+| Security | is data safe? | all personal data encrypted; least privilege |
+| Maintainability | can we change it? | a typical feature in 2 weeks; build under 3 minutes |
+| Testability | can we verify it? | 80% of business logic covered by fast tests |
+| Observability | can we see what's happening? | any request traceable end to end |
+| Usability / accessibility | is it easy for everyone? | task success rate; screen reader support |
+| Cost | what does it cost to run? | under $0.02 per active user per month |
+| Portability, interoperability | can it run/talk elsewhere? | Android + iOS share logic |
+
+**Make them measurable.** "Fast" is not a requirement; "p95 under 300 ms at 2,000 requests per second" is. A measurable statement has a **metric**, a **target**, a **load/condition** and a **percentile or time window**.
+
+**Quality attribute scenario** (a precise way to write one):
+
+| Part | Example (availability) |
+|---|---|
+| Source | a data centre zone fails |
+| Stimulus | the primary database is unreachable |
+| Artifact | the notes service |
+| Environment | normal peak traffic |
+| Response | traffic fails over to the replica; users keep reading and writing |
+| Response measure | recovery within 60 seconds; no more than 1 minute of data lost |
+
+**ASRs.** Out of 40 requirements, usually 5 to 8 drive the design: the ones that are hard, costly, risky or contradictory. For a mobile notes app they might be: works offline (reliability), sync within seconds (performance), no data loss (reliability), secure sharing (security), ship weekly with a small team (maintainability/cost).
+
+**Rank them.** You cannot maximise everything: performance may cost money; security may cost usability; availability may cost complexity. Ask stakeholders to put the attributes in priority order and to say what they would give up. Keep a short ranked list; it will settle later arguments.
+
+**Constraints.**
+
+| Constraint | Example effect |
+|---|---|
+| Budget | managed services over self-hosting |
+| Deadline | simpler architecture; fewer moving parts |
+| Team skills | choose what the team can run and debug |
+| Existing systems | integrate, don't replace; anti-corruption layers |
+| Regulation | data residency, audit trails, retention (GDPR-style) |
+| Vendor rules | store policies, API limits |
+
+🟡 **Business drivers and stakeholders.** Different people care about different things: product (time to market), operations (stability), security (risk), finance (cost), users (speed, trust). Capture each driver, who owns it, and how it is measured.
+
+🟡 **Standards.** Quality models such as ISO 25010 list attributes and sub-attributes. Know the names; use your own measurable list.
+
 ---
 
-#### 3. Architecturally Significant Requirements (ASRs) — 🟢 Must Know
+#### 3. Naive vs Better Design
 
-Not every requirement shapes the architecture — an **ASR** is one of the few that genuinely does: a scale target, a strict latency bound, a compliance requirement, an offline requirement. Identifying the 5–8 real ASRs (rather than treating every requirement as equally architecturally important) is what makes the design process tractable.
-
----
-
-#### 4. Make Them Measurable — 🟢 Must Know
-
-*The single highest-leverage discipline in this whole topic.*
-
-"Fast" is not a requirement you can design against. **"p95 latency under 300ms"** is. Push every vague quality claim toward a number, even a rough, agreed-upon estimate — an unmeasurable requirement can't be verified, and can't drive a real design decision.
-
----
-
-#### 5. Constraints — 🟢 Must Know
-
-Fixed limits you must accept, not choose: **budget, deadline, team skills, existing systems, regulation, vendor rules.** Unlike quality attributes (which you're free to weigh and trade off), constraints are boundaries the design must simply fit inside.
+| Naive | Better |
+|---|---|
+| "it must be fast and secure and scalable" | five ranked attributes with numbers |
+| design for "millions of users" with no data | estimate load; design for 10× the next milestone |
+| requirements collected once | revisited as risks and numbers change |
+| ignoring constraints | constraints written down and used in choices |
+| all attributes equally important | explicit priorities and trade-offs |
+| NFRs left to the end | NFRs drive the first design decisions |
 
 ---
 
-#### 6. Rank the Quality Attributes — 🟢 Must Know
+#### 4. Templates & Examples
 
-*You cannot maximise all ten from item 2 at once — every design is a set of trade-offs (topic `3`).*
+**ASR table (the one page you keep updated).**
 
-Force an explicit ranking for this specific system: is availability more important than strict consistency here? Is cost more important than raw performance? Writing the ranking down (even roughly) turns implicit, contested trade-offs into an explicit, agreed decision.
+| # | Attribute | Requirement (measurable) | Priority | Why it matters | How we will check |
+|---|---|---|---|---|---|
+| 1 | Reliability | no acknowledged note is ever lost | 1 | trust | chaos test; sync tests |
+| 2 | Performance | edit visible on another device within 2 s (p95) | 2 | collaboration | synthetic probe |
+| 3 | Availability | 99.9% monthly for read/write API | 3 | users rely on it | SLO dashboard |
+| 4 | Security | all data encrypted; sharing requires explicit grant | 2 | privacy | threat model; pen test |
+| 5 | Maintainability | one team ships weekly; build under 3 min | 4 | small team | CI metrics |
 
-```text
-Example ranking for a payments feature:
-1. Security       (non-negotiable)
-2. Reliability     (money must not be lost or duplicated)
-3. Availability
-4. Performance
-5. Cost            (lowest priority here — correctness matters more)
+**Downtime allowed by availability** (use these numbers aloud):
+
+```kotlin
+fun downtimeMinutes(availabilityPercent: Double, days: Int = 30) = (100 - availabilityPercent) / 100 * days * 24 * 60
 ```
 
----
+Checks: `99.0` → `432.0` minutes a month (7.2 hours); `99.9` → `43.2` minutes; `99.95` → `21.6`; `99.99` → `4.3` minutes. Each extra nine costs far more; ask whether the business really needs it.
 
-#### 7. Quality Attribute Scenarios — 🟡 Good to Know
+**A latency budget** splits the target across the path so each part has an owner:
 
-A structured way to make a quality attribute concrete: **stimulus** (what happens — a traffic spike, a node failure), **response** (what the system should do), **measure** (how you'd know it worked). Turns "the system should be available" into something testable.
+```kotlin
+data class Part(val name: String, val ms: Int)
 
----
+fun budgetOk(targetMs: Int, parts: List<Part>) = parts.sumOf { it.ms } <= targetMs
+```
 
-#### 8. Business Drivers and Stakeholder Needs — 🟡 Good to Know
+Checks: target `300` ms with client `50`, network `80`, API `70`, database `60` and margin `40` → `300` ≤ `300` → `true`. Raise the database to `90` and the sum is `330` → `false`: something must give (cache, index, less work).
 
-Quality attributes ultimately trace back to real business or user needs — a startup's "move fast" driver and a bank's "never lose a transaction" driver lead to very different rankings in item 6, even for superficially similar systems.
+**Capacity numbers first** (`SD 13`): requests per second = users per day × requests per user ÷ 86,400; peak ≈ 3 to 10× the average. Example: 500,000 daily users × 20 requests = 10 M/day ≈ 116 requests/second average, ~600 at peak (5×).
 
----
+**Questions to ask in the first meeting.**
 
-#### 9. Standards for Quality Models — 🟡 Good to Know
+```text
+Who are the users and how many? Growth over 1–3 years?        What must never fail? What can be degraded?
+How fast must it feel (numbers)? Offline? Platforms?           Data: how much, how sensitive, how long kept?
+Who runs it, with what skills and budget? Deadline?            Existing systems and contracts we must use?
+Regulations (privacy, finance, health)? Audit?                 How will we know it is a success?
+```
 
-Formal quality-model standards exist (names only, not needed in depth) — useful to know they exist as a more rigorous reference, without needing to memorise them for most architecture work.
+**Prioritising attributes (a forced ranking).**
 
----
+```kotlin
+fun rank(scores: Map<String, Int>) = scores.entries.sortedByDescending { it.value }.map { it.key }
+```
 
-#### 10. Common Interview Questions
-
-1. **What's the difference between a functional requirement and a quality attribute?**
-   Functional = what the system does. Quality attribute = how well it does it (speed, availability, security, and so on) — and quality attributes are usually what actually drive the architecture.
-2. **How do you turn a vague requirement like "the system should be fast" into something you can design against?**
-   Push for a measurable number — "p95 latency under 300ms" — even if it starts as a rough, agreed estimate; an unmeasurable requirement can't drive or verify a design decision.
-3. **How do you decide which requirements matter most for the architecture?**
-   Identify the architecturally significant requirements (ASRs) — the small set that genuinely shapes structural decisions — and explicitly rank the quality attributes against each other for this specific system.
-4. **What's the difference between a requirement and a constraint?**
-   A requirement is something you design to satisfy and can trade off against others. A constraint (budget, deadline, existing systems) is a fixed limit the design must simply fit inside.
-
----
-
-#### 11. Common Mistakes
-
-1. Designing against vague, unmeasurable requirements ("it should be fast", "it should scale").
-2. Treating every stated requirement as equally architecturally significant.
-3. Never explicitly ranking quality attributes, leaving trade-offs implicit and later contested.
-4. Confusing a constraint (fixed, must accept) with a quality attribute (can be weighed and traded off).
+Checks: stakeholders give 1 to 10 points: `{reliability: 9, performance: 7, cost: 5, security: 8}` → `[reliability, security, performance, cost]`. Force a single ordering, with ties broken by discussion.
 
 ---
 
-#### 12. Related Topics
+#### 5. Numbers & Rules of Thumb
 
-1. `1` What an Architect Does — why this is the first real step in the process
-2. `3` Trade-Offs & Decision Making — what the ranking in item 6 feeds directly into
-3. `12` Scalability, Performance & Resilience — where several of these quality attributes get designed for in depth
+| Item | Guide |
+|---|---|
+| ASRs | 5 to 8 per system |
+| Availability | 99.9% ≈ 8.8 h/year; 99.99% ≈ 53 min/year |
+| Percentiles | use p95/p99, not averages |
+| Peak vs average | peak traffic is commonly 3 to 10× the average |
+| Growth planning | design for 10× the current need; plan to re-architect at 100× |
+| Cost target | express as cost per user, request or feature |
+| Review | revisit the ASR table every quarter or at major changes |
 
 ---
 
-#### 13. Interview Must Remember
+#### 6. Common Mistakes & Edge Cases
 
-1. **Functional = what. Quality attribute = how well.** Quality attributes usually drive the architecture.
-2. **Make every quality requirement measurable** — a number, not an adjective.
-3. **Identify the ASRs** — the few requirements that actually shape the design.
-4. **Explicitly rank quality attributes** — you can't maximise all of them.
+1. "The system must be fast/secure/scalable" with no numbers.
+2. Treating all attributes as equally important.
+3. Ignoring constraints, especially team skills and deadlines.
+4. Over-building for imaginary scale.
+5. Discovering NFRs late.
+6. Only listening to one stakeholder.
+7. Mixing requirements with solutions ("use Kafka").
+
+Edge cases: conflicting requirements (rank and negotiate); unknown numbers (estimate, state assumptions, plan to measure); requirements that change with success; regulation arriving later; different attributes per feature (checkout needs strong consistency; the feed does not).
+
+---
+
+#### 7. Say This in the Interview
+
+1. "I'd start with the goal and users, then pull out the few quality attributes that shape the design and make each measurable."
+2. "I'd rank them. For a notes app: reliability first (no lost notes), then sync latency and security."
+3. "I'd write constraints down: budget, deadline, team skills, existing systems, regulation. They narrow the options."
+4. "I'd estimate load: requests per second, peak factor, data size, so I design for the next 10×, not for a guess of a million."
+5. "I'd use a quality attribute scenario for the hardest ones, so the response and measure are testable."
+
+---
+
+#### 8. Quick Check
+
+1. Functional requirement vs quality attribute?
+2. What is an ASR?
+3. How much downtime does 99.9% allow per month?
+4. Why rank attributes?
+
+<details>
+<summary>Answers</summary>
+
+1. What the system does vs how well it does it.
+2. A requirement that strongly shapes the architecture (usually a hard quality attribute).
+3. About 43 minutes.
+4. You cannot maximise all; ranking guides trade-offs and settles arguments.
+
+</details>
+
+---
+
+#### 9. Practice
+
+**Interview questions**
+
+1. What are non-functional requirements, and why do they matter?
+2. How do you make "fast" measurable?
+3. What is an architecturally significant requirement?
+4. How do you handle conflicting quality attributes?
+5. What constraints influence an architecture?
+6. What would you ask before designing a chat app?
+
+**Exercises**
+
+1. Write the top 5 ranked quality attributes, with numbers, for three apps (notes, chat, payments).
+2. Write a quality attribute scenario for availability and one for performance.
+3. Build a latency budget for the slowest screen in an app you know.
+4. Estimate the peak requests per second for 1 million daily users.
+
+**Remember:** FRs say what, quality attributes say how well · a few ASRs shape the design · measurable (metric, target, load, percentile) · rank them · constraints count · estimate with numbers.

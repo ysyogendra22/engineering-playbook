@@ -1,106 +1,224 @@
 # What an Architect Does
 
+> Architecture is the set of important decisions that are costly to change. An architect makes those decisions with the team, keeps them consistent, writes them down, and helps everyone follow them, while staying close to the code.
+
 Roadmap topic 1 · Stage 1: Role & Mindset
 
-**Marks:** 🟢 Must Know · 🟡 Good to Know · (New) for a mobile engineer moving into architecture, or still changing
+**Go deeper:** `2` Requirements & Quality Attributes · `3` Trade-Offs & Decisions · `15` Communicating & Influencing · `17` Governance · `07-behavioral-leadership/12-Leadership-Without-Authority`.
 
-**In simple words:** an architect's job is not to draw diagrams — it's to make the handful of decisions in a system that are expensive to change later, make them well, and help the team actually follow through on them.
-
----
-
-#### 1. Architecture = The Costly-to-Change Decisions — 🟢 Must Know
-
-*The single best working definition to carry into every conversation.*
-
-1. Architecture is the set of decisions about a system's structure that are **expensive or slow to reverse** — choosing a database, a service boundary, a communication style, a core data model.
-2. Decisions that are cheap to change later (a variable name, which library formats dates) are not architecture, however technical they look.
-3. This definition is what tells you where to spend your limited attention as an architect: on the decisions that would hurt to get wrong.
+**Marks:** 🟢 must know · 🟡 good to know
 
 ---
 
-#### 2. The Architect's Job — 🟢 Must Know
+#### 1. What Is It?
 
-Three parts, in practice:
+*The role, and what counts as an "architectural" decision.*
 
-1. **Make the key decisions** — using the process in topic `3`.
-2. **Keep them consistent** — across teams, services, and time, so the system doesn't quietly fragment into contradictory approaches.
-3. **Help the team follow them** — through documentation (topic `14`), communication (topic `15`), and governance that makes the right way the easy way (topic `17`).
+| 🟢 Must know | 🟡 Good to know |
+|---|---|
+| architecture = important decisions costly to change | types of architect: solution, software, enterprise, cloud, mobile |
+| the job: make key decisions, keep them consistent, help the team follow them | the "ivory tower" failure |
+| architect vs tech lead vs senior engineer | |
+| stay hands-on | |
+| breadth over depth, deep where the risk is | |
 
----
+1. **Architecture:** the structure of a system (parts, relationships, rules) and the decisions behind it that are hard to reverse.
+2. **Architect:** the person (or people) accountable for those decisions and their consistency. It is a *responsibility* more than a title.
+3. **Significant decision:** one that is costly to change, affects many people, or strongly affects a quality such as scale, security or maintainability.
 
-#### 3. Architect vs Tech Lead vs Senior Engineer — 🟢 Must Know
-
-| Role | Typical scope | Distance from the code |
-|---|---|---|
-| Senior engineer | Deep on their own area | Very close, hands in the code daily |
-| Tech lead | One team's technical direction | Close, still writes code regularly |
-| Architect | Across teams or the whole system | Further, but never fully detached (item 4) |
-
-The boundaries are fuzzy and differ by company — the useful distinction is **scope** (how many teams/systems your decisions touch), not seniority alone.
+**Signals in an interview:** "what does an architect do?", "how is that different from a tech lead?", "do architects write code?", "how do you decide what is architectural?".
 
 ---
 
-#### 4. Stay Hands-On — 🟢 Must Know
+#### 2. How It Works
 
-*The antidote to the most common architecture failure mode (item 7).*
+**The architect's loop.**
 
-Read real code, build spikes and prototypes yourself (topic `3`), and join code reviews. An architect who only draws diagrams loses the ability to make decisions grounded in reality, and loses the team's trust along with it.
+```mermaid
+flowchart LR
+    U["Understand goals,<br/>users, constraints"] --> Q["Capture the quality<br/>attributes that matter"] --> D["Decide: options,<br/>trade-offs, ADRs"] --> S["Show: diagrams,<br/>explain, review"] --> G["Guide the build:<br/>spikes, reviews, guardrails"] --> L["Learn from reality:<br/>metrics, incidents, debt"]
+    L --> U
+```
 
----
+**What counts as architectural?**
 
-#### 5. Breadth Over Depth — 🟢 Must Know
+| Architectural (costly to change) | Not architectural (cheap to change) |
+|---|---|
+| monolith vs services; the main data store | a variable or function name |
+| how the app syncs offline data | the colour of a button |
+| authentication model; where secrets live | one screen's layout |
+| module boundaries and the public API of a module | the body of a private function |
+| how releases and rollbacks work | which lint rule formats imports |
 
-Know a little about many areas (data, security, mobile, infrastructure, the business domain), and go deep specifically where the **risk** is highest for the current project. Trying to be equally deep everywhere is neither possible nor useful — targeted depth beats even, shallow breadth.
+A good test: *how much would it cost, in people and time, to reverse this a year from now?*
 
----
+**Roles compared.**
 
-#### 6. Types of Architect — 🟡 Good to Know
+| | Senior engineer | Tech lead | Architect |
+|---|---|---|---|
+| Scope | a feature or component | one team's delivery | a system, or several teams' systems |
+| Focus | quality of the code | getting the team to ship well | the shape of the system, key trade-offs, consistency across teams |
+| Closeness to code | very close | close | close enough to know the truth |
+| Output | working software | working team and plan | decisions, diagrams, guardrails, aligned teams |
+| Success measured by | their code | team's delivery | long-term health of the system and how well teams can change it |
 
-Titles and scopes vary by company, but common flavours: **solution architect** (one project or product), **software architect** (one system's internal design), **enterprise architect** (across many systems and the business), **cloud architect** (infrastructure-focused), **mobile architect** (client-side systems, `19`). Know the names; don't over-index on exact title boundaries, which differ everywhere.
+Roles overlap and differ by company. In small teams one person does all three.
 
----
+**Responsibilities.**
 
-#### 7. The "Ivory Tower" Failure — 🟡 Good to Know
+1. **Decide and record:** make the key decisions, write ADRs (topic 3).
+2. **Keep consistent:** shared principles, a few standards, a paved road (topic 17).
+3. **Communicate:** diagrams and explanations for each audience (topics 14, 15).
+4. **Reduce risk:** spikes and prototypes for the biggest unknowns.
+5. **Enable teams:** remove obstacles; don't be a bottleneck for every decision.
+6. **Evolve:** track debt, drift and change (topic 16).
 
-*Worth naming explicitly, because it's the most common way architects lose credibility.*
+**Stay hands-on.** Read the code, review pull requests, build spikes, join incidents. An architect who stops coding loses touch with the truth, and designs that nobody has tried tend to fail. Aim for a regular share of time in code (for example 20 to 40%), mostly spikes, reviews, tooling and fitness functions rather than the critical path.
 
-An architect who draws diagrams and dictates decisions, but doesn't build anything real or listen to the engineers actually doing the work — decisions made this way tend to be disconnected from reality, and the team stops trusting or following them.
+**Breadth over depth.** Know a little about many areas (data, security, networking, mobile, operations, cost) and go deep where the risk is. A "T-shaped" profile: broad across the system, deep in one or two areas.
 
----
+🟡 **Types of architect.** *Enterprise* (across the organisation), *solution* (one business solution across systems), *software* (the structure of one system), *cloud/infrastructure*, *data*, *security*, *mobile*. Names and scopes vary by company; ask what the role means there.
 
-#### 8. Common Interview Questions
-
-1. **What does an architect actually do, day to day?**
-   Make the costly-to-reverse decisions well, keep them consistent across the system, and help the team follow through — while staying hands-on enough to keep decisions grounded in reality.
-2. **How is an architect different from a senior engineer or tech lead?**
-   Mainly scope — how many teams or systems the decisions touch — not a strict seniority ladder; boundaries vary by company.
-3. **How do you decide where to focus your attention as an architect?**
-   Where the decision is both important and hard to reverse, and go deep specifically where the risk is highest, rather than trying to be equally deep everywhere.
-4. **What's the "ivory tower" failure mode, and how do you avoid it?**
-   An architect disconnected from real code and the team's actual constraints. Avoided by staying hands-on — writing spikes, reading code, joining reviews.
-
----
-
-#### 9. Common Mistakes
-
-1. Treating every technical decision as "architecture", spreading attention too thin.
-2. Drawing diagrams and making pronouncements without staying hands-on.
-3. Going equally deep everywhere instead of targeting the highest-risk areas.
-4. Confusing title/seniority with actual decision scope.
-
----
-
-#### 10. Related Topics
-
-1. `2` Requirements, Constraints & Quality Attributes — what shapes the decisions this topic is about
-2. `3` Trade-Offs & Decision Making — the actual decision-making process
-3. `15` Communicating & Influencing — how decisions actually get followed, not just made
+🟡 **The ivory-tower failure.** An architect who draws diagrams but doesn't build, listen or measure. Signs: designs that ignore team skills, rules without reasons, no prototypes, teams working around the architect. Avoid it with spikes, shared ownership of decisions, short feedback loops and humility.
 
 ---
 
-#### 11. Interview Must Remember
+#### 3. Naive vs Better Design
 
-1. **Architecture = the decisions that are expensive to change later.**
-2. **The job: decide, keep consistent, help the team follow.**
-3. **Stay hands-on** — spikes, code review, real code — to avoid the "ivory tower" failure.
-4. **Breadth generally, depth where the risk is.**
+| Naive | Better |
+|---|---|
+| the architect decides everything alone | the team shares decisions; the architect owns the consistency |
+| diagrams only; never in the code | spikes, reviews and fitness functions in the codebase |
+| choose a technology first | start from goals and quality attributes |
+| a 100-page document | short ADRs and C4 diagrams, kept current |
+| review every pull request | guardrails and automation; review the risky ones |
+| "it depends" with no follow-up | "it depends on X; given our numbers I recommend Y" |
+| design for the next five years | design the thinnest slice that proves it; keep options open |
+
+```kotlin
+// Naive: architecture by accident — everything depends on everything
+class CheckoutScreen { val api = Retrofit.Builder().build(); val db = Room.databaseBuilder(...).build() /* UI knows network and storage */ }
+```
+
+---
+
+#### 4. Templates & Examples
+
+A one-page **architect's charter** for a project:
+
+```text
+SYSTEM:                    GOAL (one sentence):                 SUCCESS METRIC:
+STAKEHOLDERS: product, design, backend, security, ops, support
+TOP QUALITY ATTRIBUTES (with numbers): …
+KEY CONSTRAINTS: …
+BIGGEST RISKS (ranked): …
+DECISIONS TO MAKE THIS MONTH (owner, date): …
+HOW I WILL STAY CLOSE TO THE CODE: spikes, 2 reviews/week, fitness functions
+```
+
+A rough test for "is this decision architectural?":
+
+```kotlin
+data class Decision(val daysToReverse: Int, val teamsAffected: Int, val touchesQualityAttribute: Boolean)
+
+fun isArchitectural(d: Decision) =
+    d.daysToReverse >= 20 || d.teamsAffected >= 2 || (d.touchesQualityAttribute && d.daysToReverse >= 5)
+```
+
+Checks: renaming a private function `Decision(0, 1, false)` → `false`; choosing the sync strategy `Decision(60, 3, true)` → `true`; changing a retry policy `Decision(6, 1, true)` → `true` (touches reliability); adding a screen `Decision(3, 1, false)` → `false`. The numbers are a conversation starter, not a rule.
+
+An architect's weekly rhythm (example):
+
+| Time | Activity |
+|---|---|
+| 30% | hands-on: spikes, reviews, tooling, incident follow-ups |
+| 25% | decisions and design: ADRs, options, diagrams |
+| 25% | communication: stakeholders, design reviews, mentoring |
+| 20% | looking ahead: risks, debt, roadmap, learning |
+
+A decision log (the simplest governance):
+
+```text
+| # | Decision | Date | Owner | Status | Link |
+| 1 | Offline-first with Room as source of truth | 2025-02-03 | A. Rao | accepted | adr/001.md |
+| 2 | Modular monolith for the backend | 2025-02-10 | S. Kim | accepted | adr/002.md |
+```
+
+---
+
+#### 5. Numbers & Rules of Thumb
+
+| Item | Guide |
+|---|---|
+| Hands-on time | 20 to 40% in code or prototypes |
+| Decisions to document | the ones costing 20+ person-days to reverse, or affecting 2+ teams |
+| ADR length | one page |
+| Design review | 30 to 60 minutes, documents sent 2 days before |
+| Architect-to-team ratio | one architect can guide about 3 to 6 teams if decisions are shared and automated |
+| Time to answer a team's question | hours to a day; slow answers push teams to decide alone |
+| Diagrams | 3 to 5 key ones, not 50 |
+
+---
+
+#### 6. Common Mistakes & Edge Cases
+
+1. The ivory-tower architect.
+2. Becoming the bottleneck for every decision.
+3. Over-designing before knowing the risks.
+4. Technology-first thinking.
+5. Not writing decisions down.
+6. Ignoring the team's skills and the organisation.
+7. Never measuring whether the architecture works.
+8. Claiming credit instead of building shared ownership.
+
+Edge cases: no one has the title (the responsibility still exists; make it explicit); a team disagrees with you (use data and a spike, then commit to the decision); a decision made before you arrived (assess it honestly, record why it exists, change it only for reasons); small teams (the "architect" is the senior engineer who writes the ADRs).
+
+---
+
+#### 7. Say This in the Interview
+
+1. "Architecture is the set of important decisions that are costly to change. My job is to make them well with the team, record them, keep them consistent, and help people follow them."
+2. "A tech lead focuses on one team's delivery; an architect on the shape and trade-offs of the system across teams. I stay hands-on with spikes, reviews and fitness functions, so I know the truth."
+3. "I go deep where the risk is: I find the biggest unknown and build a spike before committing."
+4. "I try not to be a bottleneck: principles, ADRs and automated checks let teams decide within guardrails."
+
+---
+
+#### 8. Quick Check
+
+1. What makes a decision architectural?
+2. Name two differences between an architect and a tech lead.
+3. Why should an architect stay hands-on?
+4. What is the ivory-tower failure?
+
+<details>
+<summary>Answers</summary>
+
+1. It is costly to reverse, affects many people or teams, or strongly affects a quality attribute.
+2. Scope (system vs one team) and focus (shape and trade-offs vs delivery).
+3. To stay in touch with reality, validate designs with spikes, and keep credibility.
+4. Drawing and deciding without building, listening or measuring.
+
+</details>
+
+---
+
+#### 9. Practice
+
+**Interview questions**
+
+1. What does an architect do?
+2. Architect vs tech lead vs senior engineer?
+3. How do you decide whether something is an architectural decision?
+4. How do you stay hands-on?
+5. How do you avoid becoming a bottleneck?
+6. What is the ivory-tower architect?
+
+**Exercises**
+
+1. List ten decisions from your current app and mark which are architectural; estimate the cost to reverse each.
+2. Write an architect's charter for a project you know.
+3. Start a decision log with three entries.
+4. Describe how your role splits time between code, design, communication and looking ahead.
+
+**Remember:** architecture = decisions costly to change · decide, record, keep consistent, enable · stay hands-on · deep where the risk is · don't be a bottleneck · avoid the ivory tower.

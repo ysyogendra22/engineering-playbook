@@ -2,7 +2,8 @@
 
 Schema design, SQL, how databases work inside, and interview answers. `BE 8–11` and `SD 17–19` already teach the essentials — this is the **deeper, dedicated pass**: internals, MVCC, migrations, Redis, analytics, on-device.
 
-- **Numbering:** own, 1–23.
+- **Numbering:** own, 1–23, plus 99 (cheat sheet).
+- **Every note has the same layout:** what it is and how to spot it in an interview, how it works (with a diagram), naive vs better design, SQL and code with outputs checked on SQLite, numbers and limits, common mistakes and edge cases, what to say in the interview, a quick check, and practice (interview questions, hands-on tasks, LeetCode SQL or design problems where they fit). PostgreSQL-only syntax is marked and not run.
 - **References:** `7` = this folder · `BE 8`/`SD 17`/`ARCH 9`/`AI 6` = topic N in that roadmap
 - **Marks:** 🟢 must have · 🟡 good to have · (New) for a mobile engineer, or still changing
 
@@ -10,33 +11,34 @@ Schema design, SQL, how databases work inside, and interview answers. `BE 8–11
 
 ## Index
 
-| #   | Topic                                     | Stage                     |
-| --- | ----------------------------------------- | ------------------------- |
-| 1   | Database Basics & Landscape               | 1. Foundations            |
-| 2   | Relational Model & Data Modeling          | 1. Foundations            |
-| 3   | SQL Fundamentals                          | 1. Foundations            |
-| 4   | Advanced SQL                              | 1. Foundations            |
-| 5   | Indexes                                   | 2. Performance            |
-| 6   | Query Performance & Execution Plans       | 2. Performance            |
-| 7   | Storage Engines & Internals               | 2. Performance            |
-| 8   | Transactions & ACID                       | 3. Correctness            |
-| 9   | Concurrency & Isolation                   | 3. Correctness            |
-| 10  | Schema Migrations & Evolution             | 3. Correctness            |
-| 11  | Choosing a Database                       | 4. Choosing & Scaling     |
-| 12  | NoSQL Families                            | 4. Choosing & Scaling     |
-| 13  | Caching & Redis                           | 4. Choosing & Scaling     |
-| 14  | Replication & High Availability           | 4. Choosing & Scaling     |
-| 15  | Partitioning & Sharding                   | 4. Choosing & Scaling     |
-| 16  | Consistency, CAP & Distributed Data       | 4. Choosing & Scaling     |
-| 17  | Backup, Recovery & Data Migration         | 5. Operating              |
-| 18  | Database Security & Privacy               | 5. Operating              |
-| 19  | Operations & Monitoring                   | 5. Operating              |
-| 20  | Analytics, Warehouses & Data Pipelines    | 6. Beyond the App Database |
-| 21  | Mobile Databases (New)                    | 7. Mobile                 |
-| 22  | Database Interview Answer Points (New)    | 8. Interview & Practice   |
-| 23  | Practice: Projects & Exercises            | 8. Interview & Practice   |
+| #   | Topic                                     | Stage                      | Mark |
+| --- | ----------------------------------------- | ------------------------- | ---- |
+| 1   | Database Basics & Landscape               | 1. Foundations             | 🟢   |
+| 2   | Relational Model & Data Modeling          | 1. Foundations             | 🟢   |
+| 3   | SQL Fundamentals                          | 1. Foundations             | 🟢   |
+| 4   | Advanced SQL                              | 1. Foundations             | 🟢   |
+| 5   | Indexes                                   | 2. Performance             | 🟢   |
+| 6   | Query Performance & Execution Plans       | 2. Performance             | 🟢   |
+| 7   | Storage Engines & Internals               | 2. Performance             | 🟢   |
+| 8   | Transactions & ACID                       | 3. Correctness             | 🟢   |
+| 9   | Concurrency & Isolation                   | 3. Correctness             | 🟢   |
+| 10  | Schema Migrations & Evolution             | 3. Correctness             | 🟢   |
+| 11  | Choosing a Database                       | 4. Choosing & Scaling      | 🟢   |
+| 12  | NoSQL Families                            | 4. Choosing & Scaling      | 🟢   |
+| 13  | Caching & Redis                           | 4. Choosing & Scaling      | 🟢   |
+| 14  | Replication & High Availability           | 4. Choosing & Scaling      | 🟢   |
+| 15  | Partitioning & Sharding                   | 4. Choosing & Scaling      | 🟢   |
+| 16  | Consistency, CAP & Distributed Data       | 4. Choosing & Scaling      | 🟢   |
+| 17  | Backup, Recovery & Data Migration         | 5. Operating               | 🟢   |
+| 18  | Database Security & Privacy               | 5. Operating               | 🟢   |
+| 19  | Operations & Monitoring                   | 5. Operating               | 🟢   |
+| 20  | Analytics, Warehouses & Data Pipelines    | 6. Beyond the App Database | 🟢   |
+| 21  | Mobile Databases (New)                    | 7. Mobile                  | 🟢   |
+| 22  | Database Interview Answer Points (New)    | 8. Interview & Practice    | 🟢   |
+| 23  | Practice: Projects & Exercises            | 8. Interview & Practice    | 🟢   |
+| 99  | Database Cheat Sheet                      | Revision                   | 🟢   |
 
-**Short on time:** 1, 2, 3, 5, 6, 8, 9, 11, 14, 15, 21, 22. 🟢 items only.
+**Short on time:** 1, 2, 3, 5, 6, 8, 9, 11, 14, 15, 21, 22, then the cheat sheet (99). 🟢 items only.
 
 **Engines to learn first:**
 
@@ -587,3 +589,4 @@ Plain meanings, with a priority. The last column is the topic that explains the 
 5. Do topic 21 next to your daily mobile work: look at your own app's local database, its migrations, and its sync.
 6. Do topics 22 and 23 last. Practise schema designs out loud and time yourself.
 7. For each topic: what it is, what problem it solves, how it works, one downside.
+8. The night before an interview, read `99-Database-Cheat-Sheet`, then the `Say This in the Interview` part of the topics you are least sure of.

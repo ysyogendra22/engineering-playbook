@@ -1,130 +1,279 @@
 # Database Security & Privacy
 
+> The database holds the crown jewels. Use parameterized queries, least-privilege users, a private network, encryption, managed secrets, minimal personal data, and row-level isolation for tenants and users. Plan for deletion and audit from the start.
+
 Roadmap topic 18 · Stage 5: Operating
 
-**Marks:** 🟢 Must Know · 🟡 Good to Know · (New) for a mobile engineer, or still changing
+**Go deeper:** `04-backend-engineering/06-Backend-Security-Essentials` · `09-architecture/11-Security-Architecture` and `09-Data-Architecture` · `05-system-design/29-Backup-Recovery-Security-and-Cost` · `06-mobile-engineering/13-Security` · `3` SQL Fundamentals · `17` Backup & Recovery.
 
-**In simple words:** the database is where the actual valuable data lives, so it deserves the strictest care of anything in the system. Most database security is a handful of unglamorous, foundational habits — done consistently, they close off the majority of real-world attacks.
+**Marks:** 🟢 must know · 🟡 good to know
+
+**How the examples are checked:** SQL-injection and tenant-leak behaviour, an audit trigger and masking are run on SQLite 3.54; PostgreSQL features (roles, row-level security, `pgcrypto`, TLS settings) are shown and not run.
 
 ---
 
-#### 1. SQL Injection and Parameterized Queries — 🟢 Must Know
+#### 1. What Is It?
 
-*Repeated deliberately from topic `3` — the single most important database security rule.*
+*Protecting stored data and the access paths to it.*
 
-```sql
--- Dangerous: user input concatenated directly into SQL
-"SELECT * FROM users WHERE email = '" + input + "'"
+| 🟢 Must know | 🟡 Good to know |
+|---|---|
+| SQL injection and parameterized queries | row-level security |
+| least privilege: separate users for app, migrations, reporting | multi-tenancy models |
+| never expose the database to the internet | column encryption, masking, tokenization |
+| encryption in transit and at rest | audit logs and access reviews |
+| secrets for credentials: manager and rotation | compliance basics (GDPR-style rules) |
+| personal data: minimum, protect, delete on request | |
 
--- Safe: parameterized
-SELECT * FROM users WHERE email = $1;
+1. **SQL injection:** attacker-controlled input changes the meaning of your SQL.
+2. **Least privilege:** each user/service gets only the access it needs.
+3. **PII:** personally identifiable information.
+4. **Multi-tenancy:** many customers sharing one system, kept apart.
+
+**Signals in an interview:** "how do you prevent SQL injection?", "which database user does the app use?", "how do you keep tenants' data apart?", "how do you handle a GDPR deletion request?".
+
+---
+
+#### 2. How It Works
+
+**SQL injection and parameterized queries.** If you build SQL by concatenating input, an attacker can add their own SQL (`x' OR '1'='1` makes the condition always true; other payloads read or destroy data). A **parameterized query** sends the SQL text and the values separately, so input is always data, never code. Also: validate input, avoid dynamic table/column names from input (allow-list them), and use an ORM/query builder carefully (raw fragments are still dangerous).
+
+**Least privilege.** Use separate database users:
+
+| User | Privileges |
+|---|---|
+| `app` | `SELECT, INSERT, UPDATE, DELETE` on application tables only; no DDL, no superuser |
+| `migrator` | DDL on the schema, used only by the migration job (topic 10) |
+| `reporting` | read-only (on a replica), maybe on a restricted view |
+| `backup` | read access/replication role, nothing else |
+| humans | individual accounts via SSO, time-limited elevated access, audited |
+
+An application that runs as the database owner turns any injection or bug into a total compromise.
+
+**Never expose the database to the internet.** Put it in a private network/subnet, allow connections only from the application hosts (security groups, firewall, private endpoints), require TLS, no default or shared passwords, and no public IP. Admin access through a bastion or a secure proxy.
+
+**Encryption.**
+
+| | Meaning | How |
+|---|---|---|
+| In transit | data on the network is encrypted | TLS between app and database (`sslmode=verify-full` in PostgreSQL), and for replication and backups |
+| At rest | data on disk is encrypted | disk/volume encryption or transparent database encryption with keys in a KMS; encrypted backups |
+| In use / field level | sensitive columns encrypted by the app | application-level encryption for highly sensitive fields; harder to query |
+
+**Secrets for credentials.** Store database passwords in a secrets manager (not in code, Git, images or the mobile app), inject at runtime, **rotate** regularly and after exposure, prefer short-lived or IAM-based credentials, separate per environment.
+
+**Personal data (PII).** Collect and store the minimum; classify it; protect it (access control, encryption, masking in non-production); keep it only as long as needed; support **access and deletion** requests across the database, caches, search indexes, analytics, logs and backups (by expiry); never copy production PII into test environments without masking.
+
+🟡 **Row-level security (RLS).** The database itself filters rows by the current user/tenant: PostgreSQL `CREATE POLICY`, Supabase uses it so clients can talk to the database safely. It protects against application bugs that forget a `WHERE tenant_id = ?`.
+
+🟡 **Multi-tenancy.**
+
+| Model | How | Isolation | Cost |
+|---|---|---|---|
+| Shared tables with a `tenant_id` column | one schema; every query filtered | weakest (needs RLS and discipline) | lowest |
+| Schema per tenant | separate schemas in one database | medium | medium; many schemas get heavy |
+| Database per tenant | separate databases | strongest; easy per-tenant backup/restore | highest |
+
+Choose by number of tenants, size, isolation and compliance needs. Always enforce the tenant filter in one place (a repository layer, RLS), not by memory in every query.
+
+🟡 **Column encryption, masking, tokenization.** *Encrypt* sensitive columns (keys held outside the database). *Mask* data shown to people who don't need the full value (`a***@x.com`). *Tokenize* very sensitive values (card numbers) by replacing them with tokens held in a vault, so your database never holds the real value (and falls out of PCI scope).
+
+🟡 **Audit logs and access reviews.** Log who accessed or changed sensitive data (database audit extensions, triggers, or application-level audit tables); protect logs from tampering; review access regularly (who still needs what?).
+
+🟡 **Compliance basics.** GDPR-style rights (access, rectification, deletion, portability), data residency, retention limits, breach notification; PCI-DSS for card data; HIPAA for health data; SOC 2 evidence. Design for them early (`ARCH 9`, `ARCH 11`).
+
+---
+
+#### 3. Naive vs Better Design
+
+| Naive | Better |
+|---|---|
+| `"... WHERE name = '" + input + "'"` | parameterized queries |
+| the app connects as the owner/superuser | a restricted `app` user; separate `migrator` |
+| a public database endpoint with a password | private network, TLS, allow-listed hosts |
+| a password in the repository or in the mobile app | secrets manager, rotation; the app calls the API |
+| tenant filter written by hand in each query | one place: repository layer or row-level security |
+| production data copied to a laptop | masked/synthetic test data |
+| logging full queries with personal data | redacted logs |
+| no audit trail | audit logs for sensitive tables |
+
+```kotlin
+// Naive: SQL injection waiting to happen
+val rows = db.query("SELECT * FROM users WHERE name = '$name'")
 ```
 
-An attacker who can inject SQL through unvalidated string concatenation can read, modify, or delete arbitrary data — always use parameterized queries, never string-build SQL from user input (`BE 6`).
+---
+
+#### 4. SQL & Code
+
+SQL injection demonstrated and fixed (SQLite; users `ann`, `bob`):
+
+```sql
+-- String-built with input   x' OR '1'='1
+SELECT name FROM users WHERE name = 'x' OR '1'='1';          -- returns ann, bob  (the whole table)
+-- Parameterized
+SELECT name FROM users WHERE name = ?;                        -- ? = "x' OR '1'='1"  → no rows (it is only a name that doesn't exist)
+```
+
+Checks: the string-built query returns `[ann, bob]`; the parameterized one returns `[]`. A driver also refuses stacked statements (`SELECT 1; DROP TABLE users` fails: "You can only execute one statement at a time"), which blocks one class of attack but not the always-true trick above.
+
+Kotlin with parameters, and an allow-list for dynamic parts:
+
+```kotlin
+fun findByName(conn: Connection, name: String): List<String> =
+    conn.prepareStatement("SELECT name FROM users WHERE name = ?").use { ps ->
+        ps.setString(1, name)
+        ps.executeQuery().use { rs -> generateSequence { if (rs.next()) rs.getString(1) else null }.toList() }
+    }
+
+private val sortable = setOf("created_at", "title")
+fun orderBy(column: String) = if (column in sortable) column else "created_at"        // table/column names can't be parameters: allow-list them
+```
+
+Checks: `findByName(conn, "x' OR '1'='1")` → `[]`; `orderBy("title; DROP TABLE users")` → `created_at`.
+
+Least-privilege roles (PostgreSQL, not run):
+
+```sql
+CREATE ROLE app LOGIN PASSWORD :'pw' NOSUPERUSER NOCREATEDB NOCREATEROLE;
+GRANT CONNECT ON DATABASE notes TO app;  GRANT USAGE ON SCHEMA public TO app;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO app;       -- no DDL
+CREATE ROLE migrator LOGIN PASSWORD :'pw2';  GRANT ALL ON SCHEMA public TO migrator;
+CREATE ROLE reporting LOGIN PASSWORD :'pw3'; GRANT SELECT ON ALL TABLES IN SCHEMA public TO reporting;   -- connect only to a replica
+REVOKE ALL ON DATABASE notes FROM PUBLIC;
+```
+
+Row-level security for tenants (PostgreSQL, not run):
+
+```sql
+ALTER TABLE notes ENABLE ROW LEVEL SECURITY;
+CREATE POLICY tenant_isolation ON notes
+  USING (tenant_id = current_setting('app.tenant_id')::bigint)
+  WITH CHECK (tenant_id = current_setting('app.tenant_id')::bigint);
+-- per request:  SET LOCAL app.tenant_id = '42';   (inside the transaction)  → every query sees only tenant 42
+```
+
+The shared-table leak it prevents (SQLite): `SELECT title FROM notes` returns both tenants' notes (`a`, `b`); with the filter `WHERE tenant = ?` only tenant 1's note (`a`). Forgetting the filter once is a breach; RLS makes the safe path automatic.
+
+One place for the tenant filter in the application:
+
+```kotlin
+class NotesRepository(private val conn: Connection, private val tenantId: Long) {          // the tenant comes from the verified token, never from the request body
+    fun all(): List<Note> = conn.prepareStatement("SELECT id, title FROM notes WHERE tenant_id = ?").use { ps ->
+        ps.setLong(1, tenantId); ps.executeQuery().use { rs -> generateSequence { if (rs.next()) Note(rs.getLong(1), rs.getString(2)) else null }.toList() }
+    }
+}
+```
+
+Masking and a simple redaction helper:
+
+```kotlin
+fun maskEmail(email: String): String {
+    val at = email.indexOf('@'); if (at <= 1) return "***" + email.substring(maxOf(at, 0))
+    return email[0] + "***" + email.substring(at)
+}
+```
+
+Checks: `maskEmail("ann@x.com")` → `a***@x.com`; `maskEmail("a@x.com")` → `***@x.com`.
+
+Audit trigger (SQLite, runnable):
+
+```sql
+CREATE TABLE audit (id INTEGER PRIMARY KEY, acc_id INT, old INT, new INT, at TEXT DEFAULT (datetime('now')));
+CREATE TRIGGER acc_audit AFTER UPDATE ON acc BEGIN INSERT INTO audit(acc_id, old, new) VALUES (OLD.id, OLD.bal, NEW.bal); END;
+UPDATE acc SET bal = 70 WHERE id = 1;                          -- audit now has (acc 1, old 100, new 70)
+```
+
+TLS and secrets (JDBC URL; credentials come from the environment or a secrets manager):
+
+```kotlin
+val url = "jdbc:postgresql://db.internal:5432/notes?sslmode=verify-full&sslrootcert=/etc/ssl/rds-ca.pem"
+val cfg = HikariConfig().apply { jdbcUrl = url; username = System.getenv("DB_USER"); password = secrets.get("notes/db-password") }
+```
+
+A privacy deletion fan-out (topic 17 and `ARCH 9`):
+
+```kotlin
+suspend fun deleteUser(userId: Long, holders: List<suspend (Long) -> Boolean>): Boolean = holders.all { it(userId) }       // database, cache, search, analytics, files
+```
 
 ---
 
-#### 2. Least Privilege — 🟢 Must Know
+#### 5. Numbers & Limits
 
-**Separate database users** for different jobs: the application's normal runtime user (limited to exactly what the app needs), a migration user (schema-change permissions, used rarely), a reporting/analytics user (read-only). No single user should have more access than its specific job requires (`ARCH 11`).
-
----
-
-#### 3. Never Expose the Database to the Internet — 🟢 Must Know
-
-The database should live on a **private network**, reachable only from the application servers that need it — never with a public IP and open port directly reachable from anywhere. This single practice closes off a huge share of real-world database breaches.
-
----
-
-#### 4. Encryption in Transit and at Rest — 🟢 Must Know
-
-**In transit** — TLS for every connection to the database. **At rest** — the underlying storage (and backups, `17` item 6) encrypted on disk. Both are close to non-negotiable for any production system handling real user data.
+| Item | Rule of thumb |
+|---|---|
+| Database privileges | the application user has no DDL, no superuser |
+| Network | no public IP; inbound only from app subnets; TLS 1.2+ |
+| Credential rotation | at least every 90 days; immediately after exposure |
+| Key management | keys in a KMS; rotate annually; test key recovery |
+| Audit log retention | per regulation (1–7 years), tamper-evident |
+| Deletion requests | fulfil within the legal period (often 30 days) |
+| Multi-tenancy | shared tables + RLS for many small tenants; DB per tenant for few large/regulated ones |
+| Injection defence | 100% of queries parameterized; raw SQL fragments reviewed |
+| Backups | encrypted, access-controlled, tested |
 
 ---
 
-#### 5. Secrets for Database Credentials — 🟢 Must Know
+#### 6. Common Mistakes & Edge Cases
 
-Database credentials belong in a **secrets manager**, never hardcoded or committed to a repository (`ARCH 11`) — and should be **rotated** periodically, so a leaked credential has a limited window of usefulness.
+1. Building SQL by string concatenation.
+2. The application connecting as a superuser.
+3. A publicly reachable database.
+4. Credentials in code, images, logs or the app.
+5. Shared tables with the tenant filter written by hand.
+6. PII in logs, test data and analytics copies.
+7. Encrypting at rest only and ignoring transit.
+8. No deletion or audit plan.
 
----
-
-#### 6. Personal Data (PII) — 🟢 Must Know
-
-**Store the minimum** actually needed, **protect** what you do store, and support **deletion on request** — a direct application of `ARCH 9`'s privacy-shapes-data-architecture principle, at the database level specifically.
-
----
-
-#### 7. Row-Level Security — 🟡 Good to Know
-
-A database feature (PostgreSQL, and the mechanism behind Supabase's security model, `12` item 11) that enforces **per-row access rules directly in the database** — a user's query automatically only sees rows they're allowed to see, enforced at the lowest level rather than trusted to application code alone.
+Edge cases: ORM raw queries; dynamic sorting/filtering columns; admin tools with broad access; backups holding deleted users' data; replicas and read-only users with write privileges; connection strings printed in stack traces; tokens that grant database access directly to mobile clients (backend-as-a-service rules must be airtight).
 
 ---
 
-#### 8. Multi-Tenancy — 🟡 Good to Know
+#### 7. Say This in the Interview
 
-| Approach | Isolation | Operational cost |
-|---|---|---|
-| Shared tables with a `tenant_id` column | Weakest — a missing `WHERE tenant_id = ?` leaks data | Lowest |
-| Separate schemas per tenant | Stronger | Medium |
-| Separate databases per tenant | Strongest | Highest |
-
-The right choice depends on how strict the isolation requirement genuinely is — a shared-table approach needs row-level security (item 7) or very disciplined query-writing to be safe.
+1. "SQL injection is prevented by parameterized queries everywhere, allow-lists for dynamic identifiers, and an application user with least privilege."
+2. "The database lives in a private network with TLS, encryption at rest, credentials in a secrets manager with rotation, and separate users for app, migrations and reporting."
+3. "For multi-tenancy I enforce the tenant in one place: a repository layer taking the tenant from the verified token, backed by row-level security, so a missed `WHERE` can't leak data."
+4. "I minimise personal data, mask it outside production, log access to sensitive tables, and support deletion across the database, caches, search, analytics and backups by expiry."
 
 ---
 
-#### 9. Column Encryption, Masking, Tokenization — 🟡 Good to Know
+#### 8. Quick Check
 
-Beyond whole-database encryption at rest: encrypting **specific sensitive columns** individually, **masking** values in non-production environments (so a staging database doesn't leak real personal data to every developer), and **tokenization** (replacing a sensitive value with a non-sensitive reference token) — extra layers for especially sensitive fields.
+1. How do parameterized queries stop injection?
+2. Which database privileges should the app user have?
+3. What does row-level security protect against?
+4. Where should database passwords live?
 
----
+<details>
+<summary>Answers</summary>
 
-#### 10. Audit Logs and Access Reviews — 🟡 Good to Know
+1. The SQL text and values travel separately, so input can never be interpreted as SQL.
+2. Only the DML it needs (`SELECT/INSERT/UPDATE/DELETE`) on application tables; no DDL or superuser rights.
+3. A forgotten tenant or user filter in application code leaking other users' rows.
+4. In a secrets manager, injected at runtime and rotated; never in code, Git or the mobile app.
 
-A record of **who accessed or changed what, and when** — both a security detective control (catching misuse after the fact) and often a compliance requirement (`ARCH 11`, item 10).
-
----
-
-#### 11. Compliance Basics — 🟡 Good to Know
-
-GDPR-style regulations shape real database decisions: data residency (where data can physically be stored), retention limits, and the technical capability to delete a specific user's data — the same theme as `9`, item 6 and `17`, item 9, now from the security/compliance angle.
-
----
-
-#### 12. Common Interview Questions
-
-1. **How do you prevent SQL injection?**
-   Always use parameterized queries — send the SQL structure and the data values separately, so user input can never be interpreted as SQL syntax.
-2. **Why should the application, migration, and reporting roles use separate database users?**
-   Least privilege — each gets only the access its specific job needs, limiting the damage if any one credential is compromised.
-3. **How do you handle multi-tenancy securely with shared tables?**
-   Row-level security enforced at the database level is the strongest safety net — relying purely on every application query remembering to filter by `tenant_id` is fragile and one missed filter away from a data leak.
-4. **What does "least privilege" mean for a database, concretely?**
-   Separate users per job function, each scoped to only what that job requires — the app's runtime user shouldn't have schema-change permissions, and the reporting user shouldn't have write access.
+</details>
 
 ---
 
-#### 13. Common Mistakes
+#### 9. Practice
 
-1. Building SQL from string concatenation with user input.
-2. One shared, over-privileged database user for everything — app, migrations, and reporting alike.
-3. A database with a public IP directly reachable from the internet.
-4. Multi-tenant data isolated only by application-code discipline, with no database-level enforcement.
-5. No deletion capability for personal data, discovered only when a request arrives.
+**Interview questions**
 
----
+1. How do you prevent SQL injection?
+2. What users and privileges does your database have?
+3. How do you isolate tenants in one database?
+4. How do you protect personal data and honour deletion requests?
+5. How do you secure database credentials?
+6. What would you log for audit?
 
-#### 14. Related Topics
+**Hands-on**
 
-1. `3` SQL Fundamentals — where parameterized queries are first introduced
-2. `BE 6` Backend Security Essentials — SQL injection in full depth
-3. `ARCH 11` Security Architecture — least privilege and defense in depth at the architecture level
-4. `9` Data Architecture (in `09-architecture`) — privacy shaping data design
+1. Reproduce injection against a string-built query, then fix it with parameters and an allow-list.
+2. Create `app`, `migrator` and `reporting` roles and confirm `app` cannot `DROP TABLE`.
+3. Turn on row-level security for a tenant table and test that one tenant cannot read another's rows.
+4. Add an audit trigger on a sensitive table.
 
----
-
-#### 15. Interview Must Remember
-
-1. **Always parameterize queries** — never build SQL from string concatenation.
-2. **Least privilege**: separate users for app, migrations, and reporting.
-3. **Never expose the database to the internet directly.**
-4. **PII: minimum stored, protected, deletable on request.**
+**Remember:** parameters always · least-privilege users · private network + TLS + encryption at rest · secrets manager and rotation · enforce tenants in one place + RLS · minimise, mask and delete PII · audit sensitive access.

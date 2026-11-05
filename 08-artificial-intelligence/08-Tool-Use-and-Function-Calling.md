@@ -1,182 +1,280 @@
 # Tool Use & Function Calling
 
+> A model cannot do anything by itself. With tool use, it asks your code to run a function and reads the result. You decide what tools exist, what arguments are valid, and what is allowed.
+
 Roadmap topic 8 · Stage 3: Tools & Agents
 
-**Marks:** 🟢 Must Know · 🟡 Good to Know · (New) a newer idea, still changing
+**Go deeper:** `5` Calling an LLM API · `9` MCP · `10` Agents · `11` Agent Harness · `16` Safety · `04-backend-engineering/03-API-Design` (idempotency) · `05-system-design/22-Reliable-Requests-and-External-Services`.
 
-**In simple words:** a model can only produce text. Tool use lets it ask your code to do things: search notes, read a database, send an email. The model says which tool it wants and with what arguments. Your code runs it and sends the result back.
+**Marks:** 🟢 must know · 🟡 good to know
 
 ---
 
-#### 1. How Tool Use Works — 🟢 Must Know
+#### 1. What Is It?
 
-*The model asks. Your code acts. The result goes back to the model.*
+*The model asks, your code runs, the result goes back.*
 
-```text
-1. You send: user message + list of available tools
-2. Model replies: "call search_notes with query='release date'"
-3. Your code runs search_notes(...)
-4. You send the tool result back to the model
-5. Model replies with the final answer (or asks for another tool)
+| 🟢 Must know | 🟡 Good to know |
+|---|---|
+| how it works: ask → run → return the result | tool errors: clear messages so the model can recover |
+| the model never runs anything; your code does | parallel tool calls |
+| name, description, argument schema | provider-hosted tools (web search, code execution) |
+| validate arguments and check permissions | too many tools confuse the model |
+| side effects: confirmation and idempotency | |
+
+1. **Tool definition:** a name, a description (when to use it), and a JSON schema of arguments.
+2. **Tool call:** the model's request to run a tool with specific arguments.
+3. **Tool result:** what your code returns; the model reads it and continues.
+4. **Stop reason "tool use":** the model is waiting for you.
+
+**Signals in an interview:** "how does an LLM call an API?", "how do you keep tool calls safe?", "what if a tool fails?", "what about a tool that sends an email?".
+
+---
+
+#### 2. How It Works
+
+**One round trip.**
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant H as Your code
+    participant M as Model
+    participant T as Tool (your function / API)
+    U->>H: "Move my meeting note to tomorrow"
+    H->>M: messages + tool definitions
+    M-->>H: tool call: find_note(query="meeting")
+    H->>H: validate args, check permission
+    H->>T: run find_note
+    T-->>H: result (or error)
+    H->>M: tool result
+    M-->>H: tool call: update_note(id=42, date="tomorrow")
+    H->>M: result
+    M-->>U: final answer
 ```
 
-1. The model decides **whether** to call a tool, **which one**, and **with what arguments**.
-2. Steps 2 to 5 can repeat several times for one question. That repeat is the start of an agent (topic `10`).
-3. The stop reason of a response tells you when the model wants a tool instead of giving a final answer (topic `05`).
+**The model never executes anything.** It only produces text that says "call this tool with these arguments". Your code is the one that runs functions, so your code is where validation, permissions and limits live.
 
-**Mobile view:** like a screen calling a repository. The model is the UI asking for data. Your code is the repository that does the real work.
-
----
-
-#### 2. The Model Never Runs Anything — 🟢 Must Know
-
-*It only writes a request. Your code decides whether to run it.*
-
-1. The model produces text that says "call this function with these arguments". Nothing executes by itself.
-2. **Your code** runs the tool, on your server, with your permissions.
-3. That is your control point: you can check, refuse, log, ask the user, or limit it.
-4. Treat the model's tool request like **untrusted input from a user**.
-
----
-
-#### 3. Defining a Tool — 🟢 Must Know
-
-*A name, a description, and an argument schema. The description is the most important part.*
+**A tool definition (provider-neutral).**
 
 ```json
 {
-  "name": "search_notes",
-  "description": "Search the user's notes by keyword or topic. Use when the user asks about something they wrote. Returns up to 5 notes with id, title, and a short snippet.",
+  "name": "create_note",
+  "description": "Create a new note for the current user. Use when the user asks to save or write down something. Do not use for searching.",
   "input_schema": {
     "type": "object",
     "properties": {
-      "query": { "type": "string", "description": "What to search for" },
-      "limit": { "type": "integer", "description": "Max results, 1 to 10" }
+      "title": { "type": "string", "description": "Short title, max 80 characters" },
+      "body": { "type": "string" },
+      "dueDate": { "type": "string", "description": "ISO date, optional" }
     },
-    "required": ["query"]
+    "required": ["title"],
+    "additionalProperties": false
   }
 }
 ```
 
-1. The model chooses tools by reading the **description**. Say what it does, when to use it, and what it returns.
-2. Use clear names (`search_notes`, not `tool1`).
-3. Describe each argument. Use fixed choices (enums) where possible.
-4. Return **small, useful** results. Do not dump huge data into the context (topic `13`).
+Good descriptions matter more than clever code: say **what it does, when to use it, when not to, and what each argument means**, with units and formats.
+
+**Before running a call.**
+
+1. **Validate arguments** against the schema (types, required, ranges); the model can send wrong or missing values.
+2. **Check permissions**: the tool acts as *this user*, never with more power than the user has (least privilege).
+3. **Check limits**: rate, cost, size.
+4. **Confirm side effects** (send, delete, pay) with the user when needed.
+
+**Tools with side effects.** Reads are safe to retry; writes are not. Use confirmations for irreversible actions, give writes an **idempotency key** (the tool-call id works), and return what was done so the model can report it. A retried call must not charge twice (`BE 3`).
+
+🟡 **Tool errors.** Return a clear, short error as the tool result ("note 42 not found; use find_note to search") and mark it as an error. The model can fix its arguments or try another approach. Don't crash the loop; don't hide the error.
+
+🟡 **Parallel tool calls.** The model may request several independent calls in one turn. Run them concurrently and return **all results together in one message**, each tied to its call id.
+
+🟡 **Provider-hosted tools.** Some providers run tools for you (web search, web fetch, code execution). Less code, but know what data leaves your system and what it costs.
+
+🟡 **Keep the tool set small.** Many similar tools make the model pick the wrong one. Prefer a few well-named tools; merge near-duplicates; load rarely used tools on demand (tool search or MCP, topic 9).
 
 ---
 
-#### 4. Validate and Check Permissions — 🟢 Must Know
+#### 3. Naive vs Better Design
 
-*Same rules as any API endpoint. The model is just another caller.*
+| Naive | Better |
+|---|---|
+| execute whatever the model outputs | validate against the schema first |
+| tool with the app's admin power | tool runs with the user's permissions |
+| a `run_sql(query)` tool | narrow tools (`search_notes`, `get_note`) |
+| vague description: "notes tool" | what, when, when not, argument meanings |
+| tool errors thrown and the loop dies | error text returned to the model |
+| `send_email` runs immediately | draft first, user approves, then send |
+| retry a payment tool blindly | idempotency key |
+| 40 tools in every request | a few relevant ones |
 
-1. **Validate** the arguments against the schema. The model can send wrong types or made-up values.
-2. **Check permissions for the real user**, not for the model. If the user cannot read note 99, the tool must not return it (`BE 5`).
-3. Do not let the model choose the user ID or account. Take it from the logged-in session.
-4. Limit what a tool can touch (a folder, a table, a set of URLs).
-5. Log every tool call with its arguments and result (topic `18`).
-
----
-
-#### 5. Tools With Side Effects — 🟢 Must Know
-
-*Reading is safe. Sending, deleting, and paying are not.*
-
-1. Split tools into **read-only** (search, get) and **write** (create, delete, send, pay).
-2. Ask the **user to confirm** before a write tool runs, especially if it cannot be undone.
-3. Make write tools **idempotent**: retries or repeated calls must not duplicate the action. Use an idempotency key (`BE 3`).
-4. Start an agent with read-only tools. Add write tools later, one at a time.
+```kotlin
+// Naive: model output goes straight into a shell
+val cmd = model.reply.toolCall.arguments["command"]
+Runtime.getRuntime().exec(cmd)
+```
 
 ---
 
-#### 6. Tool Errors — 🟡 Good to Know
+#### 4. Code
 
-*When a tool fails, tell the model clearly so it can recover.*
+A tiny tool registry with schema validation:
 
-1. Tools fail: timeouts, "not found", bad arguments.
-2. Return a **clear, short error message** to the model, such as "Note 99 not found. Use search_notes to find valid IDs."
-3. The model can then fix its arguments or try another approach.
-4. Do not hide errors, and do not return a raw stack trace.
-5. Limit retries so it cannot loop forever (topic `10`).
+```kotlin
+enum class ParamType { STRING, INT, BOOL }
 
----
+data class ToolSpec(
+    val name: String,
+    val description: String,
+    val params: Map<String, ParamType>,
+    val required: Set<String>,
+    val sideEffect: Boolean = false
+)
 
-#### 7. Parallel Tool Calls — 🟡 Good to Know
+fun validate(spec: ToolSpec, args: Map<String, Any?>): List<String> = buildList {
+    (spec.required - args.keys).forEach { add("missing: $it") }
+    (args.keys - spec.params.keys).forEach { add("unknown argument: $it") }
+    args.forEach { (k, v) ->
+        val t = spec.params[k] ?: return@forEach
+        val ok = when (t) { ParamType.STRING -> v is String; ParamType.INT -> v is Int; ParamType.BOOL -> v is Boolean }
+        if (!ok) add("$k must be $t")
+    }
+}
+```
 
-*Run independent tool calls at the same time.*
+Checks (spec `create_note`: `title: STRING`, `body: STRING`, required `title`): `{title: "Buy milk"}` → `[]`; `{}` → `["missing: title"]`; `{title: 5}` → `["title must be STRING"]`; `{title: "x", colour: "red"}` → `["unknown argument: colour"]`.
 
-1. The model may request **several tool calls at once** when they are independent ("get weather in two cities").
-2. Run them in parallel if you can, then return all results together.
-3. Make sure each result is matched to the right call (by its ID).
+The dispatcher: validation, permission, confirmation, idempotency, error text:
 
----
+```kotlin
+data class ToolCall(val id: String, val name: String, val args: Map<String, Any?>)
+data class ToolResult(val callId: String, val content: String, val isError: Boolean = false)
 
-#### 8. Provider-Hosted Tools — 🟡 Good to Know
+class Dispatcher(
+    private val specs: Map<String, ToolSpec>,
+    private val impls: Map<String, (Map<String, Any?>) -> String>,
+    private val allowed: Set<String>,                         // tools this user may use
+    private val approve: (ToolCall) -> Boolean                // user confirmation for side effects
+) {
+    private val done = HashMap<String, ToolResult>()           // idempotency: call id → result
 
-*Some tools run on the provider side, not in your system.*
+    fun run(call: ToolCall): ToolResult = done.getOrPut(call.id) {
+        val spec = specs[call.name] ?: return@getOrPut ToolResult(call.id, "unknown tool: ${call.name}", true)
+        if (call.name !in allowed) return@getOrPut ToolResult(call.id, "not permitted: ${call.name}", true)
+        val errors = validate(spec, call.args)
+        if (errors.isNotEmpty()) return@getOrPut ToolResult(call.id, "invalid arguments: ${errors.joinToString("; ")}", true)
+        if (spec.sideEffect && !approve(call)) return@getOrPut ToolResult(call.id, "the user declined this action", true)
+        try { ToolResult(call.id, impls.getValue(call.name)(call.args)) }
+        catch (e: Exception) { ToolResult(call.id, "tool failed: ${e.message}", true) }
+    }
+}
+```
 
-1. Some providers offer **built-in tools** that run on their side: web search, code execution, file search.
-2. Easy to use, but you give up some control over data and cost. Check what data leaves your system.
-3. Your own tools run in your system, with your rules.
+Checks: a call `create_note` with valid args and approval → result `"created note 1"` and the implementation counter is `1`. Running the **same call id** again returns the stored result and the counter stays `1` (no duplicate note). A call with a tool name that does not exist → `ToolResult(isError = true, "unknown tool: …")`. `delete_note` for a user whose `allowed` set lacks it → `not permitted`. A side-effect call that the user declines → `the user declined this action`. A thrown exception becomes `tool failed: …` and the loop continues.
 
----
+Parallel calls, all results returned together:
 
-#### 9. Keep the Tool Set Small — 🟡 Good to Know
+```kotlin
+suspend fun runAll(calls: List<ToolCall>, d: Dispatcher): List<ToolResult> =
+    coroutineScope { calls.map { c -> async(Dispatchers.IO) { d.run(c) } }.awaitAll() }      // one message with every result
+```
 
-*More tools does not mean better results.*
+Narrow tools instead of raw SQL:
 
-1. Every tool definition uses **context tokens** and is one more option to choose from.
-2. Many similar tools confuse the model and cause wrong picks.
-3. Prefer a few well-described tools. Merge overlapping ones. Load rarely used tools only when needed (topic `13`).
+```kotlin
+val searchNotes = ToolSpec("search_notes", "Search the current user's notes by keyword. Returns up to 5 matches (id, title). Use before update_note.",
+    params = mapOf("query" to ParamType.STRING), required = setOf("query"))
 
----
-
-#### 10. Common Interview Questions
-
-1. **How does function calling work?**
-   You send the tools with the question. The model returns a tool request. Your code runs it and returns the result. The model then answers.
-2. **Does the model execute the tool?**
-   No. Your code does. That is where you enforce checks and limits.
-3. **How do you make tool calls safe?**
-   Validate arguments, check the real user's permissions, confirm risky actions, use idempotency, and log everything.
-4. **What makes a good tool definition?**
-   A clear name, a description that says when to use it, and a precise argument schema.
-5. **What if a tool fails?**
-   Return a short, clear error so the model can recover. Cap the retries.
-6. **Why not give the model 50 tools?**
-   Too many tools cost tokens and cause wrong choices. Keep the set small and focused.
-7. **What is the difference between a tool and RAG?**
-   RAG retrieves text for every question. A tool is chosen by the model when it needs something. Search can be a tool (agentic RAG).
-
----
-
-#### 11. Common Mistakes
-
-1. Letting the model pass the user ID or account.
-2. Skipping validation because "the model will send valid input".
-3. Write tools with no confirmation and no idempotency.
-4. Vague descriptions, so the model picks the wrong tool.
-5. Returning huge outputs that fill the context.
-6. Hiding tool errors from the model.
-
----
-
-#### 12. Related Topics
-
-1. `05` Calling an LLM API
-2. `07` RAG (agentic RAG)
-3. `09` MCP & Integrations
-4. `10` Agents
-5. `16` Safety, Security & Privacy
-6. `BE 3` API Design (idempotency)
-7. `BE 5` Authentication & Authorization
+fun searchNotesImpl(userId: Long, q: String) = db.query("SELECT id, title FROM notes WHERE user_id = ? AND title ILIKE ? LIMIT 5", userId, "%$q%")
+// the user id comes from the session, never from a model argument
+```
 
 ---
 
-#### 13. Interview Must Remember
+#### 5. Numbers & Limits
 
-1. **Model asks → your code runs → result goes back.**
-2. **The model never runs anything.** Your code is the control point.
-3. **Description is the key part** of a tool definition.
-4. **Validate, authorize for the real user, log.**
-5. **Confirm and make idempotent** anything with side effects.
-6. **Few tools, small outputs, clear errors.**
+| Item | Rule of thumb |
+|---|---|
+| Tool count per request | under about 10 to 20; fewer is better |
+| Tool description | 1 to 4 sentences, plus argument descriptions |
+| Tool result size | cap at a few thousand tokens; summarise or paginate big outputs |
+| Parallel calls | independent reads in parallel; writes with care |
+| Timeouts | every tool has one; tell the model if it timed out |
+| Retries | reads: yes; writes: only with an idempotency key |
+| Loops | a maximum number of tool calls per request (topic 10) |
+| Errors | short and actionable (what failed, what to try) |
+
+---
+
+#### 6. Common Mistakes & Edge Cases
+
+1. Running model-chosen commands without validation.
+2. Tools that can do more than the user can.
+3. Letting the model supply the user id.
+4. Vague tool names and descriptions.
+5. A giant tool result that floods the context.
+6. Hiding errors or throwing exceptions that kill the loop.
+7. Irreversible actions without confirmation.
+8. Not making writes idempotent.
+9. Splitting parallel results into separate messages (the model learns to stop parallelising).
+
+Edge cases: the model hallucinates a tool name or argument; arguments that are valid JSON but unsafe (path traversal, huge limits); a tool that takes minutes (run async, return a job id); tool output containing instructions (prompt injection, topic 16); the user changes their mind between the call and the approval.
+
+---
+
+#### 7. Say This in the Interview
+
+1. "The model only asks for a tool call. My code validates the arguments, checks permissions, runs the function and returns the result."
+2. "Tools run as the user: least privilege, with the user id from the session, never from model arguments."
+3. "For side effects I ask for confirmation and use an idempotency key, so a retry can't act twice."
+4. "Errors go back to the model as short, clear messages so it can recover."
+5. "I keep the tool set small with specific names and descriptions, and cap big outputs."
+
+---
+
+#### 8. Quick Check
+
+1. Who runs the tool?
+2. Why validate arguments the model produced?
+3. How do you make a write tool safe to retry?
+4. What do you return when a tool fails?
+
+<details>
+<summary>Answers</summary>
+
+1. Your code. The model only requests it.
+2. The model can produce missing, wrong or unsafe values; the schema is your contract.
+3. Use an idempotency key (for example the tool-call id) and store the result.
+4. A short error result (marked as an error) saying what failed and what to try.
+
+</details>
+
+---
+
+#### 9. Practice
+
+**Interview questions**
+
+1. How does function calling work?
+2. How do you make tool use safe?
+3. How do you handle a tool that has side effects?
+4. How do you write a good tool description?
+5. What happens when a tool fails?
+6. Why keep the tool set small?
+7. Run tools in parallel: how do you return results?
+
+**Hands-on**
+
+1. Define `search_notes`, `get_note` and `create_note`; implement the dispatcher and test the five checks above.
+2. Add an approval step for `delete_note` and test decline and approve.
+3. Make the tool results at most 1,000 tokens (truncate with a "more results available" hint).
+
+**Coding warm-ups (LeetCode)**
+
+| # | Question | Link to this topic |
+|---|---|---|
+| 20 | [Valid Parentheses](https://leetcode.com/problems/valid-parentheses/) (Easy) | validating structured text |
+| 394 | [Decode String](https://leetcode.com/problems/decode-string/) (Medium) | parsing nested input |
+| 1188 | [Design Bounded Blocking Queue](https://leetcode.com/problems/design-bounded-blocking-queue/) (Medium, premium) | concurrency for parallel calls |
+
+**Remember:** the model asks, your code runs · validate, authorise, limit · least privilege, user id from the session · confirm side effects, use idempotency keys · return errors as text · few, well-described tools.

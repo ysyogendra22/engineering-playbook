@@ -1,131 +1,265 @@
 # Schema Migrations & Evolution
 
+> The schema changes while the app is live, and old app versions and old server versions run at the same time. Make every change backward compatible, split risky changes into expand, migrate and contract steps, and keep migrations in version control.
+
 Roadmap topic 10 · Stage 3: Correctness
 
-**Marks:** 🟢 Must Know · 🟡 Good to Know · (New) for a mobile engineer, or still changing
+**Go deeper:** `9-architecture/09-Data-Architecture` (expand → migrate → contract) · `05-system-design/28-Deployment-and-Release` and `30-Mobile-Specific-Topics` · `21` Mobile Databases (on-device migrations) · `17` Backup & Recovery · `6` Query Performance.
 
-**In simple words:** a schema change on a live system is a live-surgery problem — old code and new code both need to keep working while the change rolls out, because you can never update every server (or every app, `MOB 1`) at exactly the same instant.
+**Marks:** 🟢 must know · 🟡 good to know
+
+**How the examples are checked:** run on SQLite 3.54. PostgreSQL/MySQL-specific online-change syntax is marked and not run.
 
 ---
 
-#### 1. Versioned Migration Scripts — 🟢 Must Know
+#### 1. What Is It?
 
-Every schema change is a **numbered, versioned script**, kept in source control alongside the application code — never a manual, undocumented change made directly against a production database.
+*Changing structure without breaking running code or losing data.*
+
+| 🟢 Must know | 🟡 Good to know |
+|---|---|
+| versioned migration scripts in source control | big tables without downtime: batching, online tools |
+| forward-only; test on a copy of production | backfilling data safely |
+| backward-compatible changes (old and new run together) | migration tools: Flyway, Liquibase, built-in ones |
+| expand and contract | rollback plans; why forward-fix is often better |
+| risky changes: rename, drop, change type, add `NOT NULL` | schema and API versioning together |
+
+1. **Migration:** a versioned script that moves the schema from version N to N+1.
+2. **Backward compatible:** the previous version of the code still works with the new schema.
+3. **Expand → migrate → contract:** add the new shape, move the data and code to it, then remove the old shape.
+
+**Signals in an interview:** "how do you rename a column with no downtime?", "how do you add a NOT NULL column to a 500M-row table?", "old app versions are still in use; what do you do?", "how do you roll back a migration?".
+
+---
+
+#### 2. How It Works
+
+**Why it is hard.** A deploy is not instant: for minutes the old and new servers run together; mobile apps run old versions for years; a database cannot change shape at the same instant for all code. So every schema state must work with **both** the previous and the next code version.
+
+**Versioned scripts.**
 
 ```text
-001_create_users.sql
-002_add_email_index.sql
-003_add_notes_table.sql
+db/migrations/
+  V001__create_notes.sql
+  V002__add_status_to_notes.sql
+  V003__create_tags.sql
+```
+
+Each script runs once, in order; the tool records applied versions in a table (`flyway_schema_history`, Liquibase `DATABASECHANGELOG`; SQLite/Room use `PRAGMA user_version` / `room_master_table`). Never edit a migration that has run anywhere; add a new one. Test the full chain on an empty database and the latest migrations on a copy of production.
+
+**Forward-only.** Prefer fixing forward over writing "down" scripts: down migrations are rarely tested, and data created after the up step can't be restored. For safety, make each step small and backward compatible so the app can be rolled back *without* rolling the schema back.
+
+**Expand and contract.**
+
+```mermaid
+flowchart LR
+    E["1 Expand<br/>add new column/table (nullable, default)"] --> D["2 Dual-write<br/>code writes old + new"] --> B["3 Backfill<br/>copy old data in batches"] --> S["4 Switch reads<br/>code reads the new"] --> C["5 Contract<br/>stop writing old; later drop it"]
+```
+
+Each arrow is a separate deploy. The old code keeps working until the contract step, and the contract step only happens after no running code (including old app versions) needs the old shape.
+
+**Risky changes and safer ways.**
+
+| Change | Risk | Safer way |
+|---|---|---|
+| Rename a column/table | old code breaks | add new, dual-write, backfill, switch, drop old (or a view alias) |
+| Drop a column | old code breaks; data loss | stop using it first; wait until no code reads it; then drop (keep a backup) |
+| Change a column type | rewrites the table; casts fail | add a new column of the new type, backfill, switch |
+| Add `NOT NULL` | existing rows violate it | add nullable → backfill → add the constraint (or add with a default) |
+| Add a column with a default | can rewrite the table in some engines | PostgreSQL 11+ and modern MySQL add it quickly; verify per version |
+| Add an index | locks writes | build concurrently (`CREATE INDEX CONCURRENTLY`) |
+| Add a foreign key / check | validates all rows under a lock | `NOT VALID` then `VALIDATE` later (PostgreSQL) |
+| Change a unique constraint | duplicates exist | find and fix duplicates first |
+
+🟡 **Big tables without downtime.** Do heavy work in small **batches** (1,000–10,000 rows) with pauses; build indexes concurrently; use online schema change tools for engines that lock (gh-ost, pt-online-schema-change for MySQL; `pg_repack`/native concurrent operations for PostgreSQL); watch replica lag and lock waits; set lock timeouts so a migration fails instead of blocking the whole app.
+
+🟡 **Backfilling safely.** Idempotent batches (`WHERE new_col IS NULL`), resumable by id range, rate-limited, observable (counts), done outside the request path, verified afterwards (`SELECT COUNT(*) WHERE new_col IS NULL` = 0).
+
+🟡 **Tools.** Flyway, Liquibase (JVM), framework migrations (Rails, Django, Alembic), Room migrations on Android, Core Data/SwiftData migrations on iOS. Run migrations as a separate step with a privileged user, not at app startup on every instance.
+
+🟡 **Rollback plans.** Know before you run: can the app roll back without the schema (expand step: yes)? Is there a backup/PITR point (topic 17)? What is the fix-forward plan? Destructive steps (drop, type change) get the strongest plan.
+
+🟡 **Schema and API versioning together.** The API contract (add-only fields, versions) and the schema evolve in step: the API may keep an old field name while the schema has the new one (`ARCH 10`). On mobile, **the on-device database also needs migrations** for every old app version (topic 21).
+
+---
+
+#### 3. Naive vs Better Design
+
+| Naive | Better |
+|---|---|
+| edit the schema by hand in production | versioned migration scripts in source control |
+| rename a column in one deploy | expand → dual-write → backfill → switch → contract |
+| `ALTER TABLE ... ADD COLUMN x NOT NULL` on a big table | nullable + backfill in batches + constraint |
+| `UPDATE` all 100M rows in one statement | batched, resumable backfill |
+| migration runs on every app instance at startup | a separate, single migration job |
+| "down" scripts nobody tests | small backward-compatible steps; forward fix |
+| drop a column the day you stop using it | wait for all code versions to stop reading it |
+| destructive migration for local databases (`fallbackToDestructiveMigration`) | real migrations that keep user data |
+
+---
+
+#### 4. SQL & Code
+
+Adding a column safely (SQLite):
+
+```sql
+ALTER TABLE notes ADD COLUMN status TEXT NOT NULL DEFAULT 'active';       -- existing rows get 'active'
+ALTER TABLE notes ADD COLUMN owner INTEGER NOT NULL;                       -- fails: Cannot add a NOT NULL column with default value NULL
+```
+
+Checks: with three existing notes, the first statement gives all three `status = 'active'`; the second fails because there is no value for the existing rows. Fix by adding with a default, or nullable → backfill → constrain.
+
+Expand → backfill in batches → contract (renaming `title` to `title_v2`; 2,503 rows):
+
+```sql
+ALTER TABLE notes ADD COLUMN title_v2 TEXT;                                          -- 1 expand (nullable)
+-- 2 dual-write in code: write title and title_v2
+-- 3 backfill, repeated until it affects 0 rows:
+UPDATE notes SET title_v2 = title
+WHERE title_v2 IS NULL AND id IN (SELECT id FROM notes WHERE title_v2 IS NULL ORDER BY id LIMIT 1000);
+-- 4 switch reads to title_v2 (deploy), verify:  SELECT COUNT(*) FROM notes WHERE title_v2 IS NULL;   → 0
+-- 5 contract (a release later):
+ALTER TABLE notes DROP COLUMN title;                                                  -- SQLite 3.35+; PostgreSQL always
+```
+
+Checks: the backfill runs in `3` batches (1,000 + 1,000 + 503 rows), then the check query returns `0`. Each batch is a short transaction, so it doesn't lock the table for long. `ALTER TABLE notes RENAME COLUMN body TO content` also works in SQLite 3.25+, but renaming breaks old code at once, which is why the expand/contract route is safer for live systems.
+
+A batched backfill loop in Kotlin (resumable, rate-limited):
+
+```kotlin
+fun backfill(conn: Connection, batch: Int = 1_000, pauseMs: Long = 50): Int {
+    var total = 0
+    while (true) {
+        val n = conn.prepareStatement("""UPDATE notes SET title_v2 = title
+              WHERE title_v2 IS NULL AND id IN (SELECT id FROM notes WHERE title_v2 IS NULL ORDER BY id LIMIT ?)""").use { it.setInt(1, batch); it.executeUpdate() }
+        conn.commit()
+        if (n == 0) return total
+        total += n
+        Thread.sleep(pauseMs)                                  // let replicas catch up and other traffic breathe
+    }
+}
+```
+
+PostgreSQL online changes (not run):
+
+```sql
+SET lock_timeout = '3s';                                       -- fail instead of blocking the app
+CREATE INDEX CONCURRENTLY idx_notes_user ON notes(user_id);    -- does not block writes
+ALTER TABLE notes ADD CONSTRAINT notes_user_fk FOREIGN KEY (user_id) REFERENCES users(id) NOT VALID;   -- fast
+ALTER TABLE notes VALIDATE CONSTRAINT notes_user_fk;           -- validates in the background with a weaker lock
+```
+
+Room migration (Android), with an automated test:
+
+```kotlin
+val MIGRATION_1_2 = object : Migration(1, 2) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE notes ADD COLUMN status TEXT NOT NULL DEFAULT 'active'")
+    }
+}
+Room.databaseBuilder(context, AppDatabase::class.java, "app.db").addMigrations(MIGRATION_1_2, MIGRATION_2_3).build()
+
+@Test fun migrate1To2() {
+    helper.createDatabase("test.db", 1).apply { execSQL("INSERT INTO notes(id, title) VALUES (1, 'a')"); close() }
+    val db = helper.runMigrationsAndValidate("test.db", 2, true, MIGRATION_1_2)
+    db.query("SELECT status FROM notes WHERE id = 1").use { check(it.moveToFirst() && it.getString(0) == "active") }
+}
+```
+
+SQLite's version marker:
+
+```sql
+PRAGMA user_version;            -- 0 for a new database
+PRAGMA user_version = 3;        -- the migration code records the schema version; Room does this with its own table and identity hash
+```
+
+A migration plan template:
+
+```text
+CHANGE: rename notes.title → notes.name        RISK: old app versions and servers read `title`        ROLLBACK: yes until step 5
+STEP 1 (release 4.10): add `name` nullable; code writes both          STEP 2 (job): backfill in batches of 1,000, verify NULL count = 0
+STEP 3 (release 4.11): code reads `name`; still writes both            STEP 4 (release 4.12 + after min version ≥ 4.11): stop writing `title`
+STEP 5 (+1 release): drop `title`          Backup/PITR point taken before step 5      Owner: ____   Review: ____
 ```
 
 ---
 
-#### 2. Forward-Only, Tested on a Copy of Production — 🟢 Must Know
+#### 5. Numbers & Limits
 
-Migrations generally move **forward only** (rollback plans exist, item 9, but "forward fix" is often safer than reverse-migrating). Test a migration against a **real copy of production data** before running it for real — a migration that works fine on an empty test database can fail or behave very differently against real data volume and shape.
-
----
-
-#### 3. Backward-Compatible Changes — 🟢 Must Know
-
-*The core discipline of this whole topic.*
-
-During a rollout, **old and new server versions run at the same time** (`SD 28`), and — for mobile especially — **old app versions may run against the new schema for years** (`MOB 1`). A migration must not break code that hasn't been updated yet.
-
----
-
-#### 4. Expand and Contract — 🟢 Must Know
-
-*The standard safe pattern for any schema change that isn't trivially backward compatible.*
-
-```text
-1. EXPAND:   add the new column/table, alongside the old one
-             (old code keeps working, unaware of the new shape)
-2. MIGRATE:  backfill data into the new shape; write to BOTH old and new
-             (dual writes, so both stay in sync during the transition)
-3. SWITCH:   update application code to read from the new shape
-             (deploy this once all servers/clients can handle it)
-4. CONTRACT: remove the old column/table, once nothing reads it anymore
-```
-
-Each step is small and independently safe — no single step requires "everything changes atomically, everywhere, at once".
+| Item | Rule of thumb |
+|---|---|
+| Backfill batch | 1,000 to 10,000 rows, with a short pause |
+| Lock timeout | 2 to 5 seconds for DDL in production |
+| Releases for a rename | 3 to 4 (expand, dual-write, switch, contract) |
+| Wait before dropping | until the oldest supported app/server version no longer needs it |
+| Migration duration | aim for seconds; anything over a minute needs a plan |
+| Replica lag during backfill | keep under a few seconds; pause if it grows |
+| Test data | production-sized copy for timing; empty database for the full chain |
+| Mobile | every supported old DB version must reach the latest schema |
 
 ---
 
-#### 5. Risky Changes — 🟢 Must Know
+#### 6. Common Mistakes & Edge Cases
 
-1. **Renaming** a column or table — looks like one operation, but is really a drop-and-add to anything still using the old name; treat it as expand-and-contract, not a simple rename.
-2. **Dropping** a column — irreversible once done; make sure nothing reads it first.
-3. **Changing a type** — can silently truncate or reject data that fit the old type.
-4. **Adding `NOT NULL`** to an existing column — fails immediately if any existing row has `NULL` there; backfill first (item 7).
+1. Editing an applied migration.
+2. Breaking the previous code version.
+3. One huge `UPDATE` that locks and bloats.
+4. `NOT NULL` without a plan for existing rows.
+5. Dropping or renaming in one step.
+6. Running migrations from every instance at startup.
+7. No test of the migration on production-like data.
+8. Destructive local migrations that wipe user data.
+9. No backup or recovery point before a destructive step.
 
----
-
-#### 6. Changing Big Tables Without Downtime — 🟡 Good to Know
-
-A naive schema change can lock a huge table for the whole operation, blocking all reads and writes for that duration. **Batching** (changing rows in small chunks) or **online schema change tools** (which build a new table structure alongside the old one and swap it in) avoid this on large tables.
-
----
-
-#### 7. Backfilling Data Safely — 🟡 Good to Know
-
-Filling a new column for existing rows — do it in **batches**, not one giant `UPDATE` touching millions of rows at once (which would lock heavily and risk timing out or bloating the transaction log).
+Edge cases: a migration that works on a small table but locks a large one for minutes; replicas lagging behind a backfill; two services sharing a table (coordinate the contract); enum value changes; renamed columns used in views and triggers; the database tool and ORM disagreeing about the schema.
 
 ---
 
-#### 8. Migration Tools — 🟡 Good to Know
+#### 7. Say This in the Interview
 
-Dedicated tools (Flyway, Liquibase) or framework-built-in migration systems track which migrations have run, in what order, and apply new ones automatically and consistently across environments — far more reliable than manually tracking schema state.
-
----
-
-#### 9. Rollback Plans, and Why "Forward Fix" Is Often Better — 🟡 Good to Know
-
-A true rollback (reversing a migration) can be riskier than it sounds, especially once new data has already been written in the new shape — often, writing a **new forward migration that fixes the problem** is safer and clearer than trying to reverse-migrate live data.
+1. "Migrations are versioned scripts in source control, applied once in order by a tool. Every step must be compatible with the previous code version, because old and new run together."
+2. "For a rename or type change I use expand, migrate, contract: add the new column, dual-write, backfill in batches, switch reads, then drop the old column after all old versions are gone."
+3. "To add `NOT NULL` to a big table I add it nullable, backfill, then enforce it, and I use lock timeouts and concurrent index builds."
+4. "I prefer fixing forward over down-migrations, and I take a recovery point before destructive steps."
+5. "On mobile, the on-device database needs a migration path from every supported old version, tested automatically."
 
 ---
 
-#### 10. Schema and API Versioning Together — 🟡 Good to Know
+#### 8. Quick Check
 
-A schema change and the API change that exposes it should be planned together, using the same backward-compatibility discipline (`ARCH 10`) — a schema change alone doesn't guarantee the API built on top of it stays compatible.
+1. Why must schema changes be backward compatible?
+2. What are the steps of expand and contract?
+3. How do you backfill 100M rows?
+4. What does a lock timeout protect?
 
----
+<details>
+<summary>Answers</summary>
 
-#### 11. Common Interview Questions
+1. Old and new code versions (and old app versions) run against the same database at the same time.
+2. Add the new shape, dual-write, backfill, switch reads, then remove the old shape.
+3. In small, idempotent, resumable batches with pauses, verifying the result.
+4. It makes a migration fail quickly instead of blocking application traffic behind a lock.
 
-1. **How do you safely rename a database column with zero downtime?**
-   Treat it as expand-and-contract: add the new column, dual-write to both old and new, backfill, switch reads to the new column once all consumers are updated, then drop the old one — never a direct, one-step rename on a live system.
-2. **Why is adding a `NOT NULL` constraint to an existing column risky?**
-   It fails immediately if any existing row has `NULL` in that column — backfill a default value first, then add the constraint.
-3. **Why should migrations be backward compatible, specifically for a mobile product?**
-   Old app versions can stay in active use for years and can't be forced to update instantly — a schema or API change that breaks them would break real users with no way to fix it on their end.
-4. **What's the "expand and contract" pattern?**
-   A four-step safe migration approach: expand (add the new shape), migrate (backfill and dual-write), switch (move reads to the new shape), contract (remove the old shape) — each step independently safe.
-
----
-
-#### 12. Common Mistakes
-
-1. A direct rename or type change on a live table with active traffic.
-2. Adding `NOT NULL` without backfilling existing `NULL` values first.
-3. One giant `UPDATE` backfilling millions of rows instead of batching.
-4. Assuming a schema change is safe just because it works against an empty local database.
-5. Not considering old app versions when changing an API/schema exposed to mobile clients.
+</details>
 
 ---
 
-#### 13. Related Topics
+#### 9. Practice
 
-1. `2` Relational Model & Data Modeling — the schema being evolved
-2. `SD 28` Deployment & Release — old and new server versions running together
-3. `MOB 1`, `MOB 9` — old app versions and Room migrations, the mobile-side equivalent of this discipline
-4. `ARCH 10` Integration & API Architecture — schema and API versioning together
+**Interview questions**
 
----
+1. How do you rename a column in a live system?
+2. How do you add a `NOT NULL` column to a table with 500M rows?
+3. How do you handle a migration when old app versions are still in use?
+4. Up/down migrations or forward-only?
+5. How do you test migrations?
+6. What goes in a migration plan?
 
-#### 14. Interview Must Remember
+**Hands-on**
 
-1. **Versioned migration scripts, tested on a copy of real data.**
-2. **Expand and contract** — the standard safe pattern for any non-trivial change.
-3. **Renaming, dropping, type changes, and adding `NOT NULL`** are all risky — treat them carefully.
-4. **Old app versions and old server versions run together** — every change must stay backward compatible.
+1. Run the expand → backfill → contract steps in SQLite and count the batches.
+2. Write a Room migration from version 1 to 2 and a test with `MigrationTestHelper`.
+3. Write the migration plan for a rename you would really make.
+4. Add a Flyway or Liquibase setup to a sample project and apply three migrations.
+
+**Remember:** versioned scripts, never edit applied ones · backward-compatible steps · expand → dual-write → backfill → switch → contract · batches, lock timeouts, concurrent index builds · fix forward, keep a recovery point · mobile databases need migrations from every old version.

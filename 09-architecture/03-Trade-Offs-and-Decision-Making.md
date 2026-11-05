@@ -1,131 +1,243 @@
 # Trade-Offs & Decision Making
 
+> There is no best architecture, only trade-offs for a given context. Good decisions name the options, the criteria and the cost of the choice, are recorded in a short note, and spend the most effort on what is hardest to reverse.
+
 Roadmap topic 3 · Stage 1: Role & Mindset
 
-**Marks:** 🟢 Must Know · 🟡 Good to Know · (New) for a mobile engineer moving into architecture, or still changing
+**Go deeper:** `1` What an Architect Does · `2` Requirements & Quality Attributes · `14` Documentation (ADRs) · `15` Communicating · `07-behavioral-leadership/05-Technical-Decisions` and `06-Architecture-Decisions`.
 
-**In simple words:** "it depends" is the correct answer to almost every architecture question — the actual skill is saying *what* it depends on, writing the decision down, and being honest about what you're giving up. This topic is the method for doing that well.
-
----
-
-#### 1. There Is No Best Architecture — 🟢 Must Know
-
-*The mindset shift that everything else in this topic builds on.*
-
-Every architectural choice trades one quality attribute against another (topic `2`) — there's no universally "best" database, style, or pattern, only the one that fits this system's ranked priorities and constraints. Say **"it depends on..."** and then name the specific thing it depends on — never leave it as a vague hedge.
+**Marks:** 🟢 must know · 🟡 good to know
 
 ---
 
-#### 2. ADR: Architecture Decision Record — 🟢 Must Know
+#### 1. What Is It?
 
-*The standard artifact for recording a decision, short and durable.*
+*Choosing among options, with reasons, and writing the choice down.*
 
-```text
-# ADR-014: Use PostgreSQL for the primary data store
+| 🟢 Must know | 🟡 Good to know |
+|---|---|
+| no best architecture, only trade-offs | last responsible moment |
+| ADR: context, options, decision, consequences | avoid resume-driven and hype-driven choices |
+| one-way vs two-way decisions | cost of delay and cost of change |
+| risk-driven design: spikes, proofs of concept, prototypes | |
+| build vs buy vs open source | |
+| technology selection criteria | |
 
-Context:    We need a relational store for the Notes API, with strong
-            consistency for user data and support for full-text search.
+1. **Trade-off:** improving one quality costs another (speed vs cost, flexibility vs simplicity).
+2. **ADR:** a one-page note of one decision.
+3. **Two-way decision:** easy to undo, so decide fast. **One-way:** hard to undo, so decide carefully.
+4. **Spike:** a short experiment to answer one risky question.
 
-Options:    1. PostgreSQL   2. MySQL   3. DynamoDB
+**Signals in an interview:** "why did you choose X?", "what are the trade-offs?", "build or buy?", "how do you decide with incomplete information?", "monolith or microservices?".
 
-Decision:   PostgreSQL — strong consistency, mature full-text search,
-            team already has operational experience with it.
+---
 
-Consequences:
-  + Strong consistency and rich querying out of the box
-  + Team familiarity reduces operational risk
-  - Vertical scaling limits will need addressing beyond ~X req/s
-  - Revisit if we need true multi-region active-active writes
+#### 2. How It Works
+
+**The decision process.**
+
+```mermaid
+flowchart LR
+    P["Problem + ASRs +<br/>constraints"] --> O["Options (2–4,<br/>incl. do nothing)"] --> C["Criteria + weights"] --> E["Evidence: spike,<br/>prototype, numbers"] --> D["Decide: who, when"] --> A["Write the ADR"] --> R["Review at a set date<br/>or trigger"]
 ```
 
-Keep ADRs **short**, kept next to the code (topic `14`), and never edited after the fact — if a decision changes, write a new ADR that supersedes the old one, so the history stays honest.
+**Say "it depends", then say on what.** A strong answer states the trade-off: "I choose X because Y matters most here; the cost is Z; if W changes I would revisit."
 
----
+**ADR (architecture decision record).**
 
-#### 3. One-Way vs Two-Way Decisions — 🟢 Must Know
+| Section | Content |
+|---|---|
+| Title / status | short noun phrase; proposed, accepted, superseded |
+| Context | the problem, ASRs, constraints, forces |
+| Options | 2 to 4, with pros and cons |
+| Decision | the choice, in one paragraph |
+| Consequences | good, bad, and what we now must do |
+| Review | date or trigger for reconsidering |
 
-1. **Two-way (reversible)** — easy to undo; a library choice, an internal API shape you can still refactor freely.
-2. **One-way (hard to reverse)** — a core data model, a service boundary, a primary database — expensive or risky to change later.
-3. Spend your limited deliberation effort on **one-way** decisions. A two-way decision made slightly wrong costs little; a one-way decision made wrong can cost months.
+Keep ADRs next to the code (a `docs/adr` folder), numbered, immutable once accepted (a new ADR supersedes an old one).
 
----
+**One-way vs two-way decisions.**
 
-#### 4. Risk-Driven Design — 🟢 Must Know
+| | Two-way | One-way |
+|---|---|---|
+| Reversal | cheap, quick | expensive or impossible |
+| Examples | a library behind an interface; a feature flag; an internal API version | the primary database engine; a public API shape; data formats on user devices; the sharding key |
+| Approach | decide fast, learn, adjust | gather evidence, spike, review, document |
 
-Attack the **biggest unknowns first**, not the easiest parts first. A spike, a proof of concept, or a small prototype that tests the riskiest assumption early is worth far more than polishing a part of the design you already understand well.
+**Risk-driven design.** List the risks (unknown technology, hard requirements, performance doubts, integrations). Attack the biggest first with a spike (hours to days), a proof of concept (does it work?), or a prototype (does it feel right?). Decide with data, then throw away or keep the spike code deliberately.
 
----
+**Build vs buy vs open source.**
 
-#### 5. Build vs Buy vs Open Source — 🟢 Must Know
-
-| | Build | Buy (managed service) | Open source, self-hosted |
+| | Build | Buy (SaaS/product) | Open source |
 |---|---|---|---|
-| Cost | Engineering time | Ongoing subscription | Infrastructure + operational time |
-| Control | Full | Limited to what the vendor exposes | Full, but you own the operations |
-| Speed to start | Slowest | Fastest | Medium |
-| Lock-in | None | Vendor-specific | Lower, but still real |
+| Control | full | limited | high (if you can maintain it) |
+| Speed to start | slow | fast | medium |
+| Cost | people, upkeep | fees, per-use growth | people, hosting, support |
+| Lock-in | none | high | low to medium |
+| Differentiation | yes, for the core | no | no |
+| Rule | build what differentiates you; buy or reuse the rest | | |
 
-No universal answer — weigh against the ranked quality attributes and constraints from topic `2`.
+Compare total cost of ownership over 3 years, including maintenance, on-call, security updates and exit costs.
 
----
+**Technology selection criteria.** Fit to the requirements, team skills, maturity and community, operational cost, security and licensing, integration, cost, and an **exit path** (how hard to leave?). Prefer boring technology where it's good enough; spend "innovation tokens" only where they give an advantage.
 
-#### 6. Technology Selection Criteria — 🟢 Must Know
+🟡 **Last responsible moment.** Delay a decision until waiting costs more than deciding, so you know more, but don't block the team. Keep options open with interfaces and abstractions where change is likely, not everywhere.
 
-Beyond "which one is technically best": **fit** for the actual problem, **team skills** (can the team actually run this well?), **maturity** (is it production-proven?), **community** (support and hiring pool), **cost**, and a clear **exit path** if it doesn't work out.
+🟡 **Avoid resume-driven and hype-driven choices.** "It's popular" or "I want to learn it" is not a reason. Ask: what problem does it solve here, and what will it cost us in a year?
 
----
-
-#### 7. Last Responsible Moment — 🟡 Good to Know
-
-Delay a decision until **waiting starts costing more than deciding would** — not as long as possible, and not as early as possible. Deciding too early locks in a choice before you have enough information; deciding too late blocks the team and wastes the extra time you didn't actually use to learn more.
+🟡 **Cost of delay and cost of change.** Deciding too late costs time and lost opportunity; changing later costs rework. Weigh them: cheap-to-change decisions can be made early and revised; expensive ones deserve more care.
 
 ---
 
-#### 8. Avoid Resume-Driven and Hype-Driven Choices — 🟡 Good to Know
+#### 3. Naive vs Better Design
 
-A technology chosen because it's exciting to learn, or trending, rather than because it genuinely fits this system's requirements and the team's skills — a real, common failure mode worth naming and actively guarding against in yourself and in reviews.
+| Naive | Better |
+|---|---|
+| "we use X because everyone does" | criteria and evidence |
+| one option presented | 2 to 4, including doing nothing |
+| decisions in chat threads | ADRs in the repo |
+| debate for weeks | spike for a day or two |
+| treat every decision as final | label one-way vs two-way |
+| build everything | build the core, buy the rest |
+| decide by seniority | decide by evidence, with a clear owner |
+| no review date | a trigger to revisit |
 
----
-
-#### 9. Cost of Delay and Cost of Change — 🟡 Good to Know
-
-Two numbers worth estimating, even roughly, when deciding how much deliberation a decision deserves: what does it cost to wait longer for more information, versus what does it cost to change the decision later if it turns out wrong?
-
----
-
-#### 10. Common Interview Questions
-
-1. **How do you approach a technical decision with no clearly "best" option?**
-   Rank the relevant quality attributes for this system, weigh the real options against them and the constraints, and write the reasoning down as an ADR rather than deciding silently.
-2. **What's an ADR, and why write one?**
-   A short record of a decision's context, options considered, the choice, and its consequences — kept next to the code, so the reasoning survives even after the people who made it move on.
-3. **How do you decide how much time a decision deserves?**
-   By whether it's one-way (hard to reverse — deserves real deliberation) or two-way (easy to reverse — decide quickly and move on), and by weighing the cost of delay against the cost of being wrong.
-4. **How do you avoid choosing a technology just because it's popular or interesting?**
-   Explicitly evaluate against fit, team skills, maturity, community, cost, and exit path — not personal excitement — and name resume-driven or hype-driven reasoning when you notice it, including in your own thinking.
+```kotlin
+// Naive: hard-wired to one vendor; changing it later touches every screen
+class Checkout { fun pay() = StripeSdk.charge(amount) }
+```
 
 ---
 
-#### 11. Common Mistakes
+#### 4. Templates & Examples
 
-1. Treating a decision as if it has one objectively correct answer, instead of naming the trade-off.
-2. Making one-way decisions as quickly and casually as two-way ones.
-3. Never writing decisions down, so the reasoning is lost once the people involved move on.
-4. Choosing a technology for excitement or hype rather than fit, team skills, and maturity.
+**ADR template.**
+
+```text
+# ADR-007: Use Room as the single source of truth for notes
+Status: accepted (2025-03-04)         Owner: A. Rao
+Context: The app must work offline (ASR 1) and sync within 2 s (ASR 2). Team knows Kotlin; two engineers.
+Options: (A) network-first with an in-memory cache  (B) Room as source of truth + sync worker  (C) a third-party sync SDK
+Decision: B. The UI observes Room; a WorkManager job syncs with the API (outbox + cursor).
+Consequences: + works offline, simple UI state  − conflict handling and migrations to maintain; we accept last-write-wins per field.
+Review: after 3 months, or if conflict-related support tickets exceed 1% of volume.
+```
+
+**Weighted decision matrix** (scores 1 to 5; weights add up to 1; argue the weights, not the arithmetic):
+
+```kotlin
+data class Option(val name: String, val scores: Map<String, Int>)
+
+fun weighted(o: Option, weights: Map<String, Double>) = weights.entries.sumOf { (k, w) -> w * (o.scores[k] ?: 0) }
+```
+
+Checks: weights `fit 0.30, skills 0.20, maturity 0.20, cost 0.15, exit 0.15`. Option A (`4, 5, 5, 3, 4`) → `4.25`; option B (`5, 2, 3, 4, 3`) → `3.55`. A wins, mainly because the team already knows it. If B's `fit` is critical, raise that weight and see whether the answer changes (a sensitivity check).
+
+**Build vs buy over three years** (example numbers):
+
+```kotlin
+fun buildCost(initialPersonMonths: Double, upkeepFte: Double, years: Int, monthlyCostPerPerson: Double = 12_000.0) =
+    initialPersonMonths * monthlyCostPerPerson + upkeepFte * monthlyCostPerPerson * 12 * years
+
+fun buyCost(monthlyFee: Double, years: Int, integrationPersonMonths: Double, monthlyCostPerPerson: Double = 12_000.0) =
+    monthlyFee * 12 * years + integrationPersonMonths * monthlyCostPerPerson
+```
+
+Checks: build = 6 person-months initially + 0.3 FTE upkeep for 3 years → `$201,600`; buy = `$4,000` a month for 3 years + 1 person-month to integrate → `$156,000`. Buying is cheaper by `$45,600`, *unless* usage grows (fees scale) or the feature is a differentiator. Include exit cost and risk in the comparison.
+
+**A spike plan.**
+
+```text
+Question: Can the sync worker upload 500 queued edits in under 10 s on a mid-range phone on 4G?
+Time box: 2 days.     Success: p95 under 10 s over 20 runs.     Failure: switch to batching (ADR-007 option change).
+Output: a short note and a throwaway branch.
+```
+
+**One-way / two-way check.**
+
+```kotlin
+fun decisionType(daysToReverse: Int, publicContract: Boolean, dataOnUserDevices: Boolean) =
+    if (daysToReverse > 30 || publicContract || dataOnUserDevices) "one-way: take time, spike, review" else "two-way: decide fast, learn"
+```
+
+Checks: swapping an internal library `(5, false, false)` → two-way; changing the public API shape `(10, true, false)` → one-way; a local database schema `(20, false, true)` → one-way (old app versions keep their data).
 
 ---
 
-#### 12. Related Topics
+#### 5. Numbers & Rules of Thumb
 
-1. `2` Requirements, Constraints & Quality Attributes — what the trade-offs in this topic are weighed against
-2. `14` Documentation & Diagrams — where ADRs live long-term
-3. `21` Architecture Interview Answers — how to tell a decision story like this out loud
+| Item | Guide |
+|---|---|
+| Options | 2 to 4 per decision |
+| ADR | one page; decided within days for two-way, weeks for one-way |
+| Spike | 1 to 3 days; one question |
+| Criteria | 4 to 6 weighted |
+| Build vs buy horizon | 3 years of total cost, including upkeep and exit |
+| Review | a date (3 to 6 months) or a measurable trigger |
+| Reversible decisions | decide in hours; most decisions are two-way |
 
 ---
 
-#### 13. Interview Must Remember
+#### 6. Common Mistakes & Edge Cases
 
-1. **"It depends" is correct — always say what it depends on.**
-2. **ADR = context, options, decision, consequences.** Short, kept next to the code, never edited after the fact.
-3. **Spend deliberation effort on one-way decisions**, not two-way ones.
-4. **Attack the biggest unknowns first** — risk-driven, not comfort-driven.
+1. Choosing the technology before the problem.
+2. One option, or a straw-man alternative.
+3. Hype-driven and resume-driven choices.
+4. Analysis paralysis on two-way decisions.
+5. Deciding one-way decisions casually.
+6. No written record, so the same debate repeats.
+7. Ignoring team skills and operations cost.
+8. No exit plan for a vendor.
+
+Edge cases: a decision made under time pressure (record that it was provisional and when to revisit); stakeholders who want the opposite (put both options with costs and ask the decision owner); incomplete data (state assumptions, pick the reversible option); an old ADR that no longer fits (supersede it, don't delete it).
+
+---
+
+#### 7. Say This in the Interview
+
+1. "There's no best architecture, only trade-offs for the context. I choose X because Y matters most; the cost is Z; if W changes I'd revisit."
+2. "I label decisions one-way or two-way and spend my effort on the one-way ones. I record them in short ADRs next to the code."
+3. "For the riskiest unknown I run a time-boxed spike and decide with data."
+4. "Build what differentiates us; buy or reuse the rest. I compare three-year total cost including upkeep and exit."
+5. "I avoid hype-driven choices: what problem does it solve here, and what will it cost in a year?"
+
+---
+
+#### 8. Quick Check
+
+1. What goes in an ADR?
+2. Give an example of a one-way decision.
+3. What is a spike for?
+4. When do you build rather than buy?
+
+<details>
+<summary>Answers</summary>
+
+1. Context, options, decision, consequences (and status, owner, review date).
+2. The primary database engine, a public API shape, or the data format stored on user devices.
+3. To answer one risky question quickly with evidence before committing.
+4. When it differentiates the product or no product fits; otherwise buy or reuse.
+
+</details>
+
+---
+
+#### 9. Practice
+
+**Interview questions**
+
+1. How do you make an architectural decision?
+2. What is an ADR, and why use it?
+3. One-way vs two-way decisions?
+4. Build vs buy: how do you decide?
+5. How do you choose a technology?
+6. How do you decide with incomplete information?
+
+**Exercises**
+
+1. Write three ADRs for real decisions (one made, one pending, one you would make differently).
+2. Build a weighted matrix for two options and run a sensitivity check on the highest weight.
+3. Compute build vs buy three-year costs for a feature in your product.
+4. Write a spike plan for your riskiest assumption.
+
+**Remember:** trade-offs, not best · 2–4 options with criteria and evidence · ADRs in the repo · one-way vs two-way · spike the risk · build the core, buy the rest · plan the exit · revisit on a date or trigger.

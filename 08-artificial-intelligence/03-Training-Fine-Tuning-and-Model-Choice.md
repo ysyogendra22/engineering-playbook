@@ -1,175 +1,245 @@
 # Training, Fine-Tuning & Model Choice
 
+> Most teams don't train models. They choose one and shape it: prompt first, then retrieval, then fine-tuning only if needed. This topic is about that ladder and about choosing the right model for the job.
+
 Roadmap topic 3 · Stage 1: Foundations
 
-**Marks:** 🟢 Must Know · 🟡 Good to Know · (New) a newer idea, still changing
+**Go deeper:** `2` How LLMs Work · `4` Prompting · `7` RAG · `15` Evaluation · `17` Cost, Latency & Reliability · `19` On-Device vs Cloud AI.
 
-**In simple words:** big labs train the model. You usually do not. Your job is to choose a model that fits, then get the result you need in the cheapest way: prompt first, then retrieval, then fine-tuning only if needed.
+**Marks:** 🟢 must know · 🟡 good to know · (New) still changing
 
 ---
 
-#### 1. Pretraining, Fine-Tuning, Prompting: Cheapest First — 🟢 Must Know
+#### 1. What Is It?
 
-*Fix problems with the cheapest tool that works.*
+*How a model is made, how it can be adapted, and how to pick one.*
 
-1. **Pretraining** — the model learns language and general knowledge from huge amounts of text. Very expensive. Done by model providers. The result is a **foundation model**: a general-purpose model that can later be adapted to many jobs.
-2. **Fine-tuning** — extra training of an existing model on your examples, to teach it a style, format, or narrow skill.
-3. **Prompting** — telling the model what to do at request time. No training.
+| 🟢 Must know | 🟡 Good to know |
+|---|---|
+| pretraining vs fine-tuning vs prompting; try the cheapest first | base vs instruction-tuned models |
+| open-weight vs closed (API-only) models | RLHF and preference tuning |
+| small vs large models: cost, speed, quality | distillation |
+| reasoning models | quantization |
+| multimodal models | LoRA (name only) |
+| | benchmarks vs your own task |
 
-The ladder:
+1. **Pretraining:** learn language and world knowledge from huge text, by predicting the next token. Very expensive; done by providers.
+2. **Fine-tuning:** continue training on a narrow set of examples to change behaviour, style or format.
+3. **Prompting:** change behaviour with instructions and examples at request time. No training.
+4. **Model choice:** pick the smallest model that meets the quality bar.
 
-```text
-1. Better prompt + examples          (minutes, cheap)
-2. Add your data with RAG            (hours, moderate)
-3. Fine-tune a model                 (days, costs more, needs good data)
-4. Train your own model              (almost never)
+**Signals in an interview:** "fine-tune or RAG?", "open or closed model?", "which model would you use?", "what is a reasoning model?", "why quantize?".
+
+---
+
+#### 2. How It Works
+
+**The adaptation ladder: try the cheapest first.**
+
+```mermaid
+flowchart LR
+    P["1 Prompting<br/>(instructions, examples)"] -->|"not enough"| R["2 RAG / tools<br/>(add knowledge and abilities)"] -->|"still not enough"| F["3 Fine-tuning<br/>(change behaviour or style)"] -->|"rarely"| T["4 Train / heavy customisation"]
 ```
 
-1. Move down a step only when the step above is not enough.
-2. Fine-tuning changes **behaviour and style**. It is a poor way to add **facts**. Use RAG for facts (topic `07`).
+| Need | Best first tool |
+|---|---|
+| Follow a format or tone | prompt + examples (few-shot) |
+| Use private or fresh facts | RAG or tools |
+| Take actions | tool use / agents |
+| Consistent specialised style or a very narrow task at high volume | fine-tuning (or a small tuned model) |
+| Lower cost at scale | smaller model, caching, routing |
 
----
+Fine-tuning teaches *behaviour*, not reliably new *facts*; use RAG for facts that change.
 
-#### 2. Open-Weight vs Closed Models — 🟢 Must Know
+**Open-weight vs closed.**
 
-*Can you download and run it, or only call it through an API?*
-
-| | Closed (API-only) | Open-weight |
+| | Closed (API-only) | Open-weight (downloadable) |
 |---|---|---|
-| How you use it | Call the provider's API | Download the weights, run them yourself |
-| Setup | Easy | You manage servers, GPUs, updates |
-| Data | Sent to the provider | Stays where you run it |
-| Control | Provider decides versions and limits | You control the version and can fine-tune freely |
-| Cost | Pay per token | Pay for hardware; can be cheaper at high volume |
+| Access | through the provider's API | you run it yourself or via hosts |
+| Quality | typically strongest frontier models | strong and improving; sizes vary |
+| Control & privacy | data goes to the provider (check retention terms) | data stays in your environment |
+| Cost model | pay per token | pay for hardware; cheap at high steady volume |
+| Effort | lowest | you run, scale and update it |
+| Customisation | prompts, sometimes fine-tuning | full fine-tuning, quantization |
 
-1. Start with an API to learn and prototype.
-2. Consider open-weight when privacy, cost at scale, offline use, or on-device use matters.
+**Small vs large.**
 
----
+| | Small model | Large model |
+|---|---|---|
+| Cost | low | high |
+| Speed | fast | slower |
+| Quality on hard tasks | lower | higher |
+| Good for | classification, extraction, routing, simple chat, on-device | complex reasoning, long documents, coding, agents |
 
-#### 3. Small vs Large Models — 🟢 Must Know
+A common design is **routing**: a small model for easy requests, a large one for hard ones (topic 5).
 
-*Bigger is usually smarter, slower, and more expensive.*
+**Reasoning models.** They spend extra "thinking" tokens before answering, so they do better on multi-step problems (maths, code, planning), but cost more and take longer. Many current models let you set an effort level or thinking depth; use low effort for routine work and raise it only where quality needs it.
 
-1. **Large models** — better at hard reasoning and messy tasks. Slower and costlier.
-2. **Small models (SLMs, small language models)** — faster and cheaper. Good for simple, clear tasks. Some run on a phone or laptop.
-3. Match the model to the task. Classify a message with a small model. Plan a complex task with a large one.
+**Multimodal models** accept more than text (images, audio, video) and sometimes produce them. Use them for screenshots, documents, speech, and camera input; mind the extra token cost of images and privacy of what you send.
 
-How to choose (check these):
+🟡 **Base vs instruction-tuned.** A *base* model only continues text. An *instruction-tuned* (chat) model has been further trained to follow instructions and hold a conversation. You almost always want the instruction-tuned one.
 
-1. **Quality on your task**, tested with your own examples (topic `15`).
-2. **Latency** and **cost per request**.
-3. **Context window** size.
-4. **Features you need:** tool calling, structured output, images, streaming.
-5. **Privacy** and where the data goes.
-6. **Reliability** and the provider's limits.
+🟡 **RLHF and preference tuning.** Humans (or other models) rank answers; the model is trained to prefer the helpful, honest, safe ones. This shapes behaviour but doesn't make it perfect.
 
-You can also mix models: small for easy steps, large for hard ones (model routing, topic `05`).
+🟡 **Distillation.** Train a small "student" model to imitate a large "teacher". You get much of the quality at lower cost and latency.
 
----
+🟡 **Quantization.** Store weights with fewer bits (16 → 8 → 4). The model is 2 to 4× smaller and faster, with a small quality loss. Essential for running models on devices and modest GPUs.
 
-#### 4. Reasoning Models — 🟢 Must Know
+🟡 **LoRA (parameter-efficient fine-tuning).** Train small add-on matrices instead of all weights; much cheaper than full fine-tuning. Name only.
 
-*Models that "think" before answering.*
-
-1. A **reasoning model** spends extra tokens working through a problem step by step before giving the final answer.
-2. Better at math, logic, code, and multi-step planning.
-3. Cost: slower and more expensive, because the thinking tokens count.
-4. Use them for hard problems. Use a normal model for simple ones.
-5. You usually do not need to say "think step by step". The model already does.
+🟡 **Benchmarks vs your task.** Public benchmarks measure general skills and may be contaminated or irrelevant to your task. Always build an eval from your own data (topic 15).
 
 ---
 
-#### 5. Multimodal Models — 🟢 Must Know
+#### 3. Naive vs Better Design
 
-*Models that handle more than text.*
+| Naive | Better |
+|---|---|
+| fine-tune first | prompt, then RAG, then fine-tune |
+| fine-tune to add changing facts | RAG for facts, fine-tune for style/format |
+| the biggest model for every call | the smallest that passes your eval; route by difficulty |
+| pick by leaderboard rank | evaluate 2 or 3 candidates on your data |
+| hard-code one model name | configurable model per feature, with a fallback |
+| ignore data rules | check retention, region and training-use terms |
+| run an open model "to save money" without counting ops cost | compare total cost at your volume |
 
-1. **Multimodal** — accepts or produces text, images, audio, or video.
-2. Examples of use: describe a photo, read text from a receipt, transcribe audio, answer questions about a screenshot.
-3. Images and audio cost tokens too, and can be large. Resize before sending.
-
-**Mobile view:** the phone has a camera and microphone, so multimodal features fit mobile very well.
-
----
-
-#### 6. Base vs Instruction-Tuned, and RLHF — 🟡 Good to Know
-
-*Two names you will hear: how a raw model becomes a helpful chat model.*
-
-1. A **base model** just continues text. An **instruction-tuned (chat) model** is trained to follow instructions. You almost always use the chat kind.
-2. **RLHF (reinforcement learning from human feedback)** — people rate answers, and the model is trained to prefer the higher-rated ones. It makes models more helpful and safer.
-3. The general steps: pretrain → instruction-tune → preference-tune. Know the names and the purpose. Nothing more.
+```kotlin
+// Naive: one expensive model for everything, name hard-coded everywhere
+val answer = bigModel.complete(prompt)
+```
 
 ---
 
-#### 7. Distillation, Quantization, LoRA — 🟡 Good to Know
+#### 4. Code
 
-*Ways to make a model smaller or cheaper to adapt.*
+Model choice as a function (a simple, explicit policy):
 
-1. **Distillation** — a small model is trained to copy a large one. The small one is faster and cheaper, and nearly as good on that task.
-2. **Quantization** — store the numbers in the model with less precision. The model uses less memory and runs faster, with a small quality loss. Example: 8 GB down to about 2 GB.
-3. **LoRA** — a cheap way to fine-tune by training only a small add-on instead of the whole model. Name only.
+```kotlin
+enum class Tier { SMALL, MEDIUM, LARGE }
 
-Quantization is important for on-device models (topic `19`).
+data class Task(val needsReasoning: Boolean, val longContext: Boolean, val privateData: Boolean, val latencySensitive: Boolean)
 
----
+fun chooseTier(t: Task): Tier = when {
+    t.needsReasoning || t.longContext -> Tier.LARGE
+    t.latencySensitive -> Tier.SMALL
+    else -> Tier.MEDIUM
+}
 
-#### 8. Benchmarks vs Your Own Task — 🟡 Good to Know
+fun mustStayInHouse(t: Task) = t.privateData           // e.g. use an open-weight or in-region deployment
+```
 
-*Public scores help shortlist. Your own examples decide.*
+Checks: a classification task `(false, false, false, true)` → `SMALL`; a contract-analysis task `(true, true, true, false)` → `LARGE` and `mustStayInHouse` → `true`; a normal chat `(false, false, false, false)` → `MEDIUM`.
 
-1. Public **benchmarks** compare models on standard tests. They help to shortlist.
-2. They may not match your task, and models can be tuned to score well on them.
-3. Always try your shortlist on **your own examples** and choose from those results.
+Cost per request at example prices (per 1M tokens: large `$4 in / $20 out`, mid `$2 / $10`, small `$0.10 / $0.50`; these are illustrative):
 
----
+```kotlin
+data class Price(val inPerMillion: Double, val outPerMillion: Double)
 
-#### 9. Common Interview Questions
+fun requestCost(inputTokens: Int, outputTokens: Int, p: Price) =
+    inputTokens * p.inPerMillion / 1_000_000 + outputTokens * p.outPerMillion / 1_000_000
+```
 
-1. **Prompting, RAG, or fine-tuning: how do you decide?**
-   Start with prompting. Add RAG when the model needs your data or fresh facts. Fine-tune for a consistent style, format, or narrow skill when prompting is not enough.
-2. **Can you teach a model new facts by fine-tuning?**
-   Poorly. Use RAG for facts. Fine-tuning is better for behaviour and format.
-3. **Open-weight or closed model?**
-   Closed for speed of building. Open-weight for privacy, control, cost at scale, or on-device use.
-4. **When do you use a smaller model?**
-   For simple, high-volume tasks where speed and cost matter more than peak quality.
-5. **What is a reasoning model and when do you use it?**
-   A model that thinks before answering. Use it for hard, multi-step problems, and accept higher cost and latency.
-6. **What are quantization and distillation?**
-   Quantization shrinks a model by using lower-precision numbers. Distillation trains a small model to imitate a large one.
-7. **How do you pick a model?**
-   Shortlist by features and cost, then test on your own examples for quality and latency.
+Checks: `2,000` input and `500` output tokens → large `$0.018`, mid `$0.009`, small `$0.00045`. At 1,000,000 requests a month: large `$18,000`, mid `$9,000`, small `$450`. A router that sends 80% of traffic to the small model and 20% to the large: `0.8 × 0.00045 + 0.2 × 0.018 = $0.00396` per request, about 56% cheaper than all-mid, if the quality holds on your eval.
 
----
+Model memory with quantization:
 
-#### 10. Common Mistakes
+```kotlin
+fun modelGigabytes(parametersBillions: Double, bitsPerWeight: Int) = parametersBillions * bitsPerWeight / 8.0
+```
 
-1. Fine-tuning first, before trying a better prompt or RAG.
-2. Fine-tuning to add facts.
-3. Using the largest model for every task.
-4. Choosing a model from a leaderboard without testing your own cases.
-5. Ignoring where user data is sent.
-6. Forgetting that multimodal inputs cost tokens.
+Checks: a 7-billion-parameter model → 16-bit `14.0` GB, 8-bit `7.0` GB, 4-bit `3.5` GB (weights only; running needs extra memory for the context cache and activations). That is why a 4-bit 7B model can run on a high-end phone or a modest GPU, and a 16-bit 70B model (`140` GB) cannot.
+
+A fine-tuning data example (chat format, one JSON object per line):
+
+```json
+{"messages":[{"role":"system","content":"You write short, friendly product replies."},{"role":"user","content":"Is it waterproof?"},{"role":"assistant","content":"Yes, it handles splashes and light rain (IP67). Please don't submerge it for long."}]}
+```
 
 ---
 
-#### 11. Related Topics
+#### 5. Numbers & Limits
 
-1. `02` How LLMs Work
-2. `04` Prompting & Context Engineering
-3. `05` Calling an LLM API (model routing)
-4. `07` RAG
-5. `15` Evaluation & Quality
-6. `19` On-Device vs Cloud AI
+| Item | Rule of thumb |
+|---|---|
+| Fine-tuning examples | hundreds to a few thousand good examples for style or format tasks; quality over quantity |
+| Price gap | small models can be 10 to 50× cheaper per token than large ones |
+| Quantization | 16-bit → 4-bit shrinks weights 4×; expect small quality loss; test on your task |
+| Memory | parameters (billions) × bits ÷ 8 = gigabytes of weights |
+| Reasoning models | more tokens, higher latency, higher accuracy on hard multi-step tasks |
+| Re-evaluation | when you change the model or provider, re-run your eval; models are retired |
+| Open model ops | you pay for GPUs, monitoring, scaling and updates |
 
 ---
 
-#### 12. Interview Must Remember
+#### 6. Common Mistakes & Edge Cases
 
-1. **Ladder:** prompt → RAG → fine-tune → train your own.
-2. **Fine-tune for behaviour, RAG for facts.**
-3. **Open-weight** = you run it. **Closed** = API only.
-4. **Small models** for simple tasks. **Reasoning models** for hard ones.
-5. **Quantization** shrinks, **distillation** copies, **RLHF** shapes behaviour.
-6. **Test on your own data**, not just benchmarks.
+1. Fine-tuning before trying a good prompt and RAG.
+2. Expecting fine-tuning to teach new facts reliably.
+3. Choosing the model by a leaderboard.
+4. Using the largest model everywhere.
+5. Ignoring data-retention and region rules.
+6. Hard-coding a model that is later retired.
+7. No evaluation after switching models.
+8. Running an open model without counting operations cost.
+
+Edge cases: a provider changes or retires a model (your behaviour changes; keep an eval and a fallback); a fine-tuned model that overfits to its examples; quantization that hurts a rare skill; images and audio costing many tokens; a reasoning model overthinking an easy request.
+
+---
+
+#### 7. Say This in the Interview
+
+1. "I'd try prompting first, then add retrieval or tools, and fine-tune only if I need a consistent style or behaviour at scale."
+2. "Fine-tuning shapes behaviour, not facts; for changing knowledge I use RAG."
+3. "I'd pick the smallest model that passes my eval, and route hard requests to a larger one."
+4. "Closed models are the strongest and simplest to use; open-weight models give control and privacy but I have to run them."
+5. "Reasoning models spend extra thinking tokens on hard tasks; I raise effort only where it improves results."
+6. "I judge models on my own eval set, not on public benchmarks."
+
+---
+
+#### 8. Quick Check
+
+1. In what order do you try prompting, RAG and fine-tuning?
+2. What is distillation?
+3. How much memory does a 7B model need at 4 bits?
+4. Why not choose by benchmark?
+
+<details>
+<summary>Answers</summary>
+
+1. Prompting, then RAG/tools, then fine-tuning.
+2. Training a small model to imitate a large one.
+3. About 3.5 GB for the weights (7 × 4 ÷ 8).
+4. Benchmarks measure general skills, may not match your task, and can be contaminated; use your own eval.
+
+</details>
+
+---
+
+#### 9. Practice
+
+**Interview questions**
+
+1. Pretraining vs fine-tuning vs prompting?
+2. When would you fine-tune instead of using RAG?
+3. Open-weight vs closed models?
+4. How do you choose between a small and a large model?
+5. What is a reasoning model, and when is it worth it?
+6. What are distillation and quantization?
+7. How do you evaluate a model for your use case?
+
+**Hands-on**
+
+1. Run the same 20 prompts through a small and a large model; compare quality and cost with your own rubric.
+2. Compute the monthly cost of your feature at three volumes for three model tiers.
+3. Write down the data-retention terms of the provider you would use.
+
+**Coding warm-ups (LeetCode)**
+
+| # | Question | Link to this topic |
+|---|---|---|
+| 322 | [Coin Change](https://leetcode.com/problems/coin-change/) (Medium) | minimum cost to reach a target (cost planning) |
+| 1235 | [Maximum Profit in Job Scheduling](https://leetcode.com/problems/maximum-profit-in-job-scheduling/) (Hard) | choosing under constraints |
+| 215 | [Kth Largest Element in an Array](https://leetcode.com/problems/kth-largest-element-in-an-array/) (Medium) | selecting the top candidates |
+
+**Remember:** prompt → RAG/tools → fine-tune · fine-tuning is for behaviour, RAG for facts · smallest model that passes your eval · route by difficulty · quantization shrinks models · evaluate on your own data.

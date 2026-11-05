@@ -1,102 +1,230 @@
 # Architecture Governance & Quality
 
+> Governance keeps many teams building in a compatible direction without slowing them down. Prefer guardrails over gates: make the right way the easy way, check rules automatically, and review the few decisions that matter.
+
 Roadmap topic 17 · Stage 5: Evolving & Governing
 
-**Marks:** 🟢 Must Know · 🟡 Good to Know · (New) for a mobile engineer moving into architecture, or still changing
+**Go deeper:** `3` Trade-Offs (ADRs) · `8` Boundaries · `16` Evolutionary Architecture (fitness functions) · `18` Teams & Delivery · `14` Documentation · `07-behavioral-leadership/12-Leadership-Without-Authority`.
 
-**In simple words:** governance done badly is a bottleneck everyone routes around. Governance done well is invisible — the right way to build something is simply the easiest, most natural path, so people follow it without being forced to.
-
----
-
-#### 1. Guardrails Over Gates — 🟢 Must Know
-
-*The single most important governance mindset.*
-
-A **gate** blocks progress until a manual approval happens — slow, and people learn to route around it. A **guardrail** makes the right way the **easy** way by default (good templates, sensible defaults, automated checks) — people follow it because it's genuinely the path of least resistance, not because they're forced to.
+**Marks:** 🟢 must know · 🟡 good to know
 
 ---
 
-#### 2. Architecture Reviews — 🟢 Must Know
+#### 1. What Is It?
 
-Know **when** a review is warranted (a genuinely significant, hard-to-reverse decision — topic `3`), **who** should be in the room (people who'll actually be affected, not everyone), and **what** to look for (alignment with ranked quality attributes, topic `2`; real trade-offs considered, not just one option presented).
+*Light-weight control that preserves quality and autonomy.*
 
----
+| 🟢 Must know | 🟡 Good to know |
+|---|---|
+| guardrails over gates | paved road (golden path) |
+| architecture reviews: when, who, what to look for | tech radar: adopt, trial, assess, hold |
+| automated architecture tests | balance standards with team autonomy |
+| coding standards and definition of done | ATAM-style reviews |
+| | ownership of services, modules and data |
 
-#### 3. Automated Architecture Tests — 🟢 Must Know
+1. **Gate:** a manual approval step before work continues (slow, bottleneck).
+2. **Guardrail:** an automatic or built-in constraint that keeps teams on a safe path (fast, scalable).
+3. **Paved road:** the easy, supported default way to build and deploy.
+4. **Fitness function:** an automated architecture check (topic 16).
 
-The concrete implementation of fitness functions (`16`, item 5): **dependency rules** (module A must never depend on module B), **layer rules** (the UI layer can't call the database directly), **cycle checks** (`8`, item 8) — run in CI, so violations are caught automatically and immediately, not discovered months later during a manual review.
-
----
-
-#### 4. Coding Standards and Definition of Done — 🟢 Must Know
-
-A shared, written baseline for what "done" actually means (tests written, reviewed, documented where needed) keeps quality consistent across a team or organisation without needing constant, manual, case-by-case policing.
-
----
-
-#### 5. Paved Road — 🟡 Good to Know
-
-An approved, well-supported default stack and set of templates for common needs — using it is easy and fast; deviating is allowed, but the deviator takes on more responsibility for figuring things out themselves. A strong practical example of the guardrail philosophy (item 1) in action.
+**Signals in an interview:** "how do you make sure teams follow the architecture?", "do you review every design?", "how do you introduce a standard without annoying teams?", "who owns this service?".
 
 ---
 
-#### 6. Tech Radar — 🟡 Good to Know
+#### 2. How It Works
 
-A structured way to track technology choices across an organisation: **adopt** (use freely), **trial** (try on a real but limited project), **assess** (worth evaluating, not yet proven), **hold** (avoid for new work) — keeps technology choices visible and deliberate rather than ad hoc and inconsistent across teams.
+**Guardrails over gates.**
 
----
+```mermaid
+flowchart LR
+    G["Gates: a committee approves each change"] -->|"slow, bottleneck, resentment"| X["Teams work around it"]
+    R["Guardrails: templates, automated checks, defaults"] -->|"fast, consistent"| Y["Teams stay aligned"]
+```
 
-#### 7. Balance Standards with Team Autonomy — 🟡 Good to Know
+Make the right way the easy way: project templates that already contain logging, auth, CI and security scanning; shared libraries for cross-cutting concerns; automated checks in CI; defaults in the platform. Use human review only for decisions that are hard to reverse.
 
-Too little governance and the system fragments into inconsistent, hard-to-maintain approaches (item 1's ungoverned failure mode). Too much and teams lose the ability to make reasonable local decisions and start routing around the process entirely — the right balance is a genuine, ongoing judgment call, not a fixed formula.
+**Architecture reviews.**
 
----
+| Question | Answer |
+|---|---|
+| When | for one-way or cross-team decisions, new systems, major changes, before big launches; not for every pull request |
+| Who | the owning team, affected teams, an architect, security/operations as needed |
+| What to look for | quality attribute fit (ASRs), boundaries and dependencies, failure modes, data ownership and privacy, operability, cost, simplicity, exit path |
+| How | design doc sent ahead; short meeting; recorded decisions and actions |
+| Output | approve / approve with conditions / rethink, in an ADR |
 
-#### 8. ATAM-Style Reviews — 🟡 Good to Know
+**Automated architecture tests.** Dependency rules, layer rules, cycle checks, naming and package rules, banned APIs, API compatibility checks, size and performance budgets. They run on every pull request and fail the build. Tools: ArchUnit-style libraries, Gradle dependency rules, custom lint rules.
 
-A structured method (name and purpose only) for reviewing whether a proposed architecture actually meets its stated quality goals (topic `2`) — useful as a more rigorous reference for especially high-stakes architecture reviews.
+**Coding standards and definition of done.** A short, shared set: formatting (automated), naming, error handling, logging, testing expectations; a **definition of done** (tests, review, docs/ADR updated, feature flag, monitoring, accessibility) that includes architectural expectations. Automate everything that can be.
 
----
+🟡 **Paved road (golden path).** The supported, documented, easy default for building a service or an app: templates, CI/CD, observability, security. Teams may leave it, but must justify and own the extra cost.
 
-#### 9. Ownership — 🟡 Good to Know
+🟡 **Tech radar.** A list of technologies in four rings: **adopt** (use by default), **trial** (use on non-critical work), **assess** (explore), **hold** (don't start new work with it). Reviewed every few months; reduces random technology sprawl while allowing experiments.
 
-Knowing exactly **who owns** each service, module, and data set — without clear ownership, quality quietly erodes, since no single person or team feels accountable for maintaining it well over time.
+🟡 **Balance standards with autonomy.** Standardise what has little product value and high cost of variety (CI, logging, auth, security basics). Leave choice where teams know best (internal design, domain models). More standards when teams are many and juniors common; fewer when experienced teams own clear boundaries.
 
----
+🟡 **ATAM-style reviews.** A structured method (Architecture Tradeoff Analysis Method): list quality attribute scenarios, examine how the architecture responds, identify risks, sensitivity points and trade-offs. Use a light version for major systems.
 
-#### 10. Common Interview Questions
-
-1. **What's the difference between a guardrail and a gate, and why does it matter?**
-   A gate blocks progress until manual approval, and people learn to route around it. A guardrail makes the right path the easiest one by default — better compliance, because it's genuinely the path of least resistance rather than a forced detour.
-2. **How do you enforce an architectural rule at scale, without manual policing?**
-   Automated architecture tests in CI — dependency rules, layer rules, cycle checks — turning intent into something enforced continuously, rather than something hoped for and occasionally manually reviewed.
-3. **How do you decide when a design needs a formal architecture review?**
-   For genuinely significant, hard-to-reverse decisions (topic `3`) — not every decision needs one, and over-applying review slows the team without proportionate benefit.
-4. **How do you balance standards with team autonomy?**
-   An ongoing judgment call — too little governance and the system fragments; too much and teams lose the ability to make reasonable local decisions and start routing around the process. Aim for guardrails, not gates, as the default lever.
-
----
-
-#### 11. Common Mistakes
-
-1. Relying on manual gates and approvals instead of automated guardrails.
-2. Reviewing every decision, significant or not, slowing the team without proportionate benefit.
-3. No automated checks for architectural rules, so violations are only caught much later, if at all.
-4. Unclear ownership, leading quality to erode with no one clearly accountable.
+🟡 **Ownership.** Every service, module, data set, dashboard and runbook has an owner (a team, not a person) listed in a catalogue or `CODEOWNERS`. Unowned things decay.
 
 ---
 
-#### 12. Related Topics
+#### 3. Naive vs Better Design
 
-1. `16` Evolutionary Architecture & Technical Debt — drift, which governance is meant to catch
-2. `3` Trade-Offs & Decision Making — the decisions this topic's reviews are about
-3. `18` Teams & Delivery — how governance interacts with team structure and delivery speed
+| Naive | Better |
+|---|---|
+| architecture board approves every change | guardrails and reviews for the few big decisions |
+| rules in a wiki | rules as automated checks |
+| a different stack for every team | paved road + a tech radar |
+| standards imposed without reasons | standards explained, owned by practitioners, revisited |
+| "everyone owns it" | named owners |
+| reviews after the build | reviews while options are open |
+| a review checklist of 80 items | 8 to 10 questions that matter |
 
 ---
 
-#### 13. Interview Must Remember
+#### 4. Templates & Examples
 
-1. **Guardrails over gates** — make the right way the easy way.
-2. **Automated architecture tests in CI**, not manual policing.
-3. **Review only genuinely significant, hard-to-reverse decisions.**
-4. **Clear ownership** for every service, module, and data set.
+**Architecture review checklist (short).**
+
+```text
+[ ] Which ASRs does this serve? Are they measurable?       [ ] Boundaries: data ownership and dependencies clear?
+[ ] Failure modes: timeouts, retries, fallbacks, SPOFs?    [ ] Security: threat model, authn/authz, secrets, data classes?
+[ ] Operability: logs, metrics, alerts, runbook, rollback?  [ ] Cost estimated? Exit path if a vendor/tech is wrong?
+[ ] Simpler alternative considered?                        [ ] Backward compatibility with old clients and data?
+Result: Approve | Approve with conditions (list) | Rethink     ADR link: …
+```
+
+**Tech radar as data, and a check.**
+
+```kotlin
+enum class Ring { ADOPT, TRIAL, ASSESS, HOLD }
+data class Tech(val name: String, val ring: Ring)
+
+fun disallowedInNewModules(radar: List<Tech>, used: Set<String>) =
+    radar.filter { it.ring == Ring.HOLD && it.name in used }.map { it.name }.sorted()
+```
+
+Checks: radar `Hilt = ADOPT`, `RxJava = HOLD`, `Koin = TRIAL`; a new module using `{Hilt, RxJava}` → `[RxJava]` (CI warns: put it on a justified exception list or migrate). Existing code is grandfathered until its migration plan.
+
+**Ownership coverage check.**
+
+```kotlin
+fun unowned(modules: List<String>, owners: Map<String, String>) = modules.filter { it !in owners }
+```
+
+Checks: modules `[notes, sync, billing, search]`, owners `{notes: team-a, sync: team-a, billing: team-b}` → `[search]` is unowned; the build or a weekly report flags it.
+
+**CODEOWNERS.**
+
+```text
+/feature/notes/    @org/notes-team
+/core/network/     @org/platform-team
+/docs/adr/         @org/architecture-guild
+```
+
+**Definition of done (architecture-aware).**
+
+```text
+- Tests for new logic (failure paths too)      - Code reviewed by an owner
+- ADR or doc updated if a significant decision - Feature flag and rollback considered
+- Metrics/logs/alerts added                    - Accessibility and security checks passed
+- No new dependency cycles or banned APIs (CI) - Migration/compatibility plan if data or API changed
+```
+
+**Paved road example.**
+
+```text
+`./new-service` creates: Ktor service with auth middleware, structured logging, OpenTelemetry, health checks, Dockerfile, CI pipeline,
+dependency/secret scanning, runbook template, dashboards, default SLO alerts. Teams start here; deviations are recorded as ADRs.
+```
+
+**Review triage: which changes need an architecture review?**
+
+```kotlin
+fun needsReview(oneWay: Boolean, teamsAffected: Int, newDataStore: Boolean, newExternalDependency: Boolean, touchesSecurity: Boolean) =
+    oneWay || teamsAffected >= 2 || newDataStore || newExternalDependency || touchesSecurity
+```
+
+Checks: a new screen `(false, 1, false, false, false)` → `false`; adding Kafka `(true, 3, true, true, false)` → `true`; a login change `(false, 1, false, false, true)` → `true`.
+
+---
+
+#### 5. Numbers & Rules of Thumb
+
+| Item | Guide |
+|---|---|
+| Review turnaround | within a few days; not a bottleneck |
+| Review checklist | 8 to 10 questions |
+| Architecture tests | run in CI on every pull request |
+| Tech radar | reviewed quarterly; each ring has criteria |
+| Standards | few, justified, automated |
+| Owners | 100% of services, modules and data sets |
+| Exceptions | allowed with an ADR and an expiry date |
+| Paved road adoption | target 80%+ of new services |
+
+---
+
+#### 6. Common Mistakes & Edge Cases
+
+1. Governance as approval bureaucracy.
+2. Rules nobody checks.
+3. Standards with no reasons or owners.
+4. Too many technologies.
+5. Reviews with no clear output.
+6. Unowned services and docs.
+7. Ivory-tower standards from people who don't build.
+8. Applying the same rigour to every change.
+
+Edge cases: acquisitions with different stacks; urgent fixes (allow an exception with a follow-up); experienced teams who want a different approach (evaluate on the quality attributes, allow if justified); compliance-driven gates (automate the evidence); open-source dependencies with changing licences.
+
+---
+
+#### 7. Say This in the Interview
+
+1. "I prefer guardrails over gates: templates, defaults and automated architecture tests make the right way the easy way, and human review is for the hard-to-reverse decisions."
+2. "Reviews happen early, with a short checklist: ASRs, boundaries, failure modes, security, operability, cost, simpler alternatives and an exit path; the output is an ADR."
+3. "Fitness functions run in CI: dependency rules, cycles, budgets, banned APIs."
+4. "A paved road and a tech radar limit sprawl while leaving teams autonomy where it matters; every service, module and data set has an owner."
+5. "Standards are explained, owned by practitioners, and revisited, so they're followed willingly."
+
+---
+
+#### 8. Quick Check
+
+1. Guardrail vs gate?
+2. What does the tech radar's "hold" mean?
+3. Which changes deserve an architecture review?
+4. Why do owners matter?
+
+<details>
+<summary>Answers</summary>
+
+1. A guardrail is an automatic constraint or default; a gate is a manual approval step.
+2. Don't start new work with this technology.
+3. One-way or cross-team decisions, new data stores or dependencies, security-sensitive changes.
+4. Without owners things decay; someone must answer for quality, incidents and change.
+
+</details>
+
+---
+
+#### 9. Practice
+
+**Interview questions**
+
+1. How do you make sure many teams follow the architecture?
+2. What is a paved road, and how do you balance it with autonomy?
+3. How do you run an architecture review?
+4. What are fitness functions, and what would you test?
+5. How do you introduce a new standard?
+6. What is a tech radar?
+
+**Exercises**
+
+1. Write a 10-question architecture review checklist for your team.
+2. Build a tech radar for your stack with the criteria for each ring.
+3. Add an architecture test to CI that fails on a forbidden dependency.
+4. Check ownership coverage of all modules and services.
+
+**Remember:** guardrails over gates · automate the rules (fitness functions in CI) · review the few big decisions early with a short checklist · paved road + tech radar · standards with reasons · named owners.

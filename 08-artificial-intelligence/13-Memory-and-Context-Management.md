@@ -1,157 +1,256 @@
 # Memory & Context Management
 
+> The context window is an agent's working memory, and it fills up. Good agents keep what matters in context, move the rest outside, and bring it back only when needed.
+
 Roadmap topic 13 · Stage 3: Tools & Agents
 
-**Marks:** 🟢 Must Know · 🟡 Good to Know · (New) a newer idea, still changing
+**Go deeper:** `2` How LLMs Work (context window) · `4` Prompting · `6` Embeddings · `7` RAG · `11` Agent Harness (compaction) · `16` Safety (data leakage) · `17` Cost (prompt caching) · `05-system-design/15-Caching`.
 
-**In simple words:** the context window is the agent's working memory, and it is small and expensive. Long tasks fill it up. Good agents keep the important things, summarize the old things, and store the rest outside the window to load only when needed.
+**Marks:** 🟢 must know · 🟡 good to know
 
 ---
 
-#### 1. The Context Window Is Working Memory — 🟢 Must Know
+#### 1. What Is It?
 
-*It fills up, and a full window means worse and costlier answers.*
+*What the model can see now, and what it can recall later.*
 
-1. Everything the model sees sits in the window: rules, tools, history, tool results, documents (topic `02`).
-2. In an agent, **tool results are the biggest growth**: file contents, search results, web pages.
-3. As it fills, cost and latency rise, and quality can fall as important details get buried.
-4. The job: keep the window **small, relevant, and organized**.
+| 🟢 Must know | 🟡 Good to know |
+|---|---|
+| the context window is working memory, and it fills | notes files and to-do lists |
+| short-term vs long-term memory | memory stores: what to save, forget, user control |
+| compaction: summarise older turns | context pollution |
+| keep big data outside; load what is needed | prompt caching |
 
-```text
-Turn 1:  [rules][tools][goal]                              small
-Turn 20: [rules][tools][goal][20 turns of results...........]   big
+1. **Short-term memory:** the conversation and tool results currently in the context.
+2. **Long-term memory:** facts and notes stored outside (database, files, vector store) and retrieved when relevant.
+3. **Compaction:** replacing old turns with a short summary.
+4. **Context pollution:** stale, wrong or irrelevant text that degrades answers.
+
+**Signals in an interview:** "how does the assistant remember my preferences?", "what happens in a very long conversation?", "how does an agent work on a task for hours?", "how do you delete a user's memories?".
+
+---
+
+#### 2. How It Works
+
+**Layers of memory.**
+
+```mermaid
+flowchart TD
+    CTX["Context window (working memory)<br/>system prompt, plan, recent turns, retrieved facts"]
+    CTX -->|"compaction / trimming"| SUM["Summary of older turns"]
+    CTX <-->|"retrieve / save"| LTM[("Long-term memory<br/>user facts, preferences, past decisions<br/>(DB / vector store)")]
+    CTX <-->|"read / write on demand"| FILES[("Files and notes<br/>plan, to-do list, scratchpad, big documents")]
+    CTX <-->|"search / fetch"| TOOLS["Tools, retrieval (RAG)"]
+```
+
+**What stays in context.** The system prompt and tool definitions, the goal and current plan, the last few turns, and the facts needed for the next step. Everything else is a candidate to move out.
+
+**Strategies for long conversations.**
+
+| Strategy | How | Trade-off |
+|---|---|---|
+| Sliding window | keep the last N turns | simple; forgets early facts |
+| Summarise (compaction) | replace old turns with a summary of goal, decisions, open items | keeps the gist; the summary can lose detail |
+| Selective retention | keep pinned items (goal, constraints) + recent turns | needs rules for "important" |
+| Retrieve on demand | store everything; fetch only what is relevant | extra retrieval; depends on search quality |
+| Shorten tool results | keep the top lines, add "N more available" | cheap; may hide detail |
+
+**Keep big data outside.** Don't paste files, logs or documents. Give the agent tools to search or read parts (`read_file(path, lines)`, `search(query)`), and let it keep notes.
+
+🟡 **Notes files and to-do lists.** For long tasks the agent writes a plan and progress notes to a file or note store, updates them, and re-reads them after compaction or on resume. Notes survive when the context does not.
+
+🟡 **Memory stores (long-term).** Decide:
+
+| Question | Good practice |
+|---|---|
+| What to save? | stable, useful facts (preferences, corrections, goals), not every message; not secrets or sensitive data unless needed |
+| How? | short, self-contained statements ("prefers metric units") with a source and date |
+| When to retrieve? | at the start of a session, or by relevance to the current request |
+| When to forget? | expiry, user deletion, superseded facts, privacy rules |
+| User control | let the user see, edit and delete their memories; say what is remembered |
+| Isolation | memories are per user; never leak across users (topic 16) |
+
+🟡 **Context pollution.** Old tool outputs, contradicted facts, failed attempts and irrelevant retrievals mislead the model. Remove or summarise them, correct wrong notes, and avoid stuffing "just in case". More context is not better context.
+
+🟡 **Prompt caching.** Keep the stable part (system prompt, tool definitions, project rules) at the *start* and in a fixed order so repeated requests reuse it at a lower price. Appending new turns at the end preserves the cache; editing earlier text breaks it (topic 5). Compaction rewrites history and resets the cache once, so do it deliberately.
+
+---
+
+#### 3. Naive vs Better Design
+
+| Naive | Better |
+|---|---|
+| send the full history forever | trim, summarise, retrieve |
+| paste the whole file into the chat | tools to read parts |
+| remember everything the user says | save useful, stable facts only |
+| memory the user cannot see or delete | view, edit, delete, expiry |
+| one memory pool for all users | per-user isolation |
+| a summary that drops the goal | pin the goal and constraints |
+| rewrite old messages at will | append-only; compact at planned points |
+
+```kotlin
+// Naive: unbounded growth, then the request fails or gets expensive
+val history = mutableListOf<Msg>()
+fun ask(q: String): String { history += Msg("user", q); val a = llm(history); history += Msg("assistant", a); return a }
 ```
 
 ---
 
-#### 2. Short-Term vs Long-Term Memory — 🟢 Must Know
+#### 4. Code
 
-*Inside the window, or stored outside it.*
+A per-user memory store with expiry, pinning, deletion and de-duplication:
 
-| | Short-term memory | Long-term memory |
+```kotlin
+data class Memory(val id: Long, val userId: String, val text: String, val createdAt: Long, val pinned: Boolean = false)
+
+class MemoryStore(private val clock: () -> Long, private val ttlMs: Long = 90L * 24 * 3600 * 1000) {
+    private val items = mutableListOf<Memory>()
+    private var nextId = 1L
+
+    fun add(userId: String, text: String, pinned: Boolean = false): Memory {
+        items.firstOrNull { it.userId == userId && it.text.equals(text, ignoreCase = true) }?.let { return it }      // no duplicates
+        return Memory(nextId++, userId, text.trim(), clock(), pinned).also { items += it }
+    }
+    fun list(userId: String) = items.filter { it.userId == userId && (it.pinned || clock() - it.createdAt < ttlMs) }
+    fun delete(userId: String, id: Long) = items.removeAll { it.userId == userId && it.id == id }           // only your own
+    fun deleteAll(userId: String) = items.removeAll { it.userId == userId }
+}
+```
+
+Checks (clock in ms): adding `"prefers dark mode"` twice returns the same memory (one stored). After 91 days an unpinned memory no longer appears in `list`; a pinned one still does. `delete("bob", id)` of Ann's memory returns `false` (not removed); `deleteAll("ann")` leaves Bob's memories untouched.
+
+Pick relevant memories for the current request (word overlap; use embeddings in real systems, topic 6):
+
+```kotlin
+private val stop = setOf("the", "a", "an", "is", "are", "does", "do", "of", "to", "which", "what", "user")
+private fun words(s: String) = Regex("[a-z]+").findAll(s.lowercase()).map { it.value }.filter { it !in stop }.toSet()
+
+fun relevant(memories: List<Memory>, request: String, k: Int = 3): List<Memory> {
+    val q = words(request)
+    return memories.map { it to words(it.text).intersect(q).size }.filter { it.second > 0 }.sortedByDescending { it.second }.take(k).map { it.first }
+}
+```
+
+Checks: memories `prefers dark mode`, `lives in Berlin`, `allergic to peanuts` and the request `"Which mode should the app use?"` → only `prefers dark mode` is returned (shared word `mode`); an unrelated request returns `[]`.
+
+Put memories into the prompt as data, with a label:
+
+```kotlin
+fun memoryBlock(memories: List<Memory>) =
+    if (memories.isEmpty()) "" else "<user_memories>\n" + memories.joinToString("\n") { "- ${it.text}" } + "\n</user_memories>\n(These are notes about the user. Use them if relevant; do not mention them unless asked.)"
+```
+
+Keep the goal through compaction (pinned items + summary + recent turns):
+
+```kotlin
+fun compact(messages: List<Msg>, pinned: List<Msg>, keepLast: Int, summarize: (List<Msg>) -> String): List<Msg> {
+    val body = messages - pinned.toSet()
+    if (body.size <= keepLast) return pinned + body
+    val summary = Msg("system", "Summary so far: " + summarize(body.dropLast(keepLast)))
+    return pinned + summary + body.takeLast(keepLast)
+}
+```
+
+Checks: 20 messages of 400 tokens (8,000 tokens) with 1 pinned goal, `keepLast = 6` and a 150-token summary → about `400 + 150 + 6 × 400 = 2,950` tokens instead of 8,000 (roughly 63% smaller), and the goal is still the first message.
+
+A scratchpad file the agent keeps up to date:
+
+```text
+PLAN.md
+- Goal: migrate 40 notes screens to the new API
+- Done: list screen, detail screen
+- Next: editor screen (needs the new ViewModel)
+- Decisions: keep the old API behind a flag until step 5
+- Open questions: how to handle offline drafts?
+```
+
+After a compaction or a restart the harness re-reads `PLAN.md` first.
+
+---
+
+#### 5. Numbers & Limits
+
+| Item | Rule of thumb |
+|---|---|
+| Compaction trigger | around 70 to 85% of the window |
+| Verbatim recent turns | the last 5 to 10 |
+| Summary size | 100 to 500 tokens |
+| Memory item | one short sentence, tens of tokens |
+| Memories injected | the top 3 to 10 relevant ones, not all |
+| Expiry | 30 to 365 days by default; pinned items by choice |
+| Tool result size | a few thousand tokens at most |
+| Cache | stable prefix first; appending keeps it, editing early text breaks it |
+
+---
+
+#### 6. Common Mistakes & Edge Cases
+
+1. Sending the entire history until it fails.
+2. Compacting away the goal or constraints.
+3. Saving everything, including sensitive details.
+4. Memory the user cannot inspect or delete.
+5. Leaking memories across users or sessions.
+6. Injecting all memories, even irrelevant ones.
+7. Letting stale facts override new ones.
+8. Treating memory content as instructions (it can contain injected text).
+
+Edge cases: a user corrects a fact (replace the old memory); two memories conflict; a summary introduces an error that is then repeated; resuming a task a week later; legal deletion requests (delete memories, summaries and embeddings, and backups per policy); shared devices or shared accounts.
+
+---
+
+#### 7. Say This in the Interview
+
+1. "The context window is working memory. I keep the goal, plan, recent turns and the facts needed now, and move the rest outside."
+2. "For long conversations I trim and summarise older turns, but I pin the goal and constraints so compaction can't drop them."
+3. "Long-term memory is a per-user store of short facts with timestamps; I retrieve the relevant ones, and users can see, edit and delete them."
+4. "For long tasks the agent keeps a plan and notes file and re-reads it after compaction."
+5. "I keep a stable prefix for prompt caching and avoid rewriting old messages."
+
+---
+
+#### 8. Quick Check
+
+1. What is compaction?
+2. What should survive it?
+3. What makes a memory store privacy-friendly?
+4. Why is more context not always better?
+
+<details>
+<summary>Answers</summary>
+
+1. Replacing older turns with a short summary to free space.
+2. The goal, constraints, the plan, and recent turns.
+3. Saving only useful facts, per-user isolation, expiry, and user view/edit/delete.
+4. Irrelevant or stale text dilutes attention and raises cost and latency.
+
+</details>
+
+---
+
+#### 9. Practice
+
+**Interview questions**
+
+1. How does a chatbot remember a user's preferences across sessions?
+2. What do you do when the conversation gets too long?
+3. How does an agent work on a task longer than its context?
+4. What would you store in long-term memory, and what not?
+5. How do you let users control their memory?
+6. What is context pollution?
+
+**Hands-on**
+
+1. Build the memory store with expiry and deletion, and write the four checks as tests.
+2. Add compaction with a pinned goal to your agent and verify the goal survives.
+3. Add a `PLAN.md` the agent updates, and resume a task from it after restart.
+
+**Coding warm-ups (LeetCode)**
+
+| # | Question | Link to this topic |
 |---|---|---|
-| Where | In the context window | Outside: database, files, vector index |
-| Lasts | This conversation or run | Across sessions |
-| Example | The last 10 messages | "User prefers metric units", "Project uses Kotlin" |
-| Cost | Tokens on every call | Only when retrieved |
+| 146 | [LRU Cache](https://leetcode.com/problems/lru-cache/) (Medium) | evicting old context |
+| 460 | [LFU Cache](https://leetcode.com/problems/lfu-cache/) (Hard) | keeping the most-used memories |
+| 981 | [Time Based Key-Value Store](https://leetcode.com/problems/time-based-key-value-store/) (Medium) | facts valid at a point in time |
+| 380 | [Insert Delete GetRandom O(1)](https://leetcode.com/problems/insert-delete-getrandom-o1/) (Medium) | fast store with deletion |
 
-1. Without long-term memory, every new conversation starts fresh (topic `02`).
-2. Long-term memory works by **saving** facts, then **retrieving** the relevant ones into the context when needed (topic `06`).
-
----
-
-#### 3. Compaction — 🟢 Must Know
-
-*Summarize older turns to free space.*
-
-1. **Compaction** — replace old conversation and tool output with a short summary, then continue.
-2. When: when the context reaches a size threshold, or at natural breaks.
-3. Keep: the goal, decisions made, key facts, open tasks, and important file or record names.
-4. Drop: repeated results, long raw outputs, dead ends.
-5. Risk: a bad summary loses something important. Keep the summary structured, and keep the original in storage if it matters.
-
----
-
-#### 4. Keep Big Data Outside the Context — 🟢 Must Know
-
-*Give the agent a way to look things up, not the whole library.*
-
-1. Do not paste whole files, tables, or web pages into the context.
-2. Give **tools** that return small pieces: search, read a range, list titles.
-3. **Load on demand:** first list, then open only what matters.
-4. Store large results in a file or database, and put only a **reference and a short summary** in the context.
-
----
-
-#### 5. Notes Files and To-Do Lists — 🟡 Good to Know
-
-*Notes outside the window keep a long task on track.*
-
-1. For long tasks, let the agent write its own **notes**: a plan, a checklist, decisions so far.
-2. The notes live outside the window (a file or a state store). The agent rereads them when needed, or after compaction.
-3. A visible to-do list also helps the user follow progress and keeps the agent on track.
-
----
-
-#### 6. Memory Stores — 🟡 Good to Know
-
-*What to remember, and when to forget.*
-
-1. **What to save:** stable facts and preferences, decisions, corrections the user gave. Not every message.
-2. **How to find it:** by keyword, by embedding similarity, or by category (topic `06`).
-3. **Forgetting:** memories go stale. Add dates, allow updates, and delete old or wrong ones.
-4. **User control:** the user can **see, edit, and delete** what is remembered.
-5. **Privacy:** memory is personal data. Store it securely, per user, and never mix users (topic `16`).
-
----
-
-#### 7. Context Pollution — 🟡 Good to Know
-
-*Bad text in the context makes answers worse.*
-
-1. **Pollution** — old, wrong, or irrelevant text in the context that misleads the model.
-2. Examples: an early wrong guess kept in the history, a failed attempt, outdated tool results, a long unrelated discussion.
-3. Fixes: remove or correct bad content, restart with a clean summary, and use subagents for side tasks (topic `14`).
-
----
-
-#### 8. Prompt Caching for Stable Context — 🟡 Good to Know
-
-*Keep the start of the context stable so it can be cached.*
-
-1. The **stable start** of the context (system prompt, tool definitions, project rules) can be cached by the provider. It becomes cheaper and faster on each turn (topic `05`).
-2. Keep that part **unchanged and first**. Changing it breaks the cache.
-3. Put the changing content (new messages, new results) after it.
-
----
-
-#### 9. Common Interview Questions
-
-1. **What is the context window and why does it matter for agents?**
-   It is the model's working memory. Tool results fill it fast, and a full window raises cost and lowers quality.
-2. **Short-term vs long-term memory?**
-   Short-term is inside the context window. Long-term is stored outside and retrieved when needed.
-3. **How do you handle a long-running task?**
-   Compact old turns, keep big data outside the context, load on demand, and keep notes outside the window.
-4. **What is compaction and what can go wrong?**
-   Summarizing older context to free space. A poor summary can lose key facts, so keep the goal, decisions, and open tasks.
-5. **How would you add memory to a chat assistant?**
-   Save stable facts and preferences, retrieve the relevant ones per request, and let users view and delete them.
-6. **What is context pollution?**
-   Wrong or irrelevant text in the context that misleads the model. Clean it, or restart with a summary.
-7. **What are the privacy issues with memory?**
-   It is personal data. Keep it per user, secured, visible to the user, and deletable.
-
----
-
-#### 10. Common Mistakes
-
-1. Letting tool output pile up until the window is full.
-2. Pasting whole documents instead of retrieving pieces.
-3. Summaries that drop the goal or key decisions.
-4. Saving every message as "memory".
-5. Memory the user cannot see or delete.
-6. Mixing memory between users.
-
----
-
-#### 11. Related Topics
-
-1. `02` How LLMs Work (context window)
-2. `04` Prompting & Context Engineering
-3. `05` Calling an LLM API (history, caching)
-4. `06` Embeddings & Vector Search
-5. `11` Agent Harness
-6. `14` Multi-Agent Systems
-7. `16` Safety, Security & Privacy
-
----
-
-#### 12. Interview Must Remember
-
-1. **Context window = working memory.** It fills, and cost and quality suffer.
-2. **Short-term** in the window. **Long-term** stored outside and retrieved.
-3. **Compact** old turns. Keep goal, decisions, open tasks.
-4. **Load on demand.** Big data stays outside.
-5. **Memory = personal data:** per user, visible, deletable.
-6. **Keep the stable prefix first** for caching.
+**Remember:** context = working memory · move big data out, load on demand · compact but pin the goal · save short stable facts per user · user can view and delete · keep the prefix stable · more context is not better context.

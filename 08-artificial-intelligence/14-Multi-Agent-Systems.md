@@ -1,155 +1,247 @@
 # Multi-Agent Systems
 
-Roadmap topic 14 · Stage 3: Tools & Agents
+> One agent is usually enough. Split into several only when there is a clear reason: work that can run in parallel, context that would otherwise overflow, or roles that need different tools and permissions.
 
-**Marks:** 🟢 Must Know · 🟡 Good to Know · (New) a newer idea, still changing
+Roadmap topic 14 · Stage 3: Tools & Agents (New)
 
-**In simple words:** sometimes one agent hands parts of a job to other agents. A lead agent splits the work, helper agents do the parts and report back. It can keep the main context clean and speed up independent work, but it costs more and is harder to debug. Use it only when one agent is not enough.
+**Go deeper:** `10` Agents · `11` Agent Harness (subagents) · `12` Building an Agent · `13` Memory & Context · `15` Evaluation · `17` Cost, Latency & Reliability · `05-system-design/21-Queues-Events-and-Background-Jobs`.
 
----
-
-#### 1. One Agent Is Usually Enough — 🟢 Must Know (New)
-
-*Add agents only for a clear reason.*
-
-1. A single agent with good tools and prompts solves most problems.
-2. Multi-agent systems add cost (more model calls and tokens), complexity, and more ways to fail.
-3. Consider splitting only when:
-   - the context gets too big for one agent,
-   - there are **independent** subtasks that can run in parallel,
-   - different parts need **different tools, rules, or permissions**.
-
-**Mobile view:** like splitting one huge screen into several components or modules. Do it when the size or the responsibilities demand it, not by default.
+**Marks:** 🟢 must know · 🟡 good to know · (New) still changing
 
 ---
 
-#### 2. Orchestrator–Worker — 🟢 Must Know (New)
+#### 1. What Is It?
 
-*A lead agent plans and delegates. Workers do the parts.*
+*A lead agent (or code) that delegates parts of a job to other agents.*
 
-```text
-User goal → Orchestrator (lead agent)
-                ├─→ Worker A: research topic 1 ─┐
-                ├─→ Worker B: research topic 2 ─┼→ short results
-                └─→ Worker C: check sources   ─┘
-            Orchestrator combines results → final answer
+| 🟢 Must know | 🟡 Good to know |
+|---|---|
+| one agent is usually enough; split only for a clear reason | parallel agents for independent tasks (more tokens) |
+| orchestrator–worker pattern | handoffs and routers |
+| a subagent has its own context and returns a short result | shared state; conflicts |
+| | when a worker fails: retry, skip, report |
+| | agent-to-agent protocols (A2A) |
+
+1. **Orchestrator:** plans, splits the task, assigns subtasks, combines results.
+2. **Worker / subagent:** does one subtask in its own fresh context and returns a short result.
+3. **Handoff:** one agent passes the conversation to a specialist.
+4. **Router:** picks which agent handles a request.
+
+**Signals in an interview:** "would you use multiple agents?", "how do agents share information?", "what if one fails?", "how does cost change?".
+
+---
+
+#### 2. How It Works
+
+**Orchestrator–worker.**
+
+```mermaid
+flowchart TD
+    U["Task"] --> O["Orchestrator<br/>plan + split"]
+    O --> W1["Worker 1<br/>own context + tools"]
+    O --> W2["Worker 2<br/>own context + tools"]
+    O --> W3["Worker 3<br/>own context + tools"]
+    W1 -->|"short result"| S["Orchestrator: combine"]
+    W2 -->|"short result"| S
+    W3 -->|"short result"| S
+    S --> A["Answer"]
 ```
 
-1. The **orchestrator** breaks the goal into subtasks, assigns them, and merges the results.
-2. **Workers (subagents)** focus on one subtask with their own instructions and tools.
-3. This is the same pattern as in topic `10`, with each worker being an agent instead of a single LLM call.
+**Why split.**
+
+| Reason | Example |
+|---|---|
+| Parallel speed | research five sources at once |
+| Context isolation | a worker reads 50 files and returns a 10-line finding; the main context stays clean |
+| Different tools or permissions | a read-only researcher and a separate writer with approval |
+| Specialisation | different prompts/models for different roles (router, coder, reviewer) |
+
+**Why not.** More agents mean more tokens (often 2 to 15× a single agent), more latency in coordination, more failure modes, harder debugging and testing, and cascading errors. A single agent with good tools and context management beats a badly designed team.
+
+**Subagents keep the main context clean.** The worker receives a **specific, self-contained task** (it cannot see the parent's history), does the heavy reading, and returns a **short structured result**. The orchestrator never sees the raw material.
+
+🟡 **Parallel agents.** Independent subtasks run concurrently. Limit the number (cost, rate limits), give each a budget and timeout, and combine results deterministically.
+
+🟡 **Handoffs and routers.** A router (a small model or rules) classifies the request and sends it to a specialist (billing, technical, sales). A handoff passes the conversation state to another agent. Keep the number of specialists small and the boundaries clear.
+
+🟡 **Shared state and coordination.** Agents that change the same thing (a file, a record) conflict. Options: give each worker its own area; have only the orchestrator write; use versions/locks (compare-and-set); or merge results in code. Prefer sharing *files and structured results*, not free-form chat between agents.
+
+🟡 **When a worker fails.** Decide per task: retry with a limit, skip and note the gap, use a fallback worker, or fail the whole job. The final answer should state what is missing.
+
+🟡 **A2A.** A protocol for agents (possibly from different vendors) to discover and talk to each other. Name only. Inside one system, plain function calls or a queue are simpler.
 
 ---
 
-#### 3. Subagents Keep the Main Context Clean — 🟢 Must Know (New)
+#### 3. Naive vs Better Design
 
-*A subagent works in its own window and returns a short result.*
+| Naive | Better |
+|---|---|
+| five agents chatting with each other | one agent with tools, or an orchestrator with workers |
+| workers share the full parent history | workers get a focused task and return a short result |
+| unlimited workers | a cap, budgets and timeouts |
+| a failed worker ignored silently | explicit failure handling and a note in the answer |
+| two agents editing the same file | one writer, or versioned writes |
+| free-form text handed between agents | structured results |
+| no cost comparison | measure tokens and success against a single agent |
 
-1. A **subagent** has its **own context**. It can read many files or pages without filling the main agent's window.
-2. It returns only a **short summary or answer** to the lead agent.
-3. This is the biggest practical benefit: side work does not pollute the main context (topic `13`).
-4. Give the subagent a **clear task, the needed context, and the expected output format**. It does not see the main conversation unless you pass it.
-
----
-
-#### 4. Parallel Agents — 🟡 Good to Know
-
-*Independent work can run at the same time, for more cost.*
-
-1. Independent subtasks can run **at the same time**, reducing total time.
-2. Cost is higher: each agent uses its own tokens.
-3. Do not parallelize steps that depend on each other.
-4. Limit concurrency so you do not hit rate limits (topic `17`).
+```kotlin
+// Naive: every worker gets the entire conversation and unbounded time
+workers.map { async { it.run(entireHistory) } }.awaitAll()
+```
 
 ---
 
-#### 5. Handoffs and Routers — 🟡 Good to Know
+#### 4. Code
 
-*Send each request to the right specialist agent.*
+An orchestrator with capped parallel workers, timeouts, truncated results and failure handling:
 
-1. **Router** — classifies a request and sends it to the right specialised agent (billing, tech support).
-2. **Handoff** — one agent passes the conversation to another, with the needed context and history.
-3. Specialised agents can have their **own tools and permissions**, so each one has less access (least privilege, topic `16`).
+```kotlin
+data class WorkerOutcome(val task: String, val result: String?, val error: String?)
 
----
+suspend fun orchestrate(
+    task: String,
+    planner: suspend (String) -> List<String>,                    // splits the task
+    worker: suspend (String) -> String,                           // runs ONE subtask in its own context
+    synthesize: suspend (String, List<String>) -> String,
+    maxWorkers: Int = 4, timeoutMs: Long = 30_000, maxResultChars: Int = 500
+): String {
+    val subtasks = planner(task).take(maxWorkers)                  // cap the fan-out
+    val outcomes = coroutineScope {
+        subtasks.map { t ->
+            async {
+                try { WorkerOutcome(t, withTimeout(timeoutMs) { worker(t) }.take(maxResultChars), null) }
+                catch (e: TimeoutCancellationException) { WorkerOutcome(t, null, "timed out") }
+                catch (e: CancellationException) { throw e }
+                catch (e: Exception) { WorkerOutcome(t, null, e.message ?: "failed") }
+            }
+        }.awaitAll()
+    }
+    val notes = outcomes.map { if (it.result != null) "${it.task}: ${it.result}" else "${it.task}: (failed: ${it.error})" }
+    return synthesize(task, notes)
+}
+```
 
-#### 6. Shared State and Coordination — 🟡 Good to Know
+Checks (fakes): a planner returning 6 subtasks → only `4` workers run. One worker throwing `IOException("boom")` → the synthesis input contains `"<task>: (failed: boom)"` and the other three results; the job still completes. A worker returning 2,000 characters → only `500` reach the synthesiser. A worker that delays past `timeoutMs` → `(failed: timed out)`.
 
-*How agents share results without stepping on each other.*
+Cost of splitting (tokens): a single agent doing everything in one context uses `30,000` tokens. An orchestrator (`10,000`) plus three workers (`20,000` each) uses `70,000` tokens: about `2.3×`. The split pays off only if it is faster, more accurate, or the single context would overflow, so measure it.
 
-1. Agents need to share results: a shared file, a database, or messages via the orchestrator.
-2. **Conflicts** — two agents editing the same file or record. Assign clear ownership, or run them one after another.
-3. Keep the shared state simple and visible, so you can debug it.
+Shared state with compare-and-set (two agents cannot overwrite each other silently):
 
----
+```kotlin
+class VersionedDoc(text: String) {
+    var text = text; private set
+    var version = 0; private set
+    @Synchronized fun update(expectedVersion: Int, newText: String): Boolean {
+        if (expectedVersion != version) return false              // someone else changed it: re-read and merge
+        text = newText; version++; return true
+    }
+}
+```
 
-#### 7. Failure Handling — 🟡 Good to Know
+Checks: two agents both read version `0`. Agent A `update(0, "A")` → `true`, version `1`. Agent B `update(0, "B")` → `false`: B must re-read, merge, and retry with version `1`.
 
-*More agents means more ways to fail. Plan for it.*
+A router with a safe default:
 
-1. One worker can fail, time out, or return junk.
-2. The orchestrator decides: **retry**, **skip and note it**, or **report** the gap to the user.
-3. Apply limits at every level: steps, time, and cost per agent and for the whole run.
-4. Errors multiply: more agents, more chances that something goes wrong.
+```kotlin
+suspend fun routeToAgent(classify: suspend (String) -> String, agents: Map<String, suspend (String) -> String>, request: String): String {
+    val label = classify(request).trim().lowercase()
+    return (agents[label] ?: agents.getValue("general"))(request)
+}
+```
 
----
+Checks: label `"billing"` → billing agent; label `"weather"` (not a known agent) → the `general` agent.
 
-#### 8. Agent-to-Agent Protocols — 🟡 Good to Know
+Structured handoff between agents (rather than free text):
 
-*Not the same as MCP. Name only.*
-
-1. **A2A** is a protocol for agents to talk to other agents, possibly built by different teams or vendors.
-2. Different from MCP, which connects an agent to tools and data (topic `09`).
-3. Name only for interviews.
-
----
-
-#### 9. Common Interview Questions
-
-1. **When would you use multiple agents?**
-   When the context is too large for one agent, subtasks are independent and parallel, or parts need different tools and permissions.
-2. **What is the orchestrator–worker pattern?**
-   A lead agent splits the task, delegates to worker agents, and combines their results.
-3. **What is the benefit of subagents?**
-   Each has its own context window, so side work does not fill the main agent's context, and it returns a short result.
-4. **What are the downsides?**
-   More tokens and cost, more complexity, harder debugging, and more failure points.
-5. **How do you handle a worker failing?**
-   Retry, skip with a note, or report it, with limits at every level.
-6. **How do agents share information?**
-   Through the orchestrator's messages or shared storage, with clear ownership to avoid conflicts.
-7. **How is multi-agent different from a workflow?**
-   In a workflow, code fixes the steps. In multi-agent systems, agents decide their own steps, and the lead agent decides how to split work.
-
----
-
-#### 10. Common Mistakes
-
-1. Using many agents for a task one agent handles well.
-2. Giving subagents no context or no output format.
-3. Parallelizing dependent steps.
-4. No limits per agent or for the whole run.
-5. Two agents changing the same thing.
-6. Not tracing each agent, so failures are invisible (topic `18`).
+```kotlin
+@Serializable data class Finding(val question: String, val answer: String, val sources: List<String>, val confidence: String)
+```
 
 ---
 
-#### 11. Related Topics
+#### 5. Numbers & Limits
 
-1. `09` MCP & Integrations (A2A)
-2. `10` Agents
-3. `11` Agent Harness
-4. `13` Memory & Context Management
-5. `17` Cost, Latency & Reliability
-6. `18` Observability & LLMOps
+| Item | Rule of thumb |
+|---|---|
+| Token cost | multi-agent runs often use 2 to 15× the tokens of one agent |
+| Workers | 2 to 5 in parallel; cap and budget each |
+| Worker result | 100 to 500 tokens; structured |
+| Worker timeout | per subtask; the orchestrator keeps a global timeout |
+| Coordination overhead | every handoff adds a model call and latency |
+| Reliability | more agents, more steps, more compounding errors; test end to end |
+| Rate limits | parallel workers can hit provider limits; queue and back off |
+| When it helps | independent, read-heavy, parallel tasks (research, search across many files) |
 
 ---
 
-#### 12. Interview Must Remember
+#### 6. Common Mistakes & Edge Cases
 
-1. **One agent first.** Split only for a clear reason.
-2. **Orchestrator–worker:** lead splits, workers do, lead combines.
-3. **Subagents = own context, short result back.**
-4. **Parallel** only for independent work.
-5. **Costs and failures multiply.** Limit and trace every agent.
-6. **A2A** = agent to agent. **MCP** = tools and data.
+1. Using multiple agents for a simple task.
+2. Letting agents talk freely with no structure.
+3. Workers sharing the parent's whole history.
+4. No cap on workers, tokens or time.
+5. Ignoring failed workers and returning a confident answer.
+6. Several writers on the same resource.
+7. Splitting tightly dependent steps (they can't run in parallel).
+8. No evaluation comparing against a single agent.
+
+Edge cases: two workers return contradictory findings (the orchestrator must flag or verify); a worker needs information from another (dependency, serialise); the plan has too many subtasks; one worker succeeds partially; the orchestrator's summary hides a worker's caveat; provider rate limits throttling parallel runs.
+
+---
+
+#### 7. Say This in the Interview
+
+1. "I'd start with one agent. I split only when subtasks are independent and can run in parallel, when a worker's reading would flood the main context, or when different roles need different permissions."
+2. "A subagent gets a focused task in a fresh context and returns a short structured result, so the lead's context stays small."
+3. "I cap workers and give each a budget and timeout; failures are explicit: retry, skip, or report the gap."
+4. "Shared state is the risky part: I give each worker its own area, let one agent write, or use versioned writes."
+5. "Multi-agent runs cost several times more tokens, so I measure success and cost against a single agent."
+
+---
+
+#### 8. Quick Check
+
+1. Name two good reasons to use subagents.
+2. Why does a subagent return a short result?
+3. What if a worker fails?
+4. How do you avoid two agents overwriting each other?
+
+<details>
+<summary>Answers</summary>
+
+1. Parallel independent work, and keeping heavy reading out of the main context (also different permissions or roles).
+2. So the orchestrator's context stays small and focused.
+3. Retry with a limit, skip and note the gap, use a fallback, or fail the job; state what is missing.
+4. Separate areas, a single writer, or versioned compare-and-set writes.
+
+</details>
+
+---
+
+#### 9. Practice
+
+**Interview questions**
+
+1. When would you use multiple agents instead of one?
+2. Describe the orchestrator–worker pattern.
+3. How do subagents keep the context clean?
+4. How do you handle a failing worker?
+5. How do you prevent conflicts over shared state?
+6. What does multi-agent cost compared with one agent?
+
+**Hands-on**
+
+1. Build the orchestrator with fakes and test the four checks.
+2. Compare a single agent and an orchestrator on 10 research questions: success, tokens, time.
+3. Add a compare-and-set document and simulate two concurrent writers.
+
+**Coding warm-ups (LeetCode)**
+
+| # | Question | Link to this topic |
+|---|---|---|
+| 1242 | [Web Crawler Multithreaded](https://leetcode.com/problems/web-crawler-multithreaded/) (Medium, premium) | parallel workers over a frontier |
+| 1117 | [Building H2O](https://leetcode.com/problems/building-h2o/) (Medium) | coordinating workers |
+| 56 | [Merge Intervals](https://leetcode.com/problems/merge-intervals/) (Medium) | merging overlapping results |
+| 23 | [Merge k Sorted Lists](https://leetcode.com/problems/merge-k-sorted-lists/) (Hard) | combining many workers' output |
+
+**Remember:** one agent first · split for parallelism, context isolation or permissions · focused task in, short structured result out · cap, budget, time out · handle failures explicitly · protect shared state · measure against a single agent.
