@@ -14,7 +14,45 @@
 
 Structured notes for Software Engineering interview preparation, built for a mobile engineer growing toward senior and architect roles. Written in simple English for a beginner, aimed at FAANG-style interviews, with Kotlin for the code.
 
-Licensed under the [MIT License](LICENSE).
+[![Validate notes](https://github.com/ysyogendra22/engineering-playbook/actions/workflows/validate.yml/badge.svg)](https://github.com/ysyogendra22/engineering-playbook/actions/workflows/validate.yml) · [MIT License](LICENSE) · [Changelog](CHANGELOG.md) · [Mock Interview Bank](Mock-Interview-Bank.md)
+
+## Start Here
+
+A 12-week plan, about 8 to 10 hours a week. Change the pace to fit your date: the order matters more than the speed.
+
+| Week | Read | Practise |
+|---|---|---|
+| 1 | `01-data-structure` (Array, Linked List, Stack, Queue, HashMap) · `02-algorithm` 1–2 · `03-leetcode-patterns` 1–3 | 5 Easy problems, talking out loud |
+| 2 | `01-data-structure` (Tree, Heap, Trie, Graph) · `03` 4–7 (two pointers, sliding window, fast and slow, prefix sum) | 2 problems per pattern |
+| 3 | `03` 8–13 (binary search, intervals, monotonic stack, top K, BFS, DFS) · `02-algorithm` 3 | Mock: coding set A or B |
+| 4 | `03` 14–19 (backtracking, graphs, topological sort, union find, DP, greedy) · `02-algorithm` 4–5 | Mock: coding set G or H |
+| 5 | `04-backend-engineering` 1–7 | Build the first half of the Notes API |
+| 6 | `04` 8–12 · `10-database` 1–6 (modeling, SQL, indexes, query plans) | Mock: SQL set A |
+| 7 | `10-database` 8–11, 14–16 (transactions, concurrency, replication, sharding, CAP) | Reproduce a double booking and fix it · Mock: backend and database session |
+| 8 | `05-system-design` 13–19, 21 (estimation, scaling, caching, storage, databases, queues) | Mock: system design prompt 1 or 3 |
+| 9 | `05` 22–25, 30–32 · `09-architecture` 1–5, 10, 12 | Mock: system design prompt 7 + an architecture case |
+| 10 | `06-mobile-engineering` 1–6, 8, 9, 11, 13, 18, 21 | Mock: mobile deep dive |
+| 11 | `08-artificial-intelligence` 1, 2, 4, 5, 7, 8, 10, 11, 12, 15, 16, 17, 19, 20 | Mock: AI session |
+| 12 | `07-behavioral-leadership` 1–5, 7–10, 12, 16, 18 · all `99` cheat sheets | Two full mock days (coding + design + behavioral) |
+
+Every folder's `00-Content.md` has the full topic list. Use the [Mock Interview Bank](Mock-Interview-Bank.md) for the practice sessions.
+
+## Short on Time
+
+About two weeks: the 🟢 topics only, then the cheat sheet of each folder. These lists are copied from each folder's `00-Content.md`.
+
+| Order | Folder | Read topics | Then |
+|---|---|---|---|
+| 1 | `03-leetcode-patterns` | 1, 2, 3, 4, 5, 7, 8, 11, 12, 13, 14, 15, 18, 21 | cheat sheet (99) |
+| 2 | `04-backend-engineering` | 1, 2, 3, 4, 5, 8, 10, 11 | cheat sheet (99) |
+| 3 | `10-database` | 1, 2, 3, 5, 6, 8, 9, 11, 14, 15, 21, 22 | cheat sheet (99) |
+| 4 | `05-system-design` | 13, 14, 15, 16, 17, 18, 19, 21, 22, 23, 24, 25, 30, 31, 32 | cheat sheet (99) |
+| 5 | `06-mobile-engineering` | 1, 2, 3, 4, 5, 6, 8, 9, 11, 13, 18, 21 | cheat sheet (99) |
+| 6 | `08-artificial-intelligence` | 1, 2, 4, 5, 7, 8, 10, 11, 12, 15, 16, 17, 19, 20, 21 | cheat sheet (99) |
+| 7 | `09-architecture` | 1, 2, 3, 4, 5, 8, 10, 12, 14, 16, 19, 21 | cheat sheet (99) |
+| 8 | `07-behavioral-leadership` | 1, 2, 3, 4, 5, 7, 8, 9, 10, 12, 16, 18 | cheat sheet (99) |
+
+For `02-algorithm`, read topics 1–5 and 7 (the 🟢 items) before folder 03.
 
 ## Contents
 
@@ -48,7 +86,11 @@ engineering-playbook/
 ├── 09-architecture/            00-Content, notes 1–22, 99 cheat sheet, poster
 ├── 10-database/                00-Content, notes 1–23, 99 cheat sheet, poster
 ├── assets/                     logo files + social-preview.png (repo card image)
+├── scripts/                    validate_notes.py (the consistency check CI runs)
+├── .github/workflows/          validate.yml
 │
+├── Mock-Interview-Bank.md      timed practice prompts for every folder
+├── CHANGELOG.md
 ├── LICENSE
 ├── .gitignore
 └── README.md
@@ -123,6 +165,8 @@ A plain number, such as `7`, means a topic in the same folder. For example, `SD 
 8. Quick check, with answers
 9. Practice: related LeetCode problems, exercises, or design tasks
 
+**Consistency check:** `python3 scripts/validate_notes.py` verifies code fences, the nine sections, LeetCode link format and relative links. A GitHub Action runs it on every push.
+
 **How facts were checked:** code and SQL examples were run where possible (SQL on SQLite, numbers in Python). Anything not run, such as Redis, PostgreSQL-only syntax, cloud details, or Android and Room snippets, is marked "not run" or "check current". Premium LeetCode problems are marked "(premium)".
 
 
@@ -156,8 +200,9 @@ The posters are drawn from HTML with headless Chrome, so the text stays exact. T
 4. **AI:** `08`, after `04` and the core of `05` (caching, queues, retries, streaming).
 5. **Architecture:** `09`, once you have some backend and system design behind you.
 6. **Behavioral:** `07`. Start collecting stories early, and practise out loud as interviews get close.
-7. **Short on time:** every `00-Content.md` has a "Short on time" list. Do those, then the `99` cheat sheet.
-8. **The night before an interview:** read the `99` cheat sheet or look at the poster for that area, then your own stories.
+7. **Short on time:** use the "Short on Time" table above, or the list in each `00-Content.md`.
+8. **Practice:** do a timed session from the [Mock Interview Bank](Mock-Interview-Bank.md) at the end of each week.
+9. **The night before an interview:** read the `99` cheat sheet or look at the poster for that area, then your own stories.
 
 
 ## Focus
