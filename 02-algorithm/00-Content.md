@@ -1,5 +1,7 @@
 # Algorithms: Learning & Interview Roadmap
 
+![One-page cheat sheet poster](algorithm_cheatsheet.png)
+
 How each algorithm works and why its complexity is what it is — recognising and applying it in an interview is `03-leetcode-patterns`. Named data structures (trees, heaps, tries, graphs) live in `01-data-structure`.
 
 - **Numbering:** own, 1–11. Every topic has a folder with per-algorithm notes in one layout (what it is, how it works with a diagram, brute force vs optimized, Kotlin code with checked outputs, complexity, mistakes, what to say, quick check, Easy → Medium LeetCode links) and a revision page, `99-... Cheat Sheet`.

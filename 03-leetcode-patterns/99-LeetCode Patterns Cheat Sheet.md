@@ -2,6 +2,8 @@
 
 > One-page revision for the night before an interview. Full explanations are in notes 01–22.
 
+![One-page cheat sheet poster](leetcode_patterns_cheatsheet.png)
+
 #### 1. Key Takeaways
 
 1. **Pattern first, code second.** Read the signals, name the pattern, then apply the template.

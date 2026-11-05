@@ -2,6 +2,8 @@
 
 > One-page revision for the night before an interview. The full explanations are in notes 1–22.
 
+![One-page cheat sheet poster](architecture_cheatsheet.png)
+
 ---
 
 #### 1. Key Takeaways

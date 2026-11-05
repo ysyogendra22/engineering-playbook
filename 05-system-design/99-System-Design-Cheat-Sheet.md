@@ -2,6 +2,8 @@
 
 > One-page revision for the night before an interview. The full explanations are in notes 13–33.
 
+![One-page cheat sheet poster](system_design_cheatsheet.png)
+
 ---
 
 #### 1. Key Takeaways

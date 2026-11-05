@@ -2,6 +2,8 @@
 
 > One-page revision for the night before an interview. The full explanations are in notes 1–23.
 
+![One-page cheat sheet poster](database_cheatsheet.png)
+
 ---
 
 #### 1. Key Takeaways
