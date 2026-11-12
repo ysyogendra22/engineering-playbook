@@ -12,6 +12,7 @@ All notable changes to this repository. Dates are `YYYY-MM-DD`.
 
 ### Changed
 - `09-architecture`: the roadmap (`00-Content.md`), cheat sheet and poster now include topics 23–25; notes 04 and 06 link to the new code-level notes.
+- `09-architecture/24-SOLID-in-Code`: expanded from 5 to 15 worked examples (signup, notifiers, payments, bird, stronger precondition, Worker/Robot, listeners, ViewModel, `Clock`, and a step-by-step checkout refactor), plus a smell → principle table, sealed vs interface guidance, a "which principle?" exercise, and 2 more diagrams. Java versions of the new examples were run on JDK 21.
 
 ### Fixed
 - `02-algorithm` poster: the power-of-two check was written C-style (`x & (x-1) == 0`, which has a precedence bug and is not Kotlin). It is now `(x and (x - 1)) == 0`.
