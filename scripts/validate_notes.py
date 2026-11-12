@@ -3,7 +3,7 @@
 
 Checks (exit code 1 if any fail):
   * every Markdown file has balanced code fences and <details> tags
-  * topic notes in folders 03-10 have sections "#### 1." to "#### 9." in order
+  * topic notes in folders 03-11 have sections "#### 1." to "#### 9." in order
   * LeetCode links look like https://leetcode.com/problems/<slug>/
   * relative links and images in README / 00-Content / 99 cheat sheets point to files that exist
 """
@@ -13,7 +13,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 NINE_SECTION_FOLDERS = ["03-leetcode-patterns", "04-backend-engineering", "05-system-design",
                         "06-mobile-engineering", "07-behavioral-leadership", "08-artificial-intelligence",
-                        "09-architecture", "10-database"]
+                        "09-architecture", "10-database", "11-oop-and-java-basics"]
 LC_LINK = re.compile(r"\]\((https://leetcode[^)]*)\)")
 LC_OK = re.compile(r"https://leetcode\.com/problems/[a-z0-9\-]+/")
 REL_LINK = re.compile(r"(?<!\!)\[[^\]]*\]\(([^)#\s][^)]*)\)|!\[[^\]]*\]\(([^)\s]+)\)|(?:src|srcset)=\"([^\"]+)\"")

@@ -181,7 +181,7 @@ Notes: `07-behavioral-leadership`. Use **STAR + Lesson**, about 2 minutes each, 
 
 ## 9. OOP and Class Design (45 minutes)
 
-Notes: `09-architecture` topics 23, 24 and 25. Spend 10 minutes on three theory questions, then 35 minutes on one design.
+Notes: `11-oop-and-java-basics` (all topics), then `09-architecture` topics 24 and 25 (topic 23 is the short version of folder 11). Spend 10 minutes on three theory questions, then 35 minutes on one design.
 
 **Theory: pick three**
 

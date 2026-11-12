@@ -4,6 +4,8 @@
 
 Roadmap topic 23 · Stage 8: Code-Level Foundations (read first if OOP is new)
 
+**Full per-topic version:** `11-oop-and-java-basics` has one note for each idea below (13 notes, a cheat sheet and a poster), with more examples and LeetCode problems.
+
 **Go deeper:** `4` Design Principles · `24` SOLID in Code · `25` Design Patterns in Code · `06-mobile-engineering/02-Kotlin-Essentials` · `03-leetcode-patterns/03-Kotlin for Coding Interviews`.
 
 **Marks:** 🟢 must know · 🟡 good to know

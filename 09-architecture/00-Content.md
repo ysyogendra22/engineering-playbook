@@ -2,7 +2,7 @@
 
 What to do on any project, which decisions matter most, and which terms to know first.
 
-- **Numbering:** own, 1–25, plus 99 (cheat sheet). Topics 23–25 are the code-level foundations (OOP, SOLID in code, design patterns): read them first if OOP is new.
+- **Numbering:** own, 1–25, plus 99 (cheat sheet). Topics 23–25 are the code-level foundations (OOP, SOLID in code, design patterns): read them first if OOP is new. Topic 23 also has a longer, one-note-per-topic version in `11-oop-and-java-basics`.
 - **Every note has the same layout:** what it is and how to spot it in an interview, how it works (with a diagram), naive vs better design, templates and examples (ADRs, diagrams, Kotlin and config) with checked outputs, numbers and rules of thumb, common mistakes and edge cases, what to say in the interview, a quick check, and practice (interview questions and exercises). Notes 23–25 use Java and Kotlin, with LeetCode design problems (Easy → Medium) at the end.
 - **References:** `7` = this folder · `BE 3`/`SD 21`/`AI 7` = topic N in that roadmap · mobile detail in `06-mobile-engineering`, interview stories in `07-behavioral-leadership`
 - **Start with:** `23`–`25` if OOP and design patterns are new · `BE 1–4` (backend basics), `SD 13–15`, `SD 26` (scale, caching, service boundaries)

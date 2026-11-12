@@ -26,7 +26,7 @@ A 12-week plan, about 8 to 10 hours a week. Change the pace to fit your date: th
 | 2 | `01-data-structure` (Tree, Heap, Trie, Graph) · `03` 4–7 (two pointers, sliding window, fast and slow, prefix sum) | 2 problems per pattern |
 | 3 | `03` 8–13 (binary search, intervals, monotonic stack, top K, BFS, DFS) · `02-algorithm` 3 | Mock: coding set A or B |
 | 4 | `03` 14–19 (backtracking, graphs, topological sort, union find, DP, greedy) · `02-algorithm` 4–5 | Mock: coding set G or H |
-| 5 | `04-backend-engineering` 1–7 · `09-architecture` 23–25 (OOP, SOLID, design patterns) | Build the first half of the Notes API · write the pattern examples yourself |
+| 5 | `04-backend-engineering` 1–7 · `11-oop-and-java-basics` 1–11 · `09-architecture` 24–25 (SOLID, design patterns) | Build the first half of the Notes API · write the pattern examples yourself |
 | 6 | `04` 8–12 · `10-database` 1–6 (modeling, SQL, indexes, query plans) | Mock: SQL set A |
 | 7 | `10-database` 8–11, 14–16 (transactions, concurrency, replication, sharding, CAP) | Reproduce a double booking and fix it · Mock: backend and database session |
 | 8 | `05-system-design` 13–19, 21 (estimation, scaling, caching, storage, databases, queues) | Mock: system design prompt 1 or 3 |
@@ -49,8 +49,9 @@ About two weeks: the 🟢 topics only, then the cheat sheet of each folder. Thes
 | 4 | `05-system-design` | 13, 14, 15, 16, 17, 18, 19, 21, 22, 23, 24, 25, 30, 31, 32 | cheat sheet (99) |
 | 5 | `06-mobile-engineering` | 1, 2, 3, 4, 5, 6, 8, 9, 11, 13, 18, 21 | cheat sheet (99) |
 | 6 | `08-artificial-intelligence` | 1, 2, 4, 5, 7, 8, 10, 11, 12, 15, 16, 17, 19, 20, 21 | cheat sheet (99) |
-| 7 | `09-architecture` | 23, 24, 25 (if OOP is new) · 1, 2, 3, 4, 5, 8, 10, 12, 14, 16, 19, 21 | cheat sheet (99) |
-| 8 | `07-behavioral-leadership` | 1, 2, 3, 4, 5, 7, 8, 9, 10, 12, 16, 18 | cheat sheet (99) |
+| 7 | `11-oop-and-java-basics` | 3, 4, 5, 6, 7, 8, 9, 11 | cheat sheet (99) |
+| 8 | `09-architecture` | 23, 24, 25 (if OOP is new) · 1, 2, 3, 4, 5, 8, 10, 12, 14, 16, 19, 21 | cheat sheet (99) |
+| 9 | `07-behavioral-leadership` | 1, 2, 3, 4, 5, 7, 8, 9, 10, 12, 16, 18 | cheat sheet (99) |
 
 For `02-algorithm`, read topics 1–5 and 7 (the 🟢 items) before folder 03.
 
@@ -68,6 +69,7 @@ For `02-algorithm`, read topics 1–5 and 7 (the 🟢 items) before folder 03.
 | 08 | `08-artificial-intelligence` | LLMs, RAG, tools, agents, harnesses, evals, safety, AI on mobile (22 topics) | [00-Content](08-artificial-intelligence/00-Content.md) | [AI](08-artificial-intelligence/ai_cheatsheet.png) |
 | 09 | `09-architecture` | The architect's role, quality attributes, trade-offs, styles, DDD, governance, mobile and AI architecture, plus OOP, SOLID and design patterns in code (25 topics) | [00-Content](09-architecture/00-Content.md) | [Architecture](09-architecture/architecture_cheatsheet.png) |
 | 10 | `10-database` | Data modeling, SQL, indexes, internals, transactions, NoSQL, scaling, backups, security, mobile databases (23 topics) | [00-Content](10-database/00-Content.md) | [Database](10-database/database_cheatsheet.png) |
+| 11 | `11-oop-and-java-basics` | Classes, encapsulation, inheritance, interfaces, composition, `equals`/`hashCode`, `==`, pass-by-value, immutability, exceptions, generics, Java vs Kotlin (13 topics) | [00-Content](11-oop-and-java-basics/00-Content.md) | [OOP & Java](11-oop-and-java-basics/oop_cheatsheet.png) |
 
 
 ## Repository Structure
@@ -85,8 +87,9 @@ engineering-playbook/
 ├── 08-artificial-intelligence/ 00-Content, notes 1–22, 99 cheat sheet, poster
 ├── 09-architecture/            00-Content, notes 1–25, 99 cheat sheet, poster
 ├── 10-database/                00-Content, notes 1–23, 99 cheat sheet, poster
+├── 11-oop-and-java-basics/     00-Content, notes 1–13, 99 cheat sheet, poster
 ├── assets/                     logo files + social-preview.png (repo card image)
-├── scripts/                    validate_notes.py (CI check) and posters/ (poster generators)
+├── scripts/                    validate_notes.py (CI check), posters/ (poster generators) and logo/ (logo generator)
 ├── .github/workflows/          validate.yml
 │
 ├── Mock-Interview-Bank.md      timed practice prompts for every folder
@@ -96,7 +99,7 @@ engineering-playbook/
 └── README.md
 ```
 
-Each of folders 03 to 10 has:
+Each of folders 03 to 11 has:
 
 - `00-Content.md`: the index with marks, a "short on time" list, a study path, and a glossary of terms to learn first.
 - numbered topic notes, all in the same layout (see below).
@@ -119,6 +122,7 @@ Each of folders 03 to 10 has:
 | `08-artificial-intelligence` | Done | 22 written | Done | Yes |
 | `09-architecture` | Done | 25 written | Done | Yes |
 | `10-database` | Done | 23 written | Done | Yes |
+| `11-oop-and-java-basics` | Done | 13 written | Done | Yes |
 
 
 ## How the Roadmaps Work
@@ -134,7 +138,7 @@ Each of folders 03 to 10 has:
 **Numbering**
 
 - `04-backend-engineering` and `05-system-design` share one sequence: backend is topics 1–12, system design is topics 13–33.
-- Folders `03`, `06`, `07`, `08`, `09`, and `10` each number their own topics from 1.
+- Folders `03`, `06`, `07`, `08`, `09`, `10`, and `11` each number their own topics from 1.
 - `99` is always the cheat sheet of that folder.
 
 **Reference shorthand** used inside the roadmaps
@@ -150,15 +154,16 @@ Each of folders 03 to 10 has:
 | `AI` | `08-artificial-intelligence` |
 | `ARCH` | `09-architecture` |
 | `DB` | `10-database` |
+| `OOP` | `11-oop-and-java-basics` |
 
 A plain number, such as `7`, means a topic in the same folder. For example, `SD 21` is system design topic 21.
 
-**Topic note layout** (folders 03 to 10): a title and one-line goal, then nine numbered sections:
+**Topic note layout** (folders 03 to 11): a title and one-line goal, then nine numbered sections:
 
 1. What it is and how to spot it in an interview
 2. How it works, with a diagram
 3. Brute force (naive) vs optimized (better) design
-4. Kotlin code (SQL in `10-database`), with the outputs checked
+4. Kotlin code (SQL in `10-database`; Java and Kotlin in `11-oop-and-java-basics`), with the outputs checked
 5. Complexity, numbers, or limits
 6. Common mistakes and edge cases
 7. What to say in the interview
@@ -189,8 +194,9 @@ Two forms of quick revision, for every folder:
 | `08-artificial-intelligence` | `99-AI-Cheat-Sheet` | `ai_cheatsheet.png` |
 | `09-architecture` | `99-Architecture-Cheat-Sheet` | `architecture_cheatsheet.png` |
 | `10-database` | `99-Database-Cheat-Sheet` | `database_cheatsheet.png` |
+| `11-oop-and-java-basics` | `99-OOP-and-Java-Cheat-Sheet` | `oop_cheatsheet.png` |
 
-The posters are drawn from HTML with headless Chrome, so the text stays exact. The generators for the `01`, `02`, `03`, `09` and `10` posters are in `scripts/posters/` (run `python3 poster_ds.py <output.png>` from that folder; needs Chrome and Pillow). The other posters were generated earlier and their generators were not saved.
+The posters are drawn from HTML with headless Chrome, so the text stays exact. The generators for the `01`, `02`, `03`, `09`, `10` and `11` posters are in `scripts/posters/` (run `python3 poster_ds.py <output.png>` from that folder; needs Chrome and Pillow). The other posters were generated earlier and their generators were not saved.
 
 
 ## Suggested Study Order

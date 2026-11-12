@@ -9,8 +9,9 @@ python3 poster_algorithm.py ../../02-algorithm/algorithm_cheatsheet.png
 python3 poster_leetcode.py ../../03-leetcode-patterns/leetcode_patterns_cheatsheet.png
 python3 poster_arch.py ../../09-architecture/architecture_cheatsheet.png
 python3 poster_database.py ../../10-database/database_cheatsheet.png
+python3 poster_oop.py ../../11-oop-and-java-basics/oop_cheatsheet.png
 ```
 
 Needs Google Chrome (set `CHROME=/path/to/chrome` if it is not at the macOS default), Pillow (`pip install pillow`) and internet access for the Google Fonts (Plus Jakarta Sans, JetBrains Mono).
 
-`poster_lib.py` has the layout and styles, `poster_svg.py` the small diagrams. Only these five posters have generators here; the others were generated earlier and their scripts were not saved.
+`poster_lib.py` has the layout and styles, `poster_svg.py` the small diagrams. Only these six posters have generators here; the others were generated earlier and their scripts were not saved.
