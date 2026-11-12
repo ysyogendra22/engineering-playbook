@@ -2,10 +2,10 @@
 
 What to do on any project, which decisions matter most, and which terms to know first.
 
-- **Numbering:** own, 1–22, plus 99 (cheat sheet).
-- **Every note has the same layout:** what it is and how to spot it in an interview, how it works (with a diagram), naive vs better design, templates and examples (ADRs, diagrams, Kotlin and config) with checked outputs, numbers and rules of thumb, common mistakes and edge cases, what to say in the interview, a quick check, and practice (interview questions and exercises).
+- **Numbering:** own, 1–25, plus 99 (cheat sheet). Topics 23–25 are the code-level foundations (OOP, SOLID in code, design patterns): read them first if OOP is new.
+- **Every note has the same layout:** what it is and how to spot it in an interview, how it works (with a diagram), naive vs better design, templates and examples (ADRs, diagrams, Kotlin and config) with checked outputs, numbers and rules of thumb, common mistakes and edge cases, what to say in the interview, a quick check, and practice (interview questions and exercises). Notes 23–25 use Java and Kotlin, with LeetCode design problems (Easy → Medium) at the end.
 - **References:** `7` = this folder · `BE 3`/`SD 21`/`AI 7` = topic N in that roadmap · mobile detail in `06-mobile-engineering`, interview stories in `07-behavioral-leadership`
-- **Start with:** `BE 1–4` (backend basics), `SD 13–15`, `SD 26` (scale, caching, service boundaries)
+- **Start with:** `23`–`25` if OOP and design patterns are new · `BE 1–4` (backend basics), `SD 13–15`, `SD 26` (scale, caching, service boundaries)
 - **Marks:** 🟢 must have · 🟡 good to have · (New) for a mobile engineer moving into architecture, or still changing
 
 ---
@@ -36,9 +36,12 @@ What to do on any project, which decisions matter most, and which terms to know 
 | 20  | Architecting AI-Enabled Systems (New)        | 6. Your Domain                 | 🟢   |
 | 21  | Architecture Interview Answers (New)         | 7. Interview & Practice        | 🟢   |
 | 22  | Practice: Case Studies & Exercises           | 7. Interview & Practice        | 🟢   |
+| 23  | OOP & Java Basics (New)                      | 8. Code-Level Foundations      | 🟢   |
+| 24  | SOLID in Code (New)                          | 8. Code-Level Foundations      | 🟢   |
+| 25  | Design Patterns in Code (New)                | 8. Code-Level Foundations      | 🟢   |
 | 99  | Architecture Cheat Sheet                     | Revision                       | 🟢   |
 
-**Short on time:** 1, 2, 3, 4, 5, 8, 10, 12, 14, 16, 19, 21, then the cheat sheet (99). 🟢 items only.
+**Short on time:** 1, 2, 3, 4, 5, 8, 10, 12, 14, 16, 19, 21, plus 23, 24, 25 if OOP and patterns are new, then the cheat sheet (99). 🟢 items only.
 
 **Glossary:** the terms to learn first are listed at the end, each with a priority mark and the topic that explains it.
 
@@ -108,7 +111,7 @@ What to do on any project, which decisions matter most, and which terms to know 
 
 - 🟢 Separation of concerns
 - 🟢 High cohesion, low coupling
-- 🟢 SOLID (single responsibility, open–closed, Liskov substitution, interface segregation, dependency inversion)
+- 🟢 SOLID (single responsibility, open–closed, Liskov substitution, interface segregation, dependency inversion): worked code in topic 24
 - 🟢 Abstraction and information hiding
 - 🟢 KISS, YAGNI, DRY (and when DRY hurts: wrong abstractions)
 - 🟢 Design for failure: assume parts will break
@@ -132,8 +135,8 @@ What to do on any project, which decisions matter most, and which terms to know 
 
 ## 6. Architecture & Design Patterns
 
-- 🟢 Creational and structural basics: factory, builder, adapter, facade, decorator
-- 🟢 Behavioural basics: strategy, observer
+- 🟢 Creational and structural basics: factory, builder, adapter, facade, decorator (code in topic 25)
+- 🟢 Behavioural basics: strategy, observer (code in topic 25)
 - 🟢 Dependency injection and inversion of control
 - 🟢 Repository pattern and the data access layer
 - 🟢 UI patterns: MVC, MVP, MVVM, MVI (topic 19)
@@ -380,6 +383,51 @@ What to do on any project, which decisions matter most, and which terms to know 
 
 ---
 
+# Stage 8: Code-Level Foundations
+
+*The class-level skills that sit under every architecture. Read this stage first if OOP is new; it is also the base for class-design (LLD) interview rounds.*
+
+## 23. OOP & Java Basics (New)
+
+- 🟢 Class and object; fields, methods, constructors
+- 🟢 Encapsulation: private state, rules enforced by methods
+- 🟢 Abstraction: abstract class vs interface (state, constructors, one parent vs many interfaces, default methods)
+- 🟢 Inheritance and polymorphism; overriding (runtime) vs overloading (compile time)
+- 🟢 Composition vs inheritance
+- 🟢 `equals`, `hashCode`, `toString`: the contract and why both are overridden together
+- 🟢 `==` vs `equals`; string pool; `Integer` cache
+- 🟢 Pass-by-value: why a method can change an object but not the caller's variable
+- 🟢 Immutability: final fields, no setters, defensive copies
+- 🟢 Access modifiers, `static`, `final`
+- 🟢 Checked vs unchecked exceptions; try-with-resources / `use`
+- 🟡 Generics: type erasure, bounded types
+- 🟡 Enums, records, Kotlin `data class`, nested classes
+- 🟡 Java vs Kotlin differences (open/final, companion object, no checked exceptions, `==`)
+
+## 24. SOLID in Code (New)
+
+- 🟢 Single responsibility: one reason to change; split calculate, format, store
+- 🟢 Open–closed: add a case by adding code, not by editing a `when`
+- 🟢 Liskov substitution: subtypes keep the parent's promises (the Rectangle and Square trap)
+- 🟢 Interface segregation: small role interfaces
+- 🟢 Dependency inversion: depend on an interface; inject the implementation; test with a fake
+- 🟢 Spot violations in review: "And" in names, repeated `when`, `UnsupportedOperationException`, `TODO()` bodies, concrete library imports
+- 🟡 How SOLID maps to patterns (strategy, decorator, adapter, repository, DI)
+- 🟡 When SOLID is overkill: prototypes, scripts, one-off code
+
+## 25. Design Patterns in Code (New)
+
+- 🟢 Creational: Singleton (and its drawbacks, thread safety), Factory Method, Builder (and Kotlin named arguments)
+- 🟢 Structural: Adapter, Decorator, Facade
+- 🟢 Behavioral: Strategy, Observer, State, Command (undo), Template Method
+- 🟢 Pattern picker: start from the problem, not the pattern
+- 🟢 Where patterns appear on Android (Builder, Observer, Adapter, Template Method, interceptors)
+- 🟢 Class-design (LLD) interviews: steps, and which patterns usually appear (parking lot, vending machine, elevator)
+- 🟡 Abstract Factory, Prototype, Proxy, Composite, Iterator, Chain of Responsibility, Mediator, Memento, Visitor (names and one line each)
+- 🟡 Pattern-itis and anti-patterns: when a plain function is enough
+
+---
+
 # Glossary: Terms to Learn First
 
 Plain meanings, with a priority. The last column is the topic that explains the term.
@@ -470,6 +518,27 @@ Plain meanings, with a priority. The last column is the topic that explains the 
 | 🟡 | DORA metrics | Four delivery measures: deployment frequency, lead time, change failure rate, time to restore | 18 |
 | 🟡 | Team Topologies | A model of four team types and how they interact | 18 |
 
+**Code-level foundations**
+
+| Priority | Term | Plain meaning | Topic |
+|---|---|---|---|
+| 🟢 | Encapsulation | Keep data private and change it only through methods that protect the rules | 23 |
+| 🟢 | Polymorphism | One call runs different code depending on the real object type | 23 |
+| 🟢 | Abstract class vs interface | A class with shared state and code (one parent) vs a contract a class can implement (many allowed) | 23 |
+| 🟢 | Overriding vs overloading | Replace a parent method at runtime vs same name with different parameters, chosen at compile time | 23 |
+| 🟢 | `equals` / `hashCode` contract | Equal objects must have equal hash codes, so hash-based collections work | 23 |
+| 🟢 | Immutable object | An object that never changes after creation, so it is safe to share | 23 |
+| 🟢 | Single responsibility / open–closed | One reason to change / add new behaviour by adding code, not editing old code | 24 |
+| 🟢 | Liskov substitution | A subtype can be used anywhere the parent is expected, without surprises | 24 |
+| 🟢 | Dependency inversion vs injection | Depend on abstractions (rule) / pass the dependency in from outside (technique) | 24, 6 |
+| 🟢 | Singleton | Exactly one shared instance (prefer a DI scope or Kotlin `object`) | 25 |
+| 🟢 | Factory / Builder | Create objects without exposing the class / build an object with many optional parts step by step | 25 |
+| 🟢 | Adapter / Decorator / Facade | Make an API fit / add behaviour with the same interface / one simple entry to a complex subsystem | 25 |
+| 🟢 | Strategy / State | Swap an algorithm / behaviour that changes with the object's state | 25 |
+| 🟢 | Observer | Many listeners are notified when something changes | 25 |
+| 🟡 | Command / Template Method | An action as an object (queue, undo) / fixed steps with one changing step | 25 |
+| 🟡 | LLD (low-level design) | A class-design interview: classes, relationships and key methods for a small system | 25 |
+
 **Mobile and AI**
 
 | Priority | Term | Plain meaning | Topic |
@@ -498,5 +567,6 @@ Plain meanings, with a priority. The last column is the topic that explains the 
 4. Start writing ADRs and C4 diagrams right after topic 3 and topic 14. Do not wait to finish the theory.
 5. Do topic 19 alongside your daily mobile work: look at your own app and find its layers, boundaries, and debt.
 6. Do topics 21 and 22 last, and tell your decision stories out loud.
+   If OOP, SOLID or patterns are new to you, read topics 23 to 25 before topic 4, and write the code from each note yourself. Then do the LeetCode design problems at the end of each note.
 7. For each topic: what it is, what problem it solves, how it works, one downside.
 8. The night before an interview, read `99-Architecture-Cheat-Sheet`, then the `Say This in the Interview` part of the topics you are least sure of.

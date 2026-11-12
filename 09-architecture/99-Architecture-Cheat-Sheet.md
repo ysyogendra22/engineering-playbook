@@ -1,6 +1,6 @@
 # Architecture Cheat Sheet
 
-> One-page revision for the night before an interview. The full explanations are in notes 1–22.
+> One-page revision for the night before an interview. The full explanations are in notes 1–25 (notes 23–25 are the code-level foundations: OOP, SOLID, design patterns).
 
 ![One-page cheat sheet poster](architecture_cheatsheet.png)
 
@@ -29,6 +29,9 @@
 19. **Mobile:** offline-first with Room as source of truth; UI → ViewModel → repository; modules by feature; add-only API + min version; flags + staged rollout; pilot KMP.
 20. **AI systems:** model behind the backend via a gateway; design for wrong answers; cost/latency/reliability as ASRs; control data flow; provider-neutral, eval-gated changes.
 21. **Interview:** clarify → attributes → options → decision with trade-off → risks → evolution; real decision stories.
+22. **OOP basics:** four pillars (encapsulation, abstraction, inheritance, polymorphism); interface for a capability, abstract class for shared state; overriding is runtime, overloading is compile time; override `equals` and `hashCode` together; `==` compares references in Java; Java is pass-by-value; prefer immutable.
+23. **SOLID in code:** one reason to change; add cases instead of editing (strategy); subtypes keep the parent's promises (Rectangle/Square); small interfaces; depend on interfaces and inject; apply where change is likely.
+24. **Patterns in code:** start from the problem. Singleton via a DI scope; Factory hides the class; Builder validates (Kotlin: named arguments); Adapter fits a vendor; Decorator wraps (retry); Facade simplifies; Strategy swaps; Observer notifies (and unsubscribes); State owns transitions; Command undoes; Template Method fixes the steps.
 
 ---
 
@@ -51,6 +54,15 @@
 | Team size | 5–9; cognitive load limits what a team owns |
 | Test mix | ~70% unit, 20% integration, 10% UI |
 | Strangler steps | 1% → 10% → 50% → 100% with checks |
+| Class size | a few hundred lines; split when you can name two reasons to change |
+| Inheritance depth | 1 to 2 levels |
+| Interface size | 1 to 5 methods |
+| Constructor parameters | 3 to 4; beyond that use a builder or named arguments |
+| `equals` / `hashCode` | always override together (or use `data class` / `record`) |
+| `Integer` cache (Java) | -128 to 127; `==` on boxed values above that fails |
+| Patterns to know | about 11 well (Singleton, Factory, Builder, Adapter, Decorator, Facade, Strategy, Observer, State, Command, Template Method), 8 more by name |
+| Decorator layers | 2 to 3; more is hard to debug |
+| New abstraction | at the second real variant, or the third repeat (rule of three) |
 
 ---
 
@@ -78,6 +90,9 @@
 | "team structure / delivery speed" | inverse Conway, walking skeleton, DORA | 18 |
 | "mobile architecture / old versions" | offline-first, modules, add-only API | 19 |
 | "add AI to the product" | gateway, wrong answers, eval gate | 20 |
+| "abstract class vs interface", "`equals` / `hashCode`", "pass-by-value" | OOP basics | 23 |
+| "explain SOLID", "Liskov example", "add a payment type without editing old code" | SOLID in code, strategy | 24 |
+| "which design pattern?", "Singleton problems", "design a parking lot" | pattern picker, LLD steps | 25 |
 
 ```mermaid
 flowchart TD
@@ -128,6 +143,40 @@ Attribute | Measurable requirement (metric, target, load, percentile) | Priority
 
 **Interview answer:** Clarify → Attributes (numbers) → Options → Decision (trade-off) → Risks → Evolution.
 
+**SOLID review checklist:** class needs "And" in its name (S) · same `when (type)` in several files (O) · subclass throws `UnsupportedOperationException` (L) · implementers leave `TODO()` bodies (I) · business code imports a concrete library class (D).
+
+**`equals` and `hashCode` (Kotlin / Java):**
+
+```kotlin
+data class Pt(val x: Int, val y: Int)          // generated equals, hashCode, toString, copy
+// Java: override both, e.g. equals(Object o) and hashCode() { return Objects.hash(x, y); }
+```
+
+**Open–closed with a strategy map:**
+
+```kotlin
+fun interface Pricing { fun price(base: Long): Long }
+val pricing = mutableMapOf("regular" to Pricing { it }, "student" to Pricing { it * 80 / 100 })
+fun priceFor(plan: String, base: Long) = (pricing[plan] ?: pricing.getValue("regular")).price(base)
+// a new plan: pricing["senior"] = Pricing { it * 70 / 100 }   (priceFor is not edited)
+```
+
+**Dependency inversion:** `class SaveNote(private val formatter: Formatter, private val writer: NotesWriter)`: depend on interfaces, inject the implementations, test with a fake.
+
+**Singleton:** Kotlin `object`; Java `enum Config { INSTANCE }` or the holder idiom; in apps prefer a DI scope (`@Singleton`). A lazy `if (inst == null)` is unsafe without `volatile` double-checked locking.
+
+**Builder:** `Request.Builder().url(u).method("POST").build()`; validate in `build()` (`checkNotNull(url) { "url required" }`). In Kotlin, named and default arguments often replace it.
+
+**Observer:** `fun subscribe(l: (String) -> Unit): () -> Unit` returns an unsubscribe function; copy the listener list before looping; cancel with the lifecycle.
+
+**Decorator:** `class RetryingApi(private val inner: Api, private val tries: Int = 3) : Api`: same interface, adds retry, retries only idempotent calls.
+
+**State:** an enum with transition methods that `check(this == NEW)` and throw on illegal moves.
+
+**Command with undo:** `interface Command { fun run(t); fun undo(t) }` plus a stack of done commands.
+
+**Class-design (LLD) interview steps:** clarify requirements → nouns as classes, verbs as methods → relationships and interfaces → code the core flow → add a pattern only where it solves a problem → edge cases, errors, thread safety → test with a small example.
+
 ---
 
 #### 5. Naive to Better
@@ -150,6 +199,16 @@ Attribute | Measurable requirement (metric, target, load, percentile) | Priority
 | approval boards | guardrails and paved roads |
 | component teams with handoffs | stream-aligned teams |
 | huge diagram | C4 levels per audience |
+| public mutable fields | private state; methods that enforce the rules |
+| `equals` without `hashCode` | override both, or use `data class` / `record` |
+| `when (type)` repeated everywhere | strategy map: add a case by adding code |
+| subclass throws `UnsupportedOperationException` | split into smaller interfaces |
+| ViewModel creates Retrofit | depend on an interface, inject it, test with a fake |
+| global mutable singleton | injected, scoped object with a narrow API |
+| a constructor with nine parameters | builder or named and default arguments |
+| retry code pasted into every repository | one `RetryingApi` decorator |
+| callbacks that are never removed | subscriptions cancelled with the lifecycle |
+| inheritance only to reuse code | composition and small interfaces |
 
 ---
 
@@ -165,7 +224,8 @@ Attribute | Measurable requirement (metric, target, load, percentile) | Priority
 8. No docs or ADRs; stale diagrams; an ivory-tower architect.
 9. Rewrites; no debt register; rules without automated checks.
 10. Ignoring Conway's law and team skills.
-11. Edge cases: unknown numbers (estimate and state assumptions); conflicting attributes (rank and negotiate); regulation (data residency, audit); legacy (strangler + ACL); mobile (old app versions, offline); AI (wrong answers, data leaving, model changes).
+11. Code level: `equals` without `hashCode`; comparing strings or boxed numbers with `==` in Java; believing Java passes objects by reference; inheritance for reuse (breaks Liskov); an interface for every class; pattern-itis; a Singleton as global mutable state or a lazy one that is not thread-safe; Observers that are never removed; a Builder that allows invalid objects.
+12. Edge cases: unknown numbers (estimate and state assumptions); conflicting attributes (rank and negotiate); regulation (data residency, audit); legacy (strangler + ACL); mobile (old app versions, offline); AI (wrong answers, data leaving, model changes).
 
 ---
 
@@ -180,6 +240,9 @@ Attribute | Measurable requirement (metric, target, load, percentile) | Priority
 7. "I design for failure: timeouts, bounded retries with jitter, breakers, fallbacks, no SPOFs, and I define SLOs with error budgets."
 8. "I document with C4 and ADRs in the repo, and protect the design with fitness functions and light reviews."
 9. "For legacy systems: strangler fig, shadow traffic, gradual rollout, rollback, and remove the old path."
+10. "OOP: encapsulation protects the rules, abstraction hides details, inheritance reuses a parent, polymorphism runs different code per type. I start with an interface; I use an abstract class only for shared state. If I override `equals`, I override `hashCode`. Java is pass-by-value: the reference is copied."
+11. "SOLID: one reason to change; add a strategy instead of editing a `when`; a subtype must keep the parent's promises, which is why `Square` extending `Rect` with setters fails; small interfaces; depend on an interface and inject it."
+12. "Patterns: I start from the problem. Factory hides the class, Builder validates, Adapter fits a vendor, Decorator adds retry, Strategy swaps, State owns transitions, Observer notifies (and I unsubscribe), Command gives undo. I avoid a pattern when a plain function is enough."
 
 ---
 
@@ -195,4 +258,5 @@ Attribute | Measurable requirement (metric, target, load, percentile) | Priority
 | 6 | Plan a strangler migration and write five fitness functions (16, 17) |
 | 7 | Work the case studies aloud: notes sync, chat, checkout (22) |
 | 8 | Practise the interview structure with a friend (21) |
-| 9 | Read this sheet, then the "Say This in the Interview" parts of your weakest notes |
+| 9 | If OOP is new: write the code from notes 23, 24 and 25 yourself, then do their LeetCode design problems |
+| 10 | Read this sheet, then the "Say This in the Interview" parts of your weakest notes |

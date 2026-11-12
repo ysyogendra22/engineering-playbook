@@ -2,6 +2,21 @@
 
 All notable changes to this repository. Dates are `YYYY-MM-DD`.
 
+## [Unreleased]
+
+### Added
+- **`09-architecture` topics 23–25** (code-level foundations): `23-OOP-and-Java-Basics`, `24-SOLID-in-Code`, `25-Design-Patterns-in-Code`. Java and Kotlin, with a worked bad → better example for each idea, 8 diagrams, LeetCode design problems, and class-design (LLD) interview steps. Java versions of the examples were compiled and run on JDK 21; the Kotlin versions were not compiled.
+- Section 9 (OOP and class design) in `Mock-Interview-Bank.md`.
+- `01-data-structure/data_structure_cheatsheet.png`: a complete, Kotlin-based DSA poster with 18 numbered boxes: Big-O for ten structures, sorting with stability and space, a deeper Graphs box (shortest-path variants, cycle and bipartite checks, MST, SCC), Trie, Union-Find, Recursion and Backtracking, Greedy and Intervals, an 18-row signal → pattern table with LeetCode IDs, bit tricks, formulas, edge cases and Kotlin tools. The original `data_structure.jpeg` is kept as is.
+- `scripts/posters/`: the renderer and generators for the `01`, `02`, `03`, `09` and `10` posters.
+
+### Changed
+- `09-architecture`: the roadmap (`00-Content.md`), cheat sheet and poster now include topics 23–25; notes 04 and 06 link to the new code-level notes.
+
+### Fixed
+- `02-algorithm` poster: the power-of-two check was written C-style (`x & (x-1) == 0`, which has a precedence bug and is not Kotlin). It is now `(x and (x - 1)) == 0`.
+- Posters with code (`02`, `03`, `10`): the code font no longer turns `===`, `!=` and `=>` into "≡", "≠" and "⇒".
+
 ## [1.0.0] - 2026-11-05
 
 The full rewrite for FAANG-style interview preparation, in simple beginner-friendly English with Kotlin code.

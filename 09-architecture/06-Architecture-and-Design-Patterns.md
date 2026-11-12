@@ -4,7 +4,7 @@
 
 Roadmap topic 6 · Stage 2: Design Foundations
 
-**Go deeper:** `4` Design Principles · `5` Styles · `10` Integration · `12` Resilience · `16` Evolutionary Architecture · `05-system-design/25-Overload-and-Failure-Handling` and `26-Service-Boundaries-and-Architecture` · `06-mobile-engineering/06-App-Architecture`.
+**Go deeper:** `25` Design Patterns in Code (Singleton, Factory, Builder, Observer, State, Command and more, with code) · `24` SOLID in Code · `4` Design Principles · `5` Styles · `10` Integration · `12` Resilience · `16` Evolutionary Architecture · `05-system-design/25-Overload-and-Failure-Handling` and `26-Service-Boundaries-and-Architecture` · `06-mobile-engineering/06-App-Architecture`.
 
 **Marks:** 🟢 must know · 🟡 good to know
 

@@ -26,7 +26,7 @@ A 12-week plan, about 8 to 10 hours a week. Change the pace to fit your date: th
 | 2 | `01-data-structure` (Tree, Heap, Trie, Graph) · `03` 4–7 (two pointers, sliding window, fast and slow, prefix sum) | 2 problems per pattern |
 | 3 | `03` 8–13 (binary search, intervals, monotonic stack, top K, BFS, DFS) · `02-algorithm` 3 | Mock: coding set A or B |
 | 4 | `03` 14–19 (backtracking, graphs, topological sort, union find, DP, greedy) · `02-algorithm` 4–5 | Mock: coding set G or H |
-| 5 | `04-backend-engineering` 1–7 | Build the first half of the Notes API |
+| 5 | `04-backend-engineering` 1–7 · `09-architecture` 23–25 (OOP, SOLID, design patterns) | Build the first half of the Notes API · write the pattern examples yourself |
 | 6 | `04` 8–12 · `10-database` 1–6 (modeling, SQL, indexes, query plans) | Mock: SQL set A |
 | 7 | `10-database` 8–11, 14–16 (transactions, concurrency, replication, sharding, CAP) | Reproduce a double booking and fix it · Mock: backend and database session |
 | 8 | `05-system-design` 13–19, 21 (estimation, scaling, caching, storage, databases, queues) | Mock: system design prompt 1 or 3 |
@@ -49,7 +49,7 @@ About two weeks: the 🟢 topics only, then the cheat sheet of each folder. Thes
 | 4 | `05-system-design` | 13, 14, 15, 16, 17, 18, 19, 21, 22, 23, 24, 25, 30, 31, 32 | cheat sheet (99) |
 | 5 | `06-mobile-engineering` | 1, 2, 3, 4, 5, 6, 8, 9, 11, 13, 18, 21 | cheat sheet (99) |
 | 6 | `08-artificial-intelligence` | 1, 2, 4, 5, 7, 8, 10, 11, 12, 15, 16, 17, 19, 20, 21 | cheat sheet (99) |
-| 7 | `09-architecture` | 1, 2, 3, 4, 5, 8, 10, 12, 14, 16, 19, 21 | cheat sheet (99) |
+| 7 | `09-architecture` | 23, 24, 25 (if OOP is new) · 1, 2, 3, 4, 5, 8, 10, 12, 14, 16, 19, 21 | cheat sheet (99) |
 | 8 | `07-behavioral-leadership` | 1, 2, 3, 4, 5, 7, 8, 9, 10, 12, 16, 18 | cheat sheet (99) |
 
 For `02-algorithm`, read topics 1–5 and 7 (the 🟢 items) before folder 03.
@@ -58,7 +58,7 @@ For `02-algorithm`, read topics 1–5 and 7 (the 🟢 items) before folder 03.
 
 | # | Folder | What it covers | Start here | Poster |
 |---|---|---|---|---|
-| 01 | `01-data-structure` | Array, Linked List, Stack, Queue, HashMap, HashSet, Tree, Heap, Trie, Graph | [00-data-structure](01-data-structure/00-data-structure.md) | [DS](01-data-structure/data_structure.jpeg) |
+| 01 | `01-data-structure` | Array, Linked List, Stack, Queue, HashMap, HashSet, Tree, Heap, Trie, Graph | [00-data-structure](01-data-structure/00-data-structure.md) | [DSA](01-data-structure/data_structure_cheatsheet.png) |
 | 02 | `02-algorithm` | Sorting, searching, recursion, greedy, dynamic programming, backtracking, graphs, strings, bits, math, complexity classes (11 topic folders) | [00-Content](02-algorithm/00-Content.md) | [Algorithms](02-algorithm/algorithm_cheatsheet.png) |
 | 03 | `03-leetcode-patterns` | The essential coding patterns, the method, and Kotlin tools (22 topics) | [00-Content](03-leetcode-patterns/00-Content.md) | [Patterns](03-leetcode-patterns/leetcode_patterns_cheatsheet.png) |
 | 04 | `04-backend-engineering` | APIs, auth, security, testing, SQL, and the first pass on transactions (topics 1–12) | [00-Content](04-backend-engineering/00-Content.md) | [Backend](04-backend-engineering/backend_cheatsheet.png) |
@@ -66,7 +66,7 @@ For `02-algorithm`, read topics 1–5 and 7 (the 🟢 items) before folder 03.
 | 06 | `06-mobile-engineering` | Android with Kotlin, Compose, architecture, offline-first, quality, iOS and KMP (22 topics) | [00-Content](06-mobile-engineering/00-Content.md) | [Mobile](06-mobile-engineering/mobile_cheatsheet.png) |
 | 07 | `07-behavioral-leadership` | STAR, stories, decisions, incidents, conflict, leadership, offers (21 topics) | [00-Content](07-behavioral-leadership/00-Content.md) | [Behavioral](07-behavioral-leadership/behavioral_cheatsheet.png) |
 | 08 | `08-artificial-intelligence` | LLMs, RAG, tools, agents, harnesses, evals, safety, AI on mobile (22 topics) | [00-Content](08-artificial-intelligence/00-Content.md) | [AI](08-artificial-intelligence/ai_cheatsheet.png) |
-| 09 | `09-architecture` | The architect's role, quality attributes, trade-offs, styles, patterns, DDD, governance, mobile and AI architecture (22 topics) | [00-Content](09-architecture/00-Content.md) | [Architecture](09-architecture/architecture_cheatsheet.png) |
+| 09 | `09-architecture` | The architect's role, quality attributes, trade-offs, styles, DDD, governance, mobile and AI architecture, plus OOP, SOLID and design patterns in code (25 topics) | [00-Content](09-architecture/00-Content.md) | [Architecture](09-architecture/architecture_cheatsheet.png) |
 | 10 | `10-database` | Data modeling, SQL, indexes, internals, transactions, NoSQL, scaling, backups, security, mobile databases (23 topics) | [00-Content](10-database/00-Content.md) | [Database](10-database/database_cheatsheet.png) |
 
 
@@ -75,7 +75,7 @@ For `02-algorithm`, read topics 1–5 and 7 (the 🟢 items) before folder 03.
 ```text
 engineering-playbook/
 │
-├── 01-data-structure/          topic folders + data_structure.jpeg
+├── 01-data-structure/          topic folders, data_structure_cheatsheet.png (+ the original data_structure.jpeg)
 ├── 02-algorithm/               11 topic folders, each with its own cheat sheet + algorithm_cheatsheet.png
 ├── 03-leetcode-patterns/       00-Content, notes 1–22, 99 cheat sheet, poster
 ├── 04-backend-engineering/     00-Content, notes 1–12, 99 cheat sheet, poster
@@ -83,10 +83,10 @@ engineering-playbook/
 ├── 06-mobile-engineering/      00-Content, notes 1–22, 99 cheat sheet, poster
 ├── 07-behavioral-leadership/   00-Content, notes 1–21, 99 cheat sheet, poster
 ├── 08-artificial-intelligence/ 00-Content, notes 1–22, 99 cheat sheet, poster
-├── 09-architecture/            00-Content, notes 1–22, 99 cheat sheet, poster
+├── 09-architecture/            00-Content, notes 1–25, 99 cheat sheet, poster
 ├── 10-database/                00-Content, notes 1–23, 99 cheat sheet, poster
 ├── assets/                     logo files + social-preview.png (repo card image)
-├── scripts/                    validate_notes.py (the consistency check CI runs)
+├── scripts/                    validate_notes.py (CI check) and posters/ (poster generators)
 ├── .github/workflows/          validate.yml
 │
 ├── Mock-Interview-Bank.md      timed practice prompts for every folder
@@ -117,7 +117,7 @@ Each of folders 03 to 10 has:
 | `06-mobile-engineering` | Done | 22 written | Done | Yes |
 | `07-behavioral-leadership` | Done | 21 written | Done | Yes |
 | `08-artificial-intelligence` | Done | 22 written | Done | Yes |
-| `09-architecture` | Done | 22 written | Done | Yes |
+| `09-architecture` | Done | 25 written | Done | Yes |
 | `10-database` | Done | 23 written | Done | Yes |
 
 
@@ -179,6 +179,7 @@ Two forms of quick revision, for every folder:
 
 | Folder | Cheat sheet note | Poster |
 |---|---|---|
+| `01-data-structure` | per-topic cheat sheets | `data_structure_cheatsheet.png` |
 | `02-algorithm` | per-topic `99-*` notes | `algorithm_cheatsheet.png` |
 | `03-leetcode-patterns` | `99-LeetCode Patterns Cheat Sheet` | `leetcode_patterns_cheatsheet.png` |
 | `04-backend-engineering` | `99-Backend-Cheat-Sheet` | `backend_cheatsheet.png` |
@@ -189,7 +190,7 @@ Two forms of quick revision, for every folder:
 | `09-architecture` | `99-Architecture-Cheat-Sheet` | `architecture_cheatsheet.png` |
 | `10-database` | `99-Database-Cheat-Sheet` | `database_cheatsheet.png` |
 
-The posters are drawn from HTML with headless Chrome, so the text stays exact. To change one, edit its content and render it again.
+The posters are drawn from HTML with headless Chrome, so the text stays exact. The generators for the `01`, `02`, `03`, `09` and `10` posters are in `scripts/posters/` (run `python3 poster_ds.py <output.png>` from that folder; needs Chrome and Pillow). The other posters were generated earlier and their generators were not saved.
 
 
 ## Suggested Study Order

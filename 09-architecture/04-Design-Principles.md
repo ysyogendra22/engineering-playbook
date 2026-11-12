@@ -4,7 +4,7 @@
 
 Roadmap topic 4 · Stage 2: Design Foundations
 
-**Go deeper:** `5` Architectural Styles · `6` Patterns · `8` Modularity & Boundaries · `06-mobile-engineering/06-App-Architecture` and `07-Dependency-Injection-and-Modularization`.
+**Go deeper:** `24` SOLID in Code (worked examples) · `23` OOP & Java Basics · `5` Architectural Styles · `6` Patterns · `8` Modularity & Boundaries · `06-mobile-engineering/06-App-Architecture` and `07-Dependency-Injection-and-Modularization`.
 
 **Marks:** 🟢 must know · 🟡 good to know
 

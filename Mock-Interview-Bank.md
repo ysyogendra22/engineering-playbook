@@ -22,6 +22,7 @@
 | AI engineering | 30 min | 3 questions or 1 design | Section 6 |
 | Architecture | 45 min | 1 case, then 2 follow-ups | Section 7 |
 | Behavioral | 30 min | 4 stories, 7 min each | Section 8 |
+| OOP and class design | 45 min | 3 theory questions (10 min) + 1 class design (35 min) | Section 9 |
 
 ---
 
@@ -178,6 +179,40 @@ Notes: `07-behavioral-leadership`. Use **STAR + Lesson**, about 2 minutes each, 
 
 ---
 
+## 9. OOP and Class Design (45 minutes)
+
+Notes: `09-architecture` topics 23, 24 and 25. Spend 10 minutes on three theory questions, then 35 minutes on one design.
+
+**Theory: pick three**
+
+| # | Question | Review |
+|---|---|---|
+| 1 | Abstract class vs interface: when do you choose each? | 23 |
+| 2 | Overloading vs overriding: what does `d.meet(animal)` call when `d` is a `Dog`? | 23 |
+| 3 | Why must you override `hashCode` with `equals`? | 23 |
+| 4 | Explain SOLID, and give a Liskov violation. | 24 |
+| 5 | How do you add a new payment type without editing old code? | 24 |
+| 6 | Singleton: its drawbacks, and how to make it thread-safe. | 25 |
+| 7 | Strategy vs State vs Decorator? | 25 |
+| 8 | Which patterns do you see on Android? | 25 |
+
+**Design: pick one**
+
+Steps: clarify the requirements → list nouns as classes and verbs as methods → draw relationships and interfaces → code the core classes and the main flow → add a pattern only where it solves a problem → cover edge cases, errors and thread safety.
+
+| # | Problem | Clarify first | Patterns to consider |
+|---|---|---|---|
+| 1 | Parking lot | vehicle types, spots, pricing, entry and exit | Strategy (pricing), Factory (vehicles), State (spot) |
+| 2 | Vending machine | items, coins, change, refunds | State, Command |
+| 3 | Elevator system | number of lifts, request types, scheduling goal | State, Strategy, Observer |
+| 4 | Tic-tac-toe | board size, players, win rule, undo | Strategy, Command |
+| 5 | Notification service | channels, retries, user preferences | Factory, Strategy, Decorator, Observer |
+| 6 | Library management | books, members, loans, due dates | Observer, Facade |
+| 7 | Text editor with undo and redo | operations, history size | Command, Memento |
+| 8 | Logger | levels, destinations, thread safety | Strategy, Chain of Responsibility, a carefully scoped singleton |
+
+---
+
 ## Weekly Mock Rhythm
 
 Follow this beside the plan in the README.
@@ -185,7 +220,7 @@ Follow this beside the plan in the README.
 | When | Do |
 |---|---|
 | Weeks 1–4 | One coding set (Section 1) at the end of each week |
-| Weeks 5–7 | One SQL set (Section 2) and one backend/database session (Section 5) |
+| Weeks 5–7 | One SQL set (Section 2), one backend/database session (Section 5), and one OOP and class-design session (Section 9) |
 | Weeks 8–9 | One system design prompt per week (Section 3), and one architecture case (Section 7) |
 | Weeks 10–11 | One mobile session (Section 4) and one AI session (Section 6) |
 | Week 12 | Two full mixed days: coding + system design + behavioral, with a one-hour break between rounds |
@@ -204,3 +239,4 @@ Score each area from 1 (weak) to 4 (strong). Anything at 1 or 2 gets a redo with
 | Complexity | States time and space and says where each comes from | |
 | Depth | Goes one level deeper when asked (failure, scale, security) | |
 | Time | Finishes inside the time box and leaves room to test | |
+| Class design | Clear classes and interfaces; patterns used only where they solve a real problem, and the choice is explained | |
