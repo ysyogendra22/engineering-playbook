@@ -4,6 +4,8 @@
 
 **Go deeper:** `DS Graph` (topological sort, Kahn's algorithm, DAG problems, dependency graphs). Shortest path in a DAG: `ALG 7.3`.
 
+**Video:** [Topological Sort, YouTube walkthrough](https://www.youtube.com/watch?v=0WIINUY12Yg)
+
 #### 1. What Is It?
 
 A **topological order** of a directed graph lists the nodes so that for every edge `a → b`, `a` comes before `b`. It exists only for a **DAG** (directed acyclic graph).

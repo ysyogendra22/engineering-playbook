@@ -2,6 +2,8 @@
 
 > A top FAANG graph topic. Course Schedule II and Alien Dictionary are classics.
 
+**Video:** [Topological Sort, YouTube walkthrough](https://www.youtube.com/watch?v=0WIINUY12Yg)
+
 #### 1. What Is It?
 
 A **topological sort** puts the vertices of a **directed acyclic graph (DAG)** in a line, so that for every edge `A → B`, **A comes before B**.
